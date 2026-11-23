@@ -11,7 +11,7 @@ import { imprimer } from "../lib/imprimer";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
 import { Champ, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee } from "../composants";
 import { RechercheClient } from "./Visa";
-import { FicheBeneficiaires } from "./DepotsTerme";
+import { FicheBeneficiaires, RecapRupture } from "./DepotsTerme";
 
 type Contexte = Awaited<ReturnType<typeof api.plansEpargne.contexte>>;
 type Plan = Awaited<ReturnType<typeof api.plansEpargne.plans>>[number];
@@ -218,13 +218,7 @@ function Rupture({ plan, rompu }: { plan: Plan | null; rompu: (x: Plan) => void 
           <p>Début : <strong className="chiffres">{plan ? fr(plan.dateDebut) : ""}</strong> Fin : <strong className="chiffres">{plan ? fr(plan.dateFin) : ""}</strong></p>
           <p>Statut : <strong>{plan ? { en_cours: "En cours", termine: "Terminé", rompu: "Rompu" }[plan.statut] : ""}</strong></p>
         </fieldset>
-        <fieldset className="pile cadre-champs">
-          <legend>Intérêt</legend>
-          <p>Montant versé : <strong className="chiffres">{a ? montant(a.verse, dev) : ""}</strong></p>
-          <p>Montant intérêt : <strong className="chiffres">{a ? montant(a.interet, dev) : ""}</strong></p>
-          <p>Taux IRC : <strong className="chiffres">{a ? `${a.tauxIrc} %` : ""}</strong> Montant IRC : <strong className="chiffres">{a ? montant(a.irc, dev) : ""}</strong></p>
-          <p>Montant à verser : <strong className="chiffres">{a ? montant(a.montantAVerser, dev) : ""}</strong></p>
-        </fieldset>
+        <RecapRupture dev={dev} capital={a?.verse} interet={a?.interet} tauxInteret={plan?.taux} irc={a?.irc} tauxIrc={a?.tauxIrc} net={a?.montantAVerser} />
       </div>
       <div className="actions-onglets"><button className="bouton" type="button" disabled={!plan || plan.statut !== "en_cours"} onClick={rompre}>Rompre le plan</button></div>
       <Textes sources={["Manuel Microfina++, p. 80 : « 4.5- Rupture » (titre seul) ; forme reprise de la Rupture de DAT (p. 77)",

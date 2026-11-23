@@ -971,7 +971,7 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Contrat 000001' }).click(); await p.getByRole('article', { name: 'Contrat de dépôt à terme' }).waitFor(); await etape('06c25-contrat-dat');
   await p.getByRole('dialog', { name: 'Contrat de dépôt à terme' }).getByRole('button', { name: 'Fermer' }).click();
   await p.getByRole('button', { name: 'Rompre 000001' }).click(); const drt = p.getByRole('dialog', { name: 'Rupture DAT' });
-  await drt.getByText('Montant à verser : 98 000').waitFor(); await etape('06c26-rupture-dat');
+  await drt.getByText('Net à verser : 98 000').waitFor(); await etape('06c26-rupture-dat');
   await drt.getByRole('button', { name: 'Rompre le DAT' }).click(); await oui();
   await drt.getByRole('button', { name: 'Imprimer' }).click(); await p.getByRole('article', { name: 'Avis de rupture de DAT' }).waitFor(); await etape('06c27-avis-rupture-dat');
   await p.getByRole('dialog', { name: 'Avis de rupture de DAT' }).getByRole('button', { name: 'Fermer' }).click();

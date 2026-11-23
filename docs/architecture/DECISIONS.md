@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1054 décisions.** Solidité : 502 fortes (le manuel ou un texte répond), 470 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1041 déjà en place, 13 à appliquer.
+**1055 décisions.** Solidité : 502 fortes (le manuel ou un texte répond), 471 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1042 déjà en place, 13 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2422,6 +2422,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S68-5 | Un écran pour les DAT | Mise en place, validation, rupture et recherche deviennent l'écran « Dépôts à terme » : liste filtrée par statut (À valider, En cours, Échus, Rompus, Annulés), actions sur la ligne selon le statut et les droits (Valider, Annuler, Contrat, Rompre, Avis de rupture), bouton « Nouveau DAT ». Les droits S65, S66 et S67 restent dans l'arbre des droits et commandent ces actions. Les treize cases de S68 disparaissent ; la recherche par période rejoint les rapports d'épargne (point 5.8). | Écran voisin : Plan d'allègement, point 5.1 ; Instr. BCC 008, art. 66 (quatre yeux) | moyenne | en place |
 | S65-14 | Qui annule un DAT à valider | Seule la personne qui l'a mis en place ; un DAT validé se rompt. | Écran voisin : Plan d'allègement, point 5.1 | moyenne | en place |
 | S68-6 | Intérêts courus des DAT | Un seul tableau, ouvert par le bouton « Intérêts courus » de Dépôts à terme : Calculer, Imprimer, Valider. L'onglet de Calculs (S128) et l'onglet « Dépôt » de Clôture (S127) disparaissent. Valider passe l'écriture et reste lié au droit S128 ; le calcul et l'impression suivent le droit de l'écran. Le profil comptable de départ reçoit l'écran Dépôts à terme pour y accéder. | Écran voisin : Plan d'allègement, point 5.3 ; PCCI § 6.4 | moyenne | en place |
+
+## S68 et S69 Épargne à terme
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S67-7 | Présentation de la rupture | Même modèle pour un DAT et un plan d'épargne : capital, intérêt acquis (avec son taux), pénalité s'il y en a, retenue d'impôt (avec son taux), net à verser. Les deux écrans se rangent sous « Épargne > Épargne à terme ». | Écran voisin : Plan d'allègement, point 5.5 ; loi 23/053, art. 120 (retenue) | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

@@ -577,7 +577,7 @@
   {
     "id": "S68",
     "nom": "Dépôts à terme",
-    "acces": "Épargne > Dépôts à terme",
+    "acces": "Épargne > Épargne à terme > Dépôts à terme",
     "but": "Lister les DAT par statut ; mettre en place, valider, imprimer le contrat, annuler, rompre",
     "module": "epargne",
     "priorite": "must",
@@ -586,7 +586,7 @@
   {
     "id": "S69",
     "nom": "Plan d'épargne",
-    "acces": "Épargne > Plan épargne",
+    "acces": "Épargne > Épargne à terme > Plan d'épargne",
     "but": "Simulation, création, échéancier (toutes, cotisées, non cotisées), cotisations, rupture",
     "module": "epargne",
     "priorite": "should",

@@ -318,14 +318,8 @@ function FormulaireRupture({ dat, fini }: { dat: Dat; fini: (piece?: string) => 
             <Champ libelle="N° compte :">{(pp) => <input {...pp} className="saisie code" readOnly value={x?.compteEmetteur ?? ""} />}</Champ>
             <Champ libelle="N° compte DAT :">{(pp) => <input {...pp} className="saisie code" readOnly value={x?.compteDat ?? ""} />}</Champ>
           </fieldset>
-          <fieldset className="pile cadre-champs">
-            <legend>Intérêt / pénalité</legend>
-            <p>Taux intérêt : <strong className="chiffres">{x ? `${x.tauxInteret} %` : "%"}</strong> · Taux pénalité : <strong className="chiffres">{x ? `${x.tauxPenalite} %` : "%"}</strong> · Taux IRC : <strong className="chiffres">{r ? `${r.tauxIrc} %` : "%"}</strong></p>
-            <p>Montant intérêt : <strong className="chiffres">{mt(r?.interet)}</strong></p>
-            <p>Montant pénalité : <strong className="chiffres">{mt(r?.penalite)}</strong></p>
-            <p>Montant IRC : <strong className="chiffres">{mt(r?.irc)}</strong></p>
-            <p>Montant à verser : <strong className="chiffres">{mt(r?.montantAVerser)}</strong></p>
-          </fieldset>
+          <RecapRupture dev={dev} capital={r ? x?.montant : undefined} interet={r?.interet} tauxInteret={x?.tauxInteret} penalite={r?.penalite} tauxPenalite={x?.tauxPenalite}
+            irc={r?.irc} tauxIrc={r?.tauxIrc} net={r?.montantAVerser} />
           <fieldset className="pile cadre-champs">
             <legend>Autres infos</legend>
             <Champ libelle="Observation :">{(pp) => <Lecture {...pp} value={x?.observation ?? ""} />}</Champ>
@@ -349,6 +343,23 @@ function FormulaireRupture({ dat, fini }: { dat: Dat; fini: (piece?: string) => 
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
+  );
+}
+
+/** Rupture d'une épargne à terme, même modèle pour un DAT et un plan d'épargne (plan d'allègement, point 5.5) : capital, intérêt acquis, pénalité s'il y en a,
+ * retenue d'impôt de 20 % des personnes physiques (loi 23/053, art. 120), net à verser */
+export function RecapRupture({ dev, capital, interet, tauxInteret, penalite, tauxPenalite, irc, tauxIrc, net }: { dev: Devise; capital?: number; interet?: number; tauxInteret?: string;
+  penalite?: number; tauxPenalite?: string; irc?: number; tauxIrc?: string; net?: number }) {
+  const mt = (v: number | undefined) => (v === undefined ? "" : montant(v, dev));
+  return (
+    <fieldset className="pile cadre-champs">
+      <legend>Rupture</legend>
+      <p>Capital : <strong className="chiffres">{mt(capital)}</strong></p>
+      <p>Intérêt acquis{tauxInteret ? ` (${tauxInteret} %)` : ""} : <strong className="chiffres">{mt(interet)}</strong></p>
+      {penalite !== undefined && penalite > 0 && <p>Pénalité{tauxPenalite ? ` (${tauxPenalite} %)` : ""} : <strong className="chiffres">{mt(penalite)}</strong></p>}
+      <p>Retenue d'impôt{tauxIrc ? ` (${tauxIrc} %)` : ""} : <strong className="chiffres">{mt(irc)}</strong></p>
+      <p>Net à verser : <strong className="chiffres">{mt(net)}</strong></p>
+    </fieldset>
   );
 }
 
