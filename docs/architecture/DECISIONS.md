@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1059 décisions.** Solidité : 503 fortes (le manuel ou un texte répond), 474 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1046 déjà en place, 13 à appliquer.
+**1060 décisions.** Solidité : 503 fortes (le manuel ou un texte répond), 475 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1047 déjà en place, 13 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -157,6 +157,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T142 | Taux négocié ? (5.2 Dépôt à terme) | Selon la politique de l'institution : le produit dit si son taux est négociable ; sinon le taux du produit s'applique, en lecture seule. Le taux publié reste celui des conditions de banque. | Choix du porteur : Décision du porteur, 23/11/2026 ; Instr. BCC 40, art. 2 et 3 (lus) | forte | en place |
 | T143 | Rendu au membre ou mis en commun ? (10.4 Fonds de solidarité) | Les deux, au choix du produit de crédit : rendu au membre à la fin du prêt (dépôt de la clientèle, classe 3), ou mis en commun pour couvrir les impayés (compte 172 « Fonds de garantie mutuels », fonds propres complémentaires). | Choix du porteur : Décision du porteur, 23/11/2026 ; PCCI, compte 17 (lu) ; Instr. BCC 002, art. 9 (lu) | forte | à appliquer |
 | T144 | Menus de la barre ou page des modules ? (9.3 Personnel et immobilisations) | On garde la page des modules, comme Microfina (manuel p. 6, figure 2) : Paie et Immobilisations restent des modules à part, avec leur menu. Le point 9.3 du plan est retiré. | Choix du porteur : Accord du porteur, 23/11/2026 ; manuel Microfina++, p. 6 | forte | en place |
+| T145 | Ordre des entrées (Menu Épargne) | Nouveau compte, Relevé de compte, Blocage, Clôturer un compte, Virement entre comptes, Comptes en voie de prescription, Épargne à terme (Dépôts à terme, Plan d'épargne), Fin de mois, Rapports. Dans ce menu seulement, une entrée de premier niveau garde sa place après un sous-menu ; les autres menus ne changent pas. | Écran voisin : Plan d'allègement, point 5.13 | moyenne | en place |
 
 ## S03 Profils : création et modification
 

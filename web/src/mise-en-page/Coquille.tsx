@@ -127,8 +127,8 @@ function MenuDeroulant({ menu, libelle }: { menu: Menu; libelle: string }) {
     <details ref={ref} className="deroulant" open={ouvert} onToggle={(e) => setOuvert((e.target as HTMLDetailsElement).open)}>
       <summary className={actif ? "actif" : ""}>{ICONES[menu.id] ?? null}<span>{libelle}</span></summary>
       <div className="liste-deroulante" role="menu" style={place ? { position: "fixed", top: place.top, left: place.left, maxHeight: place.maxHeight } : undefined}>
-        {menu.groupes.map((g) => (
-          <div key={g.titre || "racine"} className="groupe-menu">
+        {menu.groupes.map((g, i) => (
+          <div key={`${g.titre || "racine"}-${i}`} className="groupe-menu">
             {g.titre && <p className="titre-groupe">{g.titre}</p>}
             {g.ecrans.map((e) => (
               <NavLink key={e.id} to={e.chemin} role="menuitem" className={CONSTRUITS[e.id] ? "" : "a-construire"}>

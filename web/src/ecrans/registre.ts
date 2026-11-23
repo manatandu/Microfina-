@@ -40,14 +40,17 @@ function sousMenu(e: Ecran, libelleMenu: string): string {
 }
 
 function construire(id: string, libelle: string, ecrans: Ecran[], tous: boolean): Menu {
-  const groupes = new Map<string, Ecran[]>();
+  const groupes: { titre: string; ecrans: Ecran[] }[] = [];
   // Un écran non repris n'apparaît ni dans les menus ni dans l'arbre des droits (plan d'allègement, point 0.24) ;
-  // un écran ouvert depuis un autre (menu: false, plan 3.17) reste dans l'arbre des droits
+  // un écran ouvert depuis un autre (menu: false, plan 3.17) reste dans l'arbre des droits.
+  // Un sous-menu réunit ses écrans. Menu Épargne : les écrans de premier niveau gardent leur place dans l'ordre du registre (plan d'allègement, point 5.13)
+  const enOrdre = id === "epargne";
   for (const e of ecrans.filter((x) => x.priorite !== "skip" && (tous || x.menu !== false))) {
-    const g = sousMenu(e, libelle);
-    groupes.set(g, [...(groupes.get(g) ?? []), e]);
+    const g = sousMenu(e, libelle), dernier = groupes[groupes.length - 1];
+    const cible = g === "" && enOrdre ? (dernier?.titre === "" ? dernier : undefined) : groupes.find((x) => x.titre === g);
+    if (cible) cible.ecrans.push(e); else groupes.push({ titre: g, ecrans: [e] });
   }
-  return { id, libelle, groupes: [...groupes.entries()].map(([titre, ecrans]) => ({ titre, ecrans })) };
+  return { id, libelle, groupes };
 }
 
 export function menus(application: IdApplication, tous = false): Menu[] {

@@ -109,7 +109,7 @@ id,lot,titre,ecrans,statut,question,reste
 5.10,5,Relevé,S64,fait,,
 5.11,5,Ouverture de compte,S63,fait,,
 5.12,5,Virement de compte à compte,S116,fait,,
-5.13,5,Menu Épargne,,à faire,,
+5.13,5,Menu Épargne,,fait,,
 6.1,6,Le parcours du dossier,S87 S88 S89,à faire,,
 6.2,6,Saisir une fois,,à faire,,
 6.3,6,Demande,S85 S86,à faire,,

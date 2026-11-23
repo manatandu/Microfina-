@@ -538,11 +538,47 @@
   {
     "id": "S64",
     "nom": "Relevé de compte",
-    "acces": "Épargne > Relevé",
+    "acces": "Épargne > Relevé de compte",
     "but": "Opérations d'un compte sur une période ; situation du client",
     "module": "epargne",
     "priorite": "must",
     "chemin": "/epargne/s64"
+  },
+  {
+    "id": "S71",
+    "nom": "Blocage",
+    "acces": "Épargne > Blocage",
+    "but": "Bloquer un compte ou un montant, avec motif",
+    "module": "epargne",
+    "priorite": "must",
+    "chemin": "/epargne/s71"
+  },
+  {
+    "id": "S70",
+    "nom": "Clôturer un compte",
+    "acces": "Épargne > Clôturer un compte",
+    "but": "Fermer un compte à la demande du client",
+    "module": "epargne",
+    "priorite": "must",
+    "chemin": "/epargne/s70"
+  },
+  {
+    "id": "SE03",
+    "nom": "Virement entre comptes",
+    "acces": "Épargne > Virement entre comptes",
+    "but": "Virer d'un compte d'un client au compte d'un client, dans la même devise ; visé et validé en comptabilité (plan d'allègement, point 5.12)",
+    "module": "epargne",
+    "priorite": "must",
+    "chemin": "/epargne/se03"
+  },
+  {
+    "id": "SE01",
+    "nom": "Comptes en voie de prescription",
+    "acces": "Épargne > Comptes en voie de prescription",
+    "but": "Lister les comptes sans opération ni réclamation depuis près de dix ans, noter la lettre avec accusé de réception, clôturer ceux qui ont atteint dix ans et verser leurs avoirs à la BCC (loi 22/069, titre III, chap. Ier ; plan d'allègement, point 5.7)",
+    "module": "epargne",
+    "priorite": "must",
+    "chemin": "/epargne/se01"
   },
   {
     "id": "S65",
@@ -593,42 +629,6 @@
     "chemin": "/epargne/s69"
   },
   {
-    "id": "S70",
-    "nom": "Clôturer un compte",
-    "acces": "Épargne > Clôturer",
-    "but": "Fermer un compte à la demande du client",
-    "module": "epargne",
-    "priorite": "must",
-    "chemin": "/epargne/s70"
-  },
-  {
-    "id": "S71",
-    "nom": "Blocage",
-    "acces": "Épargne > Blocage compte et montant",
-    "but": "Bloquer un compte ou un montant, avec motif",
-    "module": "epargne",
-    "priorite": "must",
-    "chemin": "/epargne/s71"
-  },
-  {
-    "id": "S72",
-    "nom": "Rapports épargne",
-    "acces": "Épargne > Rapport",
-    "but": "Virements de compte à compte, garanties, multicritère, indicateur crédit épargne, comptes sans mouvement",
-    "module": "epargne",
-    "priorite": "should",
-    "chemin": "/epargne/s72"
-  },
-  {
-    "id": "SE01",
-    "nom": "Comptes en voie de prescription",
-    "acces": "Épargne > Comptes en voie de prescription",
-    "but": "Lister les comptes sans opération ni réclamation depuis près de dix ans, noter la lettre avec accusé de réception, clôturer ceux qui ont atteint dix ans et verser leurs avoirs à la BCC (loi 22/069, titre III, chap. Ier ; plan d'allègement, point 5.7)",
-    "module": "epargne",
-    "priorite": "must",
-    "chemin": "/epargne/se01"
-  },
-  {
     "id": "SE02",
     "nom": "Fin de mois de l'épargne",
     "acces": "Épargne > Fin de mois",
@@ -638,13 +638,13 @@
     "chemin": "/epargne/se02"
   },
   {
-    "id": "SE03",
-    "nom": "Virement entre comptes",
-    "acces": "Épargne > Virement entre comptes",
-    "but": "Virer d'un compte d'un client au compte d'un client, dans la même devise ; visé et validé en comptabilité (plan d'allègement, point 5.12)",
+    "id": "S72",
+    "nom": "Rapports épargne",
+    "acces": "Épargne > Rapports",
+    "but": "Virements de compte à compte, garanties, multicritère, indicateur crédit épargne, comptes sans mouvement",
     "module": "epargne",
-    "priorite": "must",
-    "chemin": "/epargne/se03"
+    "priorite": "should",
+    "chemin": "/epargne/s72"
   },
   {
     "id": "S73",
