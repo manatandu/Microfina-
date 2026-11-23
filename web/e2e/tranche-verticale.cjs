@@ -551,13 +551,6 @@ const OUT = process.argv[2];
   await p.locator('fieldset', { hasText: 'Signature client' }).locator('input[type=file]').setInputFiles({ name: 'signature.png', mimeType: 'image/png', buffer: png });
   await p.getByRole('img', { name: 'Aperçu de la signature' }).waitFor(); await etape('06v-photos-signatures');
   await p.getByRole('button', { name: 'Valider les Modifications' }).click(); await ok();
-  // Consentement (S50)
-  await aller('/clients/s50'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
-  const rcs = p.getByRole('dialog', { name: "Recherche d'un client" });
-  await rcs.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rcs.getByRole('row').filter({ hasText: 'Kalala' }).click();
-  await p.getByLabel('Date début *').fill('01/11/2026'); await p.getByLabel('Commentaire').fill('Signé à la demande de crédit');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
-  await p.getByRole('cell', { name: 'Signé à la demande de crédit' }).waitFor(); await etape('06w-consentement');
   // Dossier de crédit (S86 à S88, p. 113 et 114 ; registre S86 à S88, CR-2, CR-14) : fonds propres saisis par la direction, demande de Kalala par l'agent,
   // contrôle et approbation par le chef d'agence, après consultation de la Centrale des risques
   await login('Patrick Lumbala'); await aller('/comptabilite/sn01'); const fpp = p.getByRole('region', { name: 'Fonds propres prudentiels' });   // saisis avec les normes (plan d'allègement, point 2.21)
@@ -568,6 +561,8 @@ const OUT = process.argv[2];
   const rdm = p.getByRole('dialog', { name: "Recherche d'un client" });
   await rdm.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rdm.getByRole('row').filter({ hasText: 'Kalala' }).first().click();
   await p.getByLabel('Durée (mois) *').fill('12'); await p.getByLabel('Effectif femmes', { exact: true }).fill('1'); await p.getByLabel('Montant femmes', { exact: true }).fill('1 000 000');
+  // Consentement écrit à la Centrale des risques, recueilli dans la demande (Instr. BCC 05, art. 13 ; plan d'allègement, point 3.14)
+  await p.getByLabel('Signé le *').fill('01/11/2026'); await p.getByLabel('Référence de la pièce signée *').fill('CR-1'); await etape('06w-consentement');
   await p.getByRole('button', { name: 'Suivant', exact: true }).click();
   await p.getByLabel('Région (province) *').selectOption({ label: 'Kinshasa' }); await p.getByLabel('Préfecture (ville ou territoire) *').selectOption({ label: 'Kinshasa' });
   await p.getByLabel('Ressaisir : Effectif femmes').fill('1'); await p.getByLabel('Ressaisir : Montant femmes').fill('1 000 000'); await etape('06w1-demande-credit');

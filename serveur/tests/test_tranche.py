@@ -1647,8 +1647,9 @@ def test_dossier_credit(clients, journee):
     pr = next(x for x in ctx["provinces"] if x["nom"] == "Kinshasa")["id"]; vi = next(x for x in ctx["villes"] if x["provinceId"] == pr)["id"]
     k = T("0412-000318")                                                          # Kalala, une femme
     e = {"nbHommes": 0, "nbFemmes": 1, "montantHommes": 0, "montantFemmes": 100000000, "nbGroupes": 0}
-    d = {"produitId": pid, "tiersId": k, "duree": 12, "provinceId": pr, "villeId": vi, **e, "ressaisie": e}
+    d = {"produitId": pid, "tiersId": k, "duree": 12, "provinceId": pr, "villeId": vi, **e, "ressaisie": e, "consentementLe": "2026-11-01", "consentementRef": "CR-1"}
     refus = lambda c, url, x: c.post(url, x, **H).json()["message"]
+    assert "pièce signée" in refus(agent, "/api/credit/dossiers", {**d, "consentementRef": ""})     # Instr. BCC 05, art. 13 (plan 3.14)
     assert "ressaisis" in refus(agent, "/api/credit/dossiers", {**d, "ressaisie": {**e, "montantFemmes": 90000000}})
     assert "de son sexe" in refus(agent, "/api/credit/dossiers", {**d, "nbHommes": 1, "nbFemmes": 0, "montantHommes": 100000000, "montantFemmes": 0,
                                                                   "ressaisie": {**e, "nbHommes": 1, "nbFemmes": 0, "montantHommes": 100000000, "montantFemmes": 0}})
@@ -1659,8 +1660,8 @@ def test_dossier_credit(clients, journee):
     assert clients["resp"].post(f"/api/credit/dossiers/{x['id']}/controle", {"effectif": 1, "nbGroupes": 0, "montant": 100000000}, **H).json()["statut"] == "controlee"
     a = {"montantApprouve": 100000000, "consultationCrLe": "2026-11-05", "consultationCrRef": "CR-2026-0001"}
     assert "Séparation des tâches" in refus(clients["resp"], f"/api/credit/dossiers/{x['id']}/approbation", a)   # qui a vérifié n'autorise pas (Instr. BCC 008, art. 66)
-    assert "consentement" in refus(chef, f"/api/credit/dossiers/{x['id']}/approbation", a)
-    agent.post(f"/api/tiers/{k}/consentements", {"code": "CR", "dateDebut": "2026-01-01", "dateFin": "", "commentaire": ""}, **H)
+    # le consentement signé est enregistré avec la demande (Instr. BCC 05, art. 13 ; plan 3.14)
+    assert [(c["code"], c["dateDebut"]) for c in agent.get(f"/api/tiers/{k}/consentements").json()][-1] == ("CR-1", "2026-11-01")
     assert "Fonds propres prudentiels non saisis" in refus(chef, f"/api/credit/dossiers/{x['id']}/approbation", a)
     chef.post("/api/credit/fonds-propres", {"dateArrete": "2026-10-31", "montant": 500000000}, **H)            # 5 000 000 CDF : 10 % = 500 000 CDF
     assert "Plafond par emprunteur" in refus(chef, f"/api/credit/dossiers/{x['id']}/approbation", a)
@@ -1681,7 +1682,7 @@ def credit_approuve(clients, produit=None):
     pr = next(x for x in ctx["provinces"] if x["nom"] == "Kinshasa")["id"]; vi = next(x for x in ctx["villes"] if x["provinceId"] == pr)["id"]
     k = T("0412-000318")
     e = {"nbHommes": 0, "nbFemmes": 1, "montantHommes": 0, "montantFemmes": 100000000, "nbGroupes": 0}
-    x = agent.post("/api/credit/dossiers", {"produitId": pid, "tiersId": k, "duree": 12, "provinceId": pr, "villeId": vi, **e, "ressaisie": e}, **H).json()
+    x = agent.post("/api/credit/dossiers", {"produitId": pid, "tiersId": k, "duree": 12, "provinceId": pr, "villeId": vi, **e, "ressaisie": e, "consentementLe": "2026-11-01", "consentementRef": "CR-1"}, **H).json()
     clients["resp"].post(f"/api/credit/dossiers/{x['id']}/controle", {"effectif": 1, "nbGroupes": 0, "montant": 100000000}, **H)
     agent.post(f"/api/tiers/{k}/consentements", {"code": "CR", "dateDebut": "2026-01-01", "dateFin": "", "commentaire": ""}, **H)
     chef.post("/api/credit/fonds-propres", {"dateArrete": "2026-10-31", "montant": 100000000000}, **H)
@@ -2126,7 +2127,7 @@ def test_liste_rouge(clients, journee):
     ctx = agent.get("/api/credit/dossiers/contexte", **H).json()
     pr = next(x for x in ctx["provinces"] if x["nom"] == "Kinshasa")["id"]; vi = next(x for x in ctx["villes"] if x["provinceId"] == pr)["id"]
     e = {"nbHommes": 0, "nbFemmes": 1, "montantHommes": 0, "montantFemmes": 100000000, "nbGroupes": 0}
-    dem = {"produitId": pid, "tiersId": k, "duree": 12, "provinceId": pr, "villeId": vi, **e, "ressaisie": e}
+    dem = {"produitId": pid, "tiersId": k, "duree": 12, "provinceId": pr, "villeId": vi, **e, "ressaisie": e, "consentementLe": "2026-11-01", "consentementRef": "CR-1"}
     assert "liste rouge" in refus(agent, "/api/credit/dossiers", dem)
     assert agent.post("/api/credit/liste-rouge/retrait", {"tiersId": k, "motif": "Régularisé"}, **H).json() == []
     assert "pas sur la liste" in refus(agent, "/api/credit/liste-rouge/retrait", {"tiersId": k, "motif": "x"})
@@ -3930,7 +3931,7 @@ def test_refinancement_retard(clients, journee):
     ctx = agent.get("/api/credit/dossiers/contexte", **H).json()
     pr = next(x for x in ctx["provinces"] if x["nom"] == "Kinshasa")["id"]; vi = next(x for x in ctx["villes"] if x["provinceId"] == pr)["id"]
     e = {"nbHommes": 0, "nbFemmes": 1, "montantHommes": 0, "montantFemmes": 100000000, "nbGroupes": 0}
-    corps = {"produitId": pid, "tiersId": T("0412-000318"), "duree": 12, "provinceId": pr, "villeId": vi, **e, "ressaisie": e}
+    corps = {"produitId": pid, "tiersId": T("0412-000318"), "duree": 12, "provinceId": pr, "villeId": vi, **e, "ressaisie": e, "consentementLe": "2026-11-01", "consentementRef": "CR-1"}
     x = agent.post("/api/credit/dossiers", corps, **H)                   # crédit à jour : la demande passe
     assert x.status_code == 200, x.content
     clients["resp"].post(f"/api/credit/dossiers/{x.json()['id']}/controle", {"effectif": 1, "nbGroupes": 0, "montant": 100000000}, **H)

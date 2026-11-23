@@ -28,7 +28,7 @@ function Effectifs({ e, maj, prefixe }: { e: Effectifs; maj: (x: Effectifs) => v
 export function DemandeCredit() {
   const { donnees: ctx } = useDonnees(() => api.dossiers.contexte());
   const [t, setT] = useState<Tiers | null>(null);
-  const [f, setF] = useState({ produit: "", cycle: "", analyse: "", duree: "", province: "", ville: "", commune: "" });
+  const [f, setF] = useState({ produit: "", cycle: "", analyse: "", duree: "", province: "", ville: "", commune: "", consentementLe: "", consentementRef: "" });
   const [e, setE] = useState<Effectifs>(VIDES);
   const [r, setR] = useState<Effectifs>(VIDES);
   const [parts, setParts] = useState<string[]>([]);
@@ -39,12 +39,12 @@ export function DemandeCredit() {
   if (!ctx) return <Chargement />;
   const analyses = (h?.analyses ?? []).filter((a) => String(a.produitId) === f.produit);
   const maj = (x: Partial<typeof f>) => setF({ ...f, ...x });
-  const effacer = () => { setT(null); setF({ produit: "", cycle: "", analyse: "", duree: "", province: "", ville: "", commune: "" }); setE(VIDES); setR(VIDES); setParts([]); setPage(1); };
+  const effacer = () => { setT(null); setF({ produit: "", cycle: "", analyse: "", duree: "", province: "", ville: "", commune: "", consentementLe: "", consentementRef: "" }); setE(VIDES); setR(VIDES); setParts([]); setPage(1); };
   function enregistrer() {
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try {
         const x = await api.dossiers.demander({ produitId: Number(f.produit), tiersId: t?.id, cycleId: f.cycle ? Number(f.cycle) : null, analyseId: f.analyse ? Number(f.analyse) : null,
-          ...valeurs(e), duree: entier(f.duree), provinceId: Number(f.province) || null, villeId: Number(f.ville) || null, communeId: Number(f.commune) || null, ressaisie: valeurs(r),
+          ...valeurs(e), duree: entier(f.duree), provinceId: Number(f.province) || null, villeId: Number(f.ville) || null, communeId: Number(f.commune) || null, ressaisie: valeurs(r), consentementLe: f.consentementLe, consentementRef: f.consentementRef.trim(),
           parts: t?.type === "groupe" ? parts.map((m) => ({ montant: somme(m) })) : [] });
         effacer(); setBoite({ type: "succes", message: `Enregistré avec succès ! Demande N° ${x.numero}.` });
       } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
@@ -70,6 +70,12 @@ export function DemandeCredit() {
               <option value=""></option>{analyses.map((a) => <option key={a.id} value={a.id}>{`${a.numero} du ${fr(a.date)}`}</option>)}</select>}</Champ>
             <Champ libelle="Durée (mois) *">{(pp) => <input {...pp} className="saisie code" inputMode="numeric" autoComplete="off" value={f.duree} onChange={(ev) => maj({ duree: ev.target.value })} />}</Champ>
             <Effectifs e={e} maj={setE} prefixe="" />
+          </fieldset>
+          {/* Clause d'autorisation de partage des informations, signée par l'emprunteur (Instr. BCC 05, art. 13 ; plan d'allègement, point 3.14) */}
+          <fieldset className="cadre-champs formulaire">
+            <legend>Consentement à la Centrale des risques</legend>
+            <ChampDate libelle="Signé le *" valeur={f.consentementLe} onChange={(v) => maj({ consentementLe: v })} requis />
+            <Champ libelle="Référence de la pièce signée *">{(pp) => <input {...pp} className="saisie" autoComplete="off" value={f.consentementRef} onChange={(ev) => maj({ consentementRef: ev.target.value })} />}</Champ>
           </fieldset>
           <div className="actions-onglets">
             <button className="bouton" type="button" disabled={!f.produit || !t} onClick={() => { setPage(2); setParts((t?.membres ?? []).map(() => "")); }}>Suivant</button>

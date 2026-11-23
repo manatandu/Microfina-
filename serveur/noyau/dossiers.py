@@ -179,7 +179,19 @@ def demander(u, d) -> dict:
         parts = [{"membre": m, "montant": entier(x, "montant", f"Part de {m}", 0)} for m, x in zip(membres, brut)]
         if sum(x["montant"] for x in parts) != montant:
             raise ErreurMetier("Groupe : la somme des parts des membres doit égaler le montant demandé.")
+    # Consentement écrit de l'emprunteur, recueilli par une clause de la demande de crédit (Instr. BCC 05, art. 13 ; plan d'allègement, point 3.14)
+    try:
+        cons_le = date.fromisoformat(d.get("consentementLe") or "")
+    except (TypeError, ValueError):
+        raise ErreurMetier("À remplir : Consentement à la Centrale des risques, signé le (Instr. BCC 05, art. 13).")
+    cons_ref = texte(d, "consentementRef")
+    if not cons_ref:
+        raise ErreurMetier("À remplir : Consentement à la Centrale des risques, référence de la pièce signée (Instr. BCC 05, art. 13).")
+    if cons_le > jour(u):
+        raise ErreurMetier("Consentement à la Centrale des risques : la date de signature ne peut pas être après la journée.")
     n = int(valeur("select count(*) from demande_credit where institution_id = %s", (u["institution_id"],))) + 1
+    executer("insert into consentement (tiers_id, code, date_debut, date_fin, commentaire, saisi_par) values (%s, %s, %s, null, %s, %s)",
+             (t["id"], cons_ref, cons_le.isoformat(), f"Demande de crédit DC{n:06d}", u["id"]))
     did = valeur("""insert into demande_credit (institution_id, agence_id, tiers_id, produit_id, montant_demande, duree_mois, nb_hommes, nb_femmes, montant_hommes,
                     montant_femmes, nb_groupes, statut, numero, analyse_id, cycle_id, province_id, ville_id, devise, parts, saisi_par, commune_id)
                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'saisie', %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
@@ -326,7 +338,7 @@ def approuver(u, did: int, d) -> dict:
     liste_rouge(x["tiers_id"])                                         # registre CR-9
     controler_retard(u, x["tiers_id"])                                 # registre CR-15
     if not une("""select 1 from consentement where tiers_id = %s and date_debut <= %s and (date_fin is null or date_fin >= %s)""", (x["tiers_id"], j, j)):
-        raise ErreurMetier("Pas de consentement écrit à la Centrale des risques en cours de validité (Client > Consentement ; Instr. BCC 05, art. 13).")
+        raise ErreurMetier("Pas de consentement écrit à la Centrale des risques en cours de validité (demande de crédit ; Instr. BCC 05, art. 13).")
     try:
         cr = date.fromisoformat((d or {}).get("consultationCrLe") or "")
     except ValueError:

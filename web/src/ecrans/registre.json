@@ -414,15 +414,6 @@
     "chemin": "/clients/s49"
   },
   {
-    "id": "S50",
-    "nom": "Consentement BIC",
-    "acces": "Client > Consentement BIC",
-    "but": "Enregistrer le consentement au bureau d'information sur le crédit",
-    "module": "clients",
-    "priorite": "should",
-    "chemin": "/clients/s50"
-  },
-  {
     "id": "S51",
     "nom": "Rapports clients",
     "acces": "Client > Rapport",

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1007 décisions.** Solidité : 460 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 998 déjà en place, 9 à appliquer.
+**1008 décisions.** Solidité : 461 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 999 déjà en place, 9 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1566,6 +1566,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S86-4 | Contrôles | Client actif ; produit actif et ouvert à son type de client (S23, S25-1) ; ressaisie identique à la première page ; au moins une personne ; personne physique : une personne, de son sexe ; pas de montant sans effectif ; montant (somme hommes et femmes) et durée dans les bornes du produit ; ville sous sa province ; analyse du même client et du même produit | Donnée exigée ailleurs : Texte p. 113 (2.8, ressaisie) ; S23 ; fiche client | moyenne | en place |
 | S86-5 | Groupe | Pour un client groupe, la part de chaque membre de sa fiche (S39) ; la somme égale le montant demandé | Choix du porteur : CR-8 ; loi 11/020, art. 44 | forte | en place |
 | S86-6 | Droits | Saisie : profil qui a S86 (agent de crédit au départ) | Écran voisin : DROITS_DEPART | moyenne | en place |
+
+## S86 Demande de crédit ; S50
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S86-7 | Consentement à la Centrale des risques | Le consentement se recueille dans la demande de crédit : cadre « Consentement à la Centrale des risques » avec la date de signature et la référence de la pièce signée, obligatoires ; la demande l'enregistre au registre des consentements, que l'approbation vérifie. L'écran séparé « Consentement BIC » (S50) et son entrée de menu disparaissent. | Texte réglementaire : Instr. BCC 05, art. 13 (consentement écrit ; « une clause d'autorisation de partage d'informations personnelles doit être prévue lors de la demande de crédit ») ; plan d'allègement, point 3.14 | forte | en place |
 
 ## S87 Dossier : contrôle
 

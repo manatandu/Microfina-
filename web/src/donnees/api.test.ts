@@ -46,7 +46,7 @@ async function creditMisEnPlace(produit: Record<string, unknown> = PRODUIT_CREDI
   const ctx = await api.dossiers.contexte();
   const pr = ctx.provinces.find((x) => x.nom === "Kinshasa")!.id, vi = ctx.villes.find((x) => x.provinceId === pr)!.id;
   const e = { nbHommes: 0, nbFemmes: 1, montantHommes: 0, montantFemmes: 100000000, nbGroupes: 0 };
-  const x = await api.dossiers.demander({ produitId: pid, tiersId: 1, duree: 12, provinceId: pr, villeId: vi, ...e, ressaisie: e });
+  const x = await api.dossiers.demander({ produitId: pid, tiersId: 1, duree: 12, provinceId: pr, villeId: vi, ...e, ressaisie: e, consentementLe: "2026-11-01", consentementRef: "CR-1" });
   await connecter("stshibanda");   // la responsable crédit vérifie, le chef autorise (Instr. BCC 008, art. 66 ; registre CR-28)
   await api.dossiers.controler(x.id, { effectif: 1, nbGroupes: 0, montant: 100000000 });
   await connecter("jpmukendi");
@@ -2186,7 +2186,8 @@ describe("journée de guichet", () => {
     const ctx = await api.dossiers.contexte();
     const pr = ctx.provinces.find((x) => x.nom === "Kinshasa")!.id, vi = ctx.villes.find((x) => x.provinceId === pr)!.id;
     const e = { nbHommes: 0, nbFemmes: 1, montantHommes: 0, montantFemmes: 100000000, nbGroupes: 0 };
-    const d = { produitId: pid, tiersId: 1, duree: 12, provinceId: pr, villeId: vi, ...e, ressaisie: e };
+    const d = { produitId: pid, tiersId: 1, duree: 12, provinceId: pr, villeId: vi, ...e, ressaisie: e, consentementLe: "2026-11-01", consentementRef: "CR-1" };
+    await expect(api.dossiers.demander({ ...d, consentementRef: "" })).rejects.toThrow("pièce signée");   // Instr. BCC 05, art. 13 (plan 3.14)
     await expect(api.dossiers.demander({ ...d, ressaisie: { ...e, montantFemmes: 90000000 } })).rejects.toThrow("ressaisis");
     const x = await api.dossiers.demander(d);
     expect([x.numero, x.statut, x.montant]).toEqual(["DC000001", "saisie", 100000000]);
@@ -2197,8 +2198,7 @@ describe("journée de guichet", () => {
     const a = { montantApprouve: 100000000, consultationCrLe: "2026-11-05", consultationCrRef: "CR-2026-0001" };
     await expect(api.dossiers.approuver(x.id, a)).rejects.toThrow("Séparation des tâches");   // qui a vérifié n'autorise pas (Instr. BCC 008, art. 66)
     await connecter("jpmukendi");
-    await expect(api.dossiers.approuver(x.id, a)).rejects.toThrow("consentement");
-    await api.tiers.creerConsentement(1, { code: "CR", dateDebut: "2026-01-01", dateFin: "", commentaire: "" });
+    expect((await api.tiers.consentements(1)).at(-1)).toMatchObject({ code: "CR-1", dateDebut: "2026-11-01" });   // enregistré avec la demande (plan 3.14)
     await expect(api.dossiers.approuver(x.id, a)).rejects.toThrow("Fonds propres prudentiels non saisis");
     await api.dossiers.enregistrerFondsPropres({ dateArrete: "2026-10-31", montant: 500000000 });
     await expect(api.dossiers.approuver(x.id, a)).rejects.toThrow("Plafond par emprunteur");
@@ -2225,7 +2225,7 @@ describe("journée de guichet", () => {
     const ctx = await api.dossiers.contexte();
     const pr = ctx.provinces.find((x) => x.nom === "Kinshasa")!.id, vi = ctx.villes.find((x) => x.provinceId === pr)!.id;
     const e = { nbHommes: 0, nbFemmes: 1, montantHommes: 0, montantFemmes: 100000000, nbGroupes: 0 };
-    const x = await api.dossiers.demander({ produitId: pid, tiersId: 1, duree: 12, provinceId: pr, villeId: vi, ...e, ressaisie: e });
+    const x = await api.dossiers.demander({ produitId: pid, tiersId: 1, duree: 12, provinceId: pr, villeId: vi, ...e, ressaisie: e, consentementLe: "2026-11-01", consentementRef: "CR-1" });
     await connecter("stshibanda");
     await api.dossiers.controler(x.id, { effectif: 1, nbGroupes: 0, montant: 100000000 });
     await connecter("jpmukendi");
@@ -2591,7 +2591,7 @@ describe("journée de guichet", () => {
     const pr = ctx.provinces.find((x) => x.nom === "Kinshasa")!.id, vi = ctx.villes.find((x) => x.provinceId === pr)!.id;
     const e = { nbHommes: 0, nbFemmes: 1, montantHommes: 0, montantFemmes: 100000000, nbGroupes: 0 };
     const pid = _etat().produitsCredit[0]!.id;
-    await expect(api.dossiers.demander({ produitId: pid, tiersId: 1, duree: 12, provinceId: pr, villeId: vi, ...e, ressaisie: e })).rejects.toThrow("liste rouge");
+    await expect(api.dossiers.demander({ produitId: pid, tiersId: 1, duree: 12, provinceId: pr, villeId: vi, ...e, ressaisie: e, consentementLe: "2026-11-01", consentementRef: "CR-1" })).rejects.toThrow("liste rouge");
     expect(await api.listeRouge.retirer({ tiersId: 1, motif: "Régularisé" })).toEqual([]);
     await expect(api.listeRouge.retirer({ tiersId: 1, motif: "x" })).rejects.toThrow("pas sur la liste");
   });
@@ -2720,7 +2720,7 @@ describe("journée de guichet", () => {
     const ctx = await api.dossiers.contexte();
     const pr = ctx.provinces.find((x) => x.nom === "Kinshasa")!.id, vi = ctx.villes.find((x) => x.provinceId === pr)!.id;
     const e = { nbHommes: 0, nbFemmes: 1, montantHommes: 0, montantFemmes: 100000000, nbGroupes: 0 };
-    await expect(api.dossiers.demander({ produitId: c.produitId, tiersId: 1, duree: 12, provinceId: pr, villeId: vi, ...e, ressaisie: e })).rejects.toThrow("en retard de 10 jours");   // comme le serveur
+    await expect(api.dossiers.demander({ produitId: c.produitId, tiersId: 1, duree: 12, provinceId: pr, villeId: vi, ...e, ressaisie: e, consentementLe: "2026-11-01", consentementRef: "CR-1" })).rejects.toThrow("en retard de 10 jours");   // comme le serveur
   });
 
   it("crédits litigieux : prorogation une seule fois, compensation du dépôt nanti (loi 11/020, art. 48), contentieux, intérêts en hors bilan (Instr. BCC 003, art. 5, 8, 11, 12)", async () => {

@@ -3406,6 +3406,12 @@ const dossiers = {
       parts = membres.map((m, i) => ({ membre: m, montant: entierDossier(brut[i] as Record<string, unknown>, "montant", `Part de ${m}`) }));
       if (parts.reduce((s, x) => s + x.montant, 0) !== montant) throw new ErreurMetier("Groupe : la somme des parts des membres doit égaler le montant demandé.");
     }
+    // Consentement écrit de l'emprunteur, recueilli par une clause de la demande de crédit (Instr. BCC 05, art. 13 ; plan 3.14). Comme le serveur.
+    const consLe = String(d.consentementLe ?? "").trim(), consRef = String(d.consentementRef ?? "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(consLe)) throw new ErreurMetier("À remplir : Consentement à la Centrale des risques, signé le (Instr. BCC 05, art. 13).");
+    if (!consRef) throw new ErreurMetier("À remplir : Consentement à la Centrale des risques, référence de la pièce signée (Instr. BCC 05, art. 13).");
+    if (consLe > jourDossier()) throw new ErreurMetier("Consentement à la Centrale des risques : la date de signature ne peut pas être après la journée.");
+    E.consentements.push({ id: prochain(E.consentements), tiersId: t.id, code: consRef, dateDebut: consLe, dateFin: "", commentaire: `Demande de crédit DC${String(E.demandes.length + 1).padStart(6, "0")}` });
     const x: DemandeCredit = { id: prochain(E.demandes), numero: `DC${String(E.demandes.length + 1).padStart(6, "0")}`, tiersId: t.id, produitId: p.id, devise: String(p.devise) as Devise,
       analyseId: aid, cycleId: cid, provinceId: pr.id, villeId: vi.id, communeId: co?.id ?? null, ...e, montant, duree, parts, statut: "saisie", creeLe: jourDossier(), saisiPar: u.id, controlePar: null,
       approuvePar: null, montantApprouve: null, consultationCrLe: "", consultationCrRef: "", accordConseilRef: "", accordBccRef: "" };
@@ -3436,7 +3442,7 @@ const dossiers = {
     controlerListeRouge(x.tiersId);   // registre CR-9
     controlerRetard(x.tiersId);   // registre CR-15
     if (!E.consentements.some((c) => c.tiersId === x.tiersId && c.dateDebut <= j && (!c.dateFin || c.dateFin >= j)))
-      throw new ErreurMetier("Pas de consentement écrit à la Centrale des risques en cours de validité (Client > Consentement ; Instr. BCC 05, art. 13).");
+      throw new ErreurMetier("Pas de consentement écrit à la Centrale des risques en cours de validité (demande de crédit ; Instr. BCC 05, art. 13).");
     const cr = String(d.consultationCrLe ?? "");
     if (!DATE_ISO.test(cr)) throw new ErreurMetier("À remplir : Date de consultation de la Centrale des risques (Instr. BCC 05, art. 4).");
     const txt = (k: string) => (typeof d[k] === "string" ? (d[k] as string).trim() : "");

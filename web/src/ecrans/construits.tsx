@@ -249,7 +249,6 @@ const GestionProfilsUtilisateur = paresseux(() => import("./ProfilsUtilisateurs"
 const Connexions = paresseux(() => import("./Connexions"), "default");
 const Numerotations = paresseux(() => import("./Numerotation"), "Numerotations");
 const EcranJournee = paresseux(() => import("./Journee"), "EcranJournee");
-const Consentement = paresseux(() => import("./Visa"), "Consentement");
 const InformationsClient = paresseux(() => import("./Visa"), "InformationsClient");
 const ModificationFrais = paresseux(() => import("./Visa"), "ModificationFrais");
 const PhotosSignatures = paresseux(() => import("./Visa"), "PhotosSignatures");
@@ -313,7 +312,6 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S47: TypesProcuration,
   S48: ResiliationClient,
   S49: PhotosSignatures,
-  S50: Consentement,
   S51: RapportsClients,
   S52: OperationsBanque,
   S53: VirementPrelevement,
