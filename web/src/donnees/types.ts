@@ -40,7 +40,6 @@ export interface Billetage {
   compte: Comptage;            // ce que le caissier a compté
   theorique: Comptage;         // ce que la caisse devrait contenir
   justification?: string;      // anciens billetages : la saisie de S79 ne la demande plus
-  bonCaisse?: number;          // « Bon de Caisse » (S79, p. 91)
   saisiPar: number;
   validePar?: number;
   ecritureEcartId?: number;    // registre S80-5 : écriture de l'excédent ou du manquant, à la validation

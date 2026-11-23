@@ -407,8 +407,8 @@ const caisses = {
     return nettoyer(base);
   },
   billetages: (sessionId: number) => E.billetages.filter((b) => b.sessionId === sessionId),
-  /** S79 : Caisse > Billetage > Enregistrer de billetage (manuel p. 90 et 91) : « Arretée de » la caisse, coupures, Bon de Caisse */
-  saisirBilletage(sessionId: number, devise: Devise, compte: Comptage, bonCaisse = 0) {
+  /** S79 : Caisse > Billetage > Enregistrer de billetage (manuel p. 90 et 91) : « Arretée de » la caisse, coupures */
+  saisirBilletage(sessionId: number, devise: Devise, compte: Comptage) {
     const u = exiger("caissier");
     const s = E.sessions.find((x) => x.id === sessionId);
     if (!s || s.caissierId !== u.id) throw new ErreurMetier("Cette caisse n'est pas la vôtre.");
@@ -416,11 +416,10 @@ const caisses = {
     if (E.operations.some((o) => o.sessionId === sessionId && (o.statut === "visa_requis" || o.statut === "visee")))
       throw new ErreurMetier("Une opération attend un visa : la faire viser ou refuser avant l'arrêté.");
     if (Object.keys(compte).some((v) => !coupuresDe(devise).includes(Number(v)))) throw new ErreurMetier("Coupure inconnue.");
-    if (!Number.isInteger(bonCaisse) || bonCaisse < 0) throw new ErreurMetier("Bon de Caisse invalide.");
     const theorique = caisses.theorique(sessionId, devise);
     const deja = E.billetages.find((b) => b.sessionId === sessionId && b.moment === "arret" && b.devise === devise);
     if (deja?.validePar) throw new ErreurMetier("Billetage déjà validé.");
-    const b: Billetage = { id: deja?.id ?? prochain(E.billetages), sessionId, moment: "arret", devise, compte: nettoyer(compte), theorique, bonCaisse, saisiPar: u.id };
+    const b: Billetage = { id: deja?.id ?? prochain(E.billetages), sessionId, moment: "arret", devise, compte: nettoyer(compte), theorique, saisiPar: u.id };
     if (deja) Object.assign(deja, b); else E.billetages.push(b);
     enregistrer(); return b;
   },
@@ -430,10 +429,10 @@ const caisses = {
     if (!b) throw new ErreurMetier("Billetage introuvable.");
     if (b.validePar) throw new ErreurMetier("Ce billetage est déjà validé.");
     if (b.saisiPar === u.id) throw new ErreurMetier("Quatre yeux : le valideur n'est pas celui qui a compté.");
-    // Registre S80-5 : l'écart entre le solde réel (billetage + Bon de Caisse) et le compte du guichet passe en écriture ; excédent au compte surplus
+    // Registre S80-5 : l'écart entre le solde réel (billetage) et le compte du guichet passe en écriture ; excédent au compte surplus
     // (PCCI 7790 Excédents de caisse), manquant au compte manquant (PCCI 671 Déficits de caisse non récupérés), par le compte du guichet
     const sc = E.sessions.find((x) => x.id === b.sessionId)!;
-    const ecart = totalComptage(b.compte) + (b.bonCaisse ?? 0) - caisses.soldeComptable(sc.id, b.devise);
+    const ecart = totalComptage(b.compte) - caisses.soldeComptable(sc.id, b.devise);
     if (b.moment === "arret" && ecart !== 0) {
       const g = E.guichets.find((x) => x.id === sc.guichetId);
       const m = Math.abs(ecart), surplus = ecart > 0;
@@ -1025,13 +1024,13 @@ const tiers = {
       .map(({ id: cid, code, dateDebut, dateFin, commentaire }) => ({ id: cid, code, dateDebut, dateFin, commentaire }));
   },
   /** Bouton Enregistrer. Règles identiques côté serveur (services.creer_consentement). */
-  creerConsentement(id: number, d: { code: string; dateDebut: string; dateFin: string; commentaire: string }) {
+  creerConsentement(id: number, d: { code?: string; dateDebut: string; dateFin: string; commentaire: string }) {
     exiger();
     const t = E.tiers.find((x) => x.id === id);
     if (!t) throw new ErreurMetier("Client introuvable.");
     if (t.statut === "prospect" || t.statut === "resilie") throw new ErreurMetier("Client prospect ou résilié : pas de consentement à enregistrer.");
-    const v = { code: d.code.trim(), dateDebut: d.dateDebut.trim(), dateFin: d.dateFin.trim(), commentaire: d.commentaire.trim() };
-    const manque = manquants([["code", v.code], ["date début", v.dateDebut]]);
+    const v = { code: (d.code ?? "").trim(), dateDebut: d.dateDebut.trim(), dateFin: d.dateFin.trim(), commentaire: d.commentaire.trim() };
+    const manque = manquants([["date début", v.dateDebut]]);   // la case « Code » est supprimée (registre T130)
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     if ([v.dateDebut, v.dateFin].some((x) => x && !/^\d{4}-\d{2}-\d{2}$/.test(x))) throw new ErreurMetier("Date invalide.");
     if (v.dateFin && v.dateFin < v.dateDebut) throw new ErreurMetier("La date de fin précède la date de début.");
@@ -7097,7 +7096,7 @@ function calculerFacture(d: SaisieFacture) {
     typeFacture = E.typesCommande.find((x) => x.id === cmd.typeCommandeId)?.code ?? "";
   }
   for (const e of elementsF()) {
-    const taux = e.tauxA || e.tauxNA ? (d.nif ? e.tauxA : e.tauxNA) : e.taux, m = pctF(ht, taux);
+    const taux = e.taux, m = pctF(ht, taux);   // case NIF et taux A./N.A. supprimés (registre T130)
     if (m) charges.push({ libelle: e.libelle, taux: String(taux), montant: m, retenue: e.retenue, compte: e.compte, elementId: e.id });
   }
   const ajouts = charges.filter((x) => !x.retenue).reduce((t, x) => t + x.montant, 0), retenues = charges.filter((x) => x.retenue).reduce((t, x) => t + x.montant, 0);
@@ -7263,7 +7262,7 @@ const facturesFournisseurs = {
       throw new ErreurMetier("Réf. Facture : cette facture du fournisseur est déjà enregistrée.");
     const f: FactureFournisseur = { id: prochain(E.facturesFournisseurs), cle, numero: String(E.facturesFournisseurs.length + 1).padStart(6, "0"), commandeId: x.c?.id ?? null, tranche: x.tranche,
       fournisseurId: x.f.id, typeFacture: x.typeFacture, reference, date, echeance, libelle, ht: x.ht, tva: x.tva, ttc: x.ttc, charges: x.charges, imputation: x.imputation, du: x.du, aPayer: x.aPayer,
-      aJour: d.aJour !== false, nif: !!d.nif, statut: "saisie", saisiPar: u.id, piece: "" };
+      aJour: d.aJour !== false, nif: false, statut: "saisie", saisiPar: u.id, piece: "" };
     E.facturesFournisseurs.push(f); enregistrer(); return vueFactureF(f);
   },
   /** Liste « N° Facture » du règlement : factures validées du fournisseur qui ne sont pas soldées */
@@ -10211,12 +10210,12 @@ const facture = {
     const libelle = txt(d.libelle), compte = txt(d.compte);
     const manque = manquants([["Libellé", libelle], ["Compte", compte]]);
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
-    const taux = tauxFacture(d.taux, "Taux(%)"), tauxA = tauxFacture(d.tauxA, "Taux A.(%)"), tauxNA = tauxFacture(d.tauxNA, "Taux N.A.(%)");
+    const taux = tauxFacture(d.taux, "Taux(%)");   // « Taux A. » et « Taux N.A. » (AIB du Bénin) supprimés : registre T130
     if (!/^\d+$/.test(compte) || !planComptable().includes(compte)) throw new ErreurMetier(`Compte : ${compte} n'est pas dans le plan de comptes.`);   // règle T16
     const e = id === undefined ? undefined : E.elementsFacture.find((x) => x.id === id && !x.supprime);
     if (id !== undefined && !e) throw new ErreurMetier("Elément introuvable.");
     if (E.elementsFacture.some((x) => !x.supprime && x.id !== id && x.libelle.toLowerCase() === libelle.toLowerCase())) throw new ErreurMetier("Ce Libellé existe déjà.");
-    const v = { libelle, compte, taux, tauxA, tauxNA, retenue: !!d.retenue };
+    const v = { libelle, compte, taux, tauxA: 0, tauxNA: 0, retenue: !!d.retenue };
     if (e) Object.assign(e, v); else E.elementsFacture.push({ id: prochain(E.elementsFacture), ...v, actif: true, supprime: false });
     enregistrer(); return facture.lire();
   },

@@ -555,9 +555,9 @@ const OUT = process.argv[2];
   await aller('/clients/s50'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rcs = p.getByRole('dialog', { name: "Recherche d'un client" });
   await rcs.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rcs.getByRole('row').filter({ hasText: 'Kalala' }).click();
-  await p.getByLabel('Code *').fill('CR-1'); await p.getByLabel('Date début *').fill('01/11/2026'); await p.getByLabel('Commentaire').fill('Signé à la demande de crédit');
+  await p.getByLabel('Date début *').fill('01/11/2026'); await p.getByLabel('Commentaire').fill('Signé à la demande de crédit');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
-  await p.getByRole('cell', { name: 'CR-1' }).waitFor(); await etape('06w-consentement');
+  await p.getByRole('cell', { name: 'Signé à la demande de crédit' }).waitFor(); await etape('06w-consentement');
   // Dossier de crédit (S86 à S88, p. 113 et 114 ; registre S86 à S88, CR-2, CR-14) : fonds propres saisis par la direction, demande de Kalala par l'agent,
   // contrôle et approbation par le chef d'agence, après consultation de la Centrale des risques
   await login('Patrick Lumbala'); await aller('/comptabilite/sn01'); const fpp = p.getByRole('region', { name: 'Fonds propres prudentiels' });   // saisis avec les normes (plan d'allègement, point 2.21)
@@ -1142,7 +1142,7 @@ const OUT = process.argv[2];
   }
   await aller('/caisse/s79'); await p.getByRole('heading', { name: /Arrêté de caisse : Caisse 2/ }).waitFor();
   for (const dev of ['CDF', 'USD']) for (const [v, n] of stock[dev]) if (n !== '0') await p.getByLabel(`Nombre : Billet de ${v} ${dev}`).fill(n);
-  await p.getByLabel('Bon de Caisse (CDF)').fill('5 000'); await etape('16a-billetage-saisie');
+  await etape('16a-billetage-saisie');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await etape('15-arrete');
   await aller('/administration/s09'); await p.getByRole('row').filter({ hasText: 'Caisse 2' }).click();

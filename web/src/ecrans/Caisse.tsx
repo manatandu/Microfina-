@@ -3,17 +3,15 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { coupuresDe, DEVISES, libelleCoupure, lireMontant, montant, totalComptage, type Comptage, type Devise } from "@design/montant.js";
+import { coupuresDe, DEVISES, libelleCoupure, montant, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
 import { imprimer } from "../lib/imprimer";
 
-const enSaisie = (m: number) => (m ? String(m / 100).replace(".", ",") : "");
 
 /** S79 : Caisse > Billetage > Enregistrer de billetage (manuel Microfina++, p. 90 et 91) */
 export function BilletageCaisse() {
   const navigate = useNavigate();
   const [nombres, setNombres] = useState<Record<Devise, Record<number, string>> | null>(null);
-  const [bons, setBons] = useState<Record<Devise, string> | null>(null);   // registre S79-3 : un Bon de Caisse par tableau, dans sa devise
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
   const { donnees } = useDonnees(async () => {
@@ -29,17 +27,13 @@ export function BilletageCaisse() {
     const b = billetages.find((x) => x.devise === d);
     return [d, Object.fromEntries(coupuresDe(d).map((v) => [v, String(b?.compte[v] ?? 0)]))];
   })) as Record<Devise, Record<number, string>>;
-  const bonsSaisis = bons ?? Object.fromEntries(DEVISES.map((d) => [d, enSaisie(billetages.find((x) => x.devise === d)?.bonCaisse ?? 0)])) as Record<Devise, string>;
   const compte = (d: Devise): Comptage => Object.fromEntries(coupuresDe(d).map((v) => [v, /^\d+$/.test(saisis[d]?.[v] ?? "") ? Number(saisis[d]?.[v]) : 0]));
-  const bonDe = (d: Devise) => (bonsSaisis[d]?.trim() ? lireMontant(bonsSaisis[d]!) : 0);
-  const changer = (d: Devise, v: number, x: string) => { if (/^\d{0,6}$/.test(x)) { setBons(bonsSaisis); setNombres({ ...saisis, [d]: { ...saisis[d], [v]: x } }); } };
+  const changer = (d: Devise, v: number, x: string) => { if (/^\d{0,6}$/.test(x)) setNombres({ ...saisis, [d]: { ...saisis[d], [v]: x } }); };
   function enregistrer() {
-    const faux = DEVISES.find((d) => bonDe(d) === null);
-    if (faux) { setBoite({ type: "erreur", message: `Bon de Caisse (${faux}) invalide.` }); return; }
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try {
-        for (const d of DEVISES) await api.caisses.saisirBilletage(s.id, d, compte(d), bonDe(d) ?? 0);
-        setNombres(null); setBons(null); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" });
+        for (const d of DEVISES) await api.caisses.saisirBilletage(s.id, d, compte(d));
+        setNombres(null); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" });
       } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
   }
@@ -53,9 +47,7 @@ export function BilletageCaisse() {
             <legend>{d}</legend>
             <div className="grille-cadres quatre">
               <Champ libelle={`Solde Caisse (${d}) :`}>{(p) => <input {...p} className="saisie montant" readOnly value={montant(totalComptage(theorique[d] ?? {}), d)} />}</Champ>
-              <Champ libelle={`Bon de Caisse (${d})`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={bonsSaisis[d] ?? ""}
-                onChange={(e) => { setNombres(saisis); setBons({ ...bonsSaisis, [d]: e.target.value }); }} />}</Champ>
-              <Champ libelle={`Total Caisse (${d})`}>{(p) => <input {...p} className="saisie montant" readOnly value={montant(totalComptage(compte(d)) + (bonDe(d) ?? 0), d)} />}</Champ>
+              <Champ libelle={`Total Caisse (${d})`}>{(p) => <input {...p} className="saisie montant" readOnly value={montant(totalComptage(compte(d)), d)} />}</Champ>
             </div>
             <table className="grille colonnes-billetage">
               <thead><tr><th scope="col">Libellé</th><th scope="col">Nombre</th><th scope="col" className="num">Total</th></tr></thead>
@@ -80,7 +72,7 @@ export function BilletageCaisse() {
           {/* Registre S79-1 : Terminer ferme la fenêtre sans rien enregistrer de plus */}
           <button className="bouton secondaire" type="button" onClick={() => navigate(-1)}>Terminer</button>
         </div>
-        <Textes sources={["Manuel Microfina++, p. 90 et 91 : Arretée de, Solde Caisse, Journées, Bon de Caisse, Total Caisse, Libelle, Nombre, Total, Total Montant, Enregistrer, Terminer",
+        <Textes sources={["Manuel Microfina++, p. 90 et 91 : Arretée de, Solde Caisse, Journées, Total Caisse, Libelle, Nombre, Total, Total Montant, Enregistrer, Terminer",
           "Registre T12 : une case par devise ; le tableau de la capture est repris pour chaque devise que tient le guichet",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Manuel Microfina++, p. 18 et 19 : ouverture du guichet sans comptage ; Solde Caisse : dernier arrêté validé et opérations de la journée"]} />
@@ -131,18 +123,18 @@ export function ValidationBilletage() {
         <div className="pile a-imprimer">
           {/* Registre T12 : la capture p. 92 est reprise pour chaque devise que tient le guichet */}
           {DEVISES.map((d) => {
-            const b = de(d), bon = b?.bonCaisse ?? 0;
+            const b = de(d);
             const lignes = coupuresDe(d).filter((v) => (b?.compte[v] ?? 0) > 0).map((v) => ({ v, n: b!.compte[v]! }));
             return (
               <fieldset key={d} className="pile cadre-champs" aria-label={`Validation ${d}`}>
                 <legend>{d}</legend>
                 <div className="grille-cadres quatre">
                   <Champ libelle={`Solde Informatique (${d})`}>{(p) => <input {...p} className="saisie montant" readOnly value={b ? montant(totalComptage(b.theorique), d) : ""} />}</Champ>
-                  <Champ libelle={`Solde Reel (${d})`}>{(p) => <input {...p} className="saisie montant" readOnly value={b ? montant(totalComptage(b.compte) + bon, d) : ""} />}</Champ>
+                  <Champ libelle={`Solde Reel (${d})`}>{(p) => <input {...p} className="saisie montant" readOnly value={b ? montant(totalComptage(b.compte), d) : ""} />}</Champ>
                   {/* Registre S80-2 : solde du compte comptable du guichet (S08) à la journée */}
                   <Champ libelle={`Compte Comptable (${d})`}>{(p) => <input {...p} className="saisie montant" readOnly value={comptable ? montant(comptable[d] ?? 0, d) : ""} />}</Champ>
                   {/* L'écart que la validation passe en écriture, montré avant de valider (plan d'allègement, point 0.11 ; registre S80-7) */}
-                  {b && comptable && (() => { const ecart = totalComptage(b.compte) + bon - (comptable[d] ?? 0);   // comme services.ecriture_ecart (registre S80-5)
+                  {b && comptable && (() => { const ecart = totalComptage(b.compte) - (comptable[d] ?? 0);   // comme services.ecriture_ecart (registre S80-5)
                     return <Champ libelle={`Écart (${d}) : solde réel moins compte du guichet`} aide={ecart > 0 ? "Excédent de caisse" : ecart < 0 ? "Manquant de caisse" : "Aucun écart"}>{(p) =>
                       <input {...p} className="saisie montant" readOnly data-ecart={ecart ? "" : undefined} value={montant(ecart, d)} />}</Champ>; })()}
                 </div>
@@ -152,7 +144,7 @@ export function ValidationBilletage() {
                     {lignes.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
                     {lignes.map(({ v, n }) => <tr key={v}><td>{libelleCoupure(d, v)} {d}</td><td className="chiffres">{n}</td><td className="num chiffres">{montant(n * v * 100, d)}</td></tr>)}
                   </tbody>
-                  <tfoot><tr><td>Bon Caisse ====&gt; <span className="chiffres">{montant(bon, d)}</span></td><td>Total Billetage</td>
+                  <tfoot><tr><td /><td>Total Billetage</td>
                     <td className="num chiffres">{montant(totalComptage(b?.compte ?? {}), d)}</td></tr></tfoot>
                 </table>
               </fieldset>
@@ -165,7 +157,7 @@ export function ValidationBilletage() {
           <button className="bouton secondaire" type="button" disabled={!billetages.length} onClick={() => imprimer(".bloc .a-imprimer")}>Imprimer</button>
           <button className="bouton secondaire" type="button" onClick={() => navigate(-1)}>Terminer</button>
         </div>
-        <Textes sources={["Manuel Microfina++, p. 91 et 92 : Validation Arretée Temporaire, Solde Informatique, Solde Reel, Compte Comptable, Guichet, Journées, Libelle, Nombre, Montant, Bon Caisse, Total Billetage, Valider, Imprimer, Terminer",
+        <Textes sources={["Manuel Microfina++, p. 91 et 92 : Validation Arretée Temporaire, Solde Informatique, Solde Reel, Compte Comptable, Guichet, Journées, Libelle, Nombre, Montant, Total Billetage, Valider, Imprimer, Terminer",
           "Registre T12 : une case par devise ; la capture est reprise pour chaque devise que tient le guichet",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
       </section>

@@ -41,7 +41,7 @@ def enregistrer_element(u, d, eid: int | None = None) -> dict:
     manque = [n for n, v in (("Libellé", libelle), ("Compte", compte)) if not v]
     if manque:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
-    t, ta, tna = taux(d, "taux", "Taux(%)"), taux(d, "tauxA", "Taux A.(%)"), taux(d, "tauxNA", "Taux N.A.(%)")
+    t = taux(d, "taux", "Taux(%)")     # « Taux A. » et « Taux N.A. » (AIB du Bénin) supprimés : registre T130
     if not compte.isdigit() or not une("select 1 from compte where numero = %s and (institution_id is null or institution_id = %s)", (compte, i)):
         raise ErreurMetier(f"Compte : {compte} n'est pas dans le plan de comptes.")      # règle T16
     if eid is not None and not une("select 1 from element_facture where id = %s and institution_id = %s and not supprime for update", (eid, i)):
@@ -51,10 +51,10 @@ def enregistrer_element(u, d, eid: int | None = None) -> dict:
     retenue = bool(d.get("retenue"))
     if eid is None:
         executer("""insert into element_facture (institution_id, libelle, compte, taux, taux_a, taux_na, retenue) values (%s, %s, %s, %s, %s, %s, %s)""",
-                 (i, libelle, compte, t, ta, tna, retenue))
+                 (i, libelle, compte, t, 0, 0, retenue))
     else:
         executer("update element_facture set libelle = %s, compte = %s, taux = %s, taux_a = %s, taux_na = %s, retenue = %s where id = %s",
-                 (libelle, compte, t, ta, tna, retenue, eid))
+                 (libelle, compte, t, 0, 0, retenue, eid))
     return lire(u)
 
 

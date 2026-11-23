@@ -457,7 +457,7 @@ def theorique(session_id: int, devise: str) -> dict:
 def vue_billetage(b: dict) -> dict:
     return {"id": b["id"], "sessionId": b["session_caisse_id"], "moment": b["moment"], "devise": b["devise"].strip(),
             "compte": comptage_billetage(b["id"]), "theorique": json_lu(b["theorique"]) or {}, "justification": b["justification"],
-            "bonCaisse": b["bon_caisse"], "saisiPar": b["saisi_par"], "validePar": b["valide_par"]}
+            "saisiPar": b["saisi_par"], "validePar": b["valide_par"]}
 
 
 def billetages(session_id: int) -> list[dict]:
@@ -470,8 +470,8 @@ def controler_coupures(c: dict, devise: str):
             raise ErreurMetier("Coupure inconnue.")
 
 
-def saisir_billetage(u: dict, session_id: int, devise: str, compte: dict, bon_caisse: int = 0) -> dict:
-    """S79 : Caisse > Billetage > Enregistrer de billetage (manuel p. 90 et 91) : « Arrêtée de » la caisse, coupures, Bon de Caisse."""
+def saisir_billetage(u: dict, session_id: int, devise: str, compte: dict) -> dict:
+    """S79 : Caisse > Billetage > Enregistrer de billetage (manuel p. 90 et 91) : « Arrêtée de » la caisse, coupures."""
     exiger(u, "caissier")
     s = une("select * from session_caisse where id = %s for update", (session_id,))
     if not s or s["caissier_id"] != u["id"]:
@@ -482,20 +482,17 @@ def saisir_billetage(u: dict, session_id: int, devise: str, compte: dict, bon_ca
         raise ErreurMetier("Une opération attend un visa : la faire viser ou refuser avant l'arrêté.")
     compte = nettoyer(compte)
     controler_coupures(compte, devise)
-    bon = int(bon_caisse or 0)
-    if bon < 0:
-        raise ErreurMetier("Bon de Caisse invalide.")
     th = theorique(session_id, devise)
     deja = une("select * from billetage where session_caisse_id = %s and moment = 'arret' and devise = %s", (session_id, devise))
     if deja and deja["valide_par"]:
         raise ErreurMetier("Billetage déjà validé.")
     if deja:
         bid = deja["id"]
-        executer("update billetage set theorique = %s, bon_caisse = %s, saisi_par = %s where id = %s", (Jsonb(th), bon, u["id"], bid))
+        executer("update billetage set theorique = %s, bon_caisse = 0, saisi_par = %s where id = %s", (Jsonb(th), u["id"], bid))
         executer("delete from billetage_ligne where billetage_id = %s", (bid,))
     else:
         bid = valeur("""insert into billetage (session_caisse_id, moment, devise, saisi_par, theorique, bon_caisse)
-                        values (%s, 'arret', %s, %s, %s, %s) returning id""", (session_id, devise, u["id"], Jsonb(th), bon))
+                        values (%s, 'arret', %s, %s, %s, 0) returning id""", (session_id, devise, u["id"], Jsonb(th)))
     for v, n in compte.items():
         executer("insert into billetage_ligne (billetage_id, devise, valeur, nombre) values (%s, %s, %s, %s)", (bid, devise, centiemes(v), n))
     return vue_billetage(une("select * from billetage where id = %s", (bid,)))
@@ -521,11 +518,11 @@ def valider_billetage(u: dict, bid: int) -> dict:
 
 
 def ecriture_ecart(u: dict, b: dict):
-    """Registre S80-5 : à la validation, l'écart entre le solde réel (billetage + Bon de Caisse) et le compte du guichet passe en écriture.
+    """Registre S80-5 : à la validation, l'écart entre le solde réel (billetage) et le compte du guichet passe en écriture.
     Excédent : crédit du compte surplus du guichet (PCCI 7790 Excédents de caisse) ; manquant : débit du compte manquant (PCCI 671 Déficits
     de caisse non récupérés) ; l'autre côté est le compte du guichet. Mêmes règles que web/src/donnees/api.ts (caisses.validerBilletage)."""
     devise = b["devise"].strip()
-    reel = total_lignes(b["id"]) + int(b["bon_caisse"] or 0)
+    reel = total_lignes(b["id"])
     ecart = reel - solde_comptable_caisse(b["session_caisse_id"], devise)
     if ecart == 0:
         return
@@ -1437,7 +1434,7 @@ def creer_consentement(u: dict, tid: int, d: dict) -> list[dict]:
     if t["statut"] in ("prospect", "resilie"):
         raise ErreurMetier("Client prospect ou résilié : pas de consentement à enregistrer.")
     texte = texte_de(d or {})
-    manque = [n for n, k in (("code", "code"), ("date début", "dateDebut")) if not texte(k)]
+    manque = [n for n, k in (("date début", "dateDebut"),) if not texte(k)]     # la case « Code » est supprimée (registre T130)
     if manque:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
     for k in ("dateDebut", "dateFin"):

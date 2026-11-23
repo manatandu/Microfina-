@@ -824,7 +824,6 @@ export function Consentement() {
           </fieldset>
           <fieldset className="pile cadre-champs">
             <legend className="sr-only">Consentement</legend>
-            <Champ libelle="Code *">{(p) => <input {...p} className="saisie code" required autoComplete="off" value={d.code} onChange={(e) => setD({ ...d, code: e.target.value })} />}</Champ>
             <ChampDate libelle="Date début *" valeur={d.dateDebut} onChange={(v) => setD({ ...d, dateDebut: v })} requis />
             <ChampDate libelle="Date Fin" valeur={d.dateFin} onChange={(v) => setD({ ...d, dateFin: v })} />
             <Champ libelle="Commentaire">{(p) => <textarea {...p} className="saisie" rows={3} value={d.commentaire} onChange={(e) => setD({ ...d, commentaire: e.target.value })} />}</Champ>
@@ -838,13 +837,13 @@ export function Consentement() {
           </fieldset>
         </div>
         <table className="grille">
-          <thead><tr><th scope="col">Code</th><th scope="col">Date début</th><th scope="col">Date fin</th><th scope="col">Commentaire</th></tr></thead>
+          <thead><tr><th scope="col">Date début</th><th scope="col">Date fin</th><th scope="col">Commentaire</th></tr></thead>
           <tbody>
-            {(!liste || liste.length === 0) && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
-            {liste?.map((c) => <tr key={c.id}><td className="chiffres">{c.code}</td><td className="chiffres">{fr(c.dateDebut)}</td><td className="chiffres">{fr(c.dateFin)}</td><td>{c.commentaire}</td></tr>)}
+            {(!liste || liste.length === 0) && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
+            {liste?.map((c) => <tr key={c.id}><td className="chiffres">{fr(c.dateDebut)}</td><td className="chiffres">{fr(c.dateFin)}</td><td>{c.commentaire}</td></tr>)}
           </tbody>
         </table>
-        <Textes sources={["Manuel Microfina++, p. 58 : écran Consentement (N° Client, Info Membres, Code*, Date début*, Date Fin, Commentaire, Enregistrer, Annuler)",
+        <Textes sources={["Manuel Microfina++, p. 58 : écran Consentement (N° Client, Info Membres, Date début*, Date Fin, Commentaire, Enregistrer, Annuler)",
           "Instr. BCC 5, art. 13 : consentement écrit de l'emprunteur avant de communiquer ses informations à la Centrale des risques (le manuel parle du BIC de l'UEMOA)",
           "Instr. BCC 34, grille V.2 : la non-transmission à la Centrale des risques est sanctionnée pour les COOPEC et IMF",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />

@@ -290,9 +290,8 @@ def calculer(u, d) -> dict:
                     charges.append({"libelle": x["retenueLibelle"], "taux": x["retenueTaux"], "montant": m, "retenue": True, "compte": compte_taxe(u, x["retenueTaxeId"]),
                                     "taxeId": x["retenueTaxeId"], "ligne": k})
         type_facture = valeur("select code from type_commande where id = %s", (c["type_commande_id"],)) or ""
-    nif = bool(d.get("nif"))
     for e in elements(u):                                            # éléments de facture (S36) : taux « A. » avec numéro impôt, « N.A. » sans, sinon Taux
-        taux = (e["tauxA"] if nif else e["tauxNA"]) if (e["tauxA"] or e["tauxNA"]) else e["taux"]
+        taux = e["taux"]                                             # « Taux A. », « Taux N.A. » et la case NIF supprimés (registre T130)
         m = pct(ht, taux)
         if m:
             charges.append({"libelle": e["libelle"], "taux": str(taux), "montant": m, "retenue": bool(e["retenue"]), "compte": e["compte"], "elementId": e["id"]})
@@ -339,7 +338,7 @@ def enregistrer_facture(u, d) -> dict:
                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
                  (i, u["agence_id"], f"{n:06d}", x["commande"]["id"] if x["commande"] else None, x["tranche"], x["fournisseur"]["id"], x["typeFacture"], reference, date_f,
                   echeance, libelle, x["ht"], x["tva"], x["ttc"], Jsonb(x["charges"]), Jsonb(x["imputation"]), x["du"], x["aPayer"], bool(d.get("aJour", True)),
-                  bool(d.get("nif")), u["id"], cle))
+                  False, u["id"], cle))
     return vue_facture(une("select * from facture_fournisseur where id = %s", (fid,)))
 
 

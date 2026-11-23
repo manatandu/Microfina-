@@ -647,7 +647,7 @@ def test_validation_compte_comptable(clients, journee):
 
 def test_ecart_de_caisse(clients, journee):
     """S80-5 : à la validation, un manquant passe au débit de 671, un excédent au crédit de 7790, par le compte du guichet ;
-    le compte comptable rejoint le solde réel (billetage + Bon de Caisse) (PCCI 671 et 7790)"""
+    le compte comptable rejoint le solde réel du billetage (PCCI 671 et 7790)"""
     _, s = journee
     chef, caisse = clients["chef"], clients["caisse"]
     solde = lambda d: caisse.get(f"/api/caisses/{s['id']}/solde-comptable?devise={d}").json()
@@ -662,7 +662,7 @@ def test_ecart_de_caisse(clients, journee):
                     where b.id = %s and l.sens = 'D'""", (b["id"],)) == "671"
     thu = caisse.get(f"/api/caisses/{s['id']}/theorique?devise=USD").json()
     avant = solde("USD")
-    b = caisse.post(f"/api/caisses/{s['id']}/billetages", {"devise": "USD", "compte": thu, "bonCaisse": 1000}, **H).json()   # Bon de Caisse de 10 USD : excédent
+    b = caisse.post(f"/api/caisses/{s['id']}/billetages", {"devise": "USD", "compte": {**thu, "10": thu.get("10", 0) + 1}}, **H).json()   # un billet de 10 USD de plus : excédent
     assert chef.post(f"/api/billetages/{b['id']}/validation", **H).status_code == 200
     assert solde("USD") == avant + 1000
     assert ident("""select c.numero from ligne_ecriture l join compte c on c.id = l.compte_id join billetage b on b.ecriture_ecart_id = l.ecriture_id
@@ -902,7 +902,7 @@ def test_consentement(clients):
     k = T("0412-000318")
     def refus(corps):
         r = agent.post(f"/api/tiers/{k}/consentements", corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
-    assert "code" in refus({"dateDebut": "2026-11-07"})
+    assert "date début" in refus({"commentaire": "x"})     # plus de case Code (T130)
     assert "précède" in refus({"code": "CR-1", "dateDebut": "2026-11-07", "dateFin": "2026-11-01"})
     l = agent.post(f"/api/tiers/{k}/consentements", {"code": "CR-1", "dateDebut": "2026-11-07", "commentaire": "Signé à la demande de crédit"}, **H).json()
     assert [(x["code"], x["dateDebut"], x["dateFin"], x["commentaire"]) for x in l] == [("CR-1", "2026-11-07", "", "Signé à la demande de crédit")]
@@ -1148,17 +1148,16 @@ def test_adhesion_par_banque(clients, journee):
 
 def test_arrete_de_caisse(clients, journee):
     """S79 (manuel p. 90 et 91) : pas de comptage à l'ouverture ; Solde Caisse = dernier arrêté validé + opérations du jour ;
-    Bon de Caisse enregistré ; Enregistrer refait la saisie tant que le billetage n'est pas validé"""
+    Enregistrer refait la saisie tant que le billetage n'est pas validé"""
     caisse = clients["caisse"]
     _, s = journee
     avant = caisse.get(f"/api/caisses/{s['id']}/theorique?devise=CDF").json()
     assert caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}}, **H).status_code == 200
     apres = caisse.get(f"/api/caisses/{s['id']}/theorique?devise=CDF").json()
     assert apres.get("10000", 0) == avant.get("10000", 0) + 1
-    b = caisse.post(f"/api/caisses/{s['id']}/billetages", {"devise": "CDF", "compte": {"10000": 1}, "bonCaisse": 500000}, **H).json()
-    assert b["bonCaisse"] == 500000
-    b2 = caisse.post(f"/api/caisses/{s['id']}/billetages", {"devise": "CDF", "compte": apres, "bonCaisse": 0}, **H).json()
-    assert b2["id"] == b["id"] and b2["bonCaisse"] == 0
+    b = caisse.post(f"/api/caisses/{s['id']}/billetages", {"devise": "CDF", "compte": {"10000": 1}}, **H).json()
+    b2 = caisse.post(f"/api/caisses/{s['id']}/billetages", {"devise": "CDF", "compte": apres}, **H).json()
+    assert b2["id"] == b["id"]                                         # plus de Bon de Caisse (registre T130)
 
 
 def test_guichets(clients):

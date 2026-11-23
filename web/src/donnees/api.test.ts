@@ -680,15 +680,14 @@ describe("journée de guichet", () => {
     await expect(api.guichet.depot({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 } })).rejects.toThrow("Aucune caisse ouverte");
   });
 
-  it("arrêté de caisse (S79, p. 90 et 91) : sans comptage d'ouverture, Solde Caisse, Bon de Caisse, saisie refaite tant que non validée", async () => {
+  it("arrêté de caisse (S79, p. 90 et 91) : sans comptage d'ouverture, Solde Caisse, saisie refaite tant que non validée (sans Bon de Caisse, T130)", async () => {
     const { s } = await journeeOuverte();
     const avant = await api.caisses.theorique(s.id, "CDF");
     await api.guichet.depot({ cle: cle(), compteId: 2, montant: 1000000, coupures: { 10000: 1 } });
     expect((await api.caisses.theorique(s.id, "CDF"))[10000]).toBe((avant[10000] ?? 0) + 1);
-    const b = await api.caisses.saisirBilletage(s.id, "CDF", { 10000: 1 }, 500000);
-    expect(b.bonCaisse).toBe(500000);
-    const b2 = await api.caisses.saisirBilletage(s.id, "CDF", await api.caisses.theorique(s.id, "CDF"), 0);
-    expect([b2.id, b2.bonCaisse]).toEqual([b.id, 0]);
+    const b = await api.caisses.saisirBilletage(s.id, "CDF", { 10000: 1 });
+    const b2 = await api.caisses.saisirBilletage(s.id, "CDF", await api.caisses.theorique(s.id, "CDF"));
+    expect(b2.id).toBe(b.id);
   });
 
   it("dépôt et retrait (S74, p. 86) : Mandataire et Motif, sans visa ni cases à cocher que Microfina++ ne montre pas", async () => {
@@ -1020,10 +1019,10 @@ describe("journée de guichet", () => {
     expect(await api.tiers.images(3)).toEqual({ photo: png, signature: png, copiePiece: png, justificatifAdresse: png, copieHabilitation: null });
   });
 
-  it("consentement (S50) : code et date début obligatoires, dates cohérentes", async () => {
+  it("consentement (S50) : date début obligatoire, dates cohérentes ; plus de case Code (T130)", async () => {
     await connecter("bkasongo");
     const c = { code: "CR-1", dateDebut: "2026-11-07", dateFin: "", commentaire: "Signé à la demande de crédit" };
-    await expect(api.tiers.creerConsentement(1, { ...c, code: "" })).rejects.toThrow("code");
+    await expect(api.tiers.creerConsentement(1, { ...c, dateDebut: "" })).rejects.toThrow("date début");
     await expect(api.tiers.creerConsentement(1, { ...c, dateFin: "2026-11-01" })).rejects.toThrow("précède");
     const l = await api.tiers.creerConsentement(1, c);
     expect(l.map((x) => [x.code, x.dateDebut, x.dateFin, x.commentaire])).toEqual([["CR-1", "2026-11-07", "", "Signé à la demande de crédit"]]);
@@ -3013,7 +3012,8 @@ describe("journée de guichet", () => {
     expect(e.ecritureEcartId).toBeTruthy();
     await connecter("engalula");
     const avantUsd = await api.caisses.soldeComptable(s.id, "USD");
-    const bu = await api.caisses.saisirBilletage(s.id, "USD", await api.caisses.theorique(s.id, "USD"), 1000);
+    const thu = await api.caisses.theorique(s.id, "USD");
+    const bu = await api.caisses.saisirBilletage(s.id, "USD", { ...thu, 10: (thu[10] ?? 0) + 1 });   // un billet de 10 USD de plus : excédent
     await connecter("jpmukendi"); await api.caisses.validerBilletage(bu.id);
     expect(await api.caisses.soldeComptable(s.id, "USD")).toBe(avantUsd + 1000);
   });

@@ -558,8 +558,8 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       theorique: (sid: number, devise: string) => get(`/caisses/${sid}/theorique?devise=${q(devise)}`),
       soldeComptable: (sid: number, devise: string) => get(`/caisses/${sid}/solde-comptable?devise=${q(devise)}`),
       billetages: (sid: number) => get(`/caisses/${sid}/billetages`),
-      saisirBilletage: (sid: number, devise: string, compte: unknown, bonCaisse = 0) =>
-        post(`/caisses/${sid}/billetages`, { devise, compte, bonCaisse }),
+      saisirBilletage: (sid: number, devise: string, compte: unknown) =>
+        post(`/caisses/${sid}/billetages`, { devise, compte }),
       validerBilletage: (id: number) => post(`/billetages/${id}/validation`),
       aValider: () => get("/billetages/a-valider"),
     },

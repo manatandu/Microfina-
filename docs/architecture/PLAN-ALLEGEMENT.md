@@ -460,11 +460,9 @@ Elles se posent au début du lot concerné. Aucune n'a de réponse dans les text
 - 2.13 Cycle du crédit : des plafonds par cycle sont-ils voulus ?
 - 2.14 Ordre de remboursement : un ordre par classe est-il voulu, en plus de celui du produit ?
 - 2.18 Part sociale hors du barème des frais, réglée dans la fiche Société (change S16-11) ?
-- 2.24 « Taux A. » et « Taux N.A. » des types de facture visent-ils l'AIB du Bénin ?
 - 3.5 Exonération des frais de tenue de compte, membre par membre ?
-- 3.14 La case « Code » du consentement sert-elle ?
 - 3.15 Les statuts prévoient-ils des parts souscrites non libérées ?
-- 4.11 Masquer le solde théorique pendant le comptage ? Que désigne « Bon de caisse » ?
+- 4.11 Masquer le solde théorique pendant le comptage ?
 - 5.2 Le taux d'un DAT peut-il être négocié, ou est-il celui du produit ?
 - 6.10 Le taux actuariel reste-t-il à l'écran « pour information » ?
 - 7.2 Tout mouvement saisi hors guichet passe-t-il par la file des opérations en attente, ou au-delà d'un seuil ?

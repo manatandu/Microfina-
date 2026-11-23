@@ -64,7 +64,7 @@ id,lot,titre,ecrans,statut,question,reste
 2.21,2,Société,S32,fait,,
 2.22,2,Calendrier,S34,fait,,
 2.23,2,Devises et coupures,S35,fait,,
-2.24,2,Facture,S36,partiel,,"Fait : le menu rejoint la Comptabilité, à côté des taxes. Reste : « Taux A. » et « Taux N.A. » (AIB du Bénin), à retirer si le porteur le confirme"
+2.24,2,Facture,S36,fait,,
 2.25,2,Opérations diverses de caisse,S31,fait,,
 2.26,2,Plan des comptes et des tiers,S102 S103 S104,fait,,
 3.1,3,Un seul « Nouveau membre »,S37 S38 S39,à faire,,
@@ -80,7 +80,7 @@ id,lot,titre,ecrans,statut,question,reste
 3.11,3,Prospect,S45 S51,à faire,,
 3.12,3,Groupe solidaire,S39 S44,à faire,,
 3.13,3,Résiliation,S48,à faire,,
-3.14,3,Consentement à la Centrale des risques,S50,à faire,oui,
+3.14,3,Consentement à la Centrale des risques,S50,partiel,,"Fait : la case « Code » supprimée (T130). Reste : le consentement dans la demande de crédit, l'entrée de menu retirée, « Pays de délivrance » corrigé"
 3.15,3,Registre des membres,SC04,à faire,oui,
 3.16,3,Conformité : un menu à part,SC01 SC02 SC05 SC06,à faire,,
 3.17,3,Menu Membre,,à faire,,
@@ -94,7 +94,7 @@ id,lot,titre,ecrans,statut,question,reste
 4.8,4,Remboursement au guichet,S76,à faire,,
 4.9,4,Paiements préparés,S82 S141,à faire,,
 4.10,4,Transferts de fonds,S81,à faire,,
-4.11,4,Arrêté de caisse,S79 S80,à faire,oui,
+4.11,4,Arrêté de caisse,S79 S80,partiel,oui,Fait : le « Bon de Caisse » supprimé (T130). Reste : le reste du point ; question : masquer le solde théorique pendant le comptage ?
 4.12,4,Journal de caisse,S83,à faire,,
 4.13,4,Menu Caisse,,à faire,,
 5.1,5,Dépôts à terme,S65 S66 S67 S68,à faire,,

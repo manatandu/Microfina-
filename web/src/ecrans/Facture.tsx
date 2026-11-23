@@ -37,14 +37,14 @@ function useFacture() {
 }
 
 function Elements() {
-  const VIDE = { libelle: "", compte: "", taux: "", tauxA: "", tauxNA: "", retenue: false };
+  const VIDE = { libelle: "", compte: "", taux: "", retenue: false };
   const [f, setF] = useState(VIDE);
   const [choisi, setChoisi] = useState<number | null>(null);
   const { donnees, boite, fermer, confirmer } = useFacture();
   if (!donnees) return <Chargement />;
   const annuler = () => { setF(VIDE); setChoisi(null); };
-  const choisir = (e: Element) => { setChoisi(e.id); setF({ libelle: e.libelle, compte: e.compte, taux: taux(e.taux), tauxA: taux(e.tauxA), tauxNA: taux(e.tauxNA), retenue: e.retenue }); };
-  const texte = (k: "libelle" | "compte" | "taux" | "tauxA" | "tauxNA", libelle: string, classe = "saisie code") => (
+  const choisir = (e: Element) => { setChoisi(e.id); setF({ libelle: e.libelle, compte: e.compte, taux: taux(e.taux), retenue: e.retenue }); };
+  const texte = (k: "libelle" | "compte" | "taux", libelle: string, classe = "saisie code") => (
     <Champ libelle={libelle}>{(p) => <input {...p} className={classe} inputMode={k.startsWith("taux") || k === "compte" ? "decimal" : undefined}
       value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} />}</Champ>);
   return (
@@ -53,8 +53,6 @@ function Elements() {
         {texte("libelle", "Libellé", "saisie")}
         {texte("compte", "Compte :")}
         {texte("taux", "Taux(%)")}
-        {texte("tauxA", "Taux A.(%)")}
-        {texte("tauxNA", "Taux N.A.(%)")}
         <label className="case-jour"><input type="checkbox" checked={f.retenue} onChange={(e) => setF({ ...f, retenue: e.target.checked })} /> Retenue Taux</label>
       </div>
       <div className="actions-onglets">
@@ -67,13 +65,13 @@ function Elements() {
       <fieldset className="cadre-champs pile">
         <legend>Liste éléments</legend>
         <Paginee lignes={donnees.elements}>{(visibles) => (<table className="grille">
-          <thead><tr><th scope="col">Libellé</th><th scope="col">Compte</th><th scope="col">Taux (%)</th><th scope="col">Taux A. (%)</th><th scope="col">Taux N.A. (%)</th>
+          <thead><tr><th scope="col">Libellé</th><th scope="col">Compte</th><th scope="col">Taux (%)</th>
             <th scope="col">Retenue</th><th scope="col">Désactiver</th></tr></thead>
           <tbody>
-            {donnees.elements.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
+            {donnees.elements.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
             {visibles.map((e) => (
               <tr key={e.id} className="ligne-choix" tabIndex={0} aria-selected={e.id === choisi} onClick={() => choisir(e)} onKeyDown={(x) => { if (x.key === "Enter") choisir(e); }}>
-                <td>{e.libelle}</td><td>{e.compte}</td><td className="chiffres">{taux(e.taux)}</td><td className="chiffres">{taux(e.tauxA)}</td><td className="chiffres">{taux(e.tauxNA)}</td>
+                <td>{e.libelle}</td><td>{e.compte}</td><td className="chiffres">{taux(e.taux)}</td>
                 <td><input type="checkbox" checked={e.retenue} disabled aria-label={`Retenue : ${e.libelle}`} /></td>
                 <td><input type="checkbox" checked={!e.actif} aria-label={`Désactiver : ${e.libelle}`} onClick={(x) => x.stopPropagation()}
                   onChange={(x) => { const actif = !x.target.checked; confirmer(actif ? "Voulez-vous vraiment activer ?" : "Voulez-vous vraiment désactiver ?",
@@ -83,7 +81,7 @@ function Elements() {
           </tbody>
         </table>)}</Paginee>
       </fieldset>
-      <Textes sources={["Manuel Microfina++, p. 46 : « Dans le menu [Facture], cliquez sur [Elément Facture] et renseigner les champs correspondants puis enregistrer » ; capture : Libellé, Compte, Taux(%), Taux A.(%), Taux N.A.(%), Retenue Taux, Enregistrer, Supprimer (grisé), Annuler ; cadre Liste éléments : Libelle, Compte, Taux (%), Taux A. (%), Taux N.A. (%), Retenue, Désactiver",
+      <Textes sources={["Manuel Microfina++, p. 46 : « Dans le menu [Facture], cliquez sur [Elément Facture] et renseigner les champs correspondants puis enregistrer » ; capture : Libellé, Compte, Taux(%), Taux A.(%), Taux N.A.(%), Retenue Taux, Enregistrer, Supprimer (grisé), Annuler ; cadre Liste éléments : Libelle, Compte, Taux (%), Taux A. (%), Taux N.A. (%), Retenue, Désactiver ; « Taux A. » et « Taux N.A. » (AIB du Bénin) supprimés (registre T130)",
         "Manuel Microfina++, p. 125 et 150 : TVA, AIB et Taux au bon de commande ; Liste des charges (Libellé, Taux (%), Montant) à l'enregistrement de la facture"]} />
       <Dialogue boite={boite} fermer={fermer} />
     </section>
