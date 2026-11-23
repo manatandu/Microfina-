@@ -55,7 +55,7 @@ function Retenues({ d }: { d: Detail }) {
       </table></div>
       <dl className="infos">
         <div className="info-ligne"><dt>Assurance</dt><dd className="chiffres">{montant(r.assurance, dv)}</dd></div>
-        <div className="info-ligne"><dt>Épargne obligatoire</dt><dd className="chiffres">{montant(r.epargneObligatoire, dv)}</dd></div>
+        <div className="info-ligne"><dt>Épargne obligatoire, déposée et bloquée (non retenue)</dt><dd className="chiffres">{montant(r.epargneObligatoire, dv)}</dd></div>
         <div className="info-ligne"><dt>Fonds de solidarité</dt><dd className="chiffres">{montant(r.fondsSolidarite, dv)}</dd></div>
         <div className="info-ligne"><dt>Montant remis</dt><dd className="chiffres"><strong>{montant(r.net, dv)}</strong></dd></div>
       </dl>

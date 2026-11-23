@@ -1821,7 +1821,7 @@ def test_deblocage_caisse(clients, journee):
     cid = credit_vise(clients)
     assert [x["id"] for x in caisse.get("/api/credit/deblocage", **H).json()] == [cid]
     d = caisse.get(f"/api/credit/deblocage/{cid}", **H).json()
-    assert (d["fraisEncaisses"], d["retenues"]["net"], d["retenues"]["epargneObligatoire"]) == (False, 89000000, 10000000)
+    assert (d["fraisEncaisses"], d["retenues"]["net"], d["retenues"]["epargneObligatoire"]) == (False, 99000000, 10000000)
     assert d["echeancierDeblocage"][0]["date"] > "2026-11-05"
     def refus(c, route, corps=None):
         r = c.post(route, corps or {}, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
@@ -1829,7 +1829,7 @@ def test_deblocage_caisse(clients, journee):
     assert "Droit manquant" in refus(agent, f"/api/credit/deblocage/{cid}/frais")
     assert caisse.post(f"/api/credit/deblocage/{cid}/frais", **H).json()["fraisEncaisses"] is True
     stock = caisse.get(f"/api/caisses/{s['id']}/theorique?devise=CDF", **H).json()
-    cp, reste = {}, 890000                                              # coupures en unités, montants en centimes
+    cp, reste = {}, 990000                                              # coupures en unités, montants en centimes
     for v in sorted(stock, key=int, reverse=True):
         n = min(stock[v], reste // int(v))
         if n:
@@ -1839,7 +1839,7 @@ def test_deblocage_caisse(clients, journee):
     o = caisse.post(f"/api/guichet/deblocage/{cid}", {"cle": k, "coupures": cp}, **H)
     assert o.status_code == 200, o.content
     o = o.json()
-    assert (o["type"], o["montant"], o["statut"]) == ("deblocage_credit", 89000000, "validee")
+    assert (o["type"], o["montant"], o["statut"]) == ("deblocage_credit", 99000000, "validee")
     assert caisse.post(f"/api/guichet/deblocage/{cid}", {"cle": k, "coupures": cp}, **H).json()["id"] == o["id"]       # même clé : même opération
     assert "pas prêt au déblocage" in refus(caisse, f"/api/guichet/deblocage/{cid}", {"cle": cle(), "coupures": cp})
     assert ident("select statut from credit where id = %s", (cid,)) == "debloque"
@@ -1849,7 +1849,7 @@ def test_deblocage_caisse(clients, journee):
                     where l.contrat_ref = %s""", (f"credit:{cid}",)) == 100000000
     assert balance_equilibree(caisse)
     c = chef.get(f"/api/credit/credits/{cid}/contrat", **H).json()
-    assert c["credit"]["numero"] == "0412/L001/00001" and c["retenues"]["net"] == 89000000 and c["penaliteAnticipation"] <= 50
+    assert c["credit"]["numero"] == "0412/L001/00001" and c["retenues"]["net"] == 99000000 and c["penaliteAnticipation"] <= 50
 
 
 def test_deblocage_banque(clients, journee):
@@ -1973,8 +1973,7 @@ def test_deblocage_epargne(clients, journee):
     assert (r.json()["statut"], r.json()["compteCredite"], "OD" in r.json()["piece"]) == ("debloque", d["comptePositionnement"], True)
     assert ident("select mode_deblocage from credit where id = %s", (cid,)) == "epargne"
     apres = solde()["solde"]
-    obligatoire = d["retenues"]["epargneObligatoire"] if ident("select compte_epargne_id from credit where id = %s", (cid,)) == k else 0
-    assert apres - avant == d["retenues"]["net"] + obligatoire
+    assert apres - avant == d["retenues"]["net"]        # l'épargne obligatoire n'est pas versée par le prêt (Instr. BCC 40, art. 10 ; T136)
     assert balance_equilibree(compta)
 
 

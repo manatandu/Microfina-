@@ -78,7 +78,9 @@ def frais_du(c: dict) -> list[dict]:
 
 def retenues(c: dict) -> dict:
     fr = frais_du(c)
-    total = sum(x["montant"] for x in fr) + c["assurance"] + c["epargne_obligatoire"] + c["fonds_solidarite"]
+    # L'épargne obligatoire n'est pas retenue sur le prêt : l'emprunteur la dépose, elle est bloquée au déblocage (Instr. BCC 40, art. 10 ;
+    # Instr. BCC 38, art. 9 ; registre T136)
+    total = sum(x["montant"] for x in fr) + c["assurance"] + c["fonds_solidarite"]
     return {"frais": fr, "assurance": c["assurance"], "epargneObligatoire": c["epargne_obligatoire"], "fondsSolidarite": c["fonds_solidarite"],
             "total": total, "net": c["montant"] - total}
 
@@ -139,7 +141,13 @@ def ecriture(u, c: dict, d: date, contrepartie: dict, journal: str, cle: str) ->
             raise ErreurMetier("L'assureur n'a pas de compte (Paramétrage > Crédit > Assureur crédit).")
         l.append({"compte": ca, "sens": "C", "devise": dv, "montant": c["assurance"]})
     from .services import compte_du_produit
-    for cid_, m in ((c["compte_epargne_id"], c["epargne_obligatoire"]), (c["compte_solidarite_id"], c["fonds_solidarite"])):
+    if c["epargne_obligatoire"]:                     # déposée d'abord par l'emprunteur (Instr. BCC 40, art. 10 ; registre T136)
+        from .depots_terme import disponible
+        if not c["compte_epargne_id"] or disponible(c["compte_epargne_id"], dv) < c["epargne_obligatoire"]:
+            num = valeur("select numero from compte_depot where id = %s", (c["compte_epargne_id"],)) or ""
+            raise ErreurMetier(f"Épargne obligatoire : l'emprunteur dépose d'abord {c['epargne_obligatoire'] / 100:,.2f} {dv}".replace(",", " ").replace(".", ",")
+                               + (f" sur le compte {num}" if num else "") + " ; elle n'est pas retenue sur le prêt (Instr. BCC 40, art. 10).")
+    for cid_, m in ((c["compte_solidarite_id"], c["fonds_solidarite"]),):
         if m:
             p = une("""select p.famille, p.compte_lie from compte_depot cd join produit_epargne p on p.id = cd.produit_id where cd.id = %s""", (cid_,))
             l.append({"compte": compte_du_produit(p), "contrat": f"depot:{cid_}", "sens": "C", "devise": dv, "montant": m})

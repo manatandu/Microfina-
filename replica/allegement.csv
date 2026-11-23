@@ -129,7 +129,7 @@ id,lot,titre,ecrans,statut,question,reste
 10.1,10,Seuls les comptes de l'institution reçoivent des écritures,S102,à faire,,
 10.2,10,"Comptes au plan par produit et catégorie, membre en auxiliaire",S63 S65 S102,à faire,,
 10.3,10,Parts sociales : comptes collectifs,S37 S102,à faire,,
-10.4,10,Fonds de solidarité et épargne obligatoire,S75 S102,à faire,,
+10.4,10,Fonds de solidarité et épargne obligatoire,S75 S102,partiel,,"Fait : l'épargne obligatoire déposée par l'emprunteur et bloquée, plus retenue sur le prêt (Instr. BCC 40, art. 10 ; T136). Reste : nature du fonds de solidarité au choix du produit (T143) ; comptes au plan par produit et catégorie"
 10.5,10,Un compte pour chaque opération,S102,à faire,,
 10.6,10,Statut « Bloqué » et export du plan,S102 S109,à faire,,
 7.1,7,Opérations en attente,S57 S113 S114,à faire,,

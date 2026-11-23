@@ -3986,7 +3986,7 @@ function separerCredit(uid: number, tache: TacheCredit, demandeId: number | null
 const fraisDuCredit = (c: CreditPret) => ((E.produitsCredit.find((p) => p.id === c.produitId)?.frais ?? []) as FraisProduit[])
   .map((f) => ({ libelle: f.typeFrais, compte: f.compte, montant: chargeCredit(f.nature, f.valeur, c.montant) }));
 const retenuesCredit = (c: CreditPret) => { const frais = fraisDuCredit(c);
-  const total = frais.reduce((s, x) => s + x.montant, 0) + c.assurance + c.epargneObligatoire + c.fondsSolidarite;
+  const total = frais.reduce((s, x) => s + x.montant, 0) + c.assurance + c.fondsSolidarite;   // épargne obligatoire déposée, non retenue (Instr. BCC 40, art. 10 ; T136)
   return { frais, assurance: c.assurance, epargneObligatoire: c.epargneObligatoire, fondsSolidarite: c.fondsSolidarite, total, net: c.montant - total }; };
 const echeancierRecale = (c: CreditPret, d: string) => { const nd = Math.round(c.differe * Number(periodicitePlan(c.periodicite)!.denominateur) / 12);
   return c.echeancier.map((e) => ({ ...e, date: jourOuvre(dateRangPlan(d, c.periodicite, nd + e.rang)) })); };
@@ -4002,7 +4002,12 @@ function ecritureDeblocage(c: CreditPret, contrepartie: { compte: string; contra
     if (!ca) throw new ErreurMetier("L'assureur n'a pas de compte (Paramétrage > Crédit > Assureur crédit).");
     l.push({ compte: ca, sens: "C", devise: dv, montant: c.assurance, montantCdf: cdf(c.assurance, dv) });
   }
-  for (const [cid, m] of [[c.compteEpargneId, c.epargneObligatoire], [c.compteSolidariteId, c.fondsSolidarite]] as [number | null, number][]) if (m && cid) {
+  if (c.epargneObligatoire) {   // déposée d'abord par l'emprunteur (Instr. BCC 40, art. 10 ; registre T136)
+    const ce = c.compteEpargneId ? E.comptes.find((x) => x.id === c.compteEpargneId) : undefined;
+    const dispo = ce ? soldeContrat(`depot:${ce.id}`, ce.devise, "C") - bloqueDe(ce) - sortiesEnAttente(ce) : 0;
+    if (!ce || dispo < c.epargneObligatoire) throw new ErreurMetier(`Épargne obligatoire : l'emprunteur dépose d'abord ${montantLisible(c.epargneObligatoire, dv)}${ce ? ` sur le compte ${ce.numero}` : ""} ; elle n'est pas retenue sur le prêt (Instr. BCC 40, art. 10).`);
+  }
+  for (const [cid, m] of [[c.compteSolidariteId, c.fondsSolidarite]] as [number | null, number][]) if (m && cid) {
     const cp = E.comptes.find((x) => x.id === cid)!;
     l.push({ compte: cp.pcci, contrat: `depot:${cid}`, sens: "C", devise: dv, montant: m, montantCdf: cdf(m, dv) });
   }

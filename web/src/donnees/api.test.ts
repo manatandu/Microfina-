@@ -2294,24 +2294,24 @@ describe("journée de guichet", () => {
     return cid;
   }
 
-  it("déblocage au guichet (S75, p. 86 et 87) : Débloquer, frais notés au déblocage (plan 4.7), retenues sur le prêt (CR-6), épargne bloquée (Instr. BCC 38, art. 9), octroi déclaré (CR-10)", async () => {
+  it("déblocage au guichet (S75, p. 86 et 87) : Débloquer, frais notés au déblocage (plan 4.7), retenues sur le prêt sauf l'épargne obligatoire, déposée et bloquée (Instr. BCC 40, art. 10 ; 38, art. 9), octroi déclaré (CR-10)", async () => {
     const cid = await creditVise();
     await connecter("engalula");
     expect((await api.deblocage.aDebloquer()).map((x) => x.id)).toEqual([cid]);
     const d = await api.deblocage.detail(cid);
-    expect([d.fraisEncaisses, d.retenues.net, d.retenues.epargneObligatoire]).toEqual([false, 89000000, 10000000]);   // comme le serveur
+    expect([d.fraisEncaisses, d.retenues.net, d.retenues.epargneObligatoire]).toEqual([false, 99000000, 10000000]);   // comme le serveur
     expect(d.echeancierDeblocage[0]!.date > "2026-11-05").toBe(true);
     await expect(api.deblocage.debloquerCaisse(cid, { cle: cle(), coupures: {} })).rejects.toThrow("billetage");   // plus d'étape « Encaisser frais » (plan 4.7)
     const s = (await api.caisses.duCaissier())!, stock = await api.caisses.theorique(s.id, "CDF");
-    const cp: Comptage = {}; let reste = 890000;
+    const cp: Comptage = {}; let reste = 990000;
     for (const v of Object.keys(stock).map(Number).sort((a, b) => b - a)) { const n = Math.min(stock[v] ?? 0, Math.floor(reste / v)); if (n) { cp[v] = n; reste -= n * v; } }
     expect(reste).toBe(0);
     const k = cle(), o = await api.deblocage.debloquerCaisse(cid, { cle: k, coupures: cp });
-    expect([o.type, o.montant, o.statut]).toEqual(["deblocage_credit", 89000000, "validee"]);
+    expect([o.type, o.montant, o.statut]).toEqual(["deblocage_credit", 99000000, "validee"]);
     expect((await api.deblocage.debloquerCaisse(cid, { cle: k, coupures: cp })).id).toBe(o.id);
     await expect(api.deblocage.debloquerCaisse(cid, { cle: cle(), coupures: cp })).rejects.toThrow("pas prêt au déblocage");
     const c = await api.deblocage.contrat(cid);
-    expect([c.credit.numero, c.credit.statut, c.retenues.net]).toEqual(["0412/L001/00001", "debloque", 89000000]);
+    expect([c.credit.numero, c.credit.statut, c.retenues.net]).toEqual(["0412/L001/00001", "debloque", 99000000]);
   });
 
   it("déblocage par banque (S54, p. 62) : Prélever les frais, chèque du chéquier du compte bancaire (S54-2 à S54-5, S60-5)", async () => {
