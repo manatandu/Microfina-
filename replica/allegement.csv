@@ -113,7 +113,7 @@ id,lot,titre,ecrans,statut,question,reste
 6.1,6,Le parcours du dossier,S87 S88 S89,partiel,,Garanties proposées saisies à la demande (avec 6.11 et 6.12)
 6.2,6,Saisir une fois,,à faire,,
 6.3,6,Demande,S85 S86,à faire,,
-6.4,6,Portefeuille et fiche du crédit,S87 S88 S90 S92 S93 S95,partiel,,Garanties dans la fiche du crédit (avec 6.12)
+6.4,6,Portefeuille et fiche du crédit,S87 S88 S90 S92 S93 S95,fait,,
 6.5,6,Classe du crédit,,fait,,
 6.6,6,Déblocage et remboursement : un écran chacun,S54 S55 S75 S76 S105 S106,à faire,,
 6.7,6,Une seule étape pour débloquer,S54 S105,fait,,
@@ -121,7 +121,7 @@ id,lot,titre,ecrans,statut,question,reste
 6.9,6,Annulation d'un remboursement,S142,fait,,
 6.10,6,Simulation,S84,fait,,
 6.11,6,Analyse financière,S85,à faire,,
-6.12,6,Garanties du crédit,S94,à faire,,
+6.12,6,Garanties du crédit,S94,fait,,
 6.13,6,Balance âgée et provisions,S98 S99 S101 S127 S128,à faire,,
 6.14,6,Autres écrans du crédit,S96 S97 S100 SL01,fait,,
 6.15,6,Rapports crédit,S101,partiel,,« Indicateurs de gestion » renvoie aux Indicateurs et normes (7.9) quand ils seront refaits

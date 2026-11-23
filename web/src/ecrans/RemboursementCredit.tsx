@@ -5,6 +5,7 @@
 import { useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { vers } from "./registre";
+import { TableauGaranties } from "./Garanties";
 import { api } from "../donnees/api";
 import type { Operation, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -398,7 +399,7 @@ export function ConsulterPret() {
   const [t, setT] = useState<Tiers | null>(null);
   const [cid, setCid] = useState<number | null>(null);
   const [date, setDate] = useState("");
-  const [fiche, setFiche] = useState<"" | "situation" | "plan" | "reel" | "memo" | "recherche" | "historique">("");
+  const [fiche, setFiche] = useState<"" | "situation" | "plan" | "reel" | "memo" | "recherche" | "historique" | "garanties">("");
   const [boite, setBoite] = useState<Boite | null>(null);
   const [params, setParams] = useSearchParams();
   const depuis = !t && Number(params.get("credit")) || null;   // ouvert depuis le portefeuille (plan d'allègement, point 6.4)
@@ -407,10 +408,11 @@ export function ConsulterPret() {
     const tid = t?.id ?? (depuis ? (await api.remboursementsCredit.consultation(depuis)).tiersId : null);
     const credits = tid ? await api.remboursementsCredit.creditsConsultation(tid) : [];
     const id = cid ?? depuis ?? credits[0]?.id ?? null;
-    return { j, credits, d: id ? await api.remboursementsCredit.consultation(id, date || undefined) : null, h: id && fiche === "historique" ? await api.etatCredits.historique(id) : [] };
-  }, [t?.id, cid, date, depuis, fiche === "historique"]);
+    return { j, credits, d: id ? await api.remboursementsCredit.consultation(id, date || undefined) : null, h: id && fiche === "historique" ? await api.etatCredits.historique(id) : [],
+      g: id && fiche === "garanties" ? await api.garanties.ensemble(id) : null };
+  }, [t?.id, cid, date, depuis, fiche === "historique", fiche === "garanties"]);
   if (!donnees) return <Chargement />;
-  const { j, credits, d, h } = donnees;
+  const { j, credits, d, h, g } = donnees;
   const dv = (d?.devise ?? "CDF") as Devise;
   const ro = (l: string, v: string) => <Champ key={l} libelle={l}>{(p) => <Lecture {...p} value={d ? v : ""} />}</Champ>;
   const mt = (v: number | undefined) => montant(v ?? 0, dv);
@@ -459,6 +461,7 @@ export function ConsulterPret() {
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("reel")}>Paiements reçus</button>
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("memo")}>Mémo</button>
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => d && setBoite({ type: "succes", message: `Tout sur le crédit au ${fr(d.dateReglement)} : ${montant(d.toutSurLeCredit, dv)}.` })}>Tout sur le crédit</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("garanties")}>Garanties</button>
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("historique")}>Historique</button>
           <button className="bouton secondaire" type="button" onClick={() => { setT(null); setCid(null); setDate(""); setParams({}); }}>Effacer</button>
         </div>
@@ -466,6 +469,10 @@ export function ConsulterPret() {
           "Registre S95-1 à S95-3 : même situation que le remboursement (S76) ; Tout sur le crédit affiche la somme due ; H reste grisé (non expliqué par le manuel)"]} />
       </section>
       <FenetresCredit cid={d?.id ?? null} devise={dv} ouverte={(["situation", "plan", "reel", "memo"] as const).find((x) => x === fiche) ?? ""} fermer={() => setFiche("")} />
+      <Fiche titre={`Garanties du crédit ${d?.numero ?? ""}`} ouverte={fiche === "garanties"} fermer={() => setFiche("")}>
+        {g && <TableauGaranties e={g} />}
+        <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setFiche("")}>Fermer</button></div>
+      </Fiche>
       <Fiche titre={`Historique du crédit ${d?.numero ?? ""}`} ouverte={fiche === "historique"} fermer={() => setFiche("")}>
         <div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">Date</th><th scope="col">Etape</th><th scope="col">Par</th><th scope="col">Détail</th></tr></thead>

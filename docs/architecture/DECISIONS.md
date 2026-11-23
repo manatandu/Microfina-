@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1071 décisions.** Solidité : 505 fortes (le manuel ou un texte répond), 484 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1059 déjà en place, 12 à appliquer.
+**1072 décisions.** Solidité : 505 fortes (le manuel ou un texte répond), 485 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1060 déjà en place, 12 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1699,6 +1699,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S94-6 | Rapport | Du … au … sur la date d'ajout ; colonnes N°Membre (de la caution, ou du client), N°Compte, N°credit, Date, Client, montant ajouté, Libéré et le restant (dernière colonne coupée sur les captures) | Manuel : Captures p. 118 | moyenne | en place |
 | S94-7 | Retrait d'un membre caution | Une caution d'un prêt en cours ne peut pas démissionner (CR-23), aussi en mode local | Texte réglementaire : Loi 002/2002, art. 24 ; CR-23 | forte | en place |
 | T72 | Nantissement du matériel professionnel (S94 Caution et nantissement) | Onglet « Nantissement du matériel » : acte (authentique ou sous seing privé), parties lues sur la fiche du client (nom, domicile, profession) et de l'institution, tiers requérant, description et emplacement du matériel, déplacement possible, matériel non grevé, créance garantie, conditions d'exigibilité ; inscription (registre, numéro, date) valable cinq ans, renouvelée avant leur expiration, sinon périmée ; libération ; repris à l'article 6 du contrat de prêt. L'Acte uniforme OHADA sur les sûretés n'est pas suivi (décision du porteur du 21/11/2026) ; les cinq ans restent dans la limite qu'il fixe | Texte réglementaire : Loi 11/020, art. 43, 3°, 49, 50 et 51 ; confrontation du 21/11/2026, A4 et P3 | forte | en place |
+
+## S94 Garanties du crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S94-8 | Un écran | Les six onglets (ajout et libération de caution, ajout et libération de dépôt de garantie, nantissement du matériel, rapport) deviennent l'écran « Garanties » et l'onglet « Rapport ». Le crédit se choisit une fois (ou arrive de la fiche du crédit) ; un tableau montre toutes ses garanties : Garantie, Garant, Compte ou matériel, Date, Ajouté, Libéré, Reste, et le total. Boutons Ajouter une caution, Ajouter un nantissement (Dépôt complémentaire ou Matériel professionnel), Libérer (sur la ligne choisie ; pour le matériel, Libérer ou Renouveler l'inscription). L'épargne obligatoire bloquée au déblocage est une ligne du tableau, qui ne se libère pas ici ; seul un dépôt complémentaire s'y ajoute. « Caution calculée » et « Dépôt de garantie calculé » disparaissent (S94-3 remplacé). La fiche du crédit (S95) montre le même tableau. | Écran voisin : Plan d'allègement, point 6.12 ; Instr. BCC 38, art. 9 ; loi 11/020, art. 43 et 49 à 51 ; registre CR-21 | moyenne | en place |
 
 ## S95 Consulter prêt
 

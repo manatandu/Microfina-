@@ -584,7 +584,7 @@ const OUT = process.argv[2];
   await login('Patrick Lumbala'); await portefeuille(); await p.getByRole('button', { name: 'Viser 0412/L001/00001' }).click();
   const fv = p.getByRole('dialog', { name: /Visa du service financier/ }); await fv.getByLabel('Avis *').selectOption('accepte'); await fv.getByRole('button', { name: 'Viser' }).click();
   await p.getByRole('button', { name: 'Oui' }).click(); await p.getByText('Visa enregistré : crédit accepté.').waitFor();
-  await portefeuille('Visé'); await p.getByRole('cell', { name: '0412/L001/00001' }).waitFor(); await etape('06w6-portefeuille-vise');
+  await portefeuille('Visé'); await p.getByRole('cell', { name: '0412/L001/00001', exact: true }).waitFor(); await etape('06w6-portefeuille-vise');
   await login('J.-P. Mukendi');
   // Rapports clients (S51)
   await aller('/clients/s51'); await p.getByRole('button', { name: 'Rechercher' }).click();
@@ -751,24 +751,28 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: '0412/L001/00001', exact: true }).click(); await p.getByRole('button', { name: 'Historique' }).click();
   await p.getByRole('dialog', { name: /Historique du crédit/ }).getByRole('cell', { name: 'Déblocage' }).waitFor(); await etape('11f2-fiche-historique');
   await p.getByRole('dialog', { name: /Historique du crédit/ }).getByRole('button', { name: 'Fermer' }).click();
-  // Caution et nantissement (S94, p. 116 à 118) : Mwamba se porte caution du crédit de Kalala sur son compte en CDF (CR-21 ; PCCI, hors bilan 0112)
-  await aller('/credit/s94?page=ajout_caution'); await p.getByRole('heading', { name: 'Ajout caution' }).waitFor();
+  // Garanties du crédit (S94, p. 116 à 118 ; plan 6.12 : un écran) : Mwamba se porte caution du crédit de Kalala sur son compte en CDF (CR-21 ; PCCI, hors bilan 0112)
+  await aller('/credit/s94');
   const cherche = async (bouton, nom) => { await p.getByRole('button', { name: bouton }).click(); const r = p.getByRole('dialog', { name: "Recherche d'un client" });
     await r.getByLabel('Nom:', { exact: true }).fill(nom); await r.getByRole('row').filter({ hasText: nom }).click(); };
-  await cherche('Rechercher le client du crédit', 'Kalala'); await cherche('Rechercher la caution', 'Mwamba');
-  await p.getByLabel('Compte: *').selectOption({ label: '0412-000319-02' }); await p.getByLabel('Montant caution *').fill('10 000');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await cherche('Rechercher le client du crédit', 'Kalala');
+  await p.getByRole('cell', { name: 'Épargne obligatoire' }).waitFor();   // bloquée au déblocage, elle se lit dans le tableau
+  await p.getByRole('button', { name: 'Ajouter une caution' }).click(); const fCaution = p.getByRole('dialog', { name: /Ajouter une caution/ });
+  await cherche('Rechercher la caution', 'Mwamba');
+  await fCaution.getByLabel('Compte: *').selectOption({ label: '0412-000319-02' }); await fCaution.getByLabel('Montant caution *').fill('10 000');
+  await fCaution.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: '10 000,00 CDF' }).first().waitFor(); await etape('11g-ajout-caution');
   // Nantissement du matériel professionnel (A4, P3 ; loi 11/020, art. 49 à 51) : la fiche de Kalala n'a pas de profession, mention exigée à peine de nullité (art. 50)
-  await p.getByRole('tab', { name: 'Nantissement du matériel' }).click(); await p.getByRole('heading', { name: 'Nantissement du matériel professionnel' }).waitFor();
-  await cherche('Rechercher le client du crédit', 'Kalala');
-  await p.getByLabel('Acte: *').selectOption({ label: 'Acte sous seing privé' }); await p.getByLabel('Description du matériel: *').fill('Machine à coudre, n° SC-118');
-  await p.getByLabel('Emplacement: *').fill('Atelier, Matete'); await p.getByText('Matériel non grevé *').click();
-  await p.getByLabel('Montant de la créance garantie: *').fill('500 000'); await p.getByLabel("Conditions d'exigibilité: *").fill('Échéances du contrat de prêt');
-  await p.getByLabel("Registre d'inscription: *").fill('Registre du commerce, Kinshasa'); await p.getByLabel("N° d'inscription: *").fill('NM-0001');
+  await p.getByRole('button', { name: 'Ajouter un nantissement' }).click(); const fn = p.getByRole('dialog', { name: /Ajouter un nantissement/ });
+  await fn.getByText('Matériel professionnel').click();
+  await fn.getByLabel('Acte: *').selectOption({ label: 'Acte sous seing privé' }); await fn.getByLabel('Description du matériel: *').fill('Machine à coudre, n° SC-118');
+  await fn.getByLabel('Emplacement: *').fill('Atelier, Matete'); await fn.getByText('Matériel non grevé *').click();
+  await fn.getByLabel('Montant de la créance garantie: *').fill('500 000'); await fn.getByLabel("Conditions d'exigibilité: *").fill('Échéances du contrat de prêt');
+  await fn.getByLabel("Registre d'inscription: *").fill('Registre du commerce, Kinshasa'); await fn.getByLabel("N° d'inscription: *").fill('NM-0001');
   await etape('11g2-nantissement-materiel');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
-  await p.getByRole('dialog').getByText(/Fiche du client incomplète : profession du client/).waitFor(); await p.getByRole('dialog').getByRole('button').first().click();
+  await fn.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByText(/Fiche du client incomplète : profession du client/).waitFor(); await p.locator('dialog.boite').getByRole('button', { name: 'Ok' }).click();
+  await fn.getByRole('button', { name: 'Fermer' }).click();
   // Consulter un prêt (S95, p. 118 et 119)
   await aller('/credit/s95'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rConsult = p.getByRole('dialog', { name: "Recherche d'un client" }); await rConsult.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rConsult.getByRole('row').filter({ hasText: 'Kalala' }).click();

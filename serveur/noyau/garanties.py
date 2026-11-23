@@ -71,7 +71,6 @@ def situation(u, cid: int, type_: str) -> dict:
     type_ok(type_)
     gs = [vue_garantie(g) for g in lignes("select * from garantie where credit_id = %s and type = %s order by id", (c["id"], type_))]
     return {"credit": {"id": c["id"], "numero": c["numero"], "montant": c["montant"], "devise": c["devise"].strip(), "client": titulaire(c["tiers_id"]), "tiersId": c["tiers_id"]},
-            "calcule": c["epargne_obligatoire"] if type_ == "depot_garantie" else 0,                        # registre S94-3
             "total": sum(g["ajoute"] for g in gs), "totalLibere": sum(g["libere"] for g in gs), "garanties": gs}
 
 
@@ -279,3 +278,28 @@ def liberer_materiel(u, nid: int, p) -> dict:
     executer("update nantissement_materiel set libere_le = %s, libere_par = %s where id = %s", (d, u["id"], n["id"]))
     c = une("select statut from credit where id = %s", (n["credit_id"],))
     return materiel(u, n["credit_id"]) if c["statut"] in ("mis_en_place", "vise", "debloque") else {}
+
+
+def ensemble(u, cid: int) -> dict:
+    """Plan d'allègement, point 6.12 : toutes les garanties d'un crédit en un tableau (ajouté, libéré, reste). L'épargne obligatoire bloquée au déblocage
+    s'y lit sans s'y ajouter une seconde fois ; seul un dépôt complémentaire s'y ajoute (Instr. BCC 38, art. 9 ; loi 11/020, art. 49 à 51 ; registre S94-8)."""
+    exiger(u)
+    c = credit_de(u, cid)
+    out = []
+    for b in lignes("select * from blocage where garantie_de = %s and motif like 'Épargne obligatoire%%' order by id", (c["id"],)):
+        out.append({"id": None, "nature": "epargne_obligatoire", "libelle": "Épargne obligatoire", "garant": titulaire(c["tiers_id"]),
+                    "compte": valeur("select numero from compte_depot where id = %s", (b["compte_id"],)) or "", "date": b["debut"].isoformat() if b["debut"] else "",
+                    "ajoute": b["montant"], "libere": b["montant"] if b["fin"] else 0, "reste": 0 if b["fin"] else b["montant"]})
+    for g in lignes("select * from garantie where credit_id = %s order by id", (c["id"],)):
+        v = vue_garantie(g)
+        out.append({"id": g["id"], "nature": g["type"], "libelle": "Caution" if g["type"] == "caution" else "Dépôt complémentaire", "garant": v["membre"],
+                    "compte": v["compte"], "date": v["date"], "ajoute": v["ajoute"], "libere": v["libere"], "reste": v["reste"]})
+    j = jour(u)
+    for n in lignes("select * from nantissement_materiel where credit_id = %s order by id", (c["id"],)):
+        v = vue_nantissement(n, j)
+        out.append({"id": n["id"], "nature": "materiel", "libelle": "Matériel professionnel", "garant": titulaire(c["tiers_id"]), "compte": v["description"],
+                    "date": v["date"], "ajoute": v["montant"], "libere": v["montant"] if v["libereLe"] else 0, "reste": 0 if v["libereLe"] else v["montant"],
+                    "inscriptionNumero": v["inscriptionNumero"], "echeance": v["echeance"], "perimee": v["perimee"]})
+    return {"credit": {"id": c["id"], "numero": c["numero"], "montant": c["montant"], "devise": c["devise"].strip(), "client": titulaire(c["tiers_id"]), "tiersId": c["tiers_id"],
+                       "membre": valeur("select numero from tiers where id = %s", (c["tiers_id"],))},
+            "garanties": out, "total": sum(x["reste"] for x in out)}

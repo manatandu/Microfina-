@@ -2524,7 +2524,9 @@ describe("journée de guichet", () => {
     await api.garanties.liberer(gid, { montant: 600000 });
     expect([E.blocages.filter((b) => b.garantieDe === cid && b.compteId === k2 && !b.fin).length, hb()]).toEqual([0, 0]);
     s = await api.garanties.ajouter(cid, { type: "depot_garantie", compteId: num("0412-000318-02"), montant: 500000 });
-    expect([s.calcule, s.total, s.piece]).toEqual([10000000, 500000, ""]);
+    expect([s.total, s.piece]).toEqual([500000, ""]);
+    const e = await api.garanties.ensemble(cid);   // plan 6.12, comme le serveur
+    expect([e.garanties.map((x) => [x.libelle, x.ajoute, x.reste]), e.total]).toEqual([[["Épargne obligatoire", 10000000, 10000000], ["Caution", 1000000, 0], ["Dépôt complémentaire", 500000, 500000]], 10500000]);
     const l = await api.garanties.rapport("caution", "2026-11-01", "2026-11-05");
     expect([l[0]!.numeroMembre, l[0]!.numeroCredit, l[0]!.ajoute, l[0]!.libere, l[0]!.reste]).toEqual(["0412-000319", "0412/L001/00001", 1000000, 1000000, 0]);
     expect(await soldeCdfGrandLivre()).toBe(0);

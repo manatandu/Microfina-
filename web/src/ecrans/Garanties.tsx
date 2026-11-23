@@ -1,6 +1,7 @@
-// S94 : Crédit > Ajout/libération caution et nantissement (manuel Microfina++, p. 116 à 118, six captures) : Ajout caution, Libération de caution,
-// Ajout de dépôt de garantie, Libération de nantissement, Rapport (onglets Nantissement et Caution). Registre S94-1 à S94-7, CR-21.
-// Nantissement du matériel professionnel : loi 11/020, art. 49 à 51 (confrontation du 21/11/2026, A4 et P3 ; registre T72).
+// S94 : Crédit > Garanties du crédit (manuel Microfina++, p. 116 à 118, six captures). Plan d'allègement, point 6.12 : les six onglets deviennent un écran ;
+// le crédit choisi une fois, le tableau de toutes ses garanties (ajouté, libéré, reste), Ajouter une caution, Ajouter un nantissement, Libérer. L'épargne
+// obligatoire bloquée au déblocage s'y lit ; seul un dépôt complémentaire s'y ajoute. Registre S94-1 à S94-8, CR-21 ; Instr. BCC 38, art. 9 ;
+// loi 11/020, art. 43 et 49 à 51 (nantissement du matériel professionnel, registre T72).
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
@@ -11,244 +12,228 @@ import { lireMontant, montant, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Paginee, Textes, type Boite } from "../composants";
 import { RechercheClient } from "./Visa";
 
-const ONGLETS = [["ajout_caution", "Ajout caution"], ["liberation_caution", "Libérer caution"], ["ajout_depot", "Ajout de dépôt de garantie"],
-  ["liberation_depot", "Libérer dépôt de garantie"], ["materiel", "Nantissement du matériel"], ["rapport", "Rapport"]] as const;
-type Page = (typeof ONGLETS)[number][0];
-type Situation = Awaited<ReturnType<typeof api.garanties.situation>>;
+type Ensemble = Awaited<ReturnType<typeof api.garanties.ensemble>>;
+type Ligne = Ensemble["garanties"][number];
 const nom = (t: Tiers) => t.intitule || [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
 const source = async (x: string) => (x ? (await api.tiers.rechercher(x)).filter((y) => y.statut === "actif") : []);
+const somme = (v: string) => (v.trim() ? lireMontant(v) : null);
 
 export default function Garanties() {
   const [params, setParams] = useSearchParams();
-  const page = (ONGLETS.some(([k]) => k === params.get("page")) ? params.get("page") : "ajout_caution") as Page;
+  const page = params.get("page") === "rapport" ? "rapport" : "garanties";
   return (
     <>
-      <div className="onglets" role="tablist" aria-label="Caution et nantissement">
-        {ONGLETS.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => setParams({ page: k })}>{l}</button>)}
+      <div className="onglets" role="tablist" aria-label="Garanties du crédit">
+        {([["garanties", "Garanties"], ["rapport", "Rapport"]] as const).map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k}
+          onClick={() => setParams({ page: k })}>{l}</button>)}
       </div>
-      {page === "rapport" ? <Rapport /> : page === "materiel" ? <Materiel /> : <Operation key={page} page={page} />}
+      {page === "rapport" ? <Rapport /> : <GarantiesCredit />}
     </>
   );
 }
 
-/** Infos crédit des quatre captures : N° crédit, N° Client, Intitulé ; Montant crédit, garantie calculée, total, libérée */
-function Operation({ page }: { page: Exclude<Page, "rapport" | "materiel"> }) {
-  const type = page.endsWith("caution") ? "caution" : "depot_garantie";
-  const ajout = page.startsWith("ajout");
+/** Le tableau des garanties d'un crédit (plan 6.12), lu aussi depuis la fiche du crédit (S95) */
+export function TableauGaranties({ e, choisie, choisir }: { e: Ensemble; choisie?: string; choisir?: (x: Ligne) => void }) {
+  const dv = e.credit.devise as Devise;
+  const cle = (x: Ligne) => `${x.nature}-${x.id ?? 0}`;
+  return (
+    <div className="defile-x"><table className="grille" aria-label="Garanties du crédit">
+      <thead><tr><th scope="col">Garantie</th><th scope="col">Garant</th><th scope="col">Compte ou matériel</th><th scope="col">Date</th>
+        <th scope="col" className="num">Ajouté</th><th scope="col" className="num">Libéré</th><th scope="col" className="num">Reste</th></tr></thead>
+      <tbody>{e.garanties.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
+        {e.garanties.map((x) => { const libre = !!choisir && x.id !== null && x.reste > 0;
+          return <tr key={cle(x)} className={libre ? "ligne-choix" : undefined} tabIndex={libre ? 0 : undefined} aria-selected={libre ? cle(x) === choisie : undefined}
+            onClick={libre ? () => choisir(x) : undefined} onKeyDown={libre ? (ev) => { if (ev.key === "Enter") choisir(x); } : undefined}>
+            <td>{x.libelle}{x.perimee ? " (inscription périmée)" : ""}</td><td>{x.garant}</td><td className={x.nature === "materiel" ? undefined : "code"}>{x.compte}</td>
+            <td className="chiffres">{fr(x.date)}</td><td className="num chiffres">{montant(x.ajoute, dv)}</td><td className="num chiffres">{montant(x.libere, dv)}</td>
+            <td className="num chiffres">{montant(x.reste, dv)}</td></tr>; })}</tbody>
+      <tfoot><tr><th scope="row" colSpan={6}>Total</th><td className="num chiffres">{montant(e.total, dv)}</td></tr></tfoot>
+    </table></div>
+  );
+}
+
+function GarantiesCredit() {
+  const [params] = useSearchParams();
   const [client, setClient] = useState<Tiers | null>(null);
   const [cid, setCid] = useState<number | null>(null);
-  const [caution, setCaution] = useState<Tiers | null>(null);
-  const [f, setF] = useState({ date: "", compte: "", montant: "", garantie: "", filtre: "tout" });
-  const [recherche, setRecherche] = useState<"" | "client" | "caution">("");
-  const [piece, setPiece] = useState("");
+  const depuis = !client && Number(params.get("credit")) || null;   // ouvert depuis la fiche du crédit
+  const [choisie, setChoisie] = useState<Ligne | null>(null);
+  const [fiche, setFiche] = useState<"" | "client" | "caution" | "nantissement" | "liberer">("");
   const [relu, setRelu] = useState(0);
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees } = useDonnees(async () => {
-    const j = await api.journees.courante();
     const credits = client ? await api.garanties.credits(client.id) : [];
-    const id = cid ?? credits[0]?.id ?? null;
-    const s: Situation | null = id ? await api.garanties.situation(id, type) : null;
-    const titulaire = type === "caution" ? caution : client;
-    const comptes = titulaire ? await api.tiers.comptes(titulaire.id) : [];
-    return { j, credits, s, comptes };
-  }, [client?.id, cid, caution?.id, relu]);
+    const id = cid ?? depuis ?? credits[0]?.id ?? null;
+    return { credits, e: id ? await api.garanties.ensemble(id) : null };
+  }, [client?.id, cid, depuis, relu]);
   if (!donnees) return <Chargement />;
-  const { j, credits, s, comptes } = donnees;
-  const dv = (s?.credit.devise ?? "CDF") as Devise;
-  const titre = { ajout_caution: "Ajout caution", liberation_caution: "Libération de caution", ajout_depot: "Ajout de dépôt de garantie", liberation_depot: "Libération de nantissement" }[page];
-  const mot = type === "caution" ? "Caution" : page === "liberation_depot" ? "Nantissement" : "Dépôt de garantie";
-  const enCours = (s?.garanties ?? []).filter((g) => f.filtre === "tout" || g.reste > 0);
-  const k = comptes.find((x) => String(x.id) === f.compte);
-  const effacer = () => { setClient(null); setCid(null); setCaution(null); setF({ date: "", compte: "", montant: "", garantie: "", filtre: "tout" }); setPiece(""); };
-  function enregistrer() {
-    const m = f.montant.trim() ? lireMontant(f.montant) : null;
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
-      try {
-        const r = ajout
-          ? await api.garanties.ajouter(s?.credit.id ?? 0, { type, cautionId: caution?.id ?? null, compteId: f.compte ? Number(f.compte) : null, montant: m, dateOperation: f.date || undefined })
-          : await api.garanties.liberer(Number(f.garantie) || 0, { montant: m, dateOperation: f.date || undefined });
-        setPiece(r.piece); setF({ ...f, montant: "" }); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" });
-      } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
-    } });
-  }
-  const liste = (
-    <div className="pile">
-      <div className="entete-ecran"><strong>Liste {mot === "Dépôt de garantie" ? "dépôt de garantie" : mot.toLowerCase()}</strong>
-        {page === "liberation_caution" && <div className="actions-onglets">
-          <button className={f.filtre === "tout" ? "bouton" : "bouton secondaire"} type="button" onClick={() => setF({ ...f, filtre: "tout" })}>Tout</button>
-          <button className={f.filtre === "non" ? "bouton" : "bouton secondaire"} type="button" onClick={() => setF({ ...f, filtre: "non" })}>Non libéré</button></div>}</div>
-      <div className="defile-x"><table className="grille">
-        <thead><tr><th scope="col" className="num">{mot} ajouté{type === "caution" ? "e" : ""}</th><th scope="col" className="num">{mot} libéré{type === "caution" ? "e" : ""}</th>
-          <th scope="col">{type === "caution" ? "Membre caution" : "Date"}</th></tr></thead>
-        <tbody>{enCours.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
-          {enCours.map((g) => <tr key={g.id} aria-selected={String(g.id) === f.garantie} onClick={() => !ajout && g.reste > 0 && setF({ ...f, garantie: String(g.id) })}>
-            <td className="num chiffres">{montant(g.ajoute, dv)}</td><td className="num chiffres">{montant(g.libere, dv)}</td>
-            <td>{type === "caution" ? `${g.membre} (${g.compte})` : fr(g.date)}</td></tr>)}</tbody>
-      </table></div>
-    </div>
-  );
+  const { credits, e } = donnees;
+  const dv = (e?.credit.devise ?? "CDF") as Devise;
+  const fini = (piece?: string) => { setFiche(""); setChoisie(null); setRelu((v) => v + 1);
+    setBoite({ type: "succes", message: piece ? `Enregistré avec succès ! Numéro de pièce : ${piece}` : "Enregistré avec succès !" }); };
   return (
     <>
-      <h2>{titre}</h2>
-      <section className="bloc pile" aria-label={titre}>
-        <div className="entete-ecran">{(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}
-          <ChampDate libelle="Date opération : *" valeur={f.date || j?.date || ""} onChange={(v) => setF({ ...f, date: v })} /></div>
-        <div className="grille-deux">
-          <fieldset className="pile cadre-champs"><legend>Infos crédit</legend>
-            <Champ libelle="N° crédit:">{(p) => <select {...p} className="saisie code" disabled={credits.length < 2} value={s?.credit.id ?? ""} onChange={(e) => setCid(Number(e.target.value))}>
-              {credits.length === 0 && <option value=""></option>}{credits.map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
-            <div className="ligne-champ"><Champ libelle="N° Client :">{(p) => <input {...p} className="saisie code" readOnly value={client?.numero ?? ""} />}</Champ>
-              <button className="bouton secondaire" type="button" aria-label="Rechercher le client du crédit" onClick={() => setRecherche("client")}>Rechercher</button></div>
-            <Champ libelle="Intitulé:">{(p) => <Lecture {...p} value={client ? nom(client) : ""} />}</Champ>
-            <dl className="infos">
-              <div className="info-ligne"><dt>Montant crédit:</dt><dd className="chiffres">{s ? montant(s.credit.montant, dv) : ""}</dd></div>
-              <div className="info-ligne"><dt>{mot} calculé{type === "caution" ? "e" : ""}:</dt><dd className="chiffres">{s ? montant(s.calcule, dv) : ""}</dd></div>
-              <div className="info-ligne"><dt>Total {mot.toLowerCase()}:</dt><dd className="chiffres">{s ? montant(s.total, dv) : ""}</dd></div>
-              <div className="info-ligne"><dt>{mot} libéré{type === "caution" ? "e" : ""}:</dt><dd className="chiffres">{s ? montant(s.totalLibere, dv) : ""}</dd></div>
-            </dl>
-          </fieldset>
-          {page === "liberation_caution" ? <div className="pile">{liste}
-            <Champ libelle="Montant à libérer: *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.montant} onChange={(e) => setF({ ...f, montant: e.target.value })} />}</Champ></div>
-            : <fieldset className="pile cadre-champs formulaire"><legend>Infos {type === "caution" ? "caution" : page === "liberation_depot" ? "Nantissement" : "dépôt de garantie"}</legend>
-              {type === "caution" && <><Champ libelle="N° Client:">{(p) => <input {...p} className="saisie code" readOnly value={caution?.numero ?? ""} />}</Champ>
-                <div className="ligne-champ"><button className="bouton secondaire" type="button" aria-label="Rechercher la caution" onClick={() => setRecherche("caution")}>Rechercher</button></div></>}
-              <Champ libelle="Intitulé:">{(p) => <Lecture {...p} value={type === "caution" ? (caution ? nom(caution) : "") : (client ? nom(client) : "")} />}</Champ>
-              {ajout ? <Champ libelle="Compte: *">{(p) => <select {...p} className="saisie code" value={f.compte} onChange={(e) => setF({ ...f, compte: e.target.value })}><option value=""></option>
-                {comptes.filter((x) => x.devise === dv).map((x) => <option key={x.id} value={x.id}>{x.numero}</option>)}</select>}</Champ>
-                : <Champ libelle="Compte: *">{(p) => <select {...p} className="saisie code" value={f.garantie} onChange={(e) => setF({ ...f, garantie: e.target.value })}><option value=""></option>
-                  {(s?.garanties ?? []).filter((g) => g.reste > 0).map((g) => <option key={g.id} value={g.id}>{`${g.compte} (${montant(g.reste, dv)})`}</option>)}</select>}</Champ>}
-              {ajout && <Champ libelle="Solde:">{(p) => <Lecture {...p} value={k ? (k.masque ? "" : montant(k.disponible, k.devise as Devise)) : ""} />}</Champ>}
-              <Champ libelle={ajout ? `Montant ${type === "caution" ? "caution" : "dépôt de garantie"} *` : "Montant à libérer *"}>{(p) => <input {...p} className="saisie montant" inputMode="decimal"
-                value={f.montant} onChange={(e) => setF({ ...f, montant: e.target.value })} />}</Champ>
-            </fieldset>}
-        </div>
+      <section className="bloc pile" aria-label="Garanties du crédit">
+        <fieldset className="pile cadre-champs"><legend>Infos crédit</legend>
+          <div className="grille-cadres">
+            <div className="ligne-champ"><Champ libelle="N° Client :">{(p) => <input {...p} className="saisie code" readOnly value={client?.numero ?? e?.credit.membre ?? ""} />}</Champ>
+              <button className="bouton secondaire" type="button" aria-label="Rechercher le client du crédit" onClick={() => setFiche("client")}>Rechercher</button></div>
+            <Champ libelle="Intitulé:">{(p) => <Lecture {...p} value={e?.credit.client ?? (client ? nom(client) : "")} />}</Champ>
+            <Champ libelle="N° crédit:">{(p) => <select {...p} className="saisie code" disabled={credits.length < 2} value={e?.credit.id ?? ""} onChange={(x) => { setCid(Number(x.target.value)); setChoisie(null); }}>
+              {credits.length === 0 && <option value={e?.credit.id ?? ""}>{e?.credit.numero ?? ""}</option>}{credits.map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
+            <Champ libelle="Montant crédit:">{(p) => <Lecture {...p} value={e ? montant(e.credit.montant, dv) : ""} />}</Champ>
+          </div>
+        </fieldset>
+        {e && <TableauGaranties e={e} choisie={choisie ? `${choisie.nature}-${choisie.id}` : undefined} choisir={setChoisie} />}
         <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={!s} onClick={enregistrer}>Enregistrer</button>
-          <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
+          <button className="bouton" type="button" disabled={!e} onClick={() => setFiche("caution")}>Ajouter une caution</button>
+          <button className="bouton" type="button" disabled={!e} onClick={() => setFiche("nantissement")}>Ajouter un nantissement</button>
+          <button className="bouton secondaire" type="button" disabled={!choisie} onClick={() => setFiche("liberer")}>Libérer</button>
+          <button className="bouton secondaire" type="button" onClick={() => { setClient(null); setCid(null); setChoisie(null); }}>Effacer</button>
         </div>
-        {page !== "liberation_caution" && liste}
-        <Textes sources={["Manuel Microfina++, p. 116 et 117 : 5-1 Ajout caution, 5-2 Libérer caution, 5-3 Ajout de dépôt de garantie, 5-4 Libérer dépôt de garantie ; captures p. 116 à 118",
-          "Registre CR-21 : la caution est bloquée sur le compte de la caution, le dépôt de garantie sur le compte du client, liés au crédit (S71) ; libération par cet écran seulement (loi 11/020, art. 43 et 48 ; Instr. BCC 38, art. 9)",
-          "PCCI, comptes hors bilan 01 et 09 : caution reçue au crédit de 0112 « Garanties reçues de la clientèle » par le débit de 091, extournée à la libération"]} />
+        <Textes sources={["Manuel Microfina++, p. 116 à 118 : ajout et libération de caution et de dépôt de garantie, rapport ; plan d'allègement, point 6.12 : un écran",
+          "Registre CR-21 : la caution est bloquée sur le compte de la caution, le dépôt sur le compte du client ; caution suivie en hors bilan (PCCI, 0112 et 091) ; Instr. BCC 38, art. 9",
+          "Loi 11/020, art. 43, 3° et 49 à 51 : nantissement du matériel professionnel, mentions à peine de nullité, inscription conservée cinq ans"]} />
       </section>
-      <Fiche titre="Recherche d'un client" ouverte={!!recherche} fermer={() => setRecherche("")}>
-        <RechercheClient source={source} choisir={(x) => { if (recherche === "client") { setClient(x); setCid(null); } else setCaution(x); setF({ ...f, compte: "", garantie: "" }); setRecherche(""); }}
-          fermer={() => setRecherche("")} />
+      <Fiche titre="Recherche d'un client" ouverte={fiche === "client"} fermer={() => setFiche("")}>
+        <RechercheClient source={source} choisir={(x) => { setClient(x); setCid(null); setChoisie(null); setFiche(""); }} fermer={() => setFiche("")} />
+      </Fiche>
+      <Fiche titre={`Ajouter une caution, crédit ${e?.credit.numero ?? ""}`} ouverte={fiche === "caution"} fermer={() => setFiche("")}>
+        {fiche === "caution" && e && <AjoutCaution e={e} fini={fini} fermer={() => setFiche("")} />}
+      </Fiche>
+      <Fiche titre={`Ajouter un nantissement, crédit ${e?.credit.numero ?? ""}`} ouverte={fiche === "nantissement"} fermer={() => setFiche("")}>
+        {fiche === "nantissement" && e && <AjoutNantissement e={e} fini={fini} fermer={() => setFiche("")} />}
+      </Fiche>
+      <Fiche titre={`Libérer : ${choisie?.libelle ?? ""}`} ouverte={fiche === "liberer"} fermer={() => setFiche("")}>
+        {fiche === "liberer" && choisie && e && <Liberation x={choisie} dv={dv} fini={fini} fermer={() => setFiche("")} />}
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
+  );
+}
+
+function useEnregistrer(fini: (piece?: string) => void) {
+  const [boite, setBoite] = useState<Boite | null>(null);
+  const confirmer = (faire: () => Promise<{ piece?: string } | unknown>) => setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+    try { const r = await faire(); fini((r as { piece?: string } | null)?.piece || undefined); } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  } });
+  return { confirmer, dialogue: <Dialogue boite={boite} fermer={() => setBoite(null)} /> };
+}
+
+function Pied({ enregistrer, fermer, libelle = "Enregistrer" }: { enregistrer: () => void; fermer: () => void; libelle?: string }) {
+  return <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>{libelle}</button>
+    <button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button></div>;
+}
+
+/** Ajout caution (p. 116) : un autre client engage son épargne, bloquée sur son compte (CR-21) */
+function AjoutCaution({ e, fini, fermer }: { e: Ensemble; fini: (piece?: string) => void; fermer: () => void }) {
+  const [caution, setCaution] = useState<Tiers | null>(null);
+  const [f, setF] = useState({ date: "", compte: "", montant: "" });
+  const [recherche, setRecherche] = useState(false);
+  const { confirmer, dialogue } = useEnregistrer(fini);
+  const { donnees } = useDonnees(async () => ({ j: await api.journees.courante(), comptes: caution ? await api.tiers.comptes(caution.id) : [] }), [caution?.id]);
+  if (!donnees) return <Chargement />;
+  const k = donnees.comptes.find((x) => String(x.id) === f.compte);
+  return (
+    <div className="pile">
+      <ChampDate libelle="Date opération : *" valeur={f.date || donnees.j?.date || ""} onChange={(v) => setF({ ...f, date: v })} />
+      <div className="ligne-champ"><Champ libelle="N° Client de la caution:">{(p) => <input {...p} className="saisie code" readOnly value={caution?.numero ?? ""} />}</Champ>
+        <button className="bouton secondaire" type="button" aria-label="Rechercher la caution" onClick={() => setRecherche(true)}>Rechercher</button></div>
+      <Champ libelle="Intitulé:">{(p) => <Lecture {...p} value={caution ? nom(caution) : ""} />}</Champ>
+      <Champ libelle="Compte: *">{(p) => <select {...p} className="saisie code" value={f.compte} onChange={(x) => setF({ ...f, compte: x.target.value })}><option value=""></option>
+        {donnees.comptes.filter((x) => x.devise === e.credit.devise).map((x) => <option key={x.id} value={x.id}>{x.numero}</option>)}</select>}</Champ>
+      <Champ libelle="Solde:">{(p) => <Lecture {...p} value={k ? (k.masque ? "" : montant(k.disponible, k.devise as Devise)) : ""} />}</Champ>
+      <Champ libelle="Montant caution *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.montant} onChange={(x) => setF({ ...f, montant: x.target.value })} />}</Champ>
+      <Pied fermer={fermer} enregistrer={() => confirmer(() => api.garanties.ajouter(e.credit.id, { type: "caution", cautionId: caution?.id ?? null, compteId: f.compte ? Number(f.compte) : null,
+        montant: somme(f.montant), dateOperation: f.date || undefined }))} />
+      <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
+        <RechercheClient source={source} choisir={(x) => { setCaution(x); setF({ ...f, compte: "" }); setRecherche(false); }} fermer={() => setRecherche(false)} />
+      </Fiche>
+      {dialogue}
+    </div>
   );
 }
 
 const VIDE_MATERIEL = { acte: "", requerant: "", description: "", emplacement: "", deplacable: false, nonGreve: false, montant: "", exigibilite: "", registre: "",
   inscriptionNumero: "", inscriptionLe: "" };
 
-/** A4 et P3 (confrontation du 21/11/2026) : nantissement du matériel professionnel, sans dépossession (loi 11/020, art. 43, 3° ; art. 49 à 51). Mentions à peine
- * de nullité (art. 50) ; inscription au registre du commerce ou équivalent, conservée cinq ans, renouvelée avant leur expiration (art. 51) ; libération */
-function Materiel() {
-  const [client, setClient] = useState<Tiers | null>(null);
-  const [cid, setCid] = useState<number | null>(null);
+/** Ajout de dépôt de garantie (p. 117), seulement en complément de l'épargne obligatoire ; nantissement du matériel professionnel (loi 11/020, art. 49 à 51) */
+function AjoutNantissement({ e, fini, fermer }: { e: Ensemble; fini: (piece?: string) => void; fermer: () => void }) {
+  const [nature, setNature] = useState<"depot" | "materiel">("depot");
+  const [d, setD] = useState({ date: "", compte: "", montant: "" });
   const [f, setF] = useState(VIDE_MATERIEL);
-  const [date, setDate] = useState("");
-  const [choisi, setChoisi] = useState<number | null>(null);
-  const [renouv, setRenouv] = useState({ inscriptionNumero: "", inscriptionLe: "" });
-  const [recherche, setRecherche] = useState(false);
-  const [relu, setRelu] = useState(0);
-  const [boite, setBoite] = useState<Boite | null>(null);
-  const { donnees } = useDonnees(async () => {
-    const j = await api.journees.courante();
-    const credits = client ? await api.garanties.credits(client.id) : [];
-    const id = cid ?? credits[0]?.id ?? null;
-    return { j, credits, s: id ? await api.garanties.materiel(id) : null };
-  }, [client?.id, cid, relu]);
+  const { confirmer, dialogue } = useEnregistrer(fini);
+  const { donnees } = useDonnees(async () => ({ j: await api.journees.courante(), comptes: await api.tiers.comptes(e.credit.tiersId),
+    m: nature === "materiel" ? await api.garanties.materiel(e.credit.id) : null }), [nature]);
   if (!donnees) return <Chargement />;
-  const { j, credits, s } = donnees;
-  const dv = (s?.credit.devise ?? "CDF") as Devise;
-  const n = s?.nantissements.find((x) => x.id === choisi && !x.libereLe) ?? null;
+  const k = donnees.comptes.find((x) => String(x.id) === d.compte);
   const maj = (p: Partial<typeof f>) => setF({ ...f, ...p });
-  const effacer = () => { setClient(null); setCid(null); setF(VIDE_MATERIEL); setChoisi(null); setRenouv({ inscriptionNumero: "", inscriptionLe: "" }); };
-  const confirmer = (faire: () => Promise<unknown>, apres: () => void) => setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
-    try { await faire(); apres(); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
-    catch (x) { setBoite({ type: "erreur", message: message(x) }); }
-  } });
-  const enregistrer = () => confirmer(() => api.garanties.ajouterMateriel(s?.credit.id ?? 0, { ...f, montant: f.montant.trim() ? lireMontant(f.montant) : null }), () => setF(VIDE_MATERIEL));
-  const etat = (x: NonNullable<typeof s>["nantissements"][number]) => x.libereLe ? `Libéré le ${fr(x.libereLe)}` : x.perimee ? "Inscription périmée" : "En vigueur";
-  const texte = (libelle: string, k: "requerant" | "description" | "emplacement" | "exigibilite" | "registre" | "inscriptionNumero") =>
-    <Champ libelle={libelle}>{(p) => <input {...p} className="saisie" autoComplete="off" value={f[k]} onChange={(e) => maj({ [k]: e.target.value })} />}</Champ>;
+  const texte = (libelle: string, c: "requerant" | "description" | "emplacement" | "exigibilite" | "registre" | "inscriptionNumero") =>
+    <Champ libelle={libelle}>{(p) => <input {...p} className="saisie" autoComplete="off" value={f[c]} onChange={(x) => maj({ [c]: x.target.value })} />}</Champ>;
   return (
-    <>
-      <h2>Nantissement du matériel professionnel</h2>
-      <section className="bloc pile" aria-label="Nantissement du matériel professionnel">
-        <div className="entete-ecran"><span />
-          <ChampDate libelle="Date opération : *" valeur={date || j?.date || ""} onChange={setDate} /></div>
-        <div className="grille-deux">
-          <div className="pile">
-            <fieldset className="pile cadre-champs"><legend>Infos crédit</legend>
-              <Champ libelle="N° crédit:">{(p) => <select {...p} className="saisie code" disabled={credits.length < 2} value={s?.credit.id ?? ""} onChange={(e) => setCid(Number(e.target.value))}>
-                {credits.length === 0 && <option value=""></option>}{credits.map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
-              <div className="ligne-champ"><Champ libelle="N° Client :">{(p) => <input {...p} className="saisie code" readOnly value={client?.numero ?? ""} />}</Champ>
-                <button className="bouton secondaire" type="button" aria-label="Rechercher le client du crédit" onClick={() => setRecherche(true)}>Rechercher</button></div>
-              <Champ libelle="Intitulé:">{(p) => <Lecture {...p} value={client ? nom(client) : ""} />}</Champ>
-              <dl className="infos"><div className="info-ligne"><dt>Montant crédit:</dt><dd className="chiffres">{s ? montant(s.credit.montant, dv) : ""}</dd></div></dl>
-            </fieldset>
-            <fieldset className="pile cadre-champs"><legend>Parties</legend>
-              <dl className="infos">
-                <div className="info-ligne"><dt>Constituant:</dt><dd>{s?.constituant.nom ?? ""}</dd></div>
-                <div className="info-ligne"><dt>Domicile:</dt><dd>{s?.constituant.domicile ?? ""}</dd></div>
-                <div className="info-ligne"><dt>Profession:</dt><dd>{s?.constituant.profession ?? ""}</dd></div>
-                <div className="info-ligne"><dt>Créancier:</dt><dd>{s?.creancier.nom ?? ""}</dd></div>
-                <div className="info-ligne"><dt>Siège:</dt><dd>{s?.creancier.domicile ?? ""}</dd></div>
-              </dl>
-            </fieldset>
-          </div>
-          <fieldset className="pile cadre-champs formulaire"><legend>Infos nantissement</legend>
-            <Champ libelle="Acte: *">{(p) => <select {...p} className="saisie" value={f.acte} onChange={(e) => maj({ acte: e.target.value })}><option value=""></option>
-              <option value="authentique">Acte authentique</option><option value="sous_seing_prive">Acte sous seing privé</option></select>}</Champ>
-            {texte("Tiers requérant l'inscription:", "requerant")}
-            {texte("Description du matériel: *", "description")}
-            {texte("Emplacement: *", "emplacement")}
-            <label className="case"><input type="checkbox" checked={f.deplacable} onChange={(e) => maj({ deplacable: e.target.checked })} /><span>Susceptible d'être déplacé</span></label>
-            <label className="case"><input type="checkbox" checked={f.nonGreve} onChange={(e) => maj({ nonGreve: e.target.checked })} /><span>Matériel non grevé *</span></label>
-            <Champ libelle="Montant de la créance garantie: *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.montant} onChange={(e) => maj({ montant: e.target.value })} />}</Champ>
-            {texte("Conditions d'exigibilité: *", "exigibilite")}
-            {texte("Registre d'inscription: *", "registre")}
-            {texte("N° d'inscription: *", "inscriptionNumero")}
-            <ChampDate libelle="Date d'inscription: *" valeur={f.inscriptionLe} onChange={(v) => maj({ inscriptionLe: v })} />
-          </fieldset>
-        </div>
-        <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={!s} onClick={enregistrer}>Enregistrer</button>
-          <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
-        </div>
-        <div className="defile-x"><table className="grille" aria-label="Liste nantissement du matériel">
-          <thead><tr><th scope="col">Matériel</th><th scope="col" className="num">Créance garantie</th><th scope="col">N° d'inscription</th><th scope="col">Inscrit le</th>
-            <th scope="col">Échéance</th><th scope="col">État</th></tr></thead>
-          <tbody>{(s?.nantissements ?? []).length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
-            {(s?.nantissements ?? []).map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={x.id === choisi} onClick={() => setChoisi(x.id)}
-              onKeyDown={(e) => { if (e.key === "Enter") setChoisi(x.id); }}>
-              <td>{x.description}</td><td className="num chiffres">{montant(x.montant, dv)}</td><td className="code">{x.inscriptionNumero}</td>
-              <td className="chiffres">{fr(x.inscriptionLe)}</td><td className="chiffres">{fr(x.echeance)}</td><td>{etat(x)}</td></tr>)}</tbody>
-        </table></div>
-        {n && <fieldset className="pile cadre-champs champs-a-gauche"><legend>{n.description}</legend>
-          <Champ libelle="N° d'inscription (renouvellement): *">{(p) => <input {...p} className="saisie" autoComplete="off" value={renouv.inscriptionNumero}
-            onChange={(e) => setRenouv({ ...renouv, inscriptionNumero: e.target.value })} />}</Champ>
-          <ChampDate libelle="Date du renouvellement: *" valeur={renouv.inscriptionLe} onChange={(v) => setRenouv({ ...renouv, inscriptionLe: v })} />
-          <div className="actions-onglets">
-            <button className="bouton" type="button" onClick={() => confirmer(() => api.garanties.renouvelerMateriel(n.id, renouv),
-              () => setRenouv({ inscriptionNumero: "", inscriptionLe: "" }))}>Renouveler l'inscription</button>
-            <button className="bouton secondaire" type="button" onClick={() => confirmer(() => api.garanties.libererMateriel(n.id, { dateOperation: date || undefined }),
-              () => setChoisi(null))}>Libérer</button>
-          </div>
-        </fieldset>}
-        <Textes sources={["Loi 11/020, art. 43, 3° et 49 : nantissement sans dépossession du matériel non grevé servant à la profession du client",
-          "Loi 11/020, art. 50 : acte authentique ou sous seing privé ; parties (noms, domiciles, professions), tiers requérant, description et emplacement du matériel, déplacement, créance garantie, exigibilité, à peine de nullité",
-          "Loi 11/020, art. 51 : effet par l'inscription au registre du commerce ou équivalent, conservée cinq ans, à renouveler avant leur expiration (registre T72)"]} />
-      </section>
-      <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
-        <RechercheClient source={source} choisir={(x) => { setClient(x); setCid(null); setChoisi(null); setRecherche(false); }} fermer={() => setRecherche(false)} />
-      </Fiche>
-      <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </>
+    <div className="pile">
+      <fieldset className="cadre-champs"><legend>Nature *</legend><div className="ligne-champ">
+        <label className="case"><input type="radio" name="nature-nantissement" checked={nature === "depot"} onChange={() => setNature("depot")} /><span>Dépôt complémentaire</span></label>
+        <label className="case"><input type="radio" name="nature-nantissement" checked={nature === "materiel"} onChange={() => setNature("materiel")} /><span>Matériel professionnel</span></label>
+      </div></fieldset>
+      {nature === "depot" ? <>
+        <ChampDate libelle="Date opération : *" valeur={d.date || donnees.j?.date || ""} onChange={(v) => setD({ ...d, date: v })} />
+        <Champ libelle="Compte: *">{(p) => <select {...p} className="saisie code" value={d.compte} onChange={(x) => setD({ ...d, compte: x.target.value })}><option value=""></option>
+          {donnees.comptes.filter((x) => x.devise === e.credit.devise).map((x) => <option key={x.id} value={x.id}>{x.numero}</option>)}</select>}</Champ>
+        <Champ libelle="Solde:">{(p) => <Lecture {...p} value={k ? (k.masque ? "" : montant(k.disponible, k.devise as Devise)) : ""} />}</Champ>
+        <Champ libelle="Montant dépôt de garantie *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={d.montant} onChange={(x) => setD({ ...d, montant: x.target.value })} />}</Champ>
+        <Pied fermer={fermer} enregistrer={() => confirmer(() => api.garanties.ajouter(e.credit.id, { type: "depot_garantie", compteId: d.compte ? Number(d.compte) : null,
+          montant: somme(d.montant), dateOperation: d.date || undefined }))} />
+      </> : <>
+        <dl className="infos">
+          <div className="info-ligne"><dt>Constituant:</dt><dd>{donnees.m?.constituant.nom ?? ""}</dd></div>
+          <div className="info-ligne"><dt>Domicile:</dt><dd>{donnees.m?.constituant.domicile ?? ""}</dd></div>
+          <div className="info-ligne"><dt>Profession:</dt><dd>{donnees.m?.constituant.profession ?? ""}</dd></div>
+          <div className="info-ligne"><dt>Créancier:</dt><dd>{donnees.m?.creancier.nom ?? ""}</dd></div>
+        </dl>
+        <Champ libelle="Acte: *">{(p) => <select {...p} className="saisie" value={f.acte} onChange={(x) => maj({ acte: x.target.value })}><option value=""></option>
+          <option value="authentique">Acte authentique</option><option value="sous_seing_prive">Acte sous seing privé</option></select>}</Champ>
+        {texte("Tiers requérant l'inscription:", "requerant")}
+        {texte("Description du matériel: *", "description")}
+        {texte("Emplacement: *", "emplacement")}
+        <label className="case"><input type="checkbox" checked={f.deplacable} onChange={(x) => maj({ deplacable: x.target.checked })} /><span>Susceptible d'être déplacé</span></label>
+        <label className="case"><input type="checkbox" checked={f.nonGreve} onChange={(x) => maj({ nonGreve: x.target.checked })} /><span>Matériel non grevé *</span></label>
+        <Champ libelle="Montant de la créance garantie: *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.montant} onChange={(x) => maj({ montant: x.target.value })} />}</Champ>
+        {texte("Conditions d'exigibilité: *", "exigibilite")}
+        {texte("Registre d'inscription: *", "registre")}
+        {texte("N° d'inscription: *", "inscriptionNumero")}
+        <ChampDate libelle="Date d'inscription: *" valeur={f.inscriptionLe} onChange={(v) => maj({ inscriptionLe: v })} />
+        <Pied fermer={fermer} enregistrer={() => confirmer(() => api.garanties.ajouterMateriel(e.credit.id, { ...f, montant: somme(f.montant) }))} />
+      </>}
+      {dialogue}
+    </div>
+  );
+}
+
+/** Libérer caution (p. 116), Libérer dépôt de garantie (p. 117) : au plus ce qui reste ; matériel : libérer ou renouveler l'inscription (loi 11/020, art. 51) */
+function Liberation({ x, dv, fini, fermer }: { x: Ligne; dv: Devise; fini: (piece?: string) => void; fermer: () => void }) {
+  const [f, setF] = useState({ date: "", montant: "", inscriptionNumero: "", inscriptionLe: "" });
+  const { confirmer, dialogue } = useEnregistrer(fini);
+  const { donnees: j } = useDonnees(() => api.journees.courante());
+  const date = f.date || j?.date || "";
+  return (
+    <div className="pile">
+      <p>{x.garant} · {x.compte} · reste {montant(x.reste, dv)}</p>
+      <ChampDate libelle="Date opération : *" valeur={date} onChange={(v) => setF({ ...f, date: v })} />
+      {x.nature === "materiel" ? <>
+        <Pied fermer={fermer} enregistrer={() => confirmer(() => api.garanties.libererMateriel(x.id!, { dateOperation: f.date || undefined }))} libelle="Libérer" />
+        <fieldset className="pile cadre-champs"><legend>Renouveler l'inscription</legend>
+          <Champ libelle="N° d'inscription (renouvellement): *">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.inscriptionNumero} onChange={(v) => setF({ ...f, inscriptionNumero: v.target.value })} />}</Champ>
+          <ChampDate libelle="Date du renouvellement: *" valeur={f.inscriptionLe} onChange={(v) => setF({ ...f, inscriptionLe: v })} />
+          <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => confirmer(() => api.garanties.renouvelerMateriel(x.id!,
+            { inscriptionNumero: f.inscriptionNumero, inscriptionLe: f.inscriptionLe }))}>Renouveler l'inscription</button></div>
+        </fieldset>
+      </> : <>
+        <Champ libelle="Montant à libérer *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.montant} onChange={(v) => setF({ ...f, montant: v.target.value })} />}</Champ>
+        <Pied fermer={fermer} enregistrer={() => confirmer(() => api.garanties.liberer(x.id!, { montant: somme(f.montant), dateOperation: f.date || undefined }))} libelle="Libérer" />
+      </>}
+      {dialogue}
+    </div>
   );
 }
 

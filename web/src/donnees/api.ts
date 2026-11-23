@@ -3833,7 +3833,25 @@ const garanties = {
     const c = creditGarantie(id), t = typeGarantie(type);
     const gs = E.garanties.filter((g) => g.creditId === c.id && g.type === t).map(vueGarantie);
     return { credit: { id: c.id, numero: c.numero, montant: c.montant, devise: c.devise, client: titulaire(E.tiers.find((x) => x.id === c.tiersId)!), tiersId: c.tiersId },
-      calcule: t === "depot_garantie" ? c.epargneObligatoire : 0, total: gs.reduce((s, g) => s + g.ajoute, 0), totalLibere: gs.reduce((s, g) => s + g.libere, 0), garanties: gs };
+      total: gs.reduce((s, g) => s + g.ajoute, 0), totalLibere: gs.reduce((s, g) => s + g.libere, 0), garanties: gs };
+  },
+  /** Plan d'allègement, point 6.12 : toutes les garanties d'un crédit en un tableau ; l'épargne obligatoire bloquée au déblocage s'y lit sans s'y ajouter
+   *  une seconde fois (Instr. BCC 38, art. 9 ; loi 11/020, art. 49 à 51 ; registre S94-8). Comme garanties.ensemble */
+  ensemble(id: number) {
+    lectureAdmin(["S94", "S95"]);
+    const c = creditGarantie(id), t = E.tiers.find((x) => x.id === c.tiersId)!, j = jourDeblocage().date;
+    type L = { id: number | null; nature: string; libelle: string; garant: string; compte: string; date: string; ajoute: number; libere: number; reste: number;
+      inscriptionNumero?: string; echeance?: string; perimee?: boolean };
+    const out: L[] = E.blocages.filter((b) => b.garantieDe === c.id && b.motif.startsWith("Épargne obligatoire")).sort((a, b) => a.id - b.id).map((b) => ({ id: null,
+      nature: "epargne_obligatoire", libelle: "Épargne obligatoire", garant: titulaire(t), compte: E.comptes.find((k) => k.id === b.compteId)?.numero ?? "", date: b.debut,
+      ajoute: b.montant ?? 0, libere: b.fin ? b.montant ?? 0 : 0, reste: b.fin ? 0 : b.montant ?? 0 }));
+    for (const g of E.garanties.filter((x) => x.creditId === c.id).sort((a, b) => a.id - b.id)) { const v = vueGarantie(g);
+      out.push({ id: g.id, nature: g.type, libelle: g.type === "caution" ? "Caution" : "Dépôt complémentaire", garant: v.membre, compte: v.compte, date: v.date, ajoute: v.ajoute, libere: v.libere, reste: v.reste }); }
+    for (const n of (E.nantissementsMateriel ?? []).filter((x) => x.creditId === c.id).sort((a, b) => a.id - b.id)) { const v = vueNantissement(n, j);
+      out.push({ id: n.id, nature: "materiel", libelle: "Matériel professionnel", garant: titulaire(t), compte: v.description, date: v.date, ajoute: v.montant,
+        libere: v.libereLe ? v.montant : 0, reste: v.libereLe ? 0 : v.montant, inscriptionNumero: v.inscriptionNumero, echeance: v.echeance, perimee: v.perimee }); }
+    return { credit: { id: c.id, numero: c.numero, montant: c.montant, devise: c.devise as string, client: titulaire(t), tiersId: c.tiersId, membre: t.numero },
+      garanties: out, total: out.reduce((s, x) => s + x.reste, 0) };
   },
   ajouter(id: number, p: { type: string; cautionId?: number | null; compteId?: number | null; montant?: number | null; dateOperation?: string }) {
     const u = exiger();

@@ -526,6 +526,12 @@ def garanties_credits(request, tid: int):
     return g.credits(u(request), tid)
 
 
+@api.get("/credit/garanties/{cid}/ensemble")
+def garanties_ensemble(request, cid: int):
+    from . import garanties as g
+    return g.ensemble(u(request), cid)
+
+
 @api.get("/credit/garanties/{cid}")
 def garanties_situation(request, cid: int, type: str = ""):
     from . import garanties as g

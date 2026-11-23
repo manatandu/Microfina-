@@ -258,6 +258,7 @@ LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
     (r"/credit/portefeuille", ["S93"]),
     (r"/credit/credits/\d+/historique", ["S93", "S95"]),
     (r"/credit/consultation(/clients)?/\d+", ["S95"]),
+    (r"/credit/garanties/\d+/ensemble", ["S94", "S95"]),
     (r"/credit/garanties(/clients)?/\d+", ["S94"]),
     (r"/credit/garanties-rapport", ["S94"]),
     (r"/credit/garanties-materiel/\d+", ["S94"]),

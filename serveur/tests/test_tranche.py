@@ -2068,7 +2068,11 @@ def test_garanties(clients, journee):
     assert ident("select count(*) from blocage where garantie_de = %s and compte_id = %s and fin is null", (cid, k2)) == 0
     assert ident("select sum(case when l.sens = 'C' then l.montant_devise else -l.montant_devise end) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = '0112'") == 0
     d = agent.post(f"/api/credit/garanties/{cid}/ajout", {"type": "depot_garantie", "compteId": C("0412-000318-02"), "montant": 500000}, **H).json()
-    assert (d["calcule"], d["total"], d["piece"]) == (10000000, 500000, "")       # calculé : épargne obligatoire du crédit (S94-3)
+    assert (d["total"], d["piece"]) == (500000, "")
+    # plan 6.12 : un tableau de toutes les garanties ; l'épargne obligatoire bloquée au déblocage s'y lit une fois (registre S94-8)
+    e = agent.get(f"/api/credit/garanties/{cid}/ensemble", **H).json()
+    assert [(x["libelle"], x["ajoute"], x["reste"]) for x in e["garanties"]] == [("Épargne obligatoire", 10000000, 10000000), ("Caution", 1000000, 0), ("Dépôt complémentaire", 500000, 500000)]
+    assert e["total"] == 10500000
     l = agent.get("/api/credit/garanties-rapport", {"type": "caution", "du": "2026-11-01", "au": "2026-11-05"}, **H).json()
     assert (l[0]["numeroMembre"], l[0]["numeroCredit"], l[0]["ajoute"], l[0]["libere"], l[0]["reste"]) == ("0412-000319", "0412/L001/00001", 1000000, 1000000, 0)
     assert balance_equilibree(agent)

@@ -848,9 +848,9 @@
   },
   {
     "id": "S94",
-    "nom": "Cautions et nantissements",
-    "acces": "Crédit > Ajout/libération",
-    "but": "Ajouter ou libérer une caution, un dépôt de garantie ; rapport",
+    "nom": "Garanties du crédit",
+    "acces": "Crédit > Garanties",
+    "but": "Toutes les garanties d'un crédit (ajouté, libéré, reste) ; ajouter une caution, un nantissement, libérer ; rapport (plan d'allègement, point 6.12)",
     "module": "credit",
     "priorite": "must",
     "chemin": "/credit/s94"
