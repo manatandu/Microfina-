@@ -8,7 +8,7 @@ import { useDonnees } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { montant, type Comptage } from "@design/montant.js";
 import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
-import { OngletsGuichet, Recu, SoldesCaisse } from "./Guichet";
+import { OngletsGuichet, Recu } from "./Guichet";
 import { RechercheClient } from "./Visa";
 import { MASQUE } from "./Guichet";
 
@@ -37,7 +37,7 @@ export function PartsSociales() {
     return { s, ctx, u, j, stock, comptes, parts, piece };
   }, [t?.id, fait?.id]);
   if (!donnees) return <Chargement />;
-  const { s, ctx, u, j, stock, comptes, parts, piece } = donnees;
+  const { s, ctx, j, stock, comptes, parts, piece } = donnees;
   if (!s || s.statut !== "ouverte") return (
     <><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>
   );
@@ -57,7 +57,7 @@ export function PartsSociales() {
   return (
     <>
       
-      <OngletsGuichet />
+      <OngletsGuichet version={fait?.id} />
       <section className="bloc pile" aria-label="Part sociale (Achat/Retrait)">
         <div className="entete-ecran">
           {(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}
@@ -80,15 +80,6 @@ export function PartsSociales() {
             <legend>Info compte</legend>
             <p>Solde du compte</p>
             <p className="chiffres"><strong>{!c ? "" : c.masque ? <span className="muet" title={MASQUE}>•••••</span> : montant(c.solde, c.devise)}</strong></p>
-          </fieldset>
-          <fieldset className="pile cadre-champs">
-            <legend>Info guichet</legend>
-            <dl className="infos">
-              <div className="info-ligne"><dt>Agence</dt><dd>{ctx.agence.nom}</dd></div>
-              <div className="info-ligne"><dt>Nom</dt><dd>{ctx.guichets.find((g) => g.id === s.guichetId)?.nom ?? ""}</dd></div>
-              <div className="info-ligne"><dt>Caissier</dt><dd>{u?.nom ?? ""}</dd></div>
-              <SoldesCaisse sessionId={s.id} />
-            </dl>
           </fieldset>
         </div>
         <div className="onglets" role="tablist" aria-label="Achat ou retrait">

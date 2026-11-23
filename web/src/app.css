@@ -707,3 +707,7 @@ select.saisie { max-width: 100%; }
 }
 @keyframes ecran-entre { from { opacity: 0; transform: translateY(4px); } }
 @keyframes carte-entre { from { opacity: 0; transform: translateY(8px) scale(.985); } }
+
+/* Bandeau de la caisse au-dessus des onglets du guichet (plan d'allègement, point 4.5) */
+.bandeau-caisse dl.infos { display: flex; flex-wrap: wrap; gap: var(--espace-2) var(--espace-6); }
+.bandeau-caisse .info-ligne { display: flex; gap: var(--espace-2); border-bottom: 0; padding: 0; }

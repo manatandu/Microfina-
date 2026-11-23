@@ -632,12 +632,13 @@
     "but": "Encaisser le premier dépôt et les frais d'adhésion",
     "module": "caisse",
     "priorite": "must",
-    "chemin": "/caisse/s73"
+    "chemin": "/caisse/s73",
+    "menu": false
   },
   {
     "id": "S74",
-    "nom": "Guichet : dépôt et retrait",
-    "acces": "Caisse > Opération > Dépôt/Retrait",
+    "nom": "Guichet",
+    "acces": "Caisse > Guichet",
     "but": "Dépôt ou retrait d'espèces",
     "module": "caisse",
     "priorite": "must",
@@ -650,7 +651,8 @@
     "but": "Verser un crédit en espèces",
     "module": "caisse",
     "priorite": "must",
-    "chemin": "/caisse/s75"
+    "chemin": "/caisse/s75",
+    "menu": false
   },
   {
     "id": "S76",
@@ -659,7 +661,8 @@
     "but": "Recevoir une échéance",
     "module": "caisse",
     "priorite": "must",
-    "chemin": "/caisse/s76"
+    "chemin": "/caisse/s76",
+    "menu": false
   },
   {
     "id": "S77",
@@ -668,7 +671,8 @@
     "but": "Acheter ou retirer des parts",
     "module": "caisse",
     "priorite": "must",
-    "chemin": "/caisse/s77"
+    "chemin": "/caisse/s77",
+    "menu": false
   },
   {
     "id": "S78",
@@ -677,12 +681,13 @@
     "but": "Encaisser ou décaisser hors opération client",
     "module": "caisse",
     "priorite": "must",
-    "chemin": "/caisse/s78"
+    "chemin": "/caisse/s78",
+    "menu": false
   },
   {
     "id": "S79",
-    "nom": "Billetage : saisie",
-    "acces": "Caisse > Billetage > Enregistrer",
+    "nom": "Arrêté de caisse : comptage",
+    "acces": "Caisse > Arrêté de caisse > Comptage",
     "but": "Compter la caisse par coupure",
     "module": "caisse",
     "priorite": "must",
@@ -690,8 +695,8 @@
   },
   {
     "id": "S80",
-    "nom": "Billetage : validation",
-    "acces": "Caisse > Billetage > Validation",
+    "nom": "Arrêté de caisse : validation",
+    "acces": "Caisse > Arrêté de caisse > Validation",
     "but": "Comparer solde informatique et solde réel",
     "module": "caisse",
     "priorite": "must",
@@ -699,8 +704,8 @@
   },
   {
     "id": "S81",
-    "nom": "Transfert entre caisses",
-    "acces": "Caisse > Transfert > Caisse vers caisse ; Caisse vers banque",
+    "nom": "Transferts de fonds",
+    "acces": "Caisse > Transferts de fonds",
     "but": "Mouvements de fonds",
     "module": "caisse",
     "priorite": "must",
@@ -708,26 +713,18 @@
   },
   {
     "id": "S82",
-    "nom": "Validation des opérations diverses et déplacées",
-    "acces": "Caisse > Opération diverse",
+    "nom": "Paiements préparés",
+    "acces": "Caisse > Guichet > Paiements préparés",
     "but": "Payer en caisse une opération saisie en comptabilité, y compris pour un client d'une autre agence",
     "module": "caisse",
     "priorite": "must",
-    "chemin": "/caisse/s82"
-  },
-  {
-    "id": "S141",
-    "nom": "Règlement facture espèce",
-    "acces": "Caisse > Règlement facture espèce",
-    "but": "Payer en espèces, à la caisse, une facture de fournisseur réglée en comptabilité",
-    "module": "caisse",
-    "priorite": "should",
-    "chemin": "/caisse/s141"
+    "chemin": "/caisse/s82",
+    "menu": false
   },
   {
     "id": "S83",
-    "nom": "Rapports caisse",
-    "acces": "Caisse > Rapport",
+    "nom": "Journal de caisse",
+    "acces": "Caisse > Journal de caisse",
     "but": "Journal des opérations de caisse",
     "module": "caisse",
     "priorite": "must",

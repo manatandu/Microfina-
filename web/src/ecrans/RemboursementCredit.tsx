@@ -13,7 +13,7 @@ import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { decimal, lireMontant, montant, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Billetage, Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
-import { OngletsGuichet, Recu, SoldesCaisse } from "./Guichet";
+import { OngletsGuichet, Recu } from "./Guichet";
 import { RechercheClient } from "./Visa";
 
 type Rep = Record<string, number>;
@@ -179,7 +179,7 @@ export function RemboursementGuichet() {
     return { s, ctx, u, j, dv, stock: s ? await api.caisses.theorique(s.id, dv) : {}, piece: fait ? (await api.operations.recu(fait.id)).piece : "" };
   }, [e.donnees?.d?.devise, fait?.id]);
   if (!g) return <Chargement />;
-  const { s, ctx, u, j, dv, stock, piece } = g;
+  const { s, j, dv, stock, piece } = g;
   if (!s || s.statut !== "ouverte") return <><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>;
   const d = e.donnees?.d ?? null, fige = !!fait;
   const effacer = () => { e.effacer(); setCoupures({}); setCle(nouvelleCle()); setFait(null); };
@@ -198,18 +198,12 @@ export function RemboursementGuichet() {
   return (
     <>
       
-      <OngletsGuichet />
+      <OngletsGuichet version={fait?.id} />
       <section className="bloc pile" aria-label="Remboursement de crédit">
         <div className="entete-ecran">{(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}<p>Date règlement : <strong className="chiffres">{fr(j?.date ?? "")}</strong></p></div>
         <div className="grille-cadres client-large">
           <InfosClient e={e} fige={fige} rechercher={() => setFiche("recherche")} />
           <InfosCredit e={e} fige={fige} />
-          <fieldset className="pile cadre-champs"><legend>Info guichet</legend><dl className="infos">
-            <div className="info-ligne"><dt>Agence</dt><dd>{ctx.agence.nom}</dd></div>
-            <div className="info-ligne"><dt>Caisse</dt><dd>{ctx.guichets.find((x) => x.id === s.guichetId)?.nom ?? ""}</dd></div>
-            <div className="info-ligne"><dt>Caissier</dt><dd>{u?.nom ?? ""}</dd></div>
-            <SoldesCaisse sessionId={s.id} />
-          </dl></fieldset>
         </div>
         <RepartitionDetail e={e} fige={fige} setBoite={setBoite} />
         <div className="actions-onglets">

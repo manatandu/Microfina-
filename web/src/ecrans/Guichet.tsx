@@ -13,21 +13,32 @@ import { RechercheClient } from "./Visa";
 
 export const titulaireDe = (t: Tiers) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
 
-/** Onglets du guichet, dans l'ordre de Microfina++ (manuel p. 85) */
-export function OngletsGuichet() {
+/** Une seule entrée « Guichet » : onglets du plus fréquent au plus rare, sous le bandeau de la caisse (plan d'allègement, points 4.1 et 4.5).
+ *  Un onglet n'apparaît qu'avec le droit de son écran (registre T07). `version` recharge les soldes après une opération. */
+const ONGLETS_GUICHET: [string, string, string][] = [["S74", "?op=depot", "Dépôt"], ["S74", "?op=retrait", "Retrait"], ["S76", "", "Remboursement"], ["S73", "", "Adhésion"],
+  ["S75", "", "Déblocage"], ["S77", "", "Parts sociales"], ["S78", "", "Autres encaissements et décaissements"], ["S82", "", "Paiements préparés"]];
+export function OngletsGuichet({ version }: { version?: unknown }) {
   const [q] = useSearchParams();
-  const op = q.get("op") ?? "depot";
-  const onglet = (to: string, actif: boolean, texte: string) => <Link to={to} aria-current={actif ? "page" : undefined}>{texte}</Link>;
-  const ici = (id: string) => location.pathname.endsWith(id.toLowerCase());
+  const op = q.get("op") === "retrait" ? "retrait" : "depot";
+  const { donnees } = useDonnees(async () => {
+    const [s, u, ctx] = await Promise.all([api.caisses.duCaissier(), api.session.courante(), api.referentiel.contexte()]);
+    return { s, u, ctx };
+  });
+  const droits = new Set((donnees?.u as { droits?: string[] } | undefined)?.droits ?? []);
+  const ici = (id: string, requete: string) => location.pathname.endsWith(id.toLowerCase()) && (id !== "S74" || requete === `?op=${op}`);
+  const s = donnees?.s && donnees.s.statut === "ouverte" ? donnees.s : null;
   return (
-    <nav className="onglets" aria-label="Opération">
-      {onglet(vers("S73"), ici("S73"), "Adhésion")}
-      {onglet(vers("S74", `?op=${op}`), ici("S74"), "Dépôt / Retrait")}
-      {onglet(vers("S75"), ici("S75"), "Décaissement crédit")}
-      {onglet(vers("S76"), ici("S76"), "Remboursement de credit")}
-      {onglet(vers("S77"), ici("S77"), "Part sociale(Achat/Retrait)")}
-      {onglet(vers("S78"), ici("S78"), "Autres encaissements et décaissements")}
-    </nav>
+    <>
+      {s && <section className="bandeau-caisse" aria-label="Caisse"><dl className="infos">
+        <div className="info-ligne"><dt>Caisse</dt><dd>{donnees?.ctx.guichets.find((g) => g.id === s.guichetId)?.nom ?? ""}</dd></div>
+        <div className="info-ligne"><dt>Caissier</dt><dd>{donnees?.u?.nom ?? ""}</dd></div>
+        <SoldesCaisse key={String(version ?? "")} sessionId={s.id} />
+      </dl></section>}
+      <nav className="onglets" aria-label="Opération">
+        {ONGLETS_GUICHET.filter(([id]) => !donnees || droits.has(id)).map(([id, requete, texte]) =>
+          <Link key={texte} to={vers(id, requete)} aria-current={ici(id, requete) ? "page" : undefined}>{texte}</Link>)}
+      </nav>
+    </>
   );
 }
 
@@ -46,7 +57,7 @@ export function SoldesCaisse({ sessionId }: { sessionId: number }) {
 export const MASQUE = "Solde masqué : « Voir solde client » n'est pas coché pour vous (Administration > Guichet > Affectation)";
 
 export default function GuichetDepotRetrait() {
-  const [q, setQ] = useSearchParams();
+  const [q] = useSearchParams();
   const op: "depot" | "retrait" = q.get("op") === "retrait" ? "retrait" : "depot";
   const [t, setT] = useState<Tiers | null>(null);
   const [compteId, setCompteId] = useState(0);
@@ -84,7 +95,7 @@ export default function GuichetDepotRetrait() {
   }, [tiersDemande, op]);
 
   if (!donnees) return <Chargement />;
-  const { s, ctx, u, j, comptes, c, stock, img, piece, procurations } = donnees;
+  const { s, j, comptes, c, stock, img, piece, procurations } = donnees;
   if (!s || s.statut !== "ouverte") return (
     <><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>
   );
@@ -113,9 +124,8 @@ export default function GuichetDepotRetrait() {
 
   return (
     <>
-      
-      <OngletsGuichet />
-      <section className="bloc pile" aria-label="Dépôt / Retrait">
+      <OngletsGuichet version={fait?.id} />
+      <section className="bloc pile" aria-label={op === "depot" ? "Dépôt" : "Retrait"}>
         <div className="entete-ecran">
           {(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}
           <p>Date Opération : <strong className="chiffres">{j ? fr(j.date) : ""}</strong></p>
@@ -144,21 +154,8 @@ export default function GuichetDepotRetrait() {
                   <dd className="chiffres">{!c ? "" : c.masque ? <span className="muet" title={MASQUE}>•••••</span> : montant(c[k], c.devise)}</dd></div>))}
             </dl>
           </fieldset>
-          <fieldset className="pile cadre-champs">
-            <legend>Info guichet</legend>
-            <dl className="infos">
-              <div className="info-ligne"><dt>Agence</dt><dd>{ctx.agence.nom}</dd></div>
-              <div className="info-ligne"><dt>Nom</dt><dd>{ctx.guichets.find((g) => g.id === s.guichetId)?.nom ?? ""}</dd></div>
-              <div className="info-ligne"><dt>Caissier</dt><dd>{u?.nom ?? ""}</dd></div>
-              <SoldesCaisse sessionId={s.id} />
-            </dl>
-          </fieldset>
         </div>
-        <div className="onglets" role="tablist" aria-label="Opération">
-          <button type="button" role="tab" id="op-depot" aria-controls="op" aria-selected={op === "depot"} onClick={() => setQ({ op: "depot" })}>Dépôt en espèce</button>
-          <button type="button" role="tab" id="op-retrait" aria-controls="op" aria-selected={op === "retrait"} onClick={() => setQ({ op: "retrait" })}>Retrait en espèce</button>
-        </div>
-        <div className="pile" id="op" role="tabpanel" aria-labelledby={`op-${op}`}>
+        <div className="pile">
           <div className="deux-colonnes">
             <fieldset className="pile cadre-champs">
               <legend>{cadre}</legend>

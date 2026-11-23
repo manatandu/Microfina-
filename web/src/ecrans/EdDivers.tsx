@@ -8,7 +8,7 @@ import type { Operation } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
-import { DEVISES, lireMontant, montant, totalComptage, type Comptage, type Devise } from "@design/montant.js";
+import { DEVISES, lireMontant, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
 import { OngletsGuichet } from "./Guichet";
 
@@ -30,7 +30,7 @@ export default function EdDivers() {
     return { s, ctx, u, j, ed, stocks, piece };
   }, [fait?.id]);
   if (!donnees) return <Chargement />;
-  const { s, ctx, u, j, ed, stocks, piece } = donnees;
+  const { s, j, ed, stocks, piece } = donnees;
   if (!s || s.statut !== "ouverte" || !stocks) return (
     <><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>
   );
@@ -55,18 +55,12 @@ export default function EdDivers() {
   return (
     <>
       
-      <OngletsGuichet />
+      <OngletsGuichet version={fait?.id} />
       <section className="bloc pile" aria-label="Autres encaissements et décaissements">
         <div className="entete-ecran">
           {(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}
           <p>Date opération : <strong className="chiffres">{fr(j?.date ?? "")}</strong></p>
         </div>
-        <div className="cadre-champs"><dl className="infos">
-          <div className="info-ligne"><dt>Agence</dt><dd>{ctx.agence.nom}</dd></div>
-          <div className="info-ligne"><dt>Caisse</dt><dd>{ctx.guichets.find((g) => g.id === s.guichetId)?.nom ?? ""}</dd></div>
-          <div className="info-ligne"><dt>Caissier</dt><dd>{u?.nom ?? ""}</dd></div>
-          {DEVISES.map((d) => <div key={d} className="info-ligne"><dt>Solde ({d})</dt><dd className="chiffres">{montant(totalComptage(stocks[d] ?? {}), d)}</dd></div>)}
-        </dl></div>
         <fieldset className="cadre-champs formulaire">
           <legend>Opérations diverses</legend>
           <Champ libelle="Type operation">{(p) => <select {...p} className="saisie" disabled={!!fait} value={f.type}

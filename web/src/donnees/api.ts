@@ -7192,7 +7192,7 @@ function enAttenteFactures(j: Journee): EnAttente[] {
 }
 const facturesFournisseurs = {
   contexte() {
-    lectureAdmin(["S107", "S108", "S113", "S114", "S141"]);
+    lectureAdmin(["S107", "S108", "S113", "S114", "S82"]);
     const j = journees.courante();
     return { date: j && j.statut === "ouverte" ? j.date : "",
       fournisseurs: valeursRef("tiers", "tiers").filter((x) => x.typeTiers === "FOURNISSEUR").map((x) => ({ id: x.id, intitule: String(x.intitule ?? ""), compte: String(x.compte ?? "") }))
@@ -7365,7 +7365,7 @@ const facturesFournisseurs = {
   valider(quoi: string, id: number, d: { cheque?: string; compteBancaireId?: number | null; dateEmission?: string } = {}) { return suivreFacture(quoi, id, "validation", d); },
   /** S141 : règlements en espèces validés (S114), en attente du caissier */
   reglementsEspece() {
-    lectureAdmin(["S141"]);
+    lectureAdmin(["S82"]);
     return E.reglementsFournisseurs.filter((r) => r.statut === "validee" && r.mode === "ESPECE").sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id).map(vueReglementF);
   },
   /** S141 : le caissier paie le fournisseur, avec le billetage ; il n'a ni saisi, ni visé, ni validé le règlement (registre S141-2 à S141-4) */

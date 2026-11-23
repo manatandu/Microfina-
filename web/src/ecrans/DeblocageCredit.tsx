@@ -12,7 +12,7 @@ import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { montant, montantEnLettres, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
-import { OngletsGuichet, SoldesCaisse } from "./Guichet";
+import { OngletsGuichet } from "./Guichet";
 import { ContratPret } from "./ContratPret";
 
 type Detail = Awaited<ReturnType<typeof api.deblocage.detail>>;
@@ -91,7 +91,7 @@ export function DeblocageGuichet() {
     return { s, ctx, u, j, d, stock, piece };
   }, [cid, relu, fait?.id]);
   if (!donnees) return <Chargement />;
-  const { s, ctx, u, j, d, stock, piece } = donnees;
+  const { s, j, d, stock, piece } = donnees;
   if (!s || s.statut !== "ouverte") return <><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>;
   const dv = (d?.devise ?? fait?.devise ?? "CDF") as Devise;
   const erreur = (x: unknown) => setBoite({ type: "erreur", message: message(x) });
@@ -113,15 +113,9 @@ export function DeblocageGuichet() {
   return (
     <>
       
-      <OngletsGuichet />
+      <OngletsGuichet version={fait?.id} />
       <section className="bloc pile" aria-label="Déblocage crédit">
         <div className="entete-ecran">{(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}<p>Date Opération : <strong className="chiffres">{fr(j?.date ?? "")}</strong></p></div>
-        <div className="cadre-champs"><dl className="infos">
-          <div className="info-ligne"><dt>Agence</dt><dd>{ctx.agence.nom}</dd></div>
-          <div className="info-ligne"><dt>Nom</dt><dd>{ctx.guichets.find((g) => g.id === s.guichetId)?.nom ?? ""}</dd></div>
-          <div className="info-ligne"><dt>Caissier</dt><dd>{u?.nom ?? ""}</dd></div>
-          <SoldesCaisse sessionId={s.id} />
-        </dl></div>
         <div className="grille-deux">
           <fieldset className="cadre-champs formulaire"><legend>Info crédit</legend>
             <Champ libelle="N° crédit">{(p) => <input {...p} className="saisie code" readOnly value={d?.numero ?? ""} />}</Champ>

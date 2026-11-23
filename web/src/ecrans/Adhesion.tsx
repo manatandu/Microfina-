@@ -9,7 +9,7 @@ import { useDonnees } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { lireMontant, montant, montantEnLettres, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
-import { OngletsGuichet, Recu, SoldesCaisse } from "./Guichet";
+import { OngletsGuichet, Recu } from "./Guichet";
 import { RechercheClient, useTiersDeLAdresse } from "./Visa";
 
 const fr = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
@@ -38,7 +38,7 @@ export default function Adhesion() {
     return { s, ctx, u, j, frais, piece, compte };
   }, [t?.id, fait?.id]);
   if (!donnees) return <Chargement />;
-  const { s, ctx, u, j, frais, piece, compte } = donnees;
+  const { s, ctx, j, frais, piece, compte } = donnees;
   if (!s || s.statut !== "ouverte") return (
     <><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>
   );
@@ -64,7 +64,7 @@ export default function Adhesion() {
   return (
     <>
       
-      <OngletsGuichet />
+      <OngletsGuichet version={fait?.id} />
       <section className="bloc pile" aria-label="Adhésion">
         <div className="entete-ecran">
           {(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}
@@ -86,15 +86,6 @@ export default function Adhesion() {
             <Champ libelle={`Premier dépôt : *${produit ? ` (${produit.devise})` : ""}`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" required readOnly={!!fait}
               autoComplete="off" value={depot} onChange={(e) => { setDepot(e.target.value); setCle(nouvelleCle()); }} />}</Champ>
             <p>Total : <strong className="chiffres">{montant(totalCdf, "CDF")}</strong>{enDevise && mDepot ? <> + <strong className="chiffres">{montant(mDepot, devDepot)}</strong></> : null}</p>
-          </fieldset>
-          <fieldset className="pile cadre-champs">
-            <legend>Info guichet</legend>
-            <dl className="infos">
-              <div className="info-ligne"><dt>Agence</dt><dd>{ctx.agence.nom}</dd></div>
-              <div className="info-ligne"><dt>Caisse</dt><dd>{ctx.guichets.find((g) => g.id === s.guichetId)?.nom ?? ""}</dd></div>
-              <div className="info-ligne"><dt>Caissier</dt><dd>{u?.nom ?? ""}</dd></div>
-              <SoldesCaisse sessionId={s.id} />
-            </dl>
           </fieldset>
         </div>
         <fieldset className="pile cadre-champs">

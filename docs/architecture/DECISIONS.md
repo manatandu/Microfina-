@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1020 décisions.** Solidité : 473 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1011 déjà en place, 9 à appliquer.
+**1023 décisions.** Solidité : 476 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1014 déjà en place, 9 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2325,7 +2325,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| SC02-5 | Deux centrales, un écran ; ICU dans la fiche | La Centrale des incidents de paiement et la Centrale des risques (SC05) deviennent « Centrales de la BCC », un onglet chacune ; les onglets À déclarer, Déclarés, Tous deviennent un filtre État. L'identifiant client unique se note une fois, dans la fiche du membre (Mise à jour, Informations de base), se lit dans la fiche et dans la liste de la Centrale des incidents : le bouton « Noter » de la liste disparaît. | Choix du porteur : Plan d'allègement, point 3.16 ; Instr. BCC 52, art. 13 (lu : la BCC attribue ou confirme l'ICU, qui rattache tous les comptes d'une personne) | forte | en place |
+| SC02-5 | Deux centrales, un écran ; ICU dans la fiche | La Centrale des incidents de paiement et la Centrale des risques (SC05) deviennent « Centrales de la BCC », un onglet chacune ; les onglets À déclarer, Déclarés, Tous deviennent un filtre État. L'identifiant client unique se note une fois, dans la fiche du membre (Mise à jour, Informations de base), se lit dans la fiche et dans la liste de la Centrale des incidents : le bouton « Noter » de la liste disparaît. Le profil de départ Agent de crédit, qui tenait la Centrale des risques, reçoit l'écran Centrales de la BCC. | Choix du porteur : Plan d'allègement, point 3.16 ; Instr. BCC 52, art. 13 (lu : la BCC attribue ou confirme l'ICU, qui rattache tous les comptes d'une personne) | forte | en place |
 
 ## SC06 Incidents et dépassements
 
@@ -2333,6 +2333,24 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | T102 | Registre des incidents, alerte et traitement des dépassements (SC06 Incidents et dépassements) | Écran Client > Conformité > Incidents et dépassements (chef d'agence). Le logiciel y note lui-même les dépassements de limites qu'il constate : plafond par emprunteur ou par signature (refusé, ou couvert par une référence de la BCC) et encaisse d'un guichet au-dessus de son maximum ; la note reste même quand l'opération est refusée, et un même dépassement encore ouvert ne se note qu'une fois. Les incidents opérationnels et les déficits de trésorerie se déclarent. Chaque ligne reçoit son traitement, son auteur et sa date de régularisation. Un contrôle de clôture signale les lignes non régularisées | Texte réglementaire : Instr. BCC 008, art. 43 et 49 ; Instr. BCC 007, art. 39 ; confrontation du 21/11/2026, B17 | moyenne | en place |
 | SC06-3 | Dans l'Administration | La base des incidents de toute l'institution quitte le menu Client et rejoint l'Administration. | Choix du porteur : Plan d'allègement, point 3.16 ; Instr. BCC 008, art. 43 (lu : les incidents de toutes natures sont conservés dans une base de données prévue à cet effet) | forte | en place |
+
+## S74 Guichet
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S74-11 | Une entrée, huit onglets, un bandeau | Le menu Caisse n'a plus qu'une entrée « Guichet ». Ses onglets, du plus fréquent au plus rare : Dépôt, Retrait, Remboursement, Adhésion, Déblocage, Parts sociales, Autres encaissements et décaissements, Paiements préparés ; chacun n'apparaît qu'avec le droit de son écran. Dépôt et Retrait deviennent deux onglets. Au-dessus des onglets, un bandeau donne la caisse, le caissier et ses soldes par devise, rechargés après chaque opération ; les cadres « Info guichet » (agence, caisse, caissier, soldes) de chaque onglet disparaissent. Le menu « Part sociale » disparaît avec l'entrée de son écran. | Choix du porteur : Plan d'allègement, points 4.1 et 4.5 ; manuel p. 85 ; registre S74-9 | forte | en place |
+
+## S82 Paiements préparés
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S82-7 | Une liste, Payer ou Encaisser | Les opérations diverses, les opérations déplacées et les règlements de factures en espèces (ancien S141) forment une seule liste, onglet « Paiements préparés » du guichet : Type, Date, N° pièce, Libellé, N° client, Client, Montant, et un bouton Payer ou Encaisser selon le sens. La fenêtre garde le détail, le billetage et la pièce. L'écran S141 disparaît ; ses droits passent à S82. | Choix du porteur : Plan d'allègement, point 4.9 ; Instr. BCC 008, art. 66 ; manuel p. 93, 94, 97, 127 et 153 | forte | en place |
+
+## Menu Caisse
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S83-5 | Quatre entrées | Le menu Caisse : Guichet, Transferts de fonds, Arrêté de caisse (comptage, validation), Journal de caisse. Les écrans des onglets du guichet sortent du menu et restent dans l'arbre des droits. | Choix du porteur : Plan d'allègement, point 4.13 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

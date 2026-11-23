@@ -843,7 +843,7 @@ const OUT = process.argv[2];
   await fEng.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('cell', { name: /^Mainlevée le/ }).waitFor();
   await login('Esther Ngalula'); await aller('/caisse/s74?op=depot');
-  await p.getByRole('tab', { name: 'Retrait en espèce' }).click(); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
+  await p.getByRole('link', { name: 'Retrait', exact: true }).click(); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
   // Bouton Detail (registre S74-1) : relevé du compte en lecture seule ; masqué si le guichet n'a pas « Voir solde client » (S10-1)
   await p.getByRole('button', { name: 'Detail' }).click(); const dt = p.getByRole('dialog', { name: /^(Détail du compte|Erreur)/ }); await dt.waitFor(); await etape('10t-detail-compte');
   await dt.getByRole('button', { name: /^(Fermer|Ok)$/ }).first().click();
@@ -1103,7 +1103,7 @@ const OUT = process.argv[2];
   await login('Esther Ngalula'); await aller('/caisse/s82'); await p.getByRole('row').filter({ hasText: "Prime d'assurance" }).click();
   const vd = p.getByRole('dialog', { name: 'Opération diverse' });
   await vd.getByLabel('Nombre de coupures de 10 000 CDF').fill('1'); await etape('14q-validation-caisse');
-  await vd.getByRole('button', { name: 'Valider' }).click(); await oui(); await vd.getByRole('button', { name: 'Fermer' }).click();
+  await vd.getByRole('button', { name: /^(Payer|Encaisser)$/ }).click(); await oui(); await vd.getByRole('button', { name: 'Fermer' }).click();   // plan 4.9
   await p.getByText('Aucune ligne.').waitFor(); await etape('14r-operation-payee');
   // Arrêté de caisse
   // Le stock de la caisse, par coupure, se lit dans la fenêtre Billetage d'un retrait (S74) ; l'arrêté compte juste
@@ -1223,15 +1223,15 @@ const OUT = process.argv[2];
   await aller('/comptabilite/s114'); await p.getByRole('tab', { name: 'Facture' }).click(); await p.getByRole('button', { name: 'Valider F-2026-001' }).click();
   await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Erreur' }).getByText(/Quatre yeux/).waitFor(); await etape('23h-validation-quatre-yeux');
   await p.getByRole('button', { name: 'Ok' }).click();
-  // Un écran sans droit ne s'ouvre pas, même par son adresse (registre T07) : le chef n'a pas la caisse des factures
-  await aller('/caisse/s141'); await p.getByText(/^Droit manquant : Règlement facture espèce/).waitFor(); await etape('23i-droit-manquant');
+  // Un écran sans droit ne s'ouvre pas, même par son adresse (registre T07) : le chef n'a pas les transferts de fonds
+  await aller('/caisse/s81'); await p.getByText(/^Droit manquant : Transferts de fonds/).waitFor(); await etape('23i-droit-manquant');
   // Annulation de règlement de crédit (S142, p. 158) : le règlement par prélèvement saisi par le comptable, annulé par le chef (PCCI § 3.3)
   await aller('/comptabilite/s142'); await p.getByRole('button', { name: 'Rechercher un règlement' }).click();
   const an = p.getByRole('dialog', { name: 'Règlements par prélèvement sur compte' });
   await an.getByRole('row').filter({ hasText: 'Kalala' }).first().click(); await etape('24a-annulation-reglement');
   await p.getByRole('button', { name: 'Valider' }).click(); await oui(); await etape('24b-reglement-annule');
-  // Caissière : règlement des factures en espèces (S141)
-  await login('Esther Ngalula'); await aller('/caisse/s141'); await p.getByRole('heading', { name: 'Règlement de factures' }).waitFor(); await etape('24c-reglement-espece');
+  // Caissière : règlement des factures en espèces, dans les paiements préparés (S82)
+  await login('Esther Ngalula'); await aller('/caisse/s82'); await p.getByRole('region', { name: 'Paiements préparés' }).waitFor();   // plan 4.9 : règlements en espèces dans les paiements préparés await etape('24c-reglement-espece');
   // Rapprochement bancaire (S110, p. 129, 154 et 155), historique (S112, p. 130)
   await login('Patrick Lumbala'); await aller('/comptabilite/s110');
   await p.getByLabel('Banque *').selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte *').selectOption({ index: 1 });

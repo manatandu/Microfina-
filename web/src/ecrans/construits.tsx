@@ -13,7 +13,6 @@ const FICHIERS: (() => Promise<unknown>)[] = [
   () => import("./ValidationCaisse"),
   () => import("./VirementsMensuels"),
   () => import("./Factures"),
-  () => import("./ReglementEspece"),
   () => import("./ControlesCompta"),
   () => import("./EtatsFinanciers"),
   () => import("./Financement"),
@@ -125,7 +124,6 @@ const ValidationCaisse = paresseux(() => import("./ValidationCaisse"), "default"
 const VirementsMensuels = paresseux(() => import("./VirementsMensuels"), "default");
 const Factures = paresseux(() => import("./Factures"), "default");
 const DeclarationTaxes = paresseux(() => import("./Factures"), "DeclarationTaxes");
-const ReglementEspece = paresseux(() => import("./ReglementEspece"), "default");
 const AnnulationReglement = paresseux(() => import("./ControlesCompta"), "AnnulationReglement");
 const Controles = paresseux(() => import("./ControlesCompta"), "Controles");
 const HistoriqueRapprochement = paresseux(() => import("./ControlesCompta"), "HistoriqueRapprochement");
@@ -368,7 +366,6 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S82: ValidationCaisse,
   S107: Factures,
   S108: DeclarationTaxes,
-  S141: ReglementEspece,
   S109: SaisieEcriture,
   S110: Rapprochement,
   S112: HistoriqueRapprochement,
