@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { api, type FraisProduit, type ProduitCreditVue } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 const ONGLETS = ["Caractéristiques", "Retenues au déblocage", "Remboursement et pénalités"];   // cinq onglets ramenés à trois parties (plan d'allègement, point 2.16)
 type Saisie = Record<string, string | boolean>;
@@ -17,19 +17,21 @@ const IDS = ["typeAssuranceId", "ordreId", "modeleId"];
 const LIGNE_FRAIS = { typeFrais: "", nature: "", valeur: "", compte: "" };
 
 /** S23 : Paramétrage > Produit > Crédit > Produit crédit : création/modification (manuel Microfina++, p. 37 et 38) */
-export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?: boolean }) {
+/** S23, S24, S25 réunis : la liste des produits, une colonne Actif à cocher, un clic qui ouvre la fiche, « Nouveau produit » (plan d'allègement, point 2.16) */
+export default function ProduitCredit() {
   const [f, setF] = useState<Saisie>(VIDE);
   const [frais, setFrais] = useState<Record<string, string>[]>([]);
   const [onglet, setOnglet] = useState(0);
   const [choisi, setChoisi] = useState<number | null>(null);
-  const [liste, setListe] = useState(listeOuverte);
+  const [liste, setListe] = useState(true);
+  const [teg, setTeg] = useState<number[] | null>(null);
   const [filtres, setFiltres] = useState({ numero: "", nom: "" });
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
   const { donnees } = useDonnees(() => api.produitsCredit.lire(), [relu]);
   if (!donnees) return <Chargement />;
   const o = donnees.options;
-  const nouveau = () => { setF(VIDE); setFrais([]); setChoisi(null); setOnglet(0); };
+  const nouveau = () => { setF(VIDE); setFrais([]); setChoisi(null); setOnglet(0); setTeg(null); setListe(false); };
   async function ouvrir(id: number) {
     try {
       const p: ProduitCreditVue = await api.produitsCredit.lireProduit(id);
@@ -39,6 +41,7 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
         s[k] = typeof VIDE[k] === "boolean" ? !!x : k === "interetAnticipation" ? (x ? "OUI" : "NON") : x == null ? "" : String(x);
       }
       setF(s); setFrais(p.frais.map((x: FraisProduit) => ({ ...x, valeur: String(x.valeur) }))); setChoisi(id); setOnglet(0); setListe(false);
+      setTeg((p.tegIndicatif as number[] | null) ?? null);
     } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
   const envoi = () => {
@@ -50,9 +53,15 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
     return d;
   };
   const enregistrer = () => setBoite({ type: "confirmation", message: choisi === null ? "Voulez-vous vraiment enregistrer ?" : "Voulez-vous vraiment modifier ?", oui: async () => {
-    try { const r = await api.produitsCredit.enregistrer(envoi(), choisi ?? undefined); setChoisi(r.produit.id); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+    try { const r = await api.produitsCredit.enregistrer(envoi(), choisi ?? undefined); setChoisi(r.produit.id); setTeg((r.produit.tegIndicatif as number[] | null) ?? null); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   } });
+  // Activer ou désactiver d'un clic sur la case de la liste, après confirmation (manuel p. 39, Activer et Désactiver ; plan 2.16)
+  const activer = (id: number, actif: boolean) => setBoite({ type: "confirmation", message: actif ? "Voulez-vous vraiment activer ?" : "Voulez-vous vraiment désactiver ?", oui: async () => {
+    try { await api.produitsCredit.activer({ ids: [id], actif }); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+    catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  } });
+  const pct = (t: number) => t.toFixed(2).replace(".", ",");
   // Taux du crédit : mensuel, avec l'équivalent annuel proportionnel (× 12 ; Instr. BCC 38, art. 2 ; plan d'allègement, point 1.17)
   const annuel = (t: string) => { const n = Number(t.replace(",", ".")); return t && Number.isFinite(n) ? String(Math.round(n * 12 * 100) / 100).replace(".", ",") : ""; };
   const texte = (k: string, libelle: string, classe = "saisie") => (
@@ -72,7 +81,8 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
         {cadre("Maximum", <>{texte("montantMax", "Montant *", "saisie montant")}{texte("dureeMax", "Durée (mois) *", "saisie nombre")}{texte("differeMax", "Différé (mois) *", "saisie nombre")}{texte("interetMax", "Intérêt", "saisie nombre")}</>)}
         {cadre("Identification", <>{choix("typeProduit", "Type Produit *", o.typesProduit.map((t: { code: string; libelle: string }) => ({ v: t.code, l: t.libelle })), false)}{case_("cyclique", "Cyclique")}
           {texte("numero", "Num Produit *", "saisie code")}{texte("nom", "Nom du produit *")}{choix("devise", "Devise *", simple(o.devises))}</>)}
-        {cadre("Intérêt", <><p>Intérêts calculés sur le capital restant dû (méthode dégressive), à taux fixe ; différé réparti.</p>{texte("tauxInteret", "Taux d'intérêt mensuel (%) *", "saisie nombre")}<Champ libelle="Équivalent annuel (%)">{(p) => <input {...p} className="saisie nombre" readOnly value={annuel(String(f.tauxInteret))} />}</Champ>{texte("tauxDiffere", "Taux différé (%) *", "saisie nombre")}</>)}
+        {cadre("Intérêt", <><p>Intérêts calculés sur le capital restant dû (méthode dégressive), à taux fixe ; différé réparti.</p>{texte("tauxInteret", "Taux d'intérêt mensuel (%) *", "saisie nombre")}<Champ libelle="Équivalent annuel (%)">{(p) => <input {...p} className="saisie nombre" readOnly value={annuel(String(f.tauxInteret))} />}</Champ>{texte("tauxDiffere", "Taux différé (%) *", "saisie nombre")}
+          {teg && <p>TEG indicatif : <strong className="chiffres">{pct(teg[0]!)} %</strong> (prêt minimum) à <strong className="chiffres">{pct(teg[1]!)} %</strong> (prêt maximum) l'an</p>}</>)}
       </div>
       <div className="grille-deux">
         {cadre("Types de client", <>{case_("clientPhysique", "Physique")}{case_("clientGroupe", "Groupe")}{case_("clientEntreprise", "Personne morale")}{case_("maxParMembre", "Appliquer montant max. prêt par mbre du groupe")}</>)}
@@ -117,12 +127,39 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
   ];
   const produits = donnees.produits.filter((p: { numero: string; nom: string }) => p.numero.toLowerCase().includes(filtres.numero.trim().toLowerCase())
     && p.nom.toLowerCase().includes(filtres.nom.trim().toLowerCase()));
+  if (liste) return (
+    <>
+      <h2>Produits de crédit</h2>
+      <section className="bloc pile" aria-label="Produits de crédit">
+        <div className="actions-onglets"><button className="bouton" type="button" onClick={nouveau}>Nouveau produit</button></div>
+        <Paginee lignes={produits}>{(visibles) => (<table className="grille">
+          <caption>Liste des produits crédits</caption>
+          <thead>
+            <tr><th scope="col">Numéro</th><th scope="col">Produit</th><th scope="col">Type de client</th><th scope="col" className="num">Taux d'intérêt mensuel (%)</th>
+              <th scope="col" className="num">Taux différé (%)</th><th scope="col">Actif</th></tr>
+            <tr className="filtres"><td><input className="saisie" type="search" aria-label="Filtrer Numéro" value={filtres.numero} onChange={(e) => setFiltres({ ...filtres, numero: e.target.value })} /></td>
+              <td><input className="saisie" type="search" aria-label="Filtrer Produit" value={filtres.nom} onChange={(e) => setFiltres({ ...filtres, nom: e.target.value })} /></td><td /><td /><td /><td /></tr>
+          </thead>
+          <tbody>
+            {produits.length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
+            {visibles.map((p: { id: number; numero: string; nom: string; typeClient: string; tauxInteret: number; tauxDiffere: number; actif: boolean }) => (
+              <tr key={p.id} className="ligne-choix" tabIndex={0} onClick={() => ouvrir(p.id)} onKeyDown={(e) => { if (e.key === "Enter") void ouvrir(p.id); }}>
+                <td>{p.numero}</td><td>{p.nom}</td><td>{p.typeClient}</td><td className="num">{p.tauxInteret.toFixed(1).replace(".", ",")}</td><td className="num">{p.tauxDiffere.toFixed(1).replace(".", ",")}</td>
+                <td onClick={(e) => e.stopPropagation()}><input type="checkbox" aria-label={`Actif : ${p.numero}`} checked={p.actif} onChange={(e) => activer(p.id, e.target.checked)} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>)}</Paginee>
+        <Textes sources={["Manuel Microfina++, p. 37 à 39 : Produits credit (liste), création/modification, Activation et désactivation, réunis en une entrée (plan d'allègement, point 2.16)"]} />
+      </section>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
+  );
   return (
     <>
-      <h2>Produit crédit : création/modification</h2>
+      <h2>{choisi === null ? "Nouveau produit crédit" : `Produit crédit ${String(f.numero)}`}</h2>
       <div className="actions-onglets">
-        <button className="bouton secondaire" type="button" aria-label="Nouveau produit crédit" onClick={nouveau}>+</button>
-        <button className="bouton secondaire" type="button" onClick={() => setListe(true)}>Produits credit</button>
+        <button className="bouton secondaire" type="button" onClick={() => { setListe(true); setRelu((x) => x + 1); }}>Liste des produits</button>
       </div>
       <div className="onglets" role="tablist" aria-label="Produit crédit">
         {ONGLETS.map((t, i) => <button key={t} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{t}</button>)}
@@ -140,32 +177,7 @@ export default function ProduitCredit({ listeOuverte = false }: { listeOuverte?:
           "Manuel Microfina++, p. 40 : Modèle pour crédit (Model normal, Modèle ressources affectées), choisi par le produit",
           "Manuel Microfina++, p. 86 (Encaisser frais au déblocage) et p. 114 (épargne obligatoire, fonds de solidarité, assureur et montant suivant le paramétrage)"]} />
       </section>
-      <Fiche titre="Produit Crédit" ouverte={liste} fermer={() => setListe(false)}>
-        <Paginee lignes={produits}>{(visibles) => (<table className="grille">
-          <caption>Liste des produits crédits</caption>
-          <thead>
-            <tr><th scope="col">Numéro</th><th scope="col">Produit</th><th scope="col">Type de client</th><th scope="col" className="num">Taux d'intérêt mensuel (%)</th><th scope="col" className="num">Taux différé (%)</th></tr>
-            <tr className="filtres"><td><input className="saisie" type="search" aria-label="Filtrer Numéro" value={filtres.numero} onChange={(e) => setFiltres({ ...filtres, numero: e.target.value })} /></td>
-              <td><input className="saisie" type="search" aria-label="Filtrer Produit" value={filtres.nom} onChange={(e) => setFiltres({ ...filtres, nom: e.target.value })} /></td><td /><td /><td /></tr>
-          </thead>
-          <tbody>
-            {produits.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
-            {visibles.map((p: { id: number; numero: string; nom: string; typeClient: string; tauxInteret: number; tauxDiffere: number }) => (
-              <tr key={p.id} className="ligne-choix" tabIndex={0} onClick={() => ouvrir(p.id)} onKeyDown={(e) => { if (e.key === "Enter") void ouvrir(p.id); }}>
-                <td>{p.numero}</td><td>{p.nom}</td><td>{p.typeClient}</td><td className="num">{p.tauxInteret.toFixed(1).replace(".", ",")}</td><td className="num">{p.tauxDiffere.toFixed(1).replace(".", ",")}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>)}</Paginee>
-        <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setListe(false)}>Fermer</button></div>
-      </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );
-}
-
-/** S24 : la liste des produits crédits (manuel p. 37 : « [Produits credit] pour obtenir la liste des Produits crédit (Fig.2) » ; capture p. 38).
- * C'est la fenêtre de S23, ouverte d'emblée ; un clic sur un produit le charge dans la fiche (registre S24-1). */
-export function ListeProduitsCredit() {
-  return <ProduitCredit listeOuverte />;
 }

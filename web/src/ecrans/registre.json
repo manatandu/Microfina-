@@ -208,30 +208,12 @@
   },
   {
     "id": "S23",
-    "nom": "Produit crédit : création",
+    "nom": "Produits de crédit",
     "acces": "Paramétrage > Produit > Crédit > Produit crédit",
-    "but": "Définir un produit de crédit",
+    "but": "Liste des produits, activation, fiche du produit",
     "module": "parametrage",
     "priorite": "must",
     "chemin": "/parametrage/s23"
-  },
-  {
-    "id": "S24",
-    "nom": "Produits crédit : liste",
-    "acces": "idem, onglet liste",
-    "but": "Voir les produits",
-    "module": "parametrage",
-    "priorite": "must",
-    "chemin": "/parametrage/s24"
-  },
-  {
-    "id": "S25",
-    "nom": "Produits crédit : activation",
-    "acces": "Paramétrage > Produit > Crédit > Activation",
-    "but": "Activer ou désactiver des produits",
-    "module": "parametrage",
-    "priorite": "must",
-    "chemin": "/parametrage/s25"
   },
   {
     "id": "S26",

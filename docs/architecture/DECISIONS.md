@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1001 décisions.** Solidité : 454 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 992 déjà en place, 9 à appliquer.
+**1002 décisions.** Solidité : 455 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 993 déjà en place, 9 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2238,6 +2238,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S33-5 | Fiche de l'agent allégée | La fiche de l'agent garde nom, prénom, sexe et portable (l'agence pour un gestionnaire, quand il y en a plusieurs) ; adresse, adresse électronique, BP, téléphone fixe, date et lieu de naissance et profession ne sont plus demandés. | Choix du porteur : Plan d'allègement, point 2.20 | forte | en place |
 | S33-6 | Une liste, rôles cochés, utilisateur lié | Les trois onglets Gestionnaire, Sensibilisateur, Commercial deviennent une seule liste d'agents : nom, prénom, sexe, portable, rôles cochés (au moins un), agence pour un gestionnaire, utilisateur du logiciel lié (un utilisateur ne se lie qu'à un agent). Une personne saisie dans plusieurs onglets ne fait plus qu'un agent, et les clients qui la portaient la gardent. Un rôle que des clients utilisent ne se décoche pas ; un agent porté par des clients, dans quelque rôle que ce soit, ne se supprime pas. Le prospect et la fiche du client proposent les agents qui ont le rôle voulu. | Choix du porteur : Plan d'allègement, point 2.20 (accord du porteur, 22/11/2026) ; registre S33-3, S33-4 | forte | en place |
+
+## S23 Produits de crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S23-10 | Une entrée et TEG indicatif | La liste (S24), l'activation (S25) et la fiche (S23) deviennent une entrée « Produits de crédit » : la liste d'abord, une case Actif par produit (activer ou désactiver après confirmation), un clic qui ouvre la fiche, « Nouveau produit », « Liste des produits » pour revenir. La fiche affiche le TEG indicatif du produit : celui du prêt minimum et celui du prêt maximum (montant, durée, différé minimum), calculés par la simulation S84, frais, assurance et épargne obligatoire compris ; aucun pour un taux réglementé ou bonifié. | Choix du porteur : Plan d'allègement, point 2.16 (accord du porteur, 22/11/2026) ; Instr. BCC 38, art. 5, 6 et 9 ; manuel p. 37 à 39 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

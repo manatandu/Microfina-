@@ -101,7 +101,23 @@ def lire_produit(u, pid: int) -> dict:
     r = une("select * from produit_credit where id = %s and institution_id = %s", (pid, u["institution_id"]))
     if not r:
         raise ErreurMetier("Produit introuvable.")
-    return vue(r)
+    return {**vue(r), "tegIndicatif": teg_indicatif(u, r)}
+
+
+def teg_indicatif(u, r) -> list | None:
+    """TEG du prêt minimum puis du prêt maximum du produit (montant, durée, différé minimum), par la simulation S84 : frais, assurance et
+    épargne obligatoire compris (Instr. BCC 38, art. 6 et 9 ; plan d'allègement, point 2.16). Aucun pour un taux réglementé ou bonifié (art. 5)."""
+    from .simulation_credit import simuler
+    out = []
+    for m, du in ((r["montant_min"], r["duree_min"]), (r["montant_max"], r["duree_max"])):
+        try:
+            t = simuler(u, {"produitId": r["id"], "montant": int(Decimal(m) * 100), "duree": du, "differe": r["differe_min"]})["tegR"]
+        except (ErreurMetier, TypeError, ValueError):
+            return None
+        if t is None:
+            return None
+        out.append(t)
+    return out
 
 
 def valider(u, d) -> tuple[dict, list]:

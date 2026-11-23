@@ -21,7 +21,7 @@ id,lot,titre,ecrans,statut,question,reste
 0.20,0,Rapport des transactions,S13,fait,,
 0.21,0,Simulation de crédit,S84,fait,,
 0.22,0,Dates modifiables qui changent un calcul,S40 S63 S65 S69,à faire,oui,Attend ta réponse : faut-il un droit à part pour enregistrer à une date antérieure à la journée ?
-0.23,0,Cases enregistrées qui n'agissent sur rien,S14 S19 S23 S26 S32 S65 S69 S102 S126 S136,partiel,,"Fait : « A échéance » (S65), « Mode règlement » (S69), compte interne (2.15), hors bilan 1 et 2 (2.21), options du plan des comptes (2.26), page Type de pièce (2.7). Reste, avec leurs écrans refaits : champs du produit de crédit (2.16), périodicité des familles de biens (9.6), financement et pages du budget (9.4)."
+0.23,0,Cases enregistrées qui n'agissent sur rien,S14 S19 S23 S26 S32 S65 S69 S102 S126 S136,partiel,,"Fait : « A échéance » (S65), « Mode règlement » (S69), compte interne (2.15), hors bilan 1 et 2 (2.21), options du plan des comptes (2.26), page Type de pièce (2.7), champs du produit de crédit (2.16). Reste, avec leurs écrans refaits : périodicité des familles de biens (9.6), financement et pages du budget (9.4)."
 0.24,0,Écrans non repris encore dans les menus,S129 S130,fait,,
 1.1,1,Tableau vide,,fait,,
 1.2,1,Plus un mot d'anglais,S21 S25 S37 S39 S117,fait,,
@@ -56,7 +56,7 @@ id,lot,titre,ecrans,statut,question,reste
 2.13,2,Référentiel du crédit,S21 S26,partiel,oui,"Fait : quatre onglets, règles du crédit en lecture. Reste : cycle calculé (question au porteur sur les plafonds par cycle)"
 2.14,2,Ordre de remboursement,S21 S22 S23,à faire,oui,
 2.15,2,Comptes des crédits,S26,fait,,
-2.16,2,Produits de crédit,S23 S24 S25,partiel,,"Fait : fiche en trois parties, Enregistrer toujours visible, listes à une valeur en phrase, un seul réglage du remboursement anticipé. Reste : liste, activation et fiche dans une seule entrée ; TEG indicatif du produit"
+2.16,2,Produits de crédit,S23 S24 S25,fait,,
 2.17,2,Produits d'épargne,S27 S28,fait,,
 2.18,2,Frais,S16,à faire,oui,
 2.19,2,Numérotation,S15 S17 S29,fait,,

@@ -115,7 +115,8 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: 'Intérêt', exact: true }).click(); await p.getByRole('button', { name: 'Tout en haut' }).click();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'ICPES' }).waitFor(); await etape('02f11-ordre-remboursement');
   // Chef : produit crédit (S23, p. 37 et 38) : Information de base, puis Suivant jusqu'à Autres informations et Enregistrer
-  await aller('/parametrage/s23'); await p.getByRole('tab', { name: 'Caractéristiques' }).waitFor();
+  // Une entrée : la liste, « Nouveau produit », la fiche (plan d'allègement, point 2.16)
+  await aller('/parametrage/s23'); await p.getByRole('button', { name: 'Nouveau produit' }).click(); await p.getByRole('tab', { name: 'Caractéristiques' }).waitFor();
   const pc = async (l, v) => p.getByRole('tabpanel').getByLabel(l, { exact: true }).fill(v);
   const blocs = p.getByRole('tabpanel').locator('fieldset');
   await blocs.nth(0).getByLabel('Montant *').fill('100000'); await blocs.nth(0).getByLabel('Durée (mois) *').fill('3'); await blocs.nth(0).getByLabel('Différé (mois) *').fill('0');
@@ -124,15 +125,14 @@ const OUT = process.argv[2];
   await pc("Taux d'intérêt mensuel (%) *", '2,5'); await pc('Taux différé (%) *', '2'); await p.getByText('Physique', { exact: true }).click();
   await p.getByLabel('Périodicité *').selectOption({ label: 'Mensuel' }); await pc('Age max *', '65'); await etape('02f12-produit-credit');
   await p.getByLabel('Catégorie de prêt *').selectOption('Prêt commercial'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();   // trois parties, Enregistrer toujours visible (plan 2.16)
-  await p.getByRole('button', { name: 'Produits credit' }).click(); await p.getByRole('cell', { name: 'Crédit commerce' }).waitFor(); await etape('02f13-produits-credit');
-  await p.getByRole('button', { name: 'Fermer' }).click();
-  // Chef : liste des produits crédits (S24, p. 38) : la fenêtre s'ouvre d'emblée ; un clic charge le produit
-  await aller('/parametrage/s24'); await p.getByRole('cell', { name: 'Crédit commerce' }).click(); await p.getByRole('tabpanel').getByLabel('Num Produit *', { exact: true }).waitFor();
+  await p.getByText('TEG indicatif').waitFor();   // TEG du prêt minimum et du prêt maximum, frais compris (plan 2.16)
+  await p.getByRole('button', { name: 'Liste des produits' }).click(); await p.getByRole('cell', { name: 'Crédit commerce' }).waitFor(); await etape('02f13-produits-credit');
+  await p.getByRole('cell', { name: 'Crédit commerce' }).click(); await p.getByRole('tabpanel').getByLabel('Num Produit *', { exact: true }).waitFor();
   await etape('02f14-liste-produits-credit');
-  // Chef : activation et désactivation des produits crédits (S25, p. 39)
-  await aller('/parametrage/s25'); await p.getByLabel('Choisir L001').check(); await p.getByRole('button', { name: 'Désactiver' }).click(); await oui();
-  await p.waitForFunction(() => !document.querySelector('input[aria-label="Actif : L001"]')?.checked); await etape('02f15-activation-produits');
-  await p.getByLabel('Choisir L001').check(); await p.getByRole('button', { name: 'Activer', exact: true }).click(); await oui();
+  // Activer et désactiver d'un clic sur la case Actif de la liste (S25, p. 39)
+  await p.getByRole('button', { name: 'Liste des produits' }).click(); await p.getByLabel('Actif : L001').click();
+  await oui(); await p.waitForFunction(() => !document.querySelector('input[aria-label="Actif : L001"]')?.checked); await etape('02f15-activation-produits');
+  await p.getByLabel('Actif : L001').click(); await oui();
   await p.waitForFunction(() => document.querySelector('input[aria-label="Actif : L001"]')?.checked);
   // Chef : modèle pour crédit (S26, p. 40) : un modèle aux comptes proposés, le compte interne des impayés court terme
   await aller('/parametrage/s26'); await p.getByLabel('Libellé : *').fill('Modèle ressources affectées');

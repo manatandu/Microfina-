@@ -2166,6 +2166,7 @@ def test_activation_produits_credit(clients):
     """S25 (p. 39) : Activer et Désactiver les produits cochés (registre S25-1)"""
     chef, agent = clients["chef"], clients["agent"]; connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
     p = chef.post("/api/produits-credit", PRODUIT, **H).json()["produit"]
+    assert len(p["tegIndicatif"]) == 2 and p["tegIndicatif"][0] > 30     # TEG indicatif, frais compris (plan 2.16)
     def refus(corps):
         r = chef.post("/api/produits-credit/activation", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
     assert agent.post("/api/produits-credit/activation", {"ids": [p["id"]], "actif": False}, **H).status_code == 403

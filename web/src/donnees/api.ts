@@ -3129,6 +3129,20 @@ function tauxPeriode(flux: number[]) {
   for (let i = 0; i < 200; i++) { const m = (bas + haut) / 2; if (f(bas) * f(m) <= 0) haut = m; else bas = m; }
   return (bas + haut) / 2;
 }
+/** TEG du prêt minimum puis du prêt maximum du produit (montant, durée, différé minimum), par la simulation S84 ; aucun pour un taux réglementé
+ *  ou bonifié (Instr. BCC 38, art. 5, 6, 9 ; plan d'allègement, point 2.16). Identique au serveur (produits_credit.teg_indicatif). */
+function tegIndicatif(p: ProduitCreditVue): number[] | null {
+  const n = (k: string) => Number(String(p[k] ?? "").replace(",", "."));
+  const out: number[] = [];
+  for (const [m, du] of [[n("montantMin"), n("dureeMin")], [n("montantMax"), n("dureeMax")]] as const) {
+    try {
+      const t = simulationCredit.simuler({ produitId: p.id as number, montant: Math.round(m * 100), duree: du, differe: n("differeMin") || 0 }).tegR;
+      if (t === null) return null;
+      out.push(t);
+    } catch { return null; }
+  }
+  return out;
+}
 const simulationCredit = {
   simuler(d: { produitId: number; periodicite?: string; montant: number; duree: number; differe?: number; dateDeblocage?: string }) {
     exiger();
@@ -9568,7 +9582,7 @@ const produitsCredit = {
     exiger();
     const p = E.produitsCredit.find((x) => x.id === id);
     if (!p) throw new ErreurMetier("Produit introuvable.");
-    return structuredClone(p);
+    return { ...structuredClone(p), tegIndicatif: tegIndicatif(p) };
   },
   /** Enregistrer (nouveau produit, bouton +) ou modifier le produit choisi dans la liste. Tous les contrôles avant d'écrire. */
   enregistrer(d: Record<string, unknown>, id?: number) {

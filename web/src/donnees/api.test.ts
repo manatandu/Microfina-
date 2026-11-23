@@ -2854,6 +2854,8 @@ describe("journée de guichet", () => {
     await expect(api.produitsCredit.enregistrer({ ...P, frais: [...P.frais, ...P.frais] })).rejects.toThrow("deux fois");
     const r = await api.produitsCredit.enregistrer(P);
     expect([r.produit.tauxInteret, r.produit.frais[0]!.compte, r.produit.assuranceNature]).toEqual([2.5, "7152", null]);
+    const teg = r.produit.tegIndicatif as number[];   // TEG du prêt minimum et du prêt maximum, frais compris (plan 2.16) : au-dessus du taux nominal annuel
+    expect(teg).toHaveLength(2); expect(teg[0]!).toBeGreaterThan(30);
     expect(r.produits[0]!.typeClient).toBe("Physique");
     await expect(api.produitsCredit.enregistrer({ ...P, numero: "l001" })).rejects.toThrow("existe déjà");
     const m = (await api.produitsCredit.enregistrer({ ...P, nom: "Crédit commerce AGR", clientGroupe: true, frais: [] }, r.produit.id)).produit;
