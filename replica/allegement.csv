@@ -51,9 +51,9 @@ id,lot,titre,ecrans,statut,question,reste
 2.8,2,Motifs de départ,S14 S18,fait,,
 2.9,2,Filiation,,fait,,
 2.10,2,Listes mal rangées,S47,partiel,,Fait : le type de guichet n'a plus de page de liste. Reste : les valeurs de départ des types de procuration (question au porteur)
-2.11,2,Profession,S14b,à faire,oui,
+2.11,2,Profession,S14b,à faire,,
 2.12,2,Résultat pour les listes du membre,,partiel,,"Fait : 16 pages ramenées à 7, menu « Listes de la fiche du membre », secteur et activité sur une page. Reste : types de procuration (question 2.10)"
-2.13,2,Référentiel du crédit,S21 S26,partiel,oui,"Fait : quatre onglets, règles du crédit en lecture. Reste : cycle calculé (question au porteur sur les plafonds par cycle)"
+2.13,2,Référentiel du crédit,S21 S26,partiel,,"Fait : quatre onglets, règles du crédit en lecture. Reste : cycle calculé (question au porteur sur les plafonds par cycle)"
 2.14,2,Ordre de remboursement,S21 S22 S23,à faire,,
 2.15,2,Comptes des crédits,S26,fait,,
 2.16,2,Produits de crédit,S23 S24 S25,fait,,
@@ -98,7 +98,7 @@ id,lot,titre,ecrans,statut,question,reste
 4.12,4,Journal de caisse,S83,fait,,
 4.13,4,Menu Caisse,S74 S79 S80 S81 S83,fait,,
 5.1,5,Dépôts à terme,S65 S66 S67 S68,à faire,,
-5.2,5,Mise en place d'un DAT,,à faire,oui,
+5.2,5,Mise en place d'un DAT,,à faire,,
 5.3,5,Intérêts courus des DAT,S127 S128,à faire,,
 5.4,5,Plan d'épargne,S69,à faire,,
 5.5,5,Rupture,,à faire,,
@@ -129,7 +129,7 @@ id,lot,titre,ecrans,statut,question,reste
 10.1,10,Seuls les comptes de l'institution reçoivent des écritures,S102,à faire,,
 10.2,10,"Comptes au plan par produit et catégorie, membre en auxiliaire",S63 S65 S102,à faire,,
 10.3,10,Parts sociales : comptes collectifs,S37 S102,à faire,,
-10.4,10,Fonds de solidarité et épargne obligatoire,S75 S102,à faire,oui,
+10.4,10,Fonds de solidarité et épargne obligatoire,S75 S102,à faire,,
 10.5,10,Un compte pour chaque opération,S102,à faire,,
 10.6,10,Statut « Bloqué » et export du plan,S102 S109,à faire,,
 7.1,7,Opérations en attente,S57 S113 S114,à faire,,
