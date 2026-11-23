@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1019 décisions.** Solidité : 472 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1010 déjà en place, 9 à appliquer.
+**1020 décisions.** Solidité : 473 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1011 déjà en place, 9 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -382,6 +382,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 |---|---|---|---|---|---|
 | S44-1 | Un client dans plusieurs groupes | Non : un seul groupe solidaire à la fois. Le retirer avant de l'affecter ailleurs | Choix du porteur : La caution solidaire doit rester lisible | faible | en place |
 | S44-2 | Code du groupe | Donné par la règle de numérotation des clients (S15) | Donnée exigée ailleurs : S15 | faible | en place |
+| S44-4 | Un seul objet : la fiche de groupement | Le groupe solidaire est la fiche de groupe de forme « Groupement sans personnalité juridique » (type « Groupement solidaire », compte 1031). Dans son onglet Personnes, la rubrique « Membres du groupe » choisit les membres parmi les fiches actives (recherche, +Ajouter, Retirer) ; les règles de l'affectation restent : membre actif, un seul groupe solidaire à la fois. Les autres formes de groupe (association, ONG) gardent la saisie de leurs membres. L'écran S44 sort du menu ; la fiche du membre montre les membres du groupe. | Choix du porteur : Plan d'allègement, point 3.12 ; loi 11/020, art. 44 ; PCCI, compte 1031 ; registre S44-1 | forte | en place |
 
 ## S47 Procurations
 
@@ -2251,7 +2252,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S43-5 | La porte d'entrée | On cherche le membre une fois ; la fiche montre ses onglets (identité, adresse et activité, personnes, photos et pièces, comptes, crédits, parts, procurations, historique) ; on agit par Modifier, Procurations, Résilier, qui ouvrent l'écran voulu sur le même membre (« ?tiers= »). La mise à jour (S46), les procurations (S47), la résiliation (S48), les photos (S49) et l'adhésion au guichet (S73) reçoivent ainsi le membre sans leur propre recherche ; la recherche reste pour qui y entre directement. | Choix du porteur : Plan d'allègement, point 3.8 (accord du porteur, 22/11/2026) ; manuel p. 54 (informations initiales et actuelles, gardées dans Historique) | forte | en place |
-| S43-6 | Menu Membre à cinq entrées | Le menu Membre passe à : Nouveau membre, Membres à viser, Fiche du membre, Groupes, Rapports (rapports clients, registre des membres). Mise à jour, Procurations, Résilier et Photos et signatures sortent du menu et s'ouvrent depuis la fiche du membre ; ils restent dans l'arbre des droits. La conformité a son propre menu. | Choix du porteur : Plan d'allègement, points 3.8, 3.15 et 3.17 | forte | en place |
+| S43-6 | Menu Membre à cinq entrées | Le menu Membre passe à : Nouveau membre, Membres à viser, Fiche du membre, Rapports (rapports clients, registre des membres). Mise à jour, Procurations, Résilier et Photos et signatures sortent du menu et s'ouvrent depuis la fiche du membre ; ils restent dans l'arbre des droits. Les groupes se créent par Nouveau membre (nature Groupe) et se consultent dans la fiche du membre : l'entrée « Groupes » n'a plus d'écran propre (3.12). La conformité a son propre menu. | Choix du porteur : Plan d'allègement, points 3.8, 3.12, 3.15 et 3.17 | forte | en place |
 
 ## S45 Prospect
 

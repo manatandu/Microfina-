@@ -477,32 +477,26 @@ const OUT = process.argv[2];
   await rc.getByLabel('Nom:', { exact: true }).fill('Mwamba'); await rc.getByRole('row').filter({ hasText: 'Mwamba' }).click();
   await p.getByRole('tab', { name: 'Historique' }).click(); await p.getByRole('cell', { name: '+243 990 000 001' }).waitFor(); await etape('06m-informations-client');   // fiche du membre (plan 3.8)
   await p.getByRole('tab', { name: 'Comptes' }).click(); await p.getByRole('cell', { name: '0412-000319-02' }).waitFor(); await etape('06n-informations-depots');
-  // Groupe solidaire (S44)
-  await aller('/clients/s44');
-  await p.getByLabel('nom groupe *').fill('Grp Kinsaku'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
-  await p.getByRole('cell', { name: 'Grp Kinsaku' }).waitFor(); await etape('06o-groupe-solidaire');
-  await p.getByRole('tab', { name: 'Affectation Groupe Solidarité' }).click();
-  await p.getByLabel('Groupe Solidaire *').selectOption({ label: 'Grp Kinsaku' });
-  for (const nom of ['Kalala', 'Mwamba']) {
-    await p.getByRole('button', { name: 'Rechercher un client' }).click();
-    const rg = p.getByRole('dialog', { name: "Recherche d'un client" });
-    await rg.getByLabel('Nom:', { exact: true }).fill(nom); await rg.getByRole('row').filter({ hasText: nom }).first().click();
-    await p.getByRole('button', { name: 'Ajouter', exact: true }).click();
-  }
-  await etape('06p-affectation'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
-  await p.getByRole('cell', { name: 'Mwamba Ilunga Grâce', exact: true }).waitFor(); await etape('06q-affectation-enregistree');
-  // Un seul groupe solidaire à la fois (registre S44-1) ; code proposé selon la règle S15 (registre S44-2)
-  await p.getByRole('tab', { name: 'Groupe Solidarité', exact: true }).click();
-  const code1 = await p.getByLabel('Code groupe *').inputValue();
-  if (!/^0412-\d{6}/.test(code1)) throw new Error('S44-2 : code proposé ' + code1);
-  await p.getByLabel('nom groupe *').fill('Grp Matete'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
-  await p.getByRole('cell', { name: 'Grp Matete' }).waitFor(); await etape('06q2-code-groupe-s15');
-  await p.getByRole('tab', { name: 'Affectation Groupe Solidarité' }).click();
-  await p.getByLabel('Groupe Solidaire *').selectOption({ label: 'Grp Matete' });
-  await p.getByRole('button', { name: 'Rechercher un client' }).click();
-  const rg2 = p.getByRole('dialog', { name: "Recherche d'un client" });
-  await rg2.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rg2.getByRole('row').filter({ hasText: 'Kalala' }).first().click();
-  await p.getByRole('button', { name: 'Ajouter', exact: true }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  // Groupe solidaire : la fiche de groupe de forme « Groupement sans personnalité juridique », membres pris parmi les fiches existantes (plan 3.12)
+  const groupement = async (nom, membres) => {
+    await aller('/clients/s37?nature=groupe');
+    await p.getByLabel('Type de compte à créer *').selectOption('EAV-CDF');
+    await p.getByLabel('Objet et nature de la relation : *').fill('Épargne et crédit solidaire');
+    await p.getByRole('button', { name: 'Suivant' }).click();
+    await p.getByLabel('Dénomination : *').fill(nom); await p.getByLabel('Forme juridique : *').selectOption('Groupement sans personnalité juridique');
+    await p.getByRole('tab', { name: 'Adresse et activité' }).click(); await adresseKinsaku('Kinsaku', '');
+    await p.getByRole('tab', { name: 'Personnes' }).click(); const mg = p.getByRole('region', { name: 'Membres du groupe' });
+    for (const m of membres) {
+      await mg.getByLabel('Membre :').fill(m); await mg.getByRole('button', { name: 'Rechercher' }).click(); await mg.getByRole('button', { name: '+Ajouter' }).click();
+      await mg.getByRole('cell', { name: new RegExp(m) }).first().waitFor();
+    }
+  };
+  await groupement('Grp Kinsaku', ['Kalala', 'Mwamba']); await etape('06p-groupement-membres');
+  await p.getByRole('tab', { name: 'Photos et pièces' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await succes(); await etape('06q-groupement-enregistre');
+  // Un seul groupe solidaire à la fois (registre S44-1)
+  await groupement('Grp Matete', ['Kalala']);
+  await p.getByRole('tab', { name: 'Photos et pièces' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Erreur' }).getByText(/déjà membre du groupe « Grp Kinsaku »/).waitFor(); await etape('06q3-un-seul-groupe'); await p.getByRole('button', { name: 'Ok' }).click();
   // Prospect : la fiche physique de « Nouveau membre », enregistrée comme prospect (plan d'allègement, point 3.11)
   await aller('/clients/s37'); await p.getByRole('tab', { name: 'Identité' }).click();

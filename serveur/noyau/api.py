@@ -1452,6 +1452,11 @@ def gs_retirer(request, gid: int, corps: dict = Body(...)):
     return gs.retirer(u(request), gid, corps)
 
 
+@api.get("/tiers/{tid}/membres-solidaires")
+def gs_du_tiers(request, tid: int):
+    return gs.membres_du_tiers(u(request), tid)
+
+
 # ---------- Client : types de procuration (S47) ----------
 @api.get("/types-procuration")
 def tp_lire(request):

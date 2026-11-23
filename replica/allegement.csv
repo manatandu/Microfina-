@@ -78,7 +78,7 @@ id,lot,titre,ecrans,statut,question,reste
 3.9,3,Personne politiquement exposée,,fait,,
 3.10,3,Cases de la fiche,,fait,,
 3.11,3,Prospect,S45 S51,fait,,
-3.12,3,Groupe solidaire,S39 S44,partiel,,"Fait : les membres du groupe se reprennent des fiches existantes. Reste : un seul objet (les groupes solidaires de S44 rattachés aux fiches de groupe, forme « Groupement sans personnalité juridique »), S44 hors du menu"
+3.12,3,Groupe solidaire,S39 S44,fait,,
 3.13,3,Résiliation,S48,fait,,
 3.14,3,Consentement à la Centrale des risques,S50,fait,,
 3.15,3,Registre des membres,SC04,fait,,

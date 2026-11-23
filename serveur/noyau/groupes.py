@@ -101,3 +101,41 @@ def retirer(u, gid: int, d) -> dict:
             raise ErreurMetier("Ce client n'est pas membre de ce groupe.")
         executer("delete from groupe_solidaire_membre where groupe_id = %s and tiers_id = %s", (gid, tid))
     return lire(u)
+
+
+# ---------- Plan d'allègement, point 3.12 : le groupe solidaire est la fiche de groupe « Groupement solidaire » (forme « Groupement sans
+# personnalité juridique ») ; ses membres se choisissent parmi les fiches existantes, avec les règles de l'affectation (registre S44-1). ----------
+def du_tiers(tid: int) -> list[int]:
+    return [r["tiers_id"] for r in lignes("""select m.tiers_id from groupe_solidaire_membre m join groupe_solidaire g on g.id = m.groupe_id
+                                              where g.tiers_id = %s and g.supprime_le is null order by m.affecte_le, m.tiers_id""", (tid,))]
+
+
+def membres_du_tiers(u, tid: int) -> list[dict]:
+    exiger(u)
+    if not une("select 1 from tiers where id = %s and institution_id = %s", (tid, u["institution_id"])):
+        raise ErreurMetier("Client introuvable.")
+    return [{"tiersId": x, "numero": valeur("select numero from tiers where id = %s", (x,)) or "", "membre": titulaire(x)} for x in du_tiers(tid)]
+
+
+def fixer_du_tiers(u, tid: int, ids) -> None:
+    """Appelé par l'enregistrement de la fiche du groupe (Nouveau membre, Mise à jour), dans la même transaction"""
+    if not isinstance(ids, list) or any(not isinstance(x, int) or isinstance(x, bool) for x in ids) or len(set(ids)) != len(ids):
+        raise ErreurMetier("Membres du groupe invalides.")
+    if tid in ids:
+        raise ErreurMetier("Un groupe ne peut pas être son propre membre.")
+    t = une("select numero, agence_id from tiers where id = %s", (tid,))
+    gid = valeur("select id from groupe_solidaire where tiers_id = %s and supprime_le is null for update", (tid,))
+    if gid is None:
+        if not ids:
+            return
+        gid = valeur("insert into groupe_solidaire (institution_id, agence_id, code, nom, tiers_id) values (%s, %s, %s, %s, %s) returning id",
+                     (u["institution_id"], t["agence_id"] or u["agence_id"], t["numero"] or f"G-{tid}", titulaire(tid), tid))
+    else:
+        executer("update groupe_solidaire set nom = %s, code = %s where id = %s", (titulaire(tid), t["numero"] or f"G-{tid}", gid))
+    actuels = set(du_tiers(tid))
+    partis = [x for x in actuels if x not in ids]
+    if partis:
+        retirer(u, gid, {"tiersIds": partis})
+    nouveaux = [x for x in ids if x not in actuels]
+    if nouveaux:
+        affecter(u, gid, {"tiersIds": nouveaux})

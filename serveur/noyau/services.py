@@ -1135,6 +1135,15 @@ def controler_groupe(u: dict, d: dict, tid: int | None = None):
     return b, texte, fiche, nombres, membres
 
 
+def membres_solidaires(u: dict, tid: int, texte, d: dict) -> None:
+    """Plan d'allègement, point 3.12 : les membres d'un groupement solidaire sont des fiches existantes (règles de l'affectation, registre S44-1)"""
+    from .groupes import fixer_du_tiers
+    if texte("typeClient") != "Groupement solidaire":
+        fixer_du_tiers(u, tid, [])
+    elif "membresSolidaires" in d:
+        fixer_du_tiers(u, tid, d["membresSolidaires"])
+
+
 def creer_groupe(u: dict, d: dict) -> dict:
     """S39 : Client > Enrôlement > Groupe (manuel p. 47 et 51). Mêmes contrôles que controlerGroupe (web/src/donnees/api.ts)."""
     exiger(u)
@@ -1149,6 +1158,7 @@ def creer_groupe(u: dict, d: dict) -> dict:
              (tid, texte("nom"), texte("formeJuridique") or None, texte("registre") or None, texte("adresse"), texte("typeActivite") or None, *nombres))
     ecrire_fiche_morale(tid, texte, fiche)
     inserer_representants(tid, [("membre", r) for r in membres])
+    membres_solidaires(u, tid, texte, d)                             # plan 3.12
     if any(images.get(k) for k in ("photo", "signature", "copiePiece", "justificatifAdresse")):
         executer("insert into specimen (tiers_id, photo, signature, copie_piece, justificatif_adresse, depose_le) values (%s, %s, %s, %s, %s, current_date)",
                  (tid, images.get("photo"), images.get("signature"), images.get("copiePiece"), images.get("justificatifAdresse")))
@@ -1315,6 +1325,7 @@ def modifier_tiers(u: dict, tid: int, d: dict) -> dict:
                  (texte("nom"), texte("formeJuridique") or None, texte("registre") or None, texte("adresse"), texte("typeActivite") or None, *nombres, tid))
         ecrire_fiche_morale(tid, texte, fiche)
         remplacer_representants(u, tid, "membre", membres)
+        membres_solidaires(u, tid, texte, d)                             # plan 3.12
         return terminer_modification(u, tid, b, avant)
     d = {**d, "typeClient": d.get("typeClient") or "Client"}   # plan d'allègement, point 2.3
     b = controler_base(u, d,

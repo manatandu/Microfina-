@@ -779,6 +779,24 @@ def test_groupe_solidaire(clients):
     assert agent.delete(f"/api/groupes-solidaires/{g['id']}", **H).status_code == 200
 
 
+def test_groupement_solidaire(clients, journee):
+    """Plan d'allègement, point 3.12 : la fiche de groupement choisit ses membres parmi les fiches actives, avec les règles de l'affectation (S44-1)"""
+    agent = clients["agent"]
+    k, m = T("0412-000318"), T("0412-000319")
+    base = {**FICHE, "typeClient": "", "formeJuridique": "Groupement sans personnalité juridique", "nom": "Grp Kinsaku", "adresse": "Matete", "membres": [], "nbFemmes": 2}
+    def refus(corps, route="/api/tiers/groupes"):
+        r = agent.post(route, corps, **H); assert r.status_code == 422, r.content; return r.json()["message"]
+    assert "invalides" in refus({**base, "membresSolidaires": [k, k]})
+    t = agent.post("/api/tiers/groupes", {**base, "membresSolidaires": [k, m]}, **H).json()
+    assert t["typeClient"] == "Groupement solidaire"
+    assert [x["tiersId"] for x in agent.get(f"/api/tiers/{t['id']}/membres-solidaires").json()] == [k, m]
+    n = ident("select count(*) from tiers")
+    assert "déjà membre du groupe « Grp Kinsaku »" in refus({**base, "nom": "Grp Matete", "membresSolidaires": [k]})
+    assert ident("select count(*) from tiers") == n                                  # refus : rien n'est écrit
+    a = agent.post("/api/tiers/groupes", {**base, "typeClient": "Association", "formeJuridique": "", "nom": "Asso", "membresSolidaires": [k]}, **H).json()
+    assert agent.get(f"/api/tiers/{a['id']}/membres-solidaires").json() == []        # une association garde la saisie de ses membres
+
+
 def test_prospect(clients):
     agent = clients["agent"]
     connecter(agent, "bkasongo")

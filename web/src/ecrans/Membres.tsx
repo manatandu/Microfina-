@@ -697,19 +697,25 @@ export function EnrolementEntreprise() {
 
 
 
+/** Groupement solidaire : forme « Groupement… » (même règle que services.controler_groupe) ; ses membres sont des fiches existantes (plan 3.12) */
+const estGroupement = (f: { formeJuridique?: string }) => (f.formeJuridique ?? "").trim().startsWith("Groupement");
+
 export function EnrolementGroupe() {
   const [apparente, setApparente] = useState("");
   const c = useCommun();
   const [membres, setMembres] = useState<RepresentantSaisi[]>([]);
+  const [solidaires, setSolidaires] = useState<Tiers[]>([]);   // groupement solidaire : fiches existantes (plan 3.12)
   const [images, setImages] = useState<Images>({});
   if (!c.donnees) return <Chargement />;
   const { ctx } = c.donnees;
   const { f, maj } = c;
+  const groupement = estGroupement(f);
   return (
     <Enrolement titre="Nouveau membre : groupe" onglets={ONGLETS_MEMBRE} numero={c.cree?.numero} onglet={c.onglet} setOnglet={c.setOnglet}
       boite={c.boite} setBoite={c.setBoite}
-      enregistrer={() => c.confirmer(async (m) => { const t = await api.tiers.creerGroupe({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id) }, membres, images); await marquer(t, apparente); return t; },
-        () => { setMembres([]); setImages({}); setApparente(""); })}
+      enregistrer={() => c.confirmer(async (m) => { const t = await api.tiers.creerGroupe({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id), ...(groupement ? { membresSolidaires: solidaires.map((x) => x.id) } : {}) },
+        groupement ? [] : membres, images); await marquer(t, apparente); return t; },
+        () => { setMembres([]); setSolidaires([]); setImages({}); setApparente(""); })}
       textes={["Manuel Microfina++, p. 47 : groupements, associations, ONG ; p. 50 : onglets, champs de l'onglet Informations de base, membres du groupe (Ajouter, Enregistrer), personnes liées, photo",
         "Onglet Autres renseignements et listes : comme le client physique (S37) ; Type de groupe (S14f), Catégorie de groupe (S14j), Forme juridique du groupe (S14o ; loi 004/2001, art. 2) : Paramétrage > Info de base > Client > Général ; Sensibilisateur, Gestionnaire, Commercial : Agence > Paramètre (S33)",
         "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
@@ -726,7 +732,8 @@ export function EnrolementGroupe() {
       {c.onglet === 2 && <AutresRenseignements f={f} maj={maj} ctx={ctx} />}
 
       {c.onglet === 3 && <>
-        <Rubrique titre="Membres du groupe"><ListeRepresentants fiche="Membre du groupe" ajouter="Ajouter" liste={membres} onChange={setMembres} ctx={ctx} erreur={c.erreur} /></Rubrique>
+        <Rubrique titre="Membres du groupe">{groupement ? <PersonnesLiees key={c.generation} liees={solidaires} onChange={setSolidaires} />
+          : <ListeRepresentants fiche="Membre du groupe" ajouter="Ajouter" liste={membres} onChange={setMembres} ctx={ctx} erreur={c.erreur} />}</Rubrique>
         <Rubrique titre="Personnes liées"><PersonnesLiees key={c.generation} liees={c.liees} onChange={c.setLiees} /></Rubrique>
         <Apparente valeur={apparente} onChange={setApparente} />
       </>}
@@ -756,6 +763,7 @@ export function MiseAJourClient() {
   const [avecDirigeant, setAvecDirigeant] = useState(false);
   const [dirigeant, setDirigeant] = useState<RepresentantSaisi>(REPRESENTANT_VIDE);
   const [liste, setListe] = useState<RepresentantSaisi[]>([]);   // signataires ou membres
+  const [solidaires, setSolidaires] = useState<Tiers[]>([]);   // groupement solidaire (plan 3.12)
   const [images, setImages] = useState<Images>({});
   const [apparente, setApparente] = useState("");
   const [icu, setIcu] = useState("");   // identifiant client unique donné par la BCC (Instr. BCC 52, art. 13 ; plan 3.16)
@@ -779,13 +787,16 @@ export function MiseAJourClient() {
     setDirigeant(x.dirigeant ? (({ photo: _p, specimen: _s, ...r }) => r)(x.dirigeant) : REPRESENTANT_VIDE);
     setListe((x.type === "groupe" ? x.membres : x.signataires).map(gardeRepresentant));
     setLiees(await lire(x.liees)); setEffectifs(await lire(x.beneficiairesEffectifs ?? []));
+    setSolidaires(x.type === "groupe" ? await lire((await api.groupes.duTiers(x.id)).map((m) => m.tiersId)) : []);
     setControles(Object.fromEntries((x.beneficiairesEffectifs ?? []).map((id, i) => [id, x.controleEffectifs?.[i] ?? CONTROLE_VIDE])));
   }
-  function vider() { setT(null); setF(null); setLiees([]); setEffectifs([]); setControles({}); setListe([]); setImages({}); setOnglet(0); }
+  function vider() { setT(null); setF(null); setSolidaires([]); setLiees([]); setEffectifs([]); setControles({}); setListe([]); setImages({}); setOnglet(0); }
   function terminer() {
     if (!t || !f) { setBoite({ type: "erreur", message: "Rechercher d'abord le membre." }); return; }
     const d = { ...f, liees: liees.map((x) => x.id), ...(t.type === "morale" ? { beneficiairesEffectifs: effectifs.map((x) => x.id), controleEffectifs: versControles(effectifs, controles) } : {}) };
-    const r = t.type === "morale" ? { dirigeant: avecDirigeant ? dirigeant : null, signataires: liste } : t.type === "groupe" ? { membres: liste } : {};
+    const groupement = t.type === "groupe" && estGroupement(f);
+    if (groupement) Object.assign(d, { membresSolidaires: solidaires.map((x) => x.id) });
+    const r = t.type === "morale" ? { dirigeant: avecDirigeant ? dirigeant : null, signataires: liste } : t.type === "groupe" ? { membres: groupement ? [] : liste } : {};
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try {
         await api.tiers.modifier(t.id, d, r);
@@ -851,7 +862,8 @@ export function MiseAJourClient() {
                 </Rubrique>
                 <Rubrique titre="Signataires"><ListeRepresentants fiche="Signataire" ajouter="+Ajouter" liste={liste} onChange={setListe} ctx={ctx} qualite erreur={erreur} /></Rubrique>
               </>}
-              {genre === "groupe" && <Rubrique titre="Membres du groupe"><ListeRepresentants fiche="Membre du groupe" ajouter="Ajouter" liste={liste} onChange={setListe} ctx={ctx} erreur={erreur} /></Rubrique>}
+              {genre === "groupe" && <Rubrique titre="Membres du groupe">{estGroupement(f) ? <PersonnesLiees liees={solidaires} onChange={setSolidaires} />
+                : <ListeRepresentants fiche="Membre du groupe" ajouter="Ajouter" liste={liste} onChange={setListe} ctx={ctx} erreur={erreur} />}</Rubrique>}
               <Rubrique titre={genre === "morale" ? "Personnes liées et bénéficiaires effectifs" : "Personnes liées"}>
                 <PersonnesLiees liees={liees} onChange={setLiees} {...(genre === "morale" ? { effectifs, onEffectifs: setEffectifs, controles, onControles: setControles } : {})} />
               </Rubrique>

@@ -325,12 +325,13 @@
   },
   {
     "id": "S44",
-    "nom": "Groupes",
-    "acces": "Client > Groupes",
+    "nom": "Groupe solidaire",
+    "acces": "Client > Groupe solidaire",
     "but": "Créer un groupe solidaire et y affecter des clients",
     "module": "clients",
     "priorite": "must",
-    "chemin": "/clients/s44"
+    "chemin": "/clients/s44",
+    "menu": false
   },
   {
     "id": "S46",

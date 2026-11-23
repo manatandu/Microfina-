@@ -160,6 +160,7 @@ export interface Tiers {
   admissionLe?: string; admissionReference?: string;
   auxiliaire?: boolean;   // écart E20 : membre auxiliaire (loi 002/2002, art. 23)
   emancipationReference?: string; representantLegal?: string;   // écart E18 : mineur (Code de la famille, art. 219, 221, 289)
+  membresSolidaires?: number[];   // plan 3.12 : membres d'un groupement solidaire, fiches existantes (saisie seulement, lus par groupes.duTiers)
   icu?: string;   // écart E06 : identifiant client unique de la BCC (Instr. BCC 52, art. 13)   // écart E05 : décision d'admission (loi 002/2002, art. 22, 6°)
 }
 
@@ -483,7 +484,7 @@ export interface Etat {
   procurations?: (Procuration & { copieActeImage: string; copiePieceImage: string; creePar: number })[];   // S47, confrontation du 21/11/2026, E2
   supprimes: { table: string; ligne: unknown; le: string; par: number | null }[];   // registre T02 : lignes supprimées, gardées pour l'historique
   lieux: LigneLieu[];   // S20 : Localisation, découpage de la RDC
-  groupesSolidaires: { id: number; code: string; nom: string }[];      // S44
+  groupesSolidaires: { id: number; code: string; nom: string; tiersId?: number }[];      // S44 ; tiersId : la fiche du groupe (plan 3.12)
   membresGroupes: { groupeId: number; tiersId: number }[];
   fraisClient: { tiersId: number; fraisId: number; montant: number }[];   // S41 : montant propre à un client
   images: Record<number, { photo?: string; signature?: string; copiePiece?: string; justificatifAdresse?: string; copieHabilitation?: string }>;   // photo et specimen chargés à l'enrôlement

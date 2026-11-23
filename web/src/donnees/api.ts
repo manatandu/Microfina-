@@ -894,9 +894,13 @@ const tiers = {
     if (!u) throw new ErreurMetier("Session fermée.");
     controlerGroupe(d, membres, images, ctxControle());
     controlerRelation(d, false);   // A8
-    const t = nouveauTiers({ ...d, ...SANS_IDENTITE, personneExposee: false, centreActivite: "", activite: d.typeActivite ?? "", beneficiaires: [], categorie: categorieGroupe(d.nbHommes, d.nbFemmes) }, u.id,   // registre S39-1 ; catégorie calculée (plan 2.5)
+    const { membresSolidaires, ...dd } = d;
+    const solidaires = d.typeClient === "Groupement solidaire" ? membresSolidaires : undefined;
+    if (solidaires) controlerSolidaires(null, solidaires);   // plan 3.12, avant toute écriture
+    const t = nouveauTiers({ ...dd, ...SANS_IDENTITE, personneExposee: false, centreActivite: "", activite: d.typeActivite ?? "", beneficiaires: [], categorie: categorieGroupe(d.nbHommes, d.nbFemmes) }, u.id,   // registre S39-1 ; catégorie calculée (plan 2.5)
       { type: "groupe", dirigeant: null, signataires: [], membres: membres.map(versRepresentant), photo: !!images.photo, specimen: !!images.signature });
     if (images.photo || images.signature || images.copiePiece || images.justificatifAdresse) E.images[t.id] = images;
+    if (solidaires) fixerSolidaires(t, solidaires);
     rapprocherGel([t.id]);   // A13
     enregistrer(); return t;
   },
@@ -992,7 +996,10 @@ const tiers = {
     } else if (t.type === "groupe") {
       const mb = r.membres ?? [];
       controlerGroupe(dd, mb, {}, ctx, t.membres);
+      const solidaires = dd.typeClient !== "Groupement solidaire" ? [] : d.membresSolidaires;   // plan 3.12
+      if (solidaires) controlerSolidaires(t.id, solidaires);
       ecrire([...fiche, "nbHommes", "nbFemmes"]);
+      if (solidaires) fixerSolidaires(t, solidaires);
       Object.assign(t, { activite: d.typeActivite ?? "", categorie: categorieGroupe(t.nbHommes, t.nbFemmes), membres: remplacerRepresentants(t, t.membres, mb) });
     } else {
       modifierPhysique(t, dd, ctx);
@@ -1338,7 +1345,43 @@ function idsDe(ids: number[]) {
   if (!ids.length || new Set(ids).size !== ids.length) throw new ErreurMetier("Aucun client choisi.");
   return ids;
 }
+// Plan d'allègement, point 3.12 : le groupe solidaire est la fiche du groupe « Groupement solidaire » ; ses membres sont des fiches existantes,
+// avec les règles de l'affectation (registre S44-1). Mêmes règles que serveur/noyau/groupes.py (fixer_du_tiers).
+function membresSolidairesDe(tid: number) {
+  const g = E.groupesSolidaires.find((x) => x.tiersId === tid);
+  return g ? E.membresGroupes.filter((m) => m.groupeId === g.id).map((m) => m.tiersId) : [];
+}
+function controlerSolidaires(tid: number | null, ids: number[]) {
+  if (new Set(ids).size !== ids.length) throw new ErreurMetier("Membres du groupe invalides.");
+  if (tid !== null && ids.includes(tid)) throw new ErreurMetier("Un groupe ne peut pas être son propre membre.");
+  const g = tid === null ? undefined : E.groupesSolidaires.find((x) => x.tiersId === tid);
+  const actuels = tid === null ? [] : membresSolidairesDe(tid);
+  for (const id of ids.filter((x) => !actuels.includes(x))) {
+    const t = E.tiers.find((x) => x.id === id);
+    if (!t) throw new ErreurMetier("Client introuvable.");
+    if (t.statut !== "actif") throw new ErreurMetier(`${nomTiers(id)} : client non actif (visa ou validation à faire).`);
+    const autre = E.membresGroupes.find((m) => m.tiersId === id && m.groupeId !== g?.id);
+    if (autre) throw new ErreurMetier(`${nomTiers(id)} est déjà membre du groupe « ${groupeDe(autre.groupeId).nom} » : le retirer d'abord.`);
+  }
+}
+function fixerSolidaires(t: Tiers, ids: number[]) {
+  let g = E.groupesSolidaires.find((x) => x.tiersId === t.id);
+  if (!g) {
+    if (!ids.length) return;
+    g = { id: prochainSans("groupe_solidaire", E.groupesSolidaires), code: t.numero || `G-${t.id}`, nom: nomTiers(t.id), tiersId: t.id };
+    E.groupesSolidaires.push(g);
+  } else Object.assign(g, { code: t.numero || `G-${t.id}`, nom: nomTiers(t.id) });
+  const gid = g.id;
+  E.membresGroupes = E.membresGroupes.filter((m) => m.groupeId !== gid || ids.includes(m.tiersId));
+  for (const id of ids) if (!E.membresGroupes.some((m) => m.groupeId === gid && m.tiersId === id)) E.membresGroupes.push({ groupeId: gid, tiersId: id });
+}
+
 const groupes = {
+  duTiers(tid: number) {
+    exiger();
+    if (!E.tiers.some((t) => t.id === tid)) throw new ErreurMetier("Client introuvable.");
+    return membresSolidairesDe(tid).map((x) => ({ tiersId: x, numero: E.tiers.find((t) => t.id === x)?.numero ?? "", membre: nomTiers(x) }));
+  },
   lire() {
     exiger();
     return {

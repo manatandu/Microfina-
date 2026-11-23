@@ -491,6 +491,7 @@ export function InformationsClient() {
   const { donnees: detail } = useDonnees(async () => t
     ? { images: await api.tiers.images(t.id), modifications: await api.tiers.modifications(t.id), comptes: await api.tiers.comptes(t.id), parts: await api.tiers.parts(t.id), adhesion: await api.tiers.adhesion(t.id),
         credits: await api.tiers.credits(t.id), procurations: await api.procurations.duClient(t.id).catch(() => []),
+        solidaires: t.type === "groupe" ? await api.groupes.duTiers(t.id) : [],   // plan 3.12
         noms: Object.fromEntries(await Promise.all([...(t.liees ?? []), ...(t.beneficiairesEffectifs ?? [])].map(async (id) => [id, await api.tiers.lire(id).then((x) => (x ? `${x.numero} ${x.intitule || nomComplet(x)}` : String(id)), () => String(id))] as const))) as Record<number, string> }
     : null, [t?.id]);
   if (!ctx) return <Chargement />;
@@ -557,7 +558,7 @@ export function InformationsClient() {
         {t && onglet === 2 && <>
           {t.dirigeant && liste("Dirigeant", [personne(t.dirigeant)])}
           {liste("Signataires", (t.signataires ?? []).map(personne))}
-          {liste("Membres du groupe", (t.membres ?? []).map(personne))}
+          {liste("Membres du groupe", [...(t.membres ?? []).map(personne), ...(detail?.solidaires ?? []).map((m) => `${m.numero} ${m.membre}`)])}
           {liste("Héritiers désignés", (t.beneficiaires ?? []).map((b) => `${personne(b)}${b.filiation ? ` (${b.filiation})` : ""}`))}
           {liste("Personnes liées", (t.liees ?? []).map((x) => detail?.noms[x] ?? ""))}
           {liste("Bénéficiaires effectifs", (t.beneficiairesEffectifs ?? []).map((x) => detail?.noms[x] ?? ""))}

@@ -626,6 +626,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     },
     groupes: {
       lire: () => get("/groupes-solidaires"),
+      duTiers: (tid: number) => get(`/tiers/${tid}/membres-solidaires`),
       creer: (d: object) => post("/groupes-solidaires", d),
       modifier: (id: number, d: object) => post(`/groupes-solidaires/${id}`, d),
       supprimer: (id: number) => appel("DELETE", `/groupes-solidaires/${id}`),
