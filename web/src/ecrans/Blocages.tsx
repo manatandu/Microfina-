@@ -1,5 +1,5 @@
 // S71 : Épargne > Blocage compte et montant (manuel Microfina++, p. 81 : capture « Blocage et déblocage de compte »).
-// Bloquer le compte ou un montant, avec motif ; déblocage depuis l'historique des actions (complété, modèle S94). Registre S71-1 à S71-5.
+// Bloquer le compte ou un montant, avec motif ; les blocages en cours sur l'écran, chacun avec Débloquer (plan d'allègement, point 5.9). Registre S71-1 à S71-5.
 import { useState } from "react";
 import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
@@ -68,11 +68,13 @@ export default function BlocageCompte() {
           </fieldset>
         </div>
         <fieldset className="pile cadre-champs">
-          <legend>Actions sur le compte</legend>
+          <legend>Bloquer</legend>
           <div className="ligne-champ">
-            <label className="case"><input type="checkbox" checked={f.tout} onChange={(ev) => setF({ ...f, tout: ev.target.checked, montantCoche: ev.target.checked ? false : f.montantCoche })} /><span>Bloquer compte</span></label>
-            <label className="case"><input type="checkbox" checked={f.montantCoche} onChange={(ev) => setF({ ...f, montantCoche: ev.target.checked, tout: ev.target.checked ? false : f.tout })} /><span>Bloqué Montant</span></label>
-            {/* Registre S71-1 : « mettez le montant à bloquer » (texte p. 81) ; la case paraît avec Bloqué Montant */}
+            {/* Plan d'allègement, point 5.9 : un choix à deux boutons */}
+            <div className="ligne-champ" role="radiogroup" aria-label="Bloquer">
+              <label className="case"><input type="radio" name="bloquer" checked={f.tout} onChange={() => setF({ ...f, tout: true, montantCoche: false })} /><span>Tout le compte</span></label>
+              <label className="case"><input type="radio" name="bloquer" checked={f.montantCoche} onChange={() => setF({ ...f, montantCoche: true, tout: false })} /><span>Un montant</span></label>
+            </div>
             {f.montantCoche && <Champ libelle="Montant à bloquer :">{(pp) => <input {...pp} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.montant} onChange={(ev) => setF({ ...f, montant: ev.target.value })} />}</Champ>}
           </div>
         </fieldset>
@@ -82,24 +84,36 @@ export default function BlocageCompte() {
           <button className="bouton secondaire" type="button" disabled={!e} onClick={() => setHistorique(true)}>Voir historique des actions</button>
           <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
         </div>
+        {e && <fieldset className="pile cadre-champs">
+          <legend>Blocages en cours</legend>
+          <div className="defile-x"><table className="grille" aria-label="Blocages en cours">
+            <thead><tr><th scope="col">Depuis le</th><th scope="col" className="num">Montant</th><th scope="col">Motif</th><th scope="col">Par</th><th scope="col"><span className="sr-only">Débloquer</span></th></tr></thead>
+            <tbody>
+              {e.historique.filter((b) => b.enCours).length === 0 && <tr><td colSpan={5}>Aucun blocage.</td></tr>}
+              {e.historique.filter((b) => b.enCours).map((b) => <tr key={b.id}><td className="chiffres">{fr(b.debut)}</td>
+                <td className="num chiffres">{b.montant === null ? "Tout le compte" : montant(b.montant, dev)}</td><td>{b.motif}</td><td>{b.posePar}</td>
+                <td>{!b.garantie && <button className="bouton secondaire" type="button" aria-label={`Débloquer : ${b.motif}`} onClick={() => setLevee({ id: b.id, motif: "" })}>Débloquer</button>}</td></tr>)}
+            </tbody>
+          </table></div>
+          {levee && <div className="pile">
+            <Champ libelle="Motif du déblocage : *">{(pp) => <input {...pp} className="saisie" value={levee.motif} onChange={(ev) => setLevee({ ...levee, motif: ev.target.value })} />}</Champ>
+            <div className="actions-onglets"><button className="bouton" type="button" onClick={debloquer}>Débloquer</button><button className="bouton secondaire" type="button" onClick={() => setLevee(null)}>Annuler</button></div>
+          </div>}
+        </fieldset>}
         <Textes sources={["Manuel Microfina++, p. 81 : « bloquer un compte et / ou bloquer un montant sur un compte » ; sélectionner le client, le compte et le produit, cocher Bloquer compte ou bloquer montant, le montant et le motif, Enregistrer ; capture Blocage et déblocage de compte",
           "Registre S71-1 à S71-5 : compte bloqué, aucun débit (les dépôts restent acceptés) ; déblocage depuis l'historique, avec motif, sur le modèle de la libération des garanties (S94)"]} />
       </section>
       <Fiche titre="Historique des actions" ouverte={historique} fermer={() => { setHistorique(false); setLevee(null); }}>
         <Paginee lignes={e?.historique ?? []}>{(visibles) => (<div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">Date</th><th scope="col">Action</th><th scope="col" className="num">Montant</th><th scope="col">Motif</th><th scope="col">Par</th>
-            <th scope="col">Débloqué le</th><th scope="col">Motif du déblocage</th><th scope="col"><span className="sr-only">Débloquer</span></th></tr></thead>
+            <th scope="col">Débloqué le</th><th scope="col">Motif du déblocage</th><th scope="col" /></tr></thead>
           <tbody>
             {visibles.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
             {visibles.map((b) => <tr key={b.id}><td className="chiffres">{fr(b.debut)}</td><td>{b.action}</td><td className="num chiffres">{b.montant === null ? "Tout le compte" : montant(b.montant, dev)}</td>
               <td>{b.motif}</td><td>{b.posePar}</td><td className="chiffres">{fr(b.fin)}</td><td>{b.motifLevee}</td>
-              <td>{b.enCours && !b.garantie && <button className="bouton secondaire" type="button" onClick={() => setLevee({ id: b.id, motif: "" })}>Débloquer</button>}</td></tr>)}
+              <td /></tr>)}
           </tbody>
         </table></div>)}</Paginee>
-        {levee && <div className="pile">
-          <Champ libelle="Motif du déblocage : *">{(pp) => <input {...pp} className="saisie" value={levee.motif} onChange={(ev) => setLevee({ ...levee, motif: ev.target.value })} />}</Champ>
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={debloquer}>Débloquer</button><button className="bouton secondaire" type="button" onClick={() => setLevee(null)}>Annuler</button></div>
-        </div>}
         <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => { setHistorique(false); setLevee(null); }}>Fermer</button></div>
       </Fiche>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>

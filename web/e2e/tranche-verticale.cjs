@@ -1000,12 +1000,12 @@ const OUT = process.argv[2];
   const rbl = p.getByRole('dialog', { name: "Recherche d'un client" });
   await rbl.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rbl.getByRole('row').filter({ hasText: 'Kalala' }).first().click();
   await p.getByLabel('compte: *').selectOption({ label: '0412-000318-01' });
-  await p.getByLabel('Bloqué Montant').check(); await p.getByLabel('Montant à bloquer :').fill('100'); await p.getByLabel('Motif : *').fill('Litige en cours');
+  await p.getByLabel('Un montant').check(); await p.getByLabel('Montant à bloquer :').fill('100'); await p.getByLabel('Motif : *').fill('Litige en cours');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByText('Montant bloqué').filter({ hasText: '100,00' }).waitFor(); await etape('06c32-blocage-montant');
-  await p.getByRole('button', { name: 'Voir historique des actions' }).click();
-  const hist = p.getByRole('dialog', { name: 'Historique des actions' }); await hist.getByRole('button', { name: 'Débloquer' }).first().click();
-  await hist.getByLabel('Motif du déblocage : *').fill('Litige réglé'); await hist.getByRole('button', { name: 'Débloquer' }).last().click(); await oui();
+  await p.getByRole('button', { name: 'Débloquer : Litige en cours' }).click();   // les blocages en cours sur l'écran (plan 5.9)
+  await p.getByLabel('Motif du déblocage : *').fill('Litige réglé'); await p.getByRole('button', { name: 'Débloquer', exact: true }).click(); await oui();
+  await p.getByRole('button', { name: 'Voir historique des actions' }).click(); const hist = p.getByRole('dialog', { name: 'Historique des actions' });
   await hist.getByRole('cell', { name: 'Litige réglé' }).waitFor(); await etape('06c33-deblocage'); await hist.getByRole('button', { name: 'Fermer' }).click();
   // Rapports épargne (S72, p. 82 à 84 ; registre S72-1 à S72-8) : recherche multicritère, indicateurs, comptes inactifs
   await aller('/epargne/s72?page=multicritere'); await p.getByRole('heading', { name: 'Recherche multicritères épargne' }).waitFor();

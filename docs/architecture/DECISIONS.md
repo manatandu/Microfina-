@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1048 décisions.** Solidité : 501 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1034 déjà en place, 14 à appliquer.
+**1049 décisions.** Solidité : 502 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1035 déjà en place, 14 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2406,6 +2406,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S63-8 | Client d'abord | L'écran s'appelle « Ouverture d'un compte d'épargne » ; le client se choisit d'abord, le produit ensuite. La convention de compte reste. | Choix du porteur : Plan d'allègement, point 5.11 ; loi 22/069 (convention) | forte | en place |
+
+## S71 Blocage
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S71-6 | Choix à deux boutons, blocages en cours visibles | « Bloquer : tout le compte / un montant » en un choix à deux boutons. Les blocages en cours du compte s'affichent sur l'écran, chacun avec « Débloquer » et son motif ; l'historique reste en lecture. Un blocage en garantie d'un crédit ne se débloque pas ici. | Choix du porteur : Plan d'allègement, point 5.9 ; registre S71-1 à S71-5 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 
