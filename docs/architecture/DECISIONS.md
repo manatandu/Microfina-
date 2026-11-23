@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1046 décisions.** Solidité : 499 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1032 déjà en place, 14 à appliquer.
+**1047 décisions.** Solidité : 500 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1033 déjà en place, 14 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -309,6 +309,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S16-9 | Frais interdits | S16 refuse un frais sur un service gratuit : ouverture de compte, dépôt, retrait, changement d'éléments du dossier du client, clôture de compte, virement de compte à compte interne, domiciliation de salaire | Texte réglementaire : Instr. BCC 37, annexe (liste des services gratuits) | forte | en place |
 | S16-10 | Frais de livret | Reste paramétrable : l'annexe de l'Instr. BCC 37 ne cite pas le livret. À retirer si la BCC l'assimile à l'ouverture de compte | Texte réglementaire : Instr. BCC 37, annexe | faible | en place |
 | S16-15 | Opérations proposées | Dépôt et retrait ne sont plus proposés dans la liste des opérations d'un frais : ils sont gratuits (le refus à l'enregistrement reste) | Texte réglementaire : Instr. BCC 37, art. 2, 3 et annexe ; plan d'allègement, point 0.15 | forte | en place |
+| S16-16 | Une page | Les cinq onglets (Frais, Paramétrage frais, Paramétrage frais Adhésion et les deux « Modif ») deviennent une page : le formulaire du frais, puis la liste des frais avec leur barème en clair. « Barème » ouvre les lignes du frais, modifiables sur place (nature, valeur, compte) ou supprimées, et l'ajout d'une ligne (valeurs, types ou sous-types cochés). Pour changer le type de membre d'une ligne, on la supprime et on l'ajoute. | Choix du porteur : Plan d'allègement, point 2.18 ; manuel p. 25 à 27 | forte | en place |
 
 ## S16 Frais, S73, S77
 

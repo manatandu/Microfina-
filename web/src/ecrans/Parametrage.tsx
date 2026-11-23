@@ -3,33 +3,13 @@ import { enClair } from "../lib/enclair";
 import { api, type ValeursFrais } from "../donnees/api";
 import type { Frais, ParamAdhesion, ParamOperation } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
 import { lireMontant, montant } from "@design/montant.js";
 
 type Donnees = Awaited<ReturnType<typeof api.parametrage.lireFrais>>;
-const ONGLETS = ["Frais", "Paramétrage frais", "Paramétrage frais Adhésion", "Modif Paramétrage frais", "Modif Paramétrage frais Adhésion"] as const;
 /** Montant en CDF, ou Taux en % (registre S16-2 : valeur en centièmes de pour cent, comme un montant en centimes) */
 const valeurLue = (v: number | null, nature = "Montant") => (v === null ? "" : nature === "Taux" ? `${String(v / 100).replace(".", ",")} %` : montant(v, "CDF"));
 const enSaisie = (v: number | null) => (v === null ? "" : String(v / 100).replace(".", ","));
-
-/** Bouton « Action » et son menu (manuel p. 25 à 27) */
-function Action({ choix }: { choix: { libelle: string; faire: () => void; inactif?: boolean }[] }) {
-  const [ouvert, setOuvert] = useState(false);
-  return (
-    <div className="menu-action">
-      <button className="bouton secondaire" type="button" aria-haspopup="menu" aria-expanded={ouvert} onClick={() => setOuvert(!ouvert)}>Action</button>
-      {ouvert && (
-        <ul role="menu" onKeyDown={(e) => { if (e.key === "Escape") setOuvert(false); }}>
-          {choix.map((c) => (
-            <li key={c.libelle} role="none">
-              <button type="button" role="menuitem" disabled={c.inactif} onClick={() => { setOuvert(false); c.faire(); }}>{c.libelle}</button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
 
 /** Nature du frais*, Valeur, Compte (cadre « Valeurs du paramétrage », p. 26) */
 function Valeurs({ v, maj, natures }: { v: { nature: string; valeur: string; compte: string }; maj: (p: Partial<{ nature: string; valeur: string; compte: string }>) => void; natures: string[] }) {
@@ -70,35 +50,34 @@ function Coches({ titre, liste, coches, onChange }: { titre: string; liste: stri
   );
 }
 
-/** S16 : Info de base > Client > Opération (manuel Microfina++, p. 25 à 27) */
+/** S16 : Info de base > Client > Opération (manuel Microfina++, p. 25 à 27). Plan d'allègement, point 2.18 : les cinq onglets deviennent une page,
+ *  les frais et leur barème, modifiable sur place ; la part sociale se règle dans la fiche Société (registre T134). */
 export function FraisOperations() {
-  const { donnees } = useDonnees(() => api.parametrage.lireFrais());
-  const [onglet, setOnglet] = useState(0);
+  const [relu, setRelu] = useState(0);
+  const { donnees } = useDonnees(() => api.parametrage.lireFrais(), [relu]);
   const [boite, setBoite] = useState<Boite | null>(null);
+  const [ouvert, setOuvert] = useState<Frais | null>(null);
   if (!donnees) return <Chargement />;
   const erreur = (x: unknown) => setBoite({ type: "erreur", message: message(x) });
   /** Confirmation Oui/Non, puis succès ou erreur (p. 11) */
   const confirmer = (texte: string, faire: () => Promise<unknown>, apres?: () => void) => setBoite({ type: "confirmation", message: texte, oui: async () => {
-    try { await faire(); apres?.(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); } catch (x) { erreur(x); }
+    try { await faire(); apres?.(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); } catch (x) { erreur(x); }
   } });
   const props = { d: donnees, confirmer, erreur };
+  const frais = ouvert ? donnees.frais.find((f) => f.id === ouvert.id) ?? null : null;
   return (
     <>
       <h2>Paramétrage des frais</h2>
-      <div className="onglets" role="tablist" aria-label="Paramétrage des frais">
-        {ONGLETS.map((o, i) => <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{o}</button>)}
-      </div>
-      <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}>
-        {onglet === 0 && <OngletFrais {...props} />}
-        {onglet === 1 && <OngletParamOperation {...props} />}
-        {onglet === 2 && <OngletParamAdhesion {...props} />}
-        {onglet === 3 && <OngletModif {...props} genre="operation" />}
-        {onglet === 4 && <OngletModif {...props} genre="adhesion" />}
-        <Textes sources={["Manuel Microfina++, p. 25 à 27 : onglets Frais, Paramétrage frais, Paramétrage frais Adhésion, Modif Paramétrage frais, Modif Paramétrage frais Adhésion ; menu Action",
-          "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
+      <section className="bloc pile" aria-label="Frais et barème">
+        <FormulaireFrais {...props} ouvrir={setOuvert} />
+        <Textes sources={["Manuel Microfina++, p. 25 à 27 : Frais, Paramétrage frais, Paramétrage frais Adhésion, Modif Paramétrage frais, Modif Paramétrage frais Adhésion, réunis sur une page (plan d'allègement, point 2.18)",
           "Instr. BCC 37, art. 2 et 3, annexe : ouverture et clôture de compte, dépôt et retrait d'espèces, virement de compte à compte : gratuits sans condition",
-          "Loi 002/2002, art. 22, 5° : droit d'adhésion fixé, le cas échéant, par l'Assemblée générale"]} />
+          "Loi 002/2002, art. 20 et 22, 5° : valeur de la part dans les statuts (fiche Société) ; droit d'adhésion fixé, le cas échéant, par l'Assemblée générale",
+          "Instr. BCC 40, art. 8 et 12 : frais permis ; tout autre frais, autorisation préalable de la BCC"]} />
       </section>
+      <Fiche titre={frais ? `Barème : ${frais.libelle}` : ""} ouverte={!!frais} fermer={() => setOuvert(null)}>
+        {frais && <Bareme {...props} frais={frais} />}
+      </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );
@@ -106,207 +85,102 @@ export function FraisOperations() {
 
 type Props = { d: Donnees; confirmer: (texte: string, faire: () => Promise<unknown>, apres?: () => void) => void; erreur: (x: unknown) => void };
 
-/** Onglet « Frais » : Type Opération*, Libellé du frais*, Enregistrer, Annuler, Action (p. 25) */
-function OngletFrais({ d, confirmer }: Props) {
+/** Les frais : Type Opération*, Libellé du frais*, Fondement* (p. 25 ; écart E14) ; la ligne ouvre son barème */
+function FormulaireFrais({ d, confirmer, ouvrir }: Props & { ouvrir: (f: Frais) => void }) {
   const [type, setType] = useState("");
   const [libelle, setLibelle] = useState("");
-  const [fondement, setFondement] = useState("");   // écart E14 : Instr. BCC 40, art. 8 et 12 ; loi 002/2002, art. 22
+  const [fondement, setFondement] = useState("");
   const [autorisation, setAutorisation] = useState("");
-  const [choisi, setChoisi] = useState<Frais | null>(null);
   const [edition, setEdition] = useState<number | null>(null);
   const annuler = () => { setType(""); setLibelle(""); setFondement(""); setAutorisation(""); setEdition(null); };
   const saisie = { typeOperation: type, libelle, fondement, autorisationBcc: autorisation };
+  const bareme = (f: Frais) => (f.typeOperation === "ADHESION" ? d.adhesion.filter((x) => x.fraisId === f.id).map((x) => `${x.typeMembre} : ${valeurLue(x.valeur, x.nature)}`)
+    : d.operations.filter((x) => x.fraisId === f.id).map((x) => `${x.sousType} : ${valeurLue(x.valeur, x.nature)}`)).join(" ; ");
   return (
     <>
-      <div className="formulaire">
+      <fieldset className="cadre-champs formulaire">
+        <legend>{edition ? "Modifier le frais" : "Nouveau frais"}</legend>
         <Champ libelle="Type Opération: *">{(p) => <select {...p} className="saisie" required value={type} onChange={(e) => setType(e.target.value)}>
           <option value=""></option>{d.typesOperation.map((t) => <option key={t} value={t}>{enClair(t)}</option>)}</select>}</Champ>
         <Champ libelle="Libellé du frais: *">{(p) => <input {...p} className="saisie" required autoComplete="off" value={libelle} onChange={(e) => setLibelle(e.target.value)} />}</Champ>
         <Champ libelle="Fondement: *">{(p) => <select {...p} className="saisie" required value={fondement} onChange={(e) => setFondement(e.target.value)}>
           <option value=""></option>{Object.entries(d.fondements).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ>
         {fondement === "autorisation_bcc" && <Champ libelle="Référence de l'autorisation BCC: *">{(p) => <input {...p} className="saisie" required autoComplete="off" value={autorisation} onChange={(e) => setAutorisation(e.target.value)} />}</Champ>}
-      </div>
+      </fieldset>
       <div className="actions-onglets">
         <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?",
           () => edition ? api.parametrage.modifierFrais(edition, saisie) : api.parametrage.creerFrais(saisie), annuler)}>Enregistrer</button>
         <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
       </div>
-      <div className="actions-onglets">
-        <Action choix={[
-          { libelle: "Modifier infos", inactif: !choisi, faire: () => { if (choisi) { setType(choisi.typeOperation); setLibelle(choisi.libelle); setFondement(choisi.fondement ?? ""); setAutorisation(choisi.autorisationBcc ?? ""); setEdition(choisi.id); } } },
-          { libelle: "Supprimer", inactif: !choisi, faire: () => { if (choisi) confirmer("Voulez-vous vraiment supprimer ?", () => api.parametrage.supprimerFrais(choisi.id), () => { setChoisi(null); annuler(); }); } },
-        ]} />
-      </div>
-      <Paginee lignes={d.frais}>{(visibles) => (<table className="grille">
-        <thead><tr><th scope="col">Frais</th><th scope="col">Type opération</th><th scope="col">Fondement</th></tr></thead>
+      <Paginee lignes={d.frais}>{(visibles) => (<div className="defile-x"><table className="grille">
+        <thead><tr><th scope="col">Frais</th><th scope="col">Type opération</th><th scope="col">Fondement</th><th scope="col">Barème</th><th scope="col"><span className="sr-only">Action</span></th></tr></thead>
         <tbody>
-          {d.frais.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
+          {d.frais.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
           {visibles.map((f) => (
-            <tr key={f.id} className="ligne-choix" tabIndex={0} aria-selected={choisi?.id === f.id} onClick={() => setChoisi(f)} onKeyDown={(e) => { if (e.key === "Enter") setChoisi(f); }}>
-              <td>{f.libelle}</td><td>{f.typeOperation}</td>
+            <tr key={f.id}>
+              <td>{f.libelle}</td><td>{enClair(f.typeOperation)}</td>
               <td>{f.fondement ? `${d.fondements[f.fondement] ?? f.fondement}${f.autorisationBcc ? ` : ${f.autorisationBcc}` : ""}` : "À renseigner"}</td>
+              <td>{bareme(f) || "Aucun"}</td>
+              <td><span className="actions-ligne">
+                <button className="bouton secondaire" type="button" aria-label={`Barème : ${f.libelle}`} onClick={() => ouvrir(f)}>Barème</button>
+                <button className="bouton secondaire" type="button" aria-label={`Modifier ${f.libelle}`} onClick={() => { setType(f.typeOperation); setLibelle(f.libelle); setFondement(f.fondement ?? ""); setAutorisation(f.autorisationBcc ?? ""); setEdition(f.id); }}>Modifier</button>
+                <button className="bouton secondaire" type="button" aria-label={`Supprimer ${f.libelle}`} onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.parametrage.supprimerFrais(f.id), annuler)}>Supprimer</button>
+              </span></td>
             </tr>
           ))}
         </tbody>
-      </table>)}</Paginee>
+      </table></div>)}</Paginee>
     </>
   );
 }
 
-/** Onglet « Paramétrage frais » : Frais Opération, Valeurs du paramétrage, Sous type client (p. 26) */
-function OngletParamOperation({ d, confirmer, erreur }: Props) {
-  const [operation, setOperation] = useState("");
-  const [fraisId, setFraisId] = useState(0);
-  const [v, setV] = useState(VALEURS_VIDES);
-  const [coches, setCoches] = useState<string[]>([]);
-  const annuler = () => { setOperation(""); setFraisId(0); setV(VALEURS_VIDES); setCoches([]); };
-  const fraisOp = d.frais.filter((f) => f.typeOperation === operation);
-  return (
-    <>
-      <div className="deux-colonnes">
-        <div className="pile">
-          <fieldset className="cadre-champs formulaire">
-            <legend>Frais Opération</legend>
-            <Champ libelle="Opération: *">{(p) => <select {...p} className="saisie" required value={operation} onChange={(e) => { setOperation(e.target.value); setFraisId(0); }}>
-              <option value=""></option>{d.typesOperation.map((t) => <option key={t} value={t}>{enClair(t)}</option>)}</select>}</Champ>
-            <Champ libelle="Frais: *">{(p) => <select {...p} className="saisie" required value={fraisId} onChange={(e) => setFraisId(Number(e.target.value))}>
-              <option value={0}></option>{fraisOp.map((f) => <option key={f.id} value={f.id}>{f.libelle}</option>)}</select>}</Champ>
-          </fieldset>
-          <Valeurs v={v} maj={(p) => setV({ ...v, ...p })} natures={d.natures} />
-          <TableParam lignes={d.operations.filter((x) => x.fraisId === fraisId)} d={d} genre="operation" />
-        </div>
-        <Coches titre="Sous type client" liste={d.sousTypes} coches={coches} onChange={setCoches} />
-      </div>
-      <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={() => {
-          try { const val = lireValeurs(v); confirmer("Voulez-vous vraiment enregistrer ?", () => api.parametrage.parametrerOperation({ fraisId, sousTypes: coches, ...val }), () => { setV(VALEURS_VIDES); setCoches([]); }); }
-          catch (x) { erreur(x); }
-        }}>Enregistrer</button>
-        <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
-      </div>
-    </>
-  );
-}
-
-/** Onglet « Paramétrage frais Adhésion » : Frais*, Nature du frais*, Type client cochés (texte p. 26 ; écran non montré) */
-function OngletParamAdhesion({ d, confirmer, erreur }: Props) {
-  const neuf = { ...VALEURS_VIDES, nature: "Montant", compte: d.compteAdhesion };   // registre S16-4 : compte 727 proposé, modifiable
-  const [fraisId, setFraisId] = useState(0);
+/** Barème d'un frais : ses lignes, modifiables sur place, puis l'ajout d'une ligne (Valeurs du paramétrage, Type client ou Sous type client cochés, p. 26) */
+function Bareme({ d, confirmer, erreur, frais }: Props & { frais: Frais }) {
+  const adhesion = frais.typeOperation === "ADHESION";
+  const genre = adhesion ? "adhesion" : "operation";
+  const neuf = { ...VALEURS_VIDES, nature: "Montant", compte: adhesion ? d.compteAdhesion : "" };   // registre S16-4 : compte 727 proposé
   const [v, setV] = useState(neuf);
   const [coches, setCoches] = useState<string[]>([]);
-  const annuler = () => { setFraisId(0); setV(neuf); setCoches([]); };
+  const [edition, setEdition] = useState<{ id: number; v: typeof VALEURS_VIDES } | null>(null);
+  const lignes: (ParamOperation | ParamAdhesion)[] = (adhesion ? d.adhesion : d.operations).filter((x) => x.fraisId === frais.id);
+  const pour = (x: ParamOperation | ParamAdhesion) => ("sousType" in x ? x.sousType : x.typeMembre);
+  const natures = adhesion ? ["Montant"] : d.natures;
   return (
-    <>
+    <div className="pile">
+      <div className="defile-x"><table className="grille" aria-label="Barème">
+        <thead><tr><th scope="col">{adhesion ? "Type client" : "Sous type client"}</th><th scope="col">Nature</th><th scope="col" className="num">Valeur</th><th scope="col">Compte</th><th scope="col"><span className="sr-only">Action</span></th></tr></thead>
+        <tbody>
+          {lignes.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
+          {lignes.map((x) => edition?.id === x.id ? (
+            <tr key={x.id}><td>{pour(x)}</td>
+              <td><select className="saisie" aria-label="Nature du frais" value={edition.v.nature} onChange={(e) => setEdition({ ...edition, v: { ...edition.v, nature: e.target.value } })}>
+                {natures.map((n) => <option key={n} value={n}>{enClair(n)}</option>)}</select></td>
+              <td><input className="saisie montant" inputMode="decimal" aria-label="Valeur" value={edition.v.valeur} onChange={(e) => setEdition({ ...edition, v: { ...edition.v, valeur: e.target.value } })} /></td>
+              <td><input className="saisie code" inputMode="numeric" aria-label="Compte" value={edition.v.compte} onChange={(e) => setEdition({ ...edition, v: { ...edition.v, compte: e.target.value } })} /></td>
+              <td><span className="actions-ligne">
+                <button className="bouton" type="button" onClick={() => { try { const val = lireValeurs(edition.v); confirmer("Voulez-vous vraiment enregistrer ?", () => api.parametrage.modifierParametrage(genre, x.id, val), () => setEdition(null)); } catch (e) { erreur(e); } }}>Enregistrer</button>
+                <button className="bouton secondaire" type="button" onClick={() => setEdition(null)}>Annuler</button></span></td></tr>
+          ) : (
+            <tr key={x.id}><td>{pour(x)}</td><td>{enClair(x.nature)}</td><td className="num chiffres">{valeurLue(x.valeur, x.nature)}</td><td className="chiffres">{x.compte}</td>
+              <td><span className="actions-ligne">
+                <button className="bouton secondaire" type="button" aria-label={`Modifier ${pour(x)}`} onClick={() => setEdition({ id: x.id, v: { nature: x.nature, valeur: enSaisie(x.valeur), compte: x.compte ?? "" } })}>Modifier</button>
+                <button className="bouton secondaire" type="button" aria-label={`Supprimer ${pour(x)}`} onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.parametrage.supprimerParametrage(genre, x.id))}>Supprimer</button></span></td></tr>
+          ))}
+        </tbody>
+      </table></div>
       <div className="deux-colonnes">
-        <div className="pile">
-          <fieldset className="cadre-champs formulaire">
-            <legend>Frais Opération</legend>
-            <Champ libelle="Frais: *">{(p) => <select {...p} className="saisie" required value={fraisId} onChange={(e) => setFraisId(Number(e.target.value))}>
-              <option value={0}></option>{d.frais.filter((f) => f.typeOperation === "ADHESION").map((f) => <option key={f.id} value={f.id}>{f.libelle}</option>)}</select>}</Champ>
-          </fieldset>
-          <Valeurs v={v} maj={(p) => setV({ ...v, ...p })} natures={d.natures} />
-          <TableParam lignes={d.adhesion.filter((x) => x.fraisId === fraisId)} d={d} genre="adhesion" />
-        </div>
-        <Coches titre="Type client" liste={d.typesMembre} coches={coches} onChange={setCoches} />
+        <Valeurs v={v} maj={(p) => setV({ ...v, ...p })} natures={natures} />
+        <Coches titre={adhesion ? "Type client" : "Sous type client"} liste={adhesion ? d.typesMembre : d.sousTypes} coches={coches} onChange={setCoches} />
       </div>
       <div className="actions-onglets">
         <button className="bouton" type="button" onClick={() => {
-          try { const val = lireValeurs(v); confirmer("Voulez-vous vraiment enregistrer ?", () => api.parametrage.parametrerAdhesion({ fraisId, typesMembre: coches, ...val }), () => { setV(neuf); setCoches([]); }); }
-          catch (x) { erreur(x); }
-        }}>Enregistrer</button>
-        <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
+          try {
+            const val = lireValeurs(v);
+            confirmer("Voulez-vous vraiment enregistrer ?", () => adhesion ? api.parametrage.parametrerAdhesion({ fraisId: frais.id, typesMembre: coches, ...val })
+              : api.parametrage.parametrerOperation({ fraisId: frais.id, sousTypes: coches, ...val }), () => { setV(neuf); setCoches([]); });
+          } catch (x) { erreur(x); }
+        }}>Ajouter</button>
       </div>
-    </>
-  );
-}
-
-function TableParam({ lignes, d, genre }: { lignes: (ParamOperation | ParamAdhesion)[]; d: Donnees; genre: "operation" | "adhesion" }) {
-  return (
-    <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
-      <thead><tr><th scope="col">Frais</th><th scope="col">Montant</th><th scope="col">Compte</th><th scope="col">{genre === "operation" ? "STM" : "Type client"}</th></tr></thead>
-      <tbody>
-        {lignes.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
-        {visibles.map((x) => (
-          <tr key={x.id}><td>{d.frais.find((f) => f.id === x.fraisId)?.libelle}</td><td className="chiffres">{valeurLue(x.valeur, x.nature)}</td><td className="chiffres">{x.compte}</td>
-            <td>{"sousType" in x ? x.sousType : x.typeMembre}</td></tr>
-        ))}
-      </tbody>
-    </table>)}</Paginee>
-  );
-}
-
-/** Onglets « Modif Paramétrage frais » (Opération*, Frais*) et « … Adhésion » (Frais*, Type membre*) : cocher la ligne, puis Action (p. 26 et 27) */
-function OngletModif({ d, confirmer, erreur, genre }: Props & { genre: "operation" | "adhesion" }) {
-  const adhesion = genre === "adhesion";
-  const [operation, setOperation] = useState(adhesion ? "ADHESION" : "");
-  const [fraisId, setFraisId] = useState(0);
-  const [typeMembre, setTypeMembre] = useState("");
-  const [coches, setCoches] = useState<number[]>([]);
-  // Registre S16-7 : « Modifier infos » recharge la ligne dans le formulaire de l'onglet ; S16-6 : « Modifier Catégorie » change le Type membre
-  const [edition, setEdition] = useState<{ id: number; v: typeof VALEURS_VIDES } | null>(null);
-  const [categorie, setCategorie] = useState<{ id: number; typeMembre: string } | null>(null);
-  const toutes: (ParamOperation | ParamAdhesion)[] = adhesion ? d.adhesion : d.operations;
-  const lignes = toutes.filter((x) => x.fraisId === fraisId && (!adhesion || (x as ParamAdhesion).typeMembre === typeMembre));
-  const frais = (id: number) => d.frais.find((f) => f.id === id);
-  const une = lignes.find((x) => x.id === coches[0]);
-  const fini = () => { setEdition(null); setCategorie(null); setCoches([]); };
-  return (
-    <>
-      <fieldset className="cadre-champs formulaire">
-        <legend>Frais Opération</legend>
-        {!adhesion && <Champ libelle="Opération: *">{(p) => <select {...p} className="saisie" required value={operation} onChange={(e) => { setOperation(e.target.value); setFraisId(0); fini(); }}>
-          <option value=""></option>{d.typesOperation.filter((t) => t !== "ADHESION").map((t) => <option key={t} value={t}>{enClair(t)}</option>)}</select>}</Champ>}
-        <Champ libelle="Frais: *">{(p) => <select {...p} className="saisie" required value={fraisId} onChange={(e) => { setFraisId(Number(e.target.value)); fini(); }}>
-          <option value={0}></option>{d.frais.filter((f) => f.typeOperation === operation).map((f) => <option key={f.id} value={f.id}>{f.libelle}</option>)}</select>}</Champ>
-        {adhesion && <Champ libelle="Type membre *">{(p) => <select {...p} className="saisie" required value={typeMembre} onChange={(e) => { setTypeMembre(e.target.value); fini(); }}>
-          <option value=""></option>{d.typesMembre.map((t) => <option key={t} value={t}>{enClair(t)}</option>)}</select>}</Champ>}
-      </fieldset>
-      {edition && (
-        <div className="pile">
-          <Valeurs v={edition.v} maj={(p) => setEdition({ ...edition, v: { ...edition.v, ...p } })} natures={adhesion ? ["Montant"] : d.natures} />
-          <div className="actions-onglets">
-            <button className="bouton" type="button" onClick={() => {
-              try { const val = lireValeurs(edition.v); confirmer("Voulez-vous vraiment enregistrer ?", () => api.parametrage.modifierParametrage(genre, edition.id, val), fini); }
-              catch (x) { erreur(x); }
-            }}>Enregistrer</button>
-            <button className="bouton secondaire" type="button" onClick={() => setEdition(null)}>Annuler</button>
-          </div>
-        </div>
-      )}
-      {categorie && (
-        <div className="pile">
-          <Champ libelle="Nouveau type membre *">{(p) => <select {...p} className="saisie" required value={categorie.typeMembre} onChange={(e) => setCategorie({ ...categorie, typeMembre: e.target.value })}>
-            <option value=""></option>{d.typesMembre.filter((t) => t !== typeMembre).map((t) => <option key={t} value={t}>{enClair(t)}</option>)}</select>}</Champ>
-          <div className="actions-onglets">
-            <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.parametrage.modifierCategorie(categorie.id, categorie.typeMembre), fini)}>Enregistrer</button>
-            <button className="bouton secondaire" type="button" onClick={() => setCategorie(null)}>Annuler</button>
-          </div>
-        </div>
-      )}
-      <div className="actions-onglets">
-        <Action choix={[
-          { libelle: "Modifier infos", inactif: coches.length !== 1, faire: () => { if (une) { setCategorie(null); setEdition({ id: une.id, v: { nature: une.nature, valeur: enSaisie(une.valeur), compte: une.compte ?? "" } }); } } },
-          { libelle: "Supprimer", inactif: coches.length === 0, faire: () => confirmer("Voulez-vous vraiment supprimer ?",
-            async () => { for (const id of coches) await api.parametrage.supprimerParametrage(genre, id); }, fini) },
-          ...(adhesion ? [{ libelle: "Modifier Catégorie", inactif: coches.length !== 1, faire: () => { if (une) { setEdition(null); setCategorie({ id: une.id, typeMembre: "" }); } } }] : []),
-        ]} />
-      </div>
-      <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
-        <thead><tr>
-          <th scope="col"><input type="checkbox" aria-label="Tout cocher" checked={lignes.length > 0 && coches.length === lignes.length} onChange={(e) => setCoches(e.target.checked ? lignes.map((x) => x.id) : [])} /></th>
-          <th scope="col">{adhesion ? "ID" : "STM"}</th><th scope="col">Montant</th><th scope="col">Compte</th><th scope="col">Type opération</th><th scope="col">Frais</th>
-        </tr></thead>
-        <tbody>
-          {lignes.length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
-          {visibles.map((x) => (
-            <tr key={x.id}>
-              <td><input type="checkbox" aria-label={`Ligne ${x.id}`} checked={coches.includes(x.id)} onChange={(e) => setCoches(e.target.checked ? [...coches, x.id] : coches.filter((y) => y !== x.id))} /></td>
-              <td className={adhesion ? "chiffres" : undefined}>{adhesion ? x.id : (x as ParamOperation).sousType}</td><td className="chiffres">{valeurLue(x.valeur, x.nature)}</td>
-              <td className="chiffres">{x.compte}</td><td>{frais(x.fraisId)?.typeOperation}</td><td>{frais(x.fraisId)?.libelle}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>)}</Paginee>
-    </>
+    </div>
   );
 }

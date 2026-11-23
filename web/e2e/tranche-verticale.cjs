@@ -376,13 +376,13 @@ const OUT = process.argv[2];
   await p.getByLabel('Type Opération: *').selectOption('ADHESION'); await p.getByLabel('Libellé du frais: *').fill("Droit d'entrée"); await p.getByLabel('Fondement: *').selectOption('droit_adhesion');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('cell', { name: "Droit d'entrée" }).waitFor(); await etape('06e-frais');
-  await p.getByRole('tab', { name: 'Paramétrage frais Adhésion', exact: true }).click();
-  await p.getByLabel('Frais: *').selectOption({ label: "Droit d'entrée" }); await p.getByLabel('Nature du frais *').selectOption('Montant');
-  await p.getByLabel('Valeur (CDF)').fill('5 000'); await p.getByRole('checkbox', { name: 'Physique' }).check();   // compte 727 proposé (registre S16-4)
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok(); await etape('06f-frais-adhesion');
-  await p.getByRole('tab', { name: 'Modif Paramétrage frais Adhésion' }).click();
-  await p.getByLabel('Frais: *').selectOption({ label: "Droit d'entrée" }); await p.getByLabel('Type membre *').selectOption('Physique');
-  await p.getByRole('cell', { name: /5 000/ }).waitFor(); await etape('06g-modif-frais-adhesion');
+  // Les frais et leur barème sur une page (plan d'allègement, point 2.18)
+  await p.getByRole('button', { name: "Barème : Droit d'entrée" }).click(); const b16 = p.getByRole('dialog', { name: "Barème : Droit d'entrée" });
+  await b16.getByLabel('Nature du frais *').selectOption('Montant');
+  await b16.getByLabel('Valeur (CDF)').fill('5 000'); await b16.getByRole('checkbox', { name: 'Physique' }).check();   // compte 727 proposé (registre S16-4)
+  await b16.getByRole('button', { name: 'Ajouter' }).click(); await ok(); await etape('06f-frais-adhesion');
+  await b16.getByRole('cell', { name: /5 000/ }).waitFor(); await etape('06g-modif-frais-adhesion');
+  await b16.press('Escape');
   // Copie de la pièce d'identité de Tshala avant le visa (écart E03, décision du porteur ; Instr. BCC 15, art. 12 et 29)
   await aller('/clients/s49'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rcp = p.getByRole('dialog', { name: "Recherche d'un client" });
