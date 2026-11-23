@@ -44,7 +44,7 @@ def contexte(u) -> dict:
     exiger(u)
     i = u["institution_id"]
     return {"sexes": SEXES, "civilites": CIVILITES, "groupesSanguins": GROUPES_SANGUINS, "typesContrat": TYPES_CONTRAT, "regimes": REGIMES,
-            "situations": [r["libelle"] for r in valeurs_liste(u, "situation_matrimoniale")], "professions": [r["libelle"] for r in valeurs_liste(u, "profession")],
+            "situations": [r["libelle"] for r in valeurs_liste(u, "situation_matrimoniale")],
             "categories": options(u, "paie_categorie"), "classes": options(u, "paie_classe"), "echelons": options(u, "paie_echelon"),
             "grillesSalariales": lignes("""select categorie_id as "categorieId", classe_id as "classeId", echelon_id as "echelonId", salaire, points
                                            from paie_grille_salariale where institution_id = %s and actif""", (i,)),

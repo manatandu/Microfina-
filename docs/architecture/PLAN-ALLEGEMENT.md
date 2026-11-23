@@ -414,7 +414,7 @@ Sortent du Paramétrage : le référentiel du budget (vers Budget), les fonds pr
 
 **9.2 Clôture.** Un seul choix d'exercice. L'affectation du résultat s'affiche sous la clôture de l'exercice, comme étape suivante. Chaque contrôle non satisfait mène à l'écran qui le règle. « Amortissements de l'exercice passés » s'ajoute aux contrôles de l'exercice. Le mois proposé est le dernier mois terminé (0.19). Textes : PCCI § 3.4 ; registre S127-13 (réserve générale).
 
-**9.3 Personnel et immobilisations dans la barre.** Ce sont aujourd'hui deux applications à part, ouvertes depuis la page des modules, alors qu'elles dépendent l'une de l'autre (le détenteur d'un bien est un employé) et de la comptabilité. Après : deux menus de la barre principale, « Personnel » et « Immobilisations », à entrées directes (aujourd'hui « Affectation ; Transfert », avec un point-virgule). La page des modules (S02), dont six cases sur neuf sont grisées, disparaît : après la connexion, Dwacfina s'ouvre. Cela change les décisions S02-2 et S02-3 : question au porteur.
+**9.3 Personnel et immobilisations : la page des modules reste.** Proposé : deux menus de la barre principale à la place de la page des modules. Retiré avec l'accord du porteur (23/11/2026, registre T144) : Microfina garde la page des modules (manuel p. 6), Paie et Immobilisations restent des modules à part.
 
 **9.4 Budget.** Pour un budget, il faut aujourd'hui passer par le Paramétrage (plan budgétaire, lignes), puis par le menu Budget.
 - Un écran « Budgets » : la liste, Nouveau, Reconduire, Ouvrir ; Ouvrir mène aux lignes et aux valeurs. Le référentiel du budget rejoint le menu Budget.

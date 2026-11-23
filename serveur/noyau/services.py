@@ -238,7 +238,6 @@ def contexte(u: dict) -> dict:
         "typesEntreprise": TYPES_ENTREPRISE,
         "typesGroupe": libelles_liste(u, "type_groupe"),
         "pieces": PIECES,
-        "professions": libelles_liste(u, "profession"),   # S14b (registre S14b-2)
         # S33 : sensibilisateurs et commerciaux proposés au prospect et à la fiche client (registre S33-4)
         **{cle: __import__("noyau.agents", fromlist=["actifs"]).actifs(u, role) for cle, role in (("sensibilisateurs", "sensibilisateur"), ("commerciaux", "commercial"))},
         "localites": localites(),

@@ -403,7 +403,6 @@ export const CONSTRUITS: Record<string, ComponentType> = {
 /** Pages de la liste de gauche de S14 (Info de base > Client > Général, manuel p. 23), ouvertes dans le même écran (?page=…) */
 export const SOUS_PAGES_S14 = {
   S14a: "type_activite",
-  S14b: "profession",
   S14i: "forme_juridique",
   S14k: "filiation",
   S14l: "situation_matrimoniale",

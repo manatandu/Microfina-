@@ -8,7 +8,6 @@ CATALOGUE = [
     # Secteur et activité sur une page (plan d'allègement, point 2.12) : les trois secteurs se choisissent dans la page Activité, sans page à eux
     {"liste": "secteur_activite", "ecran": "S14", "titre": "Secteur d'activité", "code": "N° secteur", "libelle": "Secteur d'activité", "colonne": "Secteur", "cache": True},
     {"liste": "type_activite", "ecran": "S14a", "titre": "Activité", "parent": "secteur_activite"},
-    {"liste": "profession", "ecran": "S14b", "titre": "Profession"},
     {"liste": "forme_juridique", "ecran": "S14i", "titre": "Forme juridique"},
     {"liste": "filiation", "ecran": "S14k", "titre": "Lien de parenté"},
     {"liste": "situation_matrimoniale", "ecran": "S14l", "titre": "Situation matrimoniale"},

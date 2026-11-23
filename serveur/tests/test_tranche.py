@@ -1279,19 +1279,14 @@ def test_rapport_des_transactions(clients, journee):
     r = chef.get("/api/rapports/transactions?du=&au=2026-11-05", **H); assert r.status_code == 422 and "DU et AU" in r.json()["message"]
 
 
-def test_professions_s14b(clients):
-    """S14b : la liste Profession du paramétrage alimente fiche, prospect et agents (registre S14b-2) ; démonstration tirée du ROME/RDC (S14b-1)"""
+def test_profession_libre(clients):
+    """Profession : champ libre, sans liste au paramétrage (décision du porteur, registre T140)"""
     chef, agent = clients["chef"], clients["agent"]
     connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
-    l = chef.get("/api/listes/profession", **H).json()["lignes"]
-    assert {"code": "6330-01", "libelle": "Agriculteur"}.items() <= next(x for x in l if x["libelle"] == "Agriculteur").items()
-    assert any(x["code"] == "COM" and x["libelle"] == "Commerçant" for x in l)
+    assert chef.get("/api/listes/profession", **H).status_code == 404
     p = {"nom": "Lukaku", "prenom": "Rose", "naissance": "1992-02-02", "lieuNaissance": "Kinshasa", "sexe": "F", "profession": "Vulcanisateur",
          "pays": "République démocratique du Congo", "ville": "Kinshasa", "quartier": "Kinsaku", "telephone": "+243 810 000 222"}
-    # profession : champ libre, hors liste admise (registre T42)
-    chef.post("/api/listes/profession", {"code": "7213-90", "libelle": "Vulcanisateur"}, **H)
-    assert "Vulcanisateur" in agent.get("/api/referentiel", **H).json()["professions"]
-    assert agent.post("/api/prospects", p, **H).status_code == 200
+    assert agent.post("/api/prospects", p, **H).json()["profession"] == "Vulcanisateur"
 
 
 def test_listes_general(clients):
@@ -1299,7 +1294,7 @@ def test_listes_general(clients):
     chef, agent = clients["chef"], clients["agent"]
     connecter(chef, "jpmukendi"); connecter(agent, "bkasongo")
     l = chef.get("/api/listes/secteur_activite", **H).json()
-    assert [x["code"] for x in l["lignes"]][:3] == ["S1", "S2", "S3"] and l["lignes"][0]["libelle"] == "Primaire" and len(l["catalogue"]) == 8   # pages retirées : plan d'allègement, points 2.2 à 2.7
+    assert [x["code"] for x in l["lignes"]][:3] == ["S1", "S2", "S3"] and l["lignes"][0]["libelle"] == "Primaire" and len(l["catalogue"]) == 7   # pages retirées : plan d'allègement, points 2.2 à 2.7 ; Profession : champ libre (T140)
     def refus(chemin, c):
         r = chef.post(chemin, c, **H); assert r.status_code == 422, r.content; return r.json()["message"]
     assert "N° secteur" in refus("/api/listes/secteur_activite", {"code": "", "libelle": "Pêche"})

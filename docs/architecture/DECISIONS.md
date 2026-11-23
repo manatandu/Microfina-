@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1045 décisions.** Solidité : 498 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1024 déjà en place, 21 à appliquer.
+**1046 décisions.** Solidité : 499 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1025 déjà en place, 21 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -152,10 +152,11 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | T137 | Taux actuariel « pour information » ? (6.10 Simulation) | Il disparaît. Le TEG réglementaire est annuel, proportionnel au taux de la période (lui-même calculé actuariellement) ; un second taux annuel risque d'égarer le client. | Texte réglementaire : Instr. BCC 38, art. 2 et 4 (lus) ; Instr. BCC 40, art. 5 (lu) | forte | à appliquer |
 | T138 | Tout mouvement hors guichet par la file ? (7.2 Même nature, même contrôle) | Oui, tous, sans seuil : celui qui enregistre ne vise ni ne valide. | Texte réglementaire : Instr. BCC 008, art. 66 (lu : séparation de la manipulation, de l'enregistrement, de l'autorisation, de la vérification et de l'inspection) | forte | à appliquer |
 | T139 | Visé, certifié : par chéquier ou par chèque ? (7.16 Chèques) | Chèque par chèque : le type (ordinaire, certifié, garanti, chèque de banque) est marqué sur chaque formule. | Texte réglementaire : Instr. BCC 25, art. 2 et zone 4 de la ligne CMC7 (lus) | forte | à appliquer |
-| T140 | Liste ou champ libre ? (2.11 Profession) | Champ libre partout : fiche du membre, prospect, personnel, et filtre du rapport des prospects (le texte tapé est cherché dans la profession). | Choix du porteur : Décision du porteur, 23/11/2026 ; Instr. BCC 15, art. 13, al. 2 (lu : seule la pièce d'habilitation est exigée) | forte | en place |
+| T140 | Liste ou champ libre ? (2.11 Profession) | Champ libre partout : fiche du membre, prospect, personnel, et filtre du rapport des prospects (le texte tapé est cherché dans la profession). La liste Profession du paramétrage (S14b), que plus rien ne lit, est retirée (accord du porteur, 23/11/2026). | Choix du porteur : Décision du porteur, 23/11/2026 ; Instr. BCC 15, art. 13, al. 2 (lu : seule la pièce d'habilitation est exigée) | forte | en place |
 | T141 | Plafonds par cycle ? (2.13 Cycle du crédit) | Selon la politique de chaque institution : chaque cycle peut porter un montant maximum, facultatif ; la demande de crédit est refusée au-delà quand il est rempli. | Choix du porteur : Décision du porteur, 23/11/2026 ; aucun texte lu ne fixe de plafond par cycle | forte | à appliquer |
 | T142 | Taux négocié ? (5.2 Dépôt à terme) | Selon la politique de l'institution : le produit dit si son taux est négociable ; sinon le taux du produit s'applique, en lecture seule. Le taux publié reste celui des conditions de banque. | Choix du porteur : Décision du porteur, 23/11/2026 ; Instr. BCC 40, art. 2 et 3 (lus) | forte | à appliquer |
 | T143 | Rendu au membre ou mis en commun ? (10.4 Fonds de solidarité) | Les deux, au choix du produit de crédit : rendu au membre à la fin du prêt (dépôt de la clientèle, classe 3), ou mis en commun pour couvrir les impayés (compte 172 « Fonds de garantie mutuels », fonds propres complémentaires). | Choix du porteur : Décision du porteur, 23/11/2026 ; PCCI, compte 17 (lu) ; Instr. BCC 002, art. 9 (lu) | forte | à appliquer |
+| T144 | Menus de la barre ou page des modules ? (9.3 Personnel et immobilisations) | On garde la page des modules, comme Microfina (manuel p. 6, figure 2) : Paie et Immobilisations restent des modules à part, avec leur menu. Le point 9.3 du plan est retiré. | Choix du porteur : Accord du porteur, 23/11/2026 ; manuel Microfina++, p. 6 | forte | en place |
 
 ## S03 Profils : création et modification
 
@@ -849,7 +850,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S14b-1 | Valeurs de démonstration de la liste Profession | Seize métiers du ROME/RDC avec leur code et leur libellé (agriculture, élevage, commerce de détail, couture, coiffure, bâtiment, enseignement, santé, change), plus « Commerçant » que le ROME ne nomme pas, sous un code de l'institution (COM). L'institution tient sa liste dans S14b Décidé par délégation du porteur (15/11/2026). | Texte réglementaire : ROME/RDC, ONEM, nov. 2022 (lu ; décret d'approbation non lu) ; demande du porteur | moyenne | en place |
-| S14b-2 | Source de la profession | La fiche client (S37), le prospect (S45), les agents (S33) et le rapport des prospects (S51) lisent la liste Profession de S14b. L'ancienne table des professions, que S14b n'alimentait pas, est reprise dans la liste (migration 0058) | Écran voisin : S14 (même moteur de listes) ; atlas S14b : D:S37 | forte | en place |
+| S14b-2 | Source de la profession | Remplacée par T140 : la profession est un champ libre ; la liste du paramétrage est retirée | Écran voisin : S14 (même moteur de listes) ; atlas S14b : D:S37 | forte | en place |
 
 ## S02 Page des modules
 
@@ -2397,7 +2398,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
-| S80-8 | Comptage et validation | Les deux écrans s'appellent « Arrêté de caisse : comptage » et « Arrêté de caisse : validation ». La validation montre l'écart avant de valider (0.11) ; « Journées » n'y figure plus ; sans guichet ouvert, la phrase « Aucun guichet ouvert aujourd'hui. » remplace la liste vide. Le solde théorique reste affiché pendant le comptage tant que le porteur n'a pas répondu. | Choix du porteur : Plan d'allègement, point 4.11 ; registre S80-7, T130 | forte | en place |
+| S80-8 | Comptage et validation | Les deux écrans s'appellent « Arrêté de caisse : comptage » et « Arrêté de caisse : validation ». La validation montre l'écart avant de valider (0.11) ; « Journées » n'y figure plus ; sans guichet ouvert, la phrase « Aucun guichet ouvert aujourd'hui. » remplace la liste vide. Le solde théorique reste affiché pendant le comptage (accord du porteur, 23/11/2026). | Choix du porteur : Plan d'allègement, point 4.11 ; registre S80-7, T130 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

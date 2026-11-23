@@ -121,7 +121,7 @@ const session = {
 };
 
 function contexte() {
-  return { arbreLieux: arbreLieux(), institution: E.institution, agence: E.agence, guichets: E.guichets.filter((g) => g.actif !== false), produits: produitsProposes(), zones: zonesActives(), typesClient: valeursListe("type_client").map((l) => l.libelle), typesEntreprise: TYPES_ENTREPRISE, typesGroupe: valeursListe("type_groupe").map((l) => l.libelle), pieces: PIECES, professions: professions(), localites: localites(),
+  return { arbreLieux: arbreLieux(), institution: E.institution, agence: E.agence, guichets: E.guichets.filter((g) => g.actif !== false), produits: produitsProposes(), zones: zonesActives(), typesClient: valeursListe("type_client").map((l) => l.libelle), typesEntreprise: TYPES_ENTREPRISE, typesGroupe: valeursListe("type_groupe").map((l) => l.libelle), pieces: PIECES, localites: localites(),
     // S37 : listes lues par la fiche du client (registre S37-2)
     listesFiche: { ...Object.fromEntries(Object.entries(LISTES_FICHE).map(([k, [liste]]) => [k, valeursListe(liste).map((l) => l.libelle)])) as Record<string, string[]>,
       filiation: valeursListe("filiation").map((l) => l.libelle), formeJuridique: valeursListe("forme_juridique").map((l) => l.libelle),
@@ -1561,7 +1561,6 @@ export const CATALOGUE_LISTES: FicheListe[] = ([
   // Secteur et activité sur une page (plan d'allègement, point 2.12) : les trois secteurs se choisissent dans la page Activité, sans page à eux
   { liste: "secteur_activite", ecran: "S14", titre: "Secteur d'activité", code: "N° secteur", libelle: "Secteur d'activité", colonne: "Secteur", cache: true },
   { liste: "type_activite", ecran: "S14a", titre: "Activité", parent: "secteur_activite" },
-  { liste: "profession", ecran: "S14b", titre: "Profession" },
   { liste: "forme_juridique", ecran: "S14i", titre: "Forme juridique" },
   { liste: "filiation", ecran: "S14k", titre: "Lien de parenté" },
   { liste: "situation_matrimoniale", ecran: "S14l", titre: "Situation matrimoniale" }, 
@@ -1571,8 +1570,6 @@ export const CATALOGUE_LISTES: FicheListe[] = ([
   { liste: "forme_juridique_groupe", ecran: "S14o", titre: "Forme juridique du groupe" },
 ] as (Partial<FicheListe> & { liste: string; ecran: string; titre: string })[]).map((c) => ({ code: "Code", libelle: c.titre, colonne: c.titre, ...c }) as FicheListe);
 const ficheListe = (liste: string) => { const c = CATALOGUE_LISTES.find((x) => x.liste === liste); if (!c) throw new ErreurMetier("Liste inconnue."); return c; };
-/** S14b : la fiche, le prospect, les agents et le rapport lisent la liste Profession du paramétrage (registre S14b-2) */
-const professions = () => valeursListe("profession").map((l) => l.libelle);
 /** Valeurs actives d'une liste, pour les écrans qui la lisent. Sans code : ordre de saisie (registre S18-2). */
 function valeursListe(liste: string) {
   const sansCode = CATALOGUE_LISTES.find((x) => x.liste === liste)?.sansCode;
@@ -8961,7 +8958,7 @@ const paie = {
   contexte() {
     lectureAdmin(["S132", "S133", "S134", "S135"]);
     return { sexes: SEXES, civilites: CIVILITES, groupesSanguins: GROUPES_SANGUINS, typesContrat: TYPES_CONTRAT, regimes: REGIMES,
-      situations: valeursListe("situation_matrimoniale").map((l) => l.libelle), professions: valeursListe("profession").map((l) => l.libelle),
+      situations: valeursListe("situation_matrimoniale").map((l) => l.libelle),
       categories: optionsPaie("categories"), classes: optionsPaie("classes"), echelons: optionsPaie("echelons"),
       grillesSalariales: valeursRef("paie", "grilles_salariales").map((g) => ({ categorieId: Number(g.categorieId), classeId: Number(g.classeId), echelonId: Number(g.echelonId),
         salaire: g.salaire === null || g.salaire === undefined || g.salaire === "" ? null : Number(g.salaire), points: g.points === null || g.points === undefined || g.points === "" ? null : Number(g.points) })),
