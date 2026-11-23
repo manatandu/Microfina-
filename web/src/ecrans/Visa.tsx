@@ -328,7 +328,7 @@ function DetailClient({ t }: { t: Tiers }) {
           <div className="deux-colonnes">
             <div className="pile">{lu("Date demande :", fr(t.dateDemande))}{lu(t.type === "groupe" ? "Type de groupe :" : t.type === "morale" ? "Type entreprise :" : "Type Client :", t.typeClient)}{lu("Zone :", t.zone)}</div>
             <div className="pile">{lu("Sensibilisateur :", agent(cx?.sensibilisateurs, t.sensibilisateurId))}{lu("Gestionnaire :", agent(cx?.gestionnaires, t.gestionnaireId))}{lu("Commercial :", agent(cx?.commerciaux, t.commercialId))}
-              {coche("Résident", t.resident)}{coche("Prelever Agios", t.preleverAgios)}{coche("Calculer intéret", t.calculerInteret)}</div>
+              {coche("Résident", t.resident)}</div>
           </div>
         )}
         {o === 1 && (
@@ -468,8 +468,8 @@ export function ValidationClientModifie({ initial, fait }: { initial?: Tiers; fa
 /** Libellés des champs comparés dans « informations initiales et actuelles » */
 const CHAMPS_SUIVIS: [keyof Tiers, string][] = [["nom", "Nom"], ["postnom", "Post-nom"], ["prenom", "Prénom"], ["sexe", "Sexe"], ["naissance", "Date de naissance"],
   ["lieuNaissance", "Lieu de naissance"], ["adresse", "Adresse"], ["telephone", "Téléphone"], ["pieceType", "Pièce d'identité"], ["pieceNumero", "N° de pièce"],
-  ["pieceExpire", "Valide jusqu'au"], ["typeClient", "Type Client"], ["zone", "Zone"], ["resident", "Résident"], ["preleverAgios", "Prelever Agios"],
-  ["calculerInteret", "Calculer intéret"], ["personneExposee", "Personne politiquement exposée"], ["liees", "Personnes liées"]];
+  ["pieceExpire", "Valide jusqu'au"], ["typeClient", "Type Client"], ["zone", "Zone"], ["resident", "Résident"],
+  ["personneExposee", "Personne politiquement exposée"], ["liees", "Personnes liées"]];
 const enTexte = (v: unknown) => (typeof v === "boolean" ? (v ? "Oui" : "Non") : Array.isArray(v) ? v.join(", ") : /^\d{4}-\d{2}-\d{2}$/.test(String(v ?? "")) ? fr(String(v)) : String(v ?? ""));
 
 /** S43 : Client > Consulter client (manuel Microfina++, p. 54) : informations initiales et actuelles du client */

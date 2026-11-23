@@ -8184,7 +8184,7 @@ const finPeriode = {
     if (!E.frais.some((f) => f.typeOperation === "TENUE_COMPTE"))
       throw new ErreurMetier("Frais de tenue de compte : le créer d'abord dans Paramétrage > Frais (opération TENUE COMPTE), avec la référence de l'autorisation de la BCC (Instr. BCC 40, art. 12).");
     const j = jourOuvertFin(), fait = dejaFin("tenue_compte", ex, m);
-    const lignes = comptesFin((pr, t) => pr.tenueCompte === true && t.preleverAgios).filter(({ c }) => !c.ouvertLe || c.ouvertLe <= au).map(({ c, t }) => {
+    const lignes = comptesFin((pr) => pr.tenueCompte === true).filter(({ c }) => !c.ouvertLe || c.ouvertLe <= au).map(({ c, t }) => {
       const base = { compteId: c.id, numero: c.numero, client: titulaire(t), produit: produitDuCompte(c)?.libelle ?? "", devise: c.devise, montant: 0, compteFrais: "", etat: "" };
       const f = fait.get(c.id);
       if (f) return { ...base, montant: f.montant, etat: "Déjà prélevé" };
@@ -8217,7 +8217,7 @@ const finPeriode = {
     const { ex, m, du, au } = periodeFin(p);
     if (jourOuvertFin().date < au) throw new ErreurMetier("Le mois n'est pas fini : l'intérêt se calcule une fois le dernier jour du mois atteint.");
     const fait = dejaFin("interet_dav", ex, m);
-    const lignes = comptesFin((pr, t) => pr.calculerInteret && Number(String(pr.tauxInteret ?? "0").replace(",", ".")) > 0 && t.calculerInteret).map(({ c, p: pr, t }) => {
+    const lignes = comptesFin((pr) => pr.calculerInteret && Number(String(pr.tauxInteret ?? "0").replace(",", ".")) > 0).map(({ c, p: pr, t }) => {
       const taux = Number(String(pr.tauxInteret).replace(",", "."));
       const base = { compteId: c.id, numero: c.numero, client: titulaire(t), produit: pr.libelle, devise: c.devise, taux: String(pr.tauxInteret).replace(".", ","), base: 0, interet: 0, retenue: 0, net: 0, etat: "" };
       const f = fait.get(c.id);

@@ -106,7 +106,7 @@ def apercu_tenue(u, p: dict) -> dict:
     j = jour_ouvert(u)
     fait = deja("tenue_compte", ex, m)
     out = []
-    for c in comptes_ouverts(u, "p.tenue_compte is true and t.prelever_agios is true and coalesce(p.categorie_compte, '') <> 'DAT'"):
+    for c in comptes_ouverts(u, "p.tenue_compte is true and coalesce(p.categorie_compte, '') <> 'DAT'"):   # le produit décide seul (plan 3.5 ; T135)
         if c["ouvert_le"] and c["ouvert_le"] > au:
             continue
         f = frais_tenue(u, NATURE_MEMBRE.get(c["type_tiers"], ""))
@@ -181,7 +181,7 @@ def apercu_interets_dav(u, p: dict) -> dict:
         raise ErreurMetier("Le mois n'est pas fini : l'intérêt se calcule une fois le dernier jour du mois atteint.")
     fait = deja("interet_dav", ex, m)
     out = []
-    for c in comptes_ouverts(u, """p.calcul_interet is true and coalesce(p.taux_interet, 0) > 0 and t.calculer_interet is true
+    for c in comptes_ouverts(u, """p.calcul_interet is true and coalesce(p.taux_interet, 0) > 0
                                    and coalesce(p.categorie_compte, '') <> 'DAT'"""):
         ligne = {"compteId": c["id"], "numero": c["numero"], "client": titulaire(c["tiers_id"]), "produit": c["produit"], "devise": c["devise"],
                  "taux": f"{Decimal(c['taux_interet']).normalize():f}".replace(".", ","), "base": 0, "interet": 0, "retenue": 0, "net": 0, "etat": ""}

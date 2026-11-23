@@ -95,8 +95,6 @@ function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot, chois
           {ctx.produits.map((x) => <option key={x.code} value={x.code}>{x.libelle} {x.devise}</option>)}</select>}</Champ>
         <Champ libelle={`Premier dépôt :${produit ? ` (${produit.devise})` : ""}`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={depot} onChange={(e) => setDepot(e.target.value)} />}</Champ>
         <ChampsRelation f={f} maj={maj} morale={genre === "entreprise"} />
-        <label className="case"><input type="checkbox" checked={f.preleverAgios} onChange={(e) => maj({ preleverAgios: e.target.checked })} /><span>Prelever Agios</span></label>
-        <label className="case"><input type="checkbox" checked={f.calculerInteret} onChange={(e) => maj({ calculerInteret: e.target.checked })} /><span>Calculer intéret</span></label>
       </div>
     </div>
   );
@@ -846,8 +844,6 @@ export function MiseAJourClient() {
                 <div className="pile">
                   <Champ libelle="ICU (BCC) :">{(p) => <input {...p} className="saisie code" autoComplete="off" value={icu} onChange={(e) => setIcu(e.target.value)} />}</Champ>
                   <SuiviCommercial f={f} maj={maj} ctx={ctx} zoneRequise={genre === "morale"} />
-                  <label className="case"><input type="checkbox" checked={f.preleverAgios} onChange={(e) => maj({ preleverAgios: e.target.checked })} /><span>Prelever Agios</span></label>
-                  <label className="case"><input type="checkbox" checked={f.calculerInteret} onChange={(e) => maj({ calculerInteret: e.target.checked })} /><span>Calculer intéret</span></label>
                 </div>
               </div>
             )}
