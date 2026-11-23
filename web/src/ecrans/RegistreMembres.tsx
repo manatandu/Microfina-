@@ -17,8 +17,8 @@ export default function RegistreMembres() {
   if (erreur) return <><p role="alert" className="erreur-champ">{erreur}</p></>;
   if (!donnees) return <Chargement />;
   const m = donnees.membres;
-  const exporter = () => exporterExcel("registre-membres", ["N° d'ordre", "N° d'adhésion", "Nom", "Prénom", "Pièce d'identité", "Adresse", "Profession", "Catégorie", "Parts souscrites", "Parts libérées", "Admis le", "Sorti le"],
-    m.map((x) => [x.rang, x.numero, x.nom, x.prenom, x.piece, x.adresse, x.profession, x.categorie, x.partsSouscrites, x.partsLiberees, fr(x.admissionLe), fr(x.sortieLe)]));
+  const exporter = () => exporterExcel("registre-membres", ["N° d'ordre", "N° d'adhésion", "Nom", "Prénom", "Pièce d'identité", "Adresse", "Profession", "Catégorie", "Parts libérées", "Admis le", "Sorti le"],
+    m.map((x) => [x.rang, x.numero, x.nom, x.prenom, x.piece, x.adresse, x.profession, x.categorie, x.partsLiberees, fr(x.admissionLe), fr(x.sortieLe)]));
   return (
     <>
       
@@ -66,13 +66,13 @@ function Tableau({ r, imprime = false }: { r: Registre; imprime?: boolean }) {
   return (
     <table className={imprime ? "releve-detail" : "grille"}>
       <thead><tr><th scope="col">N° d'ordre</th><th scope="col">N° d'adhésion</th><th scope="col">Nom</th><th scope="col">Prénom</th><th scope="col">Pièce d'identité</th>
-        <th scope="col">Adresse</th><th scope="col">Profession</th><th scope="col">Catégorie</th><th scope="col" className="montant">Parts souscrites</th><th scope="col" className="montant">Parts libérées</th>
+        <th scope="col">Adresse</th><th scope="col">Profession</th><th scope="col">Catégorie</th><th scope="col" className="montant">Parts libérées</th>
         <th scope="col">Admis le</th><th scope="col">Sorti le</th></tr></thead>
       <tbody>
-        {r.membres.length === 0 && <tr><td colSpan={12}>Aucune ligne.</td></tr>}
+        {r.membres.length === 0 && <tr><td colSpan={11}>Aucune ligne.</td></tr>}
         {r.membres.map((x) => (
           <tr key={x.tiersId}><td className="chiffres">{x.rang}</td><td className="chiffres">{x.numero}</td><td>{x.nom}</td><td>{x.prenom}</td><td>{x.piece}</td><td>{x.adresse}</td>
-            <td>{x.profession}</td><td>{x.categorie}</td><td className="montant chiffres">{x.partsSouscrites}</td><td className="montant chiffres">{x.partsLiberees}</td>
+            <td>{x.profession}</td><td>{x.categorie}</td><td className="montant chiffres">{x.partsLiberees}</td>
             <td className="chiffres">{fr(x.admissionLe)}</td><td className="chiffres">{fr(x.sortieLe)}</td></tr>))}
       </tbody>
     </table>

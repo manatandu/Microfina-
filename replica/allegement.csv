@@ -81,7 +81,7 @@ id,lot,titre,ecrans,statut,question,reste
 3.12,3,Groupe solidaire,S39 S44,à faire,,
 3.13,3,Résiliation,S48,fait,,
 3.14,3,Consentement à la Centrale des risques,S50,partiel,,"Fait : la case « Code » supprimée (T130). Reste : le consentement dans la demande de crédit, l'entrée de menu retirée, « Pays de délivrance » corrigé"
-3.15,3,Registre des membres,SC04,à faire,oui,
+3.15,3,Registre des membres,SC04,partiel,,"Fait : une seule colonne « Parts libérées » (loi 002/2002, art. 21 : parts intégralement libérées). Reste : le registre rejoint les rapports (menu, 3.17)"
 3.16,3,Conformité : un menu à part,SC01 SC02 SC05 SC06,à faire,,
 3.17,3,Menu Membre,,à faire,,
 4.1,4,Une seule entrée « Guichet »,,à faire,,

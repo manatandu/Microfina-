@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1006 décisions.** Solidité : 459 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 997 déjà en place, 9 à appliquer.
+**1007 décisions.** Solidité : 460 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 998 déjà en place, 9 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1200,6 +1200,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | E12-2 | Ordre et membres inscrits | Tout client visé, y compris ceux partis (date de sortie montrée), par ordre de la date d'admission (décision du Conseil, E05) ou, à défaut, de la date du visa | Texte réglementaire : registre E05-1 ; loi 002/2002, art. 67 : contenu des registres fixé par le règlement intérieur ; Décision du porteur du 21/11/2026 : l'Acte uniforme OHADA sur les coopératives (AUSCOOP) n'est pas suivi ; seules comptent les lois internes et les Instructions de la BCC | forte | en place |
 | E12-3 | Parts souscrites et libérées | Dans le logiciel, une part s'achète payée (adhésion S73, achat S77) : parts souscrites et parts libérées sont égales, au nombre de parts détenues | Donnée exigée ailleurs : schéma des parts du logiciel (S73, S77) ; loi 002/2002, art. 67 : contenu des registres fixé par le règlement intérieur ; Décision du porteur du 21/11/2026 : l'Acte uniforme OHADA sur les coopératives (AUSCOOP) n'est pas suivi ; seules comptent les lois internes et les Instructions de la BCC | moyenne | en place |
 | T68 | Report du remboursement des parts à deux ans (E12 Registre des membres) | Retiré le 21/11/2026 (le report à deux ans venait de l'AUSCOOP, art. 11 ; le délai de remboursement suit les statuts, loi 002/2002, art. 22, 5°). Avant : Sur décision motivée du Conseil d'administration (référence et date), l'échéance de remboursement des parts d'un membre parti passe d'un an à deux ans | Texte réglementaire : Décision du porteur du 21/11/2026 : l'Acte uniforme OHADA sur les coopératives (AUSCOOP) n'est pas suivi ; seules comptent les lois internes et les Instructions de la BCC ; avant : AUSCOOP, art. 11, al. 3 et 5 ; confrontation du 21/11/2026, P10 | forte | en place |
+
+## SC04 Registre des membres
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E12-4 | Parts souscrites et libérées | Une seule colonne « Parts libérées » au registre et à l'export : les parts sociales doivent être intégralement libérées, souscrites et libérées sont donc toujours égales. La question des statuts tombe : la loi tranche. | Texte réglementaire : Loi 002/2002, art. 21 (« Les parts sociales doivent être intégralement libérées ») ; PCCI, compte 10 (« Toute souscription au capital social ... doit être intégralement libérée ») ; plan d'allègement, point 3.15 | forte | en place |
 
 ## E13 Chèques impayés
 
