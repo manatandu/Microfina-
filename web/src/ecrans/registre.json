@@ -307,30 +307,12 @@
   },
   {
     "id": "S40",
-    "nom": "Visa du client",
-    "acces": "Client > Visa > Viser un client",
-    "but": "Valider l'enrôlement ; imprimer le contrat d'adhésion",
+    "nom": "Membres à viser",
+    "acces": "Client > Membres à viser",
+    "but": "Viser les nouveaux membres et valider les fiches modifiées",
     "module": "clients",
     "priorite": "must",
     "chemin": "/clients/s40"
-  },
-  {
-    "id": "S41",
-    "nom": "Modifier les frais d'adhésion",
-    "acces": "Client > Visa > Modifier frais",
-    "but": "Changer le montant des frais liés",
-    "module": "clients",
-    "priorite": "must",
-    "chemin": "/clients/s41"
-  },
-  {
-    "id": "S42",
-    "nom": "Valider un client modifié",
-    "acces": "Client > Visa > Valider client modifié",
-    "but": "Réactiver après modification",
-    "module": "clients",
-    "priorite": "must",
-    "chemin": "/clients/s42"
   },
   {
     "id": "S43",

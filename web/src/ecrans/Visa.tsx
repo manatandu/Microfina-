@@ -13,10 +13,49 @@ const nomComplet = (t: { nom: string; postnom: string; prenom: string }) => [t.n
 const fr = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
 const deviseDe = (ctx: Ctx, t: Tiers) => ctx.produits.find((p) => p.code === t.produitCode)?.devise ?? "CDF";
 
+/** S40 : Membre > Membres à viser. Une file qui montre ce qui attend : nouveaux membres (visa, frais d'adhésion, contrat ; anciens S40 et S41) et
+ *  fiches modifiées (avant et après ; ancien S42), avec l'auteur et la date (plan d'allègement, point 3.6 ; Instr. BCC 15, art. 33 ; Instr. BCC 008, art. 66) */
+export function MembresAViser() {
+  const [relu, setRelu] = useState(0);
+  const { donnees } = useDonnees(async () => {
+    const [ctx, nouveaux, modifies] = await Promise.all([api.referentiel.contexte(), api.tiers.aViser(), api.tiers.aRevalider()]);
+    const modifs = await Promise.all(modifies.map((t) => api.tiers.modifications(t.id)));
+    return { ctx, nouveaux, modifies: modifies.map((t, i) => ({ t, m: [...modifs[i]!].reverse().find((x) => !x.validePar) })) };
+  }, [relu]);
+  const [choix, setChoix] = useState<{ t: Tiers; genre: "nouveau" | "modifie" } | null>(null);
+  if (!donnees) return <Chargement />;
+  const nom = (id?: number) => ((donnees.ctx as { utilisateurs?: { id: number; nom: string }[] }).utilisateurs ?? []).find((x) => x.id === id)?.nom ?? "";
+  const lignes = [...donnees.nouveaux.map((t) => ({ t, genre: "nouveau" as const, quoi: "Nouveau membre", par: nom(t.creePar), le: t.creeLe })),
+    ...donnees.modifies.map(({ t, m }) => ({ t, genre: "modifie" as const, quoi: "Fiche modifiée", par: nom(m?.modifiePar), le: m?.modifieLe?.slice(0, 10) ?? "" }))];
+  const fait = () => setRelu((x) => x + 1);
+  return (
+    <>
+      <h2>Membres à viser</h2>
+      <section className="bloc pile" aria-label="Membres à viser">
+        <table className="grille" aria-label="Ce qui attend">
+          <thead><tr><th scope="col">Attente</th><th scope="col">N°</th><th scope="col">Membre</th><th scope="col">Par</th><th scope="col">Le</th></tr></thead>
+          <tbody>
+            {lignes.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
+            {lignes.map((l) => (
+              <tr key={`${l.genre}-${l.t.id}`} className="ligne-choix" tabIndex={0} aria-selected={choix?.t.id === l.t.id} onClick={() => setChoix({ t: l.t, genre: l.genre })}
+                onKeyDown={(e) => { if (e.key === "Enter") setChoix({ t: l.t, genre: l.genre }); }}>
+                <td>{l.quoi}</td><td className="chiffres">{l.t.numero}</td><td>{l.t.intitule || nomComplet(l.t)}</td><td>{l.par}</td><td className="chiffres">{fr(l.le)}</td></tr>))}
+          </tbody>
+        </table>
+      </section>
+      {choix?.genre === "nouveau" && <>
+        <VisaClient key={`v-${choix.t.id}`} initial={choix.t} fait={fait} />
+        <ModificationFrais key={`f-${choix.t.id}-${relu}`} initial={choix.t} />
+      </>}
+      {choix?.genre === "modifie" && <ValidationClientModifie key={`m-${choix.t.id}`} initial={choix.t} fait={fait} />}
+    </>
+  );
+}
+
 /** S40 : Client > Visa > Viser un client (manuel Microfina++, p. 52). Admission du membre : loi 002/2002, art. 22, 6°. */
-export function VisaClient() {
+export function VisaClient({ initial, fait }: { initial?: Tiers; fait?: () => void } = {}) {
   const { donnees } = useDonnees(async () => ({ ctx: await api.referentiel.contexte(), attente: await api.tiers.aViser() }));
-  const [t, setT] = useState<Tiers | null>(null);
+  const [t, setT] = useState<Tiers | null>(initial ?? null);
   const [intitule, setIntitule] = useState("");
   const [dateVisa, setDateVisa] = useState("");
   const [admission, setAdmission] = useState({ le: "", reference: "" });   // écart E05
@@ -29,6 +68,7 @@ export function VisaClient() {
   const { donnees: lies } = useDonnees(() => (t ? api.parametrage.fraisLies(t.id) : Promise.resolve([])), [t?.id]);
   const frais = lies ?? [];
   const { donnees: copies } = useDonnees(() => (t ? api.tiers.images(t.id) : Promise.resolve(null)), [t?.id]);
+  useEffect(() => { if (initial) void choisir(initial); }, [initial?.id]);   // ouvert depuis « Membres à viser » (plan 3.6)   // eslint-disable-line react-hooks/exhaustive-deps
   if (!donnees) return <Chargement />;
   const { ctx, attente } = donnees;
   const vise = t?.statut === "actif";
@@ -50,6 +90,7 @@ export function VisaClient() {
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try {
         setT(await api.tiers.viser(t.id, { dateVisa, intitule, premierDepot: m, ...(admission.le || admission.reference ? { admissionLe: admission.le, admissionReference: admission.reference } : {}), ...mineur, ...(auxiliaire ? { auxiliaire } : {}) }));
+        fait?.();
         setBoite({ type: "succes", message: "Enregistré avec succès !" });
       } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
@@ -64,7 +105,7 @@ export function VisaClient() {
             <legend>Informations du client</legend>
             <div className="ligne-champ">
               <Champ libelle="Numéro Client :">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
-              <button className="bouton secondaire" type="button" aria-label="Rechercher un client" disabled={vise} onClick={() => setRecherche(true)}>Rechercher</button>
+              {!initial && <button className="bouton secondaire" type="button" aria-label="Rechercher un client" disabled={vise} onClick={() => setRecherche(true)}>Rechercher</button>}
             </div>
             <Champ libelle="Intitulé : *">{(p) => <input {...p} className="saisie" required readOnly={!t || vise} autoComplete="off" value={intitule} onChange={(e) => setIntitule(e.target.value)} />}</Champ>
             {/* Le premier dépôt se saisit à l'enrôlement et se lit au visa ; au guichet, le montant versé fait foi (plan d'allègement, point 3.7) */}
@@ -93,7 +134,7 @@ export function VisaClient() {
               <Champ libelle="Motif du refus : *">{(p) => <input {...p} className="saisie" value={refus} onChange={(e) => setRefus(e.target.value)} />}</Champ>
               <div className="actions-onglets">
                 <button className="bouton" type="button" onClick={() => t && setBoite({ type: "confirmation", message: "Voulez-vous vraiment refuser cette demande ?", oui: async () => {
-                  try { setT(await api.tiers.refuser(t.id, { motif: refus })); setRefus(null); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+                  try { setT(await api.tiers.refuser(t.id, { motif: refus })); setRefus(null); fait?.(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
                   catch (x) { setBoite({ type: "erreur", message: message(x) }); } } })}>Confirmer le refus</button>
                 <button className="bouton secondaire" type="button" onClick={() => setRefus(null)}>Annuler</button>
               </div>
@@ -187,9 +228,9 @@ export function RechercheClient({ source, choisir, fermer }: { source: (q: strin
 }
 
 /** S41 : Client > Visa > Modifier frais (manuel Microfina++, p. 53) */
-export function ModificationFrais() {
+export function ModificationFrais({ initial }: { initial?: Tiers } = {}) {
   const { donnees: ctx } = useDonnees(() => api.referentiel.contexte());
-  const [t, setT] = useState<Tiers | null>(null);
+  const [t, setT] = useState<Tiers | null>(initial ?? null);
   const [saisies, setSaisies] = useState<Record<number, string>>({});
   const [recherche, setRecherche] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
@@ -217,7 +258,7 @@ export function ModificationFrais() {
             <legend>Informations du membre</legend>
             <div className="ligne-champ">
               <Champ libelle="Numéro du Client :">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
-              <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
+              {!initial && <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>}
             </div>
             <Champ libelle="Date Visa">{(p) => <input {...p} className="saisie date" readOnly value={t ? fr(t.dateVisa) : ""} />}</Champ>
             <Champ libelle="Nom ou Raison sociale :">{(p) => <Lecture {...p} value={t ? t.intitule || nomComplet(t) : ""} />}</Champ>
@@ -362,9 +403,9 @@ function Contrat({ t, ctx, frais }: { t: Tiers; ctx: Ctx; frais: { montant: numb
 }
 
 /** S42 : Client > Visa > Valider client modifié (manuel Microfina++, p. 54) : Numéro du Client*, Intitulé, Catégorie, activer client, Annuler, comptes du membre */
-export function ValidationClientModifie() {
+export function ValidationClientModifie({ initial, fait }: { initial?: Tiers; fait?: () => void } = {}) {
   const { donnees: ctx } = useDonnees(() => api.referentiel.contexte());
-  const [t, setT] = useState<Tiers | null>(null);
+  const [t, setT] = useState<Tiers | null>(initial ?? null);
   const [recherche, setRecherche] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
   // Ce que la personne qui valide doit voir : la modification en attente, champ par champ, avec son auteur et sa date (Instr. BCC 008, art. 66 ;
@@ -377,7 +418,7 @@ export function ValidationClientModifie() {
   function activer() {
     if (!t) { setBoite({ type: "erreur", message: "À remplir : numéro du client." }); return; }
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
-      try { await api.tiers.activer(t.id); setT(null); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+      try { await api.tiers.activer(t.id); setT(null); fait?.(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
       catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
   }
@@ -389,7 +430,7 @@ export function ValidationClientModifie() {
           <legend>Informations sur le Client</legend>
           <div className="ligne-champ">
             <Champ libelle="Numéro du Client :">{(p) => <input {...p} className="saisie code" readOnly required value={t?.numero ?? ""} />}</Champ>
-            <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
+            {!initial && <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>}
           </div>
           <Champ libelle="Intitulé :">{(p) => <Lecture {...p} value={t ? t.intitule || nomComplet(t) : ""} />}</Champ>
           <Champ libelle="Nature :">{(p) => <Lecture {...p} value={t ? ({ physique: "Personne physique", morale: "Entreprise", groupe: "Groupe" } as const)[t.type] : ""} />}</Champ>

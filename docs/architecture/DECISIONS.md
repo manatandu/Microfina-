@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1010 décisions.** Solidité : 463 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1001 déjà en place, 9 à appliquer.
+**1011 décisions.** Solidité : 464 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1002 déjà en place, 9 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2221,6 +2221,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S40-4 | Premier dépôt et versements initiaux | Le premier dépôt se saisit à l'enrôlement et se lit au visa (il ne s'y modifie plus) ; il arrive prérempli au guichet, où le montant versé fait foi. Le contrat d'adhésion détaille les versements initiaux : Part sociale, Droit d'adhésion (frais liés du membre), Premier dépôt, puis le total (un total par devise quand le compte n'est pas en CDF) ; les héritiers désignés s'impriment sous leur rubrique. | Texte réglementaire : Loi 002/2002, art. 22 (libération d'au moins une part sociale à l'adhésion) ; plan d'allègement, point 3.7 | forte | en place |
+
+## S40 Membres à viser (S41, S42 réunis)
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S40-5 | Une file de ce qui attend | S40 (visa), S41 (frais) et S42 (validation d'une modification) deviennent la file « Membres à viser » : nouveaux membres et fiches modifiées, avec l'auteur (créé ou modifié par) et la date. Un nouveau membre s'ouvre sur sa fiche complète, Viser, Refuser, Imprimer le contrat et ses frais d'adhésion modifiables ; une fiche modifiée sur le tableau avant et après et « activer client ». La date du visa reste la journée ouverte. S41 et S42 sortent du menu ; leurs règles restent (frais figés après l'adhésion encaissée, validation par une autre personne). | Choix du porteur : Plan d'allègement, point 3.6 (accord du porteur, 22/11/2026) ; Instr. BCC 15, art. 33 ; Instr. BCC 008, art. 66 ; registre S41-1, S42-1 | forte | en place |
 
 ## S43 Informations client
 

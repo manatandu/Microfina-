@@ -400,27 +400,21 @@ const OUT = process.argv[2];
   await p.locator('fieldset', { hasText: 'Copie du registre' }).locator('input[type=file]').setInputFiles({ name: 'registre.png', mimeType: 'image/png', buffer: copie });
   await p.getByRole('img', { name: 'Aperçu : Copie des statuts' }).waitFor(); await etape('06a3-copie-statuts');
   await p.getByRole('button', { name: 'Valider les Modifications' }).click(); await ok();
-  await aller('/clients/s40');
+  // Membres à viser (plan d'allègement, point 3.6) : une file ; un nouveau membre s'y vise, son contrat s'imprime, ses frais d'adhésion se modifient
+  await aller('/clients/s40'); const file = p.getByRole('table', { name: 'Ce qui attend' });
   for (const [i, nom] of ['Tshala', 'Mamans', 'Boulangerie'].entries()) {
-    if (i > 0) await p.getByRole('button', { name: 'Annuler' }).click();
-    await p.getByRole('button', { name: 'Rechercher un client' }).click();
-    const r = p.getByRole('dialog', { name: "Recherche d'un client" });
-    await r.getByRole('row').filter({ hasText: nom }).click();
-    if (i === 0) { await p.getByRole('cell', { name: "Droit d'entrée" }).waitFor(); await etape('06b-visa-client'); }
+    await file.getByRole('row').filter({ hasText: nom }).click();
+    if (i === 0) { await p.getByRole('cell', { name: "Droit d'entrée" }).first().waitFor(); await etape('06b-visa-client'); }
     await p.getByRole('button', { name: 'Viser' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
     await succes();
     if (i === 0) { await p.getByRole('button', { name: 'Imprimer Contrat' }).click(); await p.getByRole('dialog', { name: "Demande d'adhésion" }).waitFor();
       await p.getByText('Le nouveau membre est inscrit au registre des membres').waitFor();   // vocabulaire COOPEC (registre S40-2)
-      await etape('06c-contrat'); await p.getByRole('dialog', { name: "Demande d'adhésion" }).getByRole('button', { name: 'Fermer' }).click(); }
+      await etape('06c-contrat'); await p.getByRole('dialog', { name: "Demande d'adhésion" }).getByRole('button', { name: 'Fermer' }).click();
+      // frais d'adhésion modifiables dans la même file (ancien S41)
+      await p.getByLabel("Montant de Droit d'entrée").fill('2 500'); await etape('06h-modification-frais');
+      await p.getByRole('button', { name: 'Modifier' }).click(); await ok();
+      await p.getByLabel("Montant de Droit d'entrée").waitFor(); await etape('06i-frais-modifies'); }
   }
-  // Modification des frais (S41)
-  await aller('/clients/s41');
-  await p.getByRole('button', { name: 'Rechercher un client' }).click();
-  const rf = p.getByRole('dialog', { name: "Recherche d'un client" });
-  await rf.getByLabel('Nom:', { exact: true }).fill('Tshala'); await rf.getByRole('row').filter({ hasText: 'Tshala' }).click();
-  await p.getByLabel("Montant de Droit d'entrée").fill('2 500'); await etape('06h-modification-frais');
-  await p.getByRole('button', { name: 'Modifier' }).click(); await ok();
-  await p.getByLabel("Montant de Droit d'entrée").waitFor(); await etape('06i-frais-modifies');
   // Mise à jour d'un client (S46), par l'agent
   await login('Bijou Kasongo'); await aller('/clients/s46');
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
@@ -435,10 +429,9 @@ const OUT = process.argv[2];
   await p.getByLabel('Date de naissance : *').fill('12041988'); await p.getByLabel('Lieu de naissance : *').fill('Kinshasa');
   await p.getByLabel('Date de délivrance : *').fill('10012024'); await p.getByLabel('Lieu de délivrance : *').fill('Kinshasa'); await p.getByLabel('Autorité de délivrance : *').fill('DGM');
   await p.getByRole('button', { name: 'Terminer' }).click(); await ok();
-  // Validation du client modifié (S42) : par le chef, autre que l'agent qui a modifié
-  await login('J.-P. Mukendi'); await aller('/clients/s42');
-  await p.getByRole('button', { name: 'Rechercher un client' }).click();
-  await p.getByRole('dialog', { name: "Recherche d'un client" }).getByRole('row').filter({ hasText: 'Mwamba' }).click();
+  // Validation du client modifié : par le chef, autre que l'agent qui a modifié, dans la file des membres à viser (plan 3.6)
+  await login('J.-P. Mukendi'); await aller('/clients/s40');
+  await p.getByRole('table', { name: 'Ce qui attend' }).getByRole('row').filter({ hasText: 'Mwamba' }).click();
   await p.getByRole('table', { name: 'Modification à valider' }).waitFor(); await etape('06l-validation-client-modifie');   // avant et après (registre S42-1)
   await p.getByRole('button', { name: 'activer client' }).click(); await ok();
   // Mise à jour d'une entreprise (S46, registre S46-2) : onglets de son enrôlement, signataire ajouté, puis validation (S42)
@@ -473,9 +466,8 @@ const OUT = process.argv[2];
   await sig2.getByRole('button', { name: 'Enregistrer' }).click(); await sig2.getByRole('button', { name: 'Fermer' }).click();
   await p.getByRole('cell', { name: 'Kabila' }).waitFor(); await etape('06l2-mise-a-jour-entreprise');
   await p.getByRole('button', { name: 'Terminer' }).click(); await ok();
-  await login('J.-P. Mukendi'); await aller('/clients/s42');
-  await p.getByRole('button', { name: 'Rechercher un client' }).click();
-  await p.getByRole('dialog', { name: "Recherche d'un client" }).getByRole('row').filter({ hasText: 'Boulangerie' }).click();
+  await login('J.-P. Mukendi'); await aller('/clients/s40');
+  await p.getByRole('table', { name: 'Ce qui attend' }).getByRole('row').filter({ hasText: 'Boulangerie' }).click();
   await p.getByRole('button', { name: 'activer client' }).click(); await ok();
   // Consulter un client (S43)
   await aller('/clients/s43'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
@@ -643,14 +635,6 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByText('Adhésion enregistrée').waitFor(); await etape('08-adhesion-recu');
   await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
-  // S41 après l'adhésion : frais figés (registre S41-1, PCCI § 3.4)
-  await login('J.-P. Mukendi'); await aller('/clients/s41');
-  await p.getByRole('button', { name: 'Rechercher un client' }).click();
-  const rf2 = p.getByRole('dialog', { name: "Recherche d'un client" });
-  await rf2.getByLabel('Nom:', { exact: true }).fill('Tshala'); await rf2.getByRole('row').filter({ hasText: 'Tshala' }).click();
-  await p.getByLabel("Montant de Droit d'entrée").fill('3 000');
-  await p.getByRole('button', { name: 'Modifier' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
-  await p.getByRole('dialog', { name: 'Erreur' }).getByText(/déjà encaissée/).waitFor(); await etape('08b-frais-figes'); await p.getByRole('button', { name: 'Ok' }).click();
   // S43 : Date d'adhésion = date de l'adhésion encaissée (registre S43-2)
   await aller('/clients/s43'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rc2 = p.getByRole('dialog', { name: "Recherche d'un client" });

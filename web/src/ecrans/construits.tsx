@@ -248,11 +248,9 @@ const Connexions = paresseux(() => import("./Connexions"), "default");
 const Numerotations = paresseux(() => import("./Numerotation"), "Numerotations");
 const EcranJournee = paresseux(() => import("./Journee"), "EcranJournee");
 const InformationsClient = paresseux(() => import("./Visa"), "InformationsClient");
-const ModificationFrais = paresseux(() => import("./Visa"), "ModificationFrais");
 const PhotosSignatures = paresseux(() => import("./Visa"), "PhotosSignatures");
 const ResiliationClient = paresseux(() => import("./Visa"), "ResiliationClient");
-const ValidationClientModifie = paresseux(() => import("./Visa"), "ValidationClientModifie");
-const VisaClient = paresseux(() => import("./Visa"), "VisaClient");
+const MembresAViser = paresseux(() => import("./Visa"), "MembresAViser");
 const FraisOperations = paresseux(() => import("./Parametrage"), "FraisOperations");
 const GroupeSolidaire = paresseux(() => import("./Groupes"), "GroupeSolidaire");
 const NouveauProspect = paresseux(() => import("./Prospects"), "NouveauProspect");
@@ -298,9 +296,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S07: Connexions,
   S16: FraisOperations,
   S37: NouveauMembre,
-  S40: VisaClient,
-  S41: ModificationFrais,
-  S42: ValidationClientModifie,
+  S40: MembresAViser,
   S43: InformationsClient,
   S44: GroupeSolidaire,
   S45: NouveauProspect,
