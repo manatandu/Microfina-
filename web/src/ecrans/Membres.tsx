@@ -76,9 +76,7 @@ function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot, chois
               <button className="bouton secondaire" type="button" disabled={!choisirProspect} onClick={choisirProspect}
                 title={choisirProspect ? undefined : "Un prospect (S45) est une personne physique"}>Choisir prospect</button>
             </div>}
-        <Champ libelle={entreprise ? "N° de l'entreprise :" : groupe ? "N° du groupe :" : "N° du Client :"}>{(p) => <input {...p} className="saisie code" readOnly value={numero} />}</Champ>
-        <Champ libelle="N° Manuel :">{(p) => <input {...p} className="saisie code" autoComplete="off" value={f.numeroManuel} onChange={(e) => maj({ numeroManuel: e.target.value })} />}</Champ>
-        {physique && <Champ libelle="N° Matricule :">{(p) => <input {...p} className="saisie code" autoComplete="off" value={f.matricule} onChange={(e) => maj({ matricule: e.target.value })} />}</Champ>}
+        {numero && <Champ libelle={entreprise ? "N° de l'entreprise :" : groupe ? "N° du groupe :" : "N° du Client :"}>{(p) => <input {...p} className="saisie code" readOnly value={numero} />}</Champ>}
         {/* Type client : une seule valeur, posée d'office pour la personne physique (plan d'allègement, point 2.3) */}
         {entreprise && <Champ libelle="Agent économique (PCCI) : *">{(p) => <select {...p} className="saisie" required {...sel("typeClient")}>
           <option value=""></option>{types.map((t) => <option key={t} value={t}>{enClair(t)}</option>)}</select>}</Champ>}

@@ -578,7 +578,7 @@ def vue_tiers(t: dict) -> dict:
             "pieceType": t["piece_type"] or "", "pieceNumero": t["piece_numero"] or "",
             "pieceExpire": t["piece_validite"].isoformat() if t["piece_validite"] else "",
             "adresse": t["adresse"] or "", "telephone": t["telephone"] or "", "personneExposee": t["personne_exposee"],
-            "dateDemande": iso(t["date_demande"]), "numeroManuel": t["numero_manuel"] or "", "matricule": t["matricule"] or "", "typeClient": t["type_client"] or "",
+            "dateDemande": iso(t["date_demande"]), "typeClient": t["type_client"] or "",
             "zone": t["zone_nom"] or "", "produitCode": t["produit_code"] or "", "premierDepot": t["premier_depot"] or 0, "resident": t["residence"] != "non_resident",
             "preleverAgios": t["prelever_agios"], "calculerInteret": t["calculer_interet"],
             "lieuNaissance": t["lieu_naissance"] or "", "pieceDelivreeLe": iso(t["piece_delivree_le"]), "pieceLieu": t["piece_lieu"] or "", "pieceAutorite": t["piece_autorite"] or "", "piecePays": t.get("piece_pays") or "",
@@ -807,8 +807,8 @@ def inserer_tiers(u: dict, d: dict, b: dict, type_: str, agent: str) -> int:
     tid = valeur("""insert into tiers (institution_id, agence_id, numero, numero_manuel, type, statut, residence, agent_economique, zone_id, personne_exposee, cree_par,
                                        date_demande, matricule, type_client, produit_id, premier_depot, prelever_agios, calculer_interet)
                     values (%s, %s, %s, %s, %s, 'a_viser', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
-                 (u["institution_id"], u["agence_id"], numero, texte("numeroManuel") or None, type_, "resident" if d.get("resident", True) else "non_resident", agent,
-                  b["zone"], type_ == "physique" and bool(d.get("personneExposee")), u["id"], texte("dateDemande"), texte("matricule") or None, texte("typeClient"), b["produit"], b["depot"],
+                 (u["institution_id"], u["agence_id"], numero, None, type_, "resident" if d.get("resident", True) else "non_resident", agent,
+                  b["zone"], type_ == "physique" and bool(d.get("personneExposee")), u["id"], texte("dateDemande"), None, texte("typeClient"), b["produit"], b["depot"],
                   bool(d.get("preleverAgios", True)), bool(d.get("calculerInteret"))))
     for autre in b["liees"]:
         executer("insert into lien_tiers (tiers_id, autre_id, role) values (%s, %s, 'personne_liee')", (tid, autre))
@@ -946,8 +946,8 @@ def creer_tiers(u: dict, d: dict) -> dict:
         executer("""update tiers set numero_manuel = %s, statut = 'a_viser', residence = %s, agent_economique = 'menages', zone_id = %s, personne_exposee = %s,
                                      cree_par = %s, date_demande = %s, matricule = %s, type_client = %s, produit_id = %s, premier_depot = %s, prelever_agios = %s,
                                      calculer_interet = %s where id = %s""",
-                 (texte("numeroManuel") or None, "resident" if d.get("resident", True) else "non_resident", b["zone"], bool(d.get("personneExposee")), u["id"],
-                  texte("dateDemande"), texte("matricule") or None, texte("typeClient"), b["produit"], b["depot"], bool(d.get("preleverAgios", True)),
+                 (None, "resident" if d.get("resident", True) else "non_resident", b["zone"], bool(d.get("personneExposee")), u["id"],
+                  texte("dateDemande"), None, texte("typeClient"), b["produit"], b["depot"], bool(d.get("preleverAgios", True)),
                   bool(d.get("calculerInteret")), tid))
         for autre in b["liees"]:
             executer("insert into lien_tiers (tiers_id, autre_id, role) values (%s, %s, 'personne_liee')", (tid, autre))

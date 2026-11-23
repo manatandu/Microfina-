@@ -448,8 +448,8 @@ export function InformationsClient() {
           <fieldset className="cadre-champs formulaire">
             <legend>Renseignements généraux</legend>
             {lu("N° du Client :", t?.numero ?? "")}{lu("Gestionnaire :", agent((ctx as Agents)?.gestionnaires, t?.gestionnaireId))}
-            {lu("N° Manuel:", t?.numeroManuel ?? "")}{lu("Commercial :", agent((ctx as Agents)?.commerciaux, t?.commercialId))}
-            {lu("N° Matricule :", t?.matricule ?? "")}{lu("Sensibilisateur :", agent((ctx as Agents)?.sensibilisateurs, t?.sensibilisateurId))}
+            {lu("Commercial :", agent((ctx as Agents)?.commerciaux, t?.commercialId))}
+            {lu("Sensibilisateur :", agent((ctx as Agents)?.sensibilisateurs, t?.sensibilisateurId))}
           </fieldset>
           <fieldset className="cadre-champs">
             <legend>Photo / Signature</legend>

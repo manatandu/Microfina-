@@ -99,8 +99,6 @@ export interface Tiers {
   personneExposee: boolean;
   // S37, onglet « Informations de base » (manuel Microfina++, p. 49)
   dateDemande: string;
-  numeroManuel: string;
-  matricule: string;
   typeClient: string;
   zone: string;
   produitCode: string;         // type de compte à créer

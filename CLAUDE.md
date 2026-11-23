@@ -11,6 +11,7 @@ Décision du porteur, 05/11/2026, valable pour tout le projet.
 - Seule l'apparence est la nôtre (jetons de `replica/design/`) ; la structure est celle de Microfina++.
 - Un écart n'est permis que si un texte l'impose (Instructions BCC, PCCI, lois), avec sa référence, ou si le porteur le demande. Sinon, on pose la question au porteur avant de faire.
 - Ce que le manuel ne montre pas ne s'invente pas : on le marque « à confirmer » et on demande.
+- Ce qui reste incompréhensible après recherche (manuel, Instructions de la BCC, lois, logiciel lui-même) et n'a aucun usage se supprime, mais on en parle au porteur avant (décision du porteur, 23/11/2026, registre T130).
 
 Deux phases, dans cet ordre (décision du porteur, 05/11/2026) :
 

@@ -210,7 +210,7 @@ Ces règles passent par les composants communs : une correction, et tous les éc
 
 **3.9 Personne politiquement exposée.** Retirée de la fiche entreprise et de la fiche groupe ; gardée pour la personne physique, le dirigeant et chaque bénéficiaire effectif. Texte : loi 22/068, art. 3, 40° (« toute personne physique ») ; Instr. BCC 15, art. 60. La vérification d'une entreprise par ses dirigeants et bénéficiaires effectifs existe déjà.
 
-**3.10 Cases de la fiche.** Les agents (sensibilisateur, gestionnaire, commercial) et la zone se rangent dans un cadre « Suivi commercial », vide par défaut, montré seulement s'il existe des agents de ce rôle. « N° Manuel » et « N° Matricule » se replient sous « Autres références » ; question au porteur : à quoi servent-ils ? La case grise « N° du Client », vide pendant toute la saisie, disparaît : le numéro s'affiche une fois attribué.
+**3.10 Cases de la fiche.** Les agents (sensibilisateur, gestionnaire, commercial) et la zone se rangent dans un cadre « Suivi commercial », vide par défaut, montré seulement s'il existe des agents de ce rôle. « N° Manuel » et « N° Matricule », qu'aucun texte, ni le manuel, n'explique et que rien ne lit, disparaissent (décision du porteur, 23/11/2026, registre T130). La case grise « N° du Client », vide pendant toute la saisie, disparaît : le numéro s'affiche une fois attribué.
 
 **3.11 Prospect (S45).** Il devient une fiche physique enregistrée « comme prospect », les autres onglets étant facultatifs. La liste des prospects devient un filtre de la liste des membres ; le rapport (S51) reste.
 
@@ -462,7 +462,6 @@ Elles se posent au début du lot concerné. Aucune n'a de réponse dans les text
 - 2.18 Part sociale hors du barème des frais, réglée dans la fiche Société (change S16-11) ?
 - 2.24 « Taux A. » et « Taux N.A. » des types de facture visent-ils l'AIB du Bénin ?
 - 3.5 Exonération des frais de tenue de compte, membre par membre ?
-- 3.10 À quoi servent « N° Manuel » et « N° Matricule » ?
 - 3.14 La case « Code » du consentement sert-elle ?
 - 3.15 Les statuts prévoient-ils des parts souscrites non libérées ?
 - 4.11 Masquer le solde théorique pendant le comptage ? Que désigne « Bon de caisse » ?
