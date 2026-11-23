@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1002 décisions.** Solidité : 455 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 993 déjà en place, 9 à appliquer.
+**1003 décisions.** Solidité : 456 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 994 déjà en place, 9 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -785,6 +785,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S38-6 | État, banque, compagnie d'assurance | Type entreprise (agent économique du PCCI § 10.2) : l'État est « Administration centrale », une province ou une entité territoriale « Administrations provinciales ou locales », une banque « Banques commerciales et autres intermédiaires financiers », une compagnie d'assurance « Institutions financières non bancaires », une société de l'État « Entreprises publiques ». Formes juridiques ajoutées : administration publique (État, province, entité territoriale décentralisée), établissement public, coopérative d'épargne et de crédit. Une banque et une entreprise d'assurance sont des sociétés anonymes, déjà dans la liste | Texte réglementaire : Question du porteur du 22/11/2026 ; PCCI § 10.2 ; loi 22/069 (banque : société anonyme avec conseil d'administration) ; loi 15/005, Code des assurances (société anonyme non unipersonnelle) ; loi n° 08/009 du 7 juillet 2008 (établissements publics) ; loi 002/2002 | forte | en place |
+
+## S38, S39 Entreprise et groupe
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S38-7 | Personne politiquement exposée | La case quitte la fiche de l'entreprise et celle du groupe ; elle reste pour la personne physique, le dirigeant et chaque bénéficiaire effectif. L'entreprise se vérifie par ses dirigeants et bénéficiaires effectifs (déjà en place). Une entreprise ou un groupe enregistré ou modifié n'est jamais marqué lui-même. | Texte réglementaire : Loi 22/068, art. 3, 40° (« toute personne physique »), non modifié par la loi 25/048 ; plan d'allègement, point 3.9 | forte | en place |
 
 ## S39 Fiche du groupe
 

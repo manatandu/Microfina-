@@ -808,7 +808,7 @@ def inserer_tiers(u: dict, d: dict, b: dict, type_: str, agent: str) -> int:
                                        date_demande, matricule, type_client, produit_id, premier_depot, prelever_agios, calculer_interet)
                     values (%s, %s, %s, %s, %s, 'a_viser', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
                  (u["institution_id"], u["agence_id"], numero, texte("numeroManuel") or None, type_, "resident" if d.get("resident", True) else "non_resident", agent,
-                  b["zone"], bool(d.get("personneExposee")), u["id"], texte("dateDemande"), texte("matricule") or None, texte("typeClient"), b["produit"], b["depot"],
+                  b["zone"], type_ == "physique" and bool(d.get("personneExposee")), u["id"], texte("dateDemande"), texte("matricule") or None, texte("typeClient"), b["produit"], b["depot"],
                   bool(d.get("preleverAgios", True)), bool(d.get("calculerInteret"))))
     for autre in b["liees"]:
         executer("insert into lien_tiers (tiers_id, autre_id, role) values (%s, %s, 'personne_liee')", (tid, autre))
@@ -1301,7 +1301,7 @@ def modifier_tiers(u: dict, tid: int, d: dict) -> dict:
         executer("""update tiers set date_demande = %s, type_client = %s, agent_economique = %s, zone_id = %s, residence = %s, prelever_agios = %s,
                                      calculer_interet = %s, personne_exposee = %s, statut = 'modifie_a_revalider' where id = %s""",
                  (texte("dateDemande"), texte("typeClient"), texte("typeClient"), b["zone"], "resident" if d.get("resident", True) else "non_resident",
-                  bool(d.get("preleverAgios", True)), bool(d.get("calculerInteret")), bool(d.get("personneExposee")), tid))
+                  bool(d.get("preleverAgios", True)), bool(d.get("calculerInteret")), False, tid))
         executer("""update tiers_morale set raison_sociale = %s, forme = %s, rccm = %s, adresse_siege = %s, centre_activite = %s, activite = %s where tiers_id = %s""",
                  (texte("nom"), texte("formeJuridique"), texte("registre"), texte("adresse"), texte("centreActivite") or None, texte("typeActivite") or None, tid))
         ecrire_fiche_morale(tid, texte, fiche)
@@ -1313,7 +1313,7 @@ def modifier_tiers(u: dict, tid: int, d: dict) -> dict:
         executer("""update tiers set date_demande = %s, type_client = %s, agent_economique = %s, zone_id = %s, residence = %s, prelever_agios = %s,
                                      calculer_interet = %s, personne_exposee = %s, statut = 'modifie_a_revalider' where id = %s""",
                  (texte("dateDemande"), texte("typeClient"), (TYPES_GROUPE.get(texte("typeClient")) or "menages"), b["zone"], "resident" if d.get("resident", True) else "non_resident",
-                  bool(d.get("preleverAgios", True)), bool(d.get("calculerInteret")), bool(d.get("personneExposee")), tid))
+                  bool(d.get("preleverAgios", True)), bool(d.get("calculerInteret")), False, tid))
         executer("""update tiers_morale set raison_sociale = %s, forme = %s, rccm = %s, adresse_siege = %s, activite = %s, nb_hommes = %s, nb_femmes = %s where tiers_id = %s""",
                  (texte("nom"), texte("formeJuridique") or None, texte("registre") or None, texte("adresse"), texte("typeActivite") or None, *nombres, tid))
         ecrire_fiche_morale(tid, texte, fiche)

@@ -885,7 +885,7 @@ const tiers = {
     controlerEntreprise(d, dirigeant, signataires, ctxControle());
     controlerRelation(d, true);   // A8 : provenance des fonds (Instr. BCC 15, art. 17 b)
     const sig = signataires.map(versRepresentant);
-    const t = nouveauTiers({ ...d, ...SANS_IDENTITE, activite: d.typeActivite ?? "", beneficiaires: [], controleEffectifs: controlerEffectifs(d) }, u.id,   // Nature de l'activité : le type d'activité choisi (registre S38-1)
+    const t = nouveauTiers({ ...d, ...SANS_IDENTITE, personneExposee: false, activite: d.typeActivite ?? "", beneficiaires: [], controleEffectifs: controlerEffectifs(d) }, u.id,   // Nature de l'activité : le type d'activité choisi (registre S38-1)
       { type: "morale", dirigeant: dirigeant ? versRepresentant(dirigeant) : null, signataires: sig, membres: [], photo: false, specimen: sig.some((x) => x.specimen) });
     rapprocherGel([t.id]);   // A13
     enregistrer(); return t;
@@ -895,7 +895,7 @@ const tiers = {
     if (!u) throw new ErreurMetier("Session fermée.");
     controlerGroupe(d, membres, images, ctxControle());
     controlerRelation(d, false);   // A8
-    const t = nouveauTiers({ ...d, ...SANS_IDENTITE, centreActivite: "", activite: d.typeActivite ?? "", beneficiaires: [], categorie: categorieGroupe(d.nbHommes, d.nbFemmes) }, u.id,   // registre S39-1 ; catégorie calculée (plan 2.5)
+    const t = nouveauTiers({ ...d, ...SANS_IDENTITE, personneExposee: false, centreActivite: "", activite: d.typeActivite ?? "", beneficiaires: [], categorie: categorieGroupe(d.nbHommes, d.nbFemmes) }, u.id,   // registre S39-1 ; catégorie calculée (plan 2.5)
       { type: "groupe", dirigeant: null, signataires: [], membres: membres.map(versRepresentant), photo: !!images.photo, specimen: !!images.signature });
     if (images.photo || images.signature || images.copiePiece || images.justificatifAdresse) E.images[t.id] = images;
     rapprocherGel([t.id]);   // A13
@@ -980,6 +980,8 @@ const tiers = {
       "liees", "pays", "province", "ville", "commune", "quartier", "rue", "numeroRue", "email", "bp", "telephoneFixe", "secteurActivite", "typeActivite", "categorie", "sousTypeClient",
       "gestionnaireId", "sensibilisateurId", "commercialId"] as const;
     const ecrire = (champs: readonly (keyof NouveauTiers)[]) => { for (const k of champs) (t as unknown as Record<string, unknown>)[k] = d[k]; };
+    // Personne politiquement exposée : personne physique seulement (loi 22/068, art. 3, 40° ; plan 3.9). Identique au serveur.
+    if (t.type !== "physique") d = { ...d, personneExposee: false };
     if (t.type === "morale") {
       const sig = r.signataires ?? [];
       controlerEntreprise(dd, r.dirigeant ?? null, sig, ctx, t.signataires);

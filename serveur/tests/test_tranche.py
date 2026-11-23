@@ -394,8 +394,9 @@ def test_fiche_entreprise(clients, journee):
     # nature du contrôle (loi 22/068, art. 34 bis) ; participation de contrôle au-delà de 25 % (art. 39, al. 2)
     assert "nature du contrôle" in refus({**base, "beneficiairesEffectifs": [physique]})
     assert "25 %" in refus({**base, "beneficiairesEffectifs": [physique], "controleEffectifs": [{"nature": "Participation de contrôle", "part": "20"}]})
-    t = agent.post("/api/tiers/entreprises", {**base, "beneficiairesEffectifs": [physique],
+    t = agent.post("/api/tiers/entreprises", {**base, "beneficiairesEffectifs": [physique], "personneExposee": True,
                                               "controleEffectifs": [{"nature": "Participation de contrôle", "part": "40,5"}]}, **H).json()
+    assert t["personneExposee"] is False     # personne physique seulement (loi 22/068, art. 3, 40° ; plan 3.9)
     assert (t["formeJuridique"], t["secteurActivite"], t["email"], t["beneficiairesEffectifs"], t["liees"], t["controleEffectifs"]) == \
         ("Société à responsabilité limitée", "Primaire", "contact@exemple.cd", [physique], [], [{"nature": "Participation de contrôle", "part": "40,50"}])
     # copie des statuts et du registre avant le visa (loi 22/068, art. 34 ; confrontation du 21/11/2026, E1)

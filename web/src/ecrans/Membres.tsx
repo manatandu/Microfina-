@@ -403,7 +403,8 @@ function AutresRenseignements({ f, maj, ctx, physique }: { f: NouveauTiers; maj:
         {/* A7 : activité déclarée, pièce qui habilite à l'exercer (loi 22/068, art. 33, al. 4 ; Instr. BCC 15, art. 13, al. 2) ; sa copie se dépose dans Photos et signatures */}
         {physique && <Champ libelle={f.secteurActivite ? "Pièce d'habilitation professionnelle : *" : "Pièce d'habilitation professionnelle :"}>{(p) =>
           <input {...p} className="saisie" required={!!f.secteurActivite} autoComplete="off" value={f.habilitationReference ?? ""} onChange={(e) => maj({ habilitationReference: e.target.value })} />}</Champ>}
-        <label className="case"><input type="checkbox" checked={f.personneExposee} onChange={(e) => maj({ personneExposee: e.target.checked })} /><span>Personne politiquement exposée</span></label>
+        {/* Personne physique seulement (loi 22/068, art. 3, 40° : « toute personne physique ») ; l'entreprise se vérifie par ses dirigeants et bénéficiaires effectifs (plan 3.9) */}
+        {physique && <label className="case"><input type="checkbox" checked={f.personneExposee} onChange={(e) => maj({ personneExposee: e.target.checked })} /><span>Personne politiquement exposée</span></label>}
       </div>
     </div>
   );
