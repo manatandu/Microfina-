@@ -201,14 +201,14 @@ export function FicheImputation({ id, fermer }: { id: number; fermer: () => void
 }
 
 function Enregistrement({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
-  const vide = { fournisseur: "", directe: false, commande: "", tranche: "", reference: "", dateFacture: "", dateEcheance: "", libelle: "", compte: "", ht: "", tva: false, aJour: true };
+  const vide = { fournisseur: "", directe: false, commande: "", tranche: "", reference: "", dateFacture: "", dateEcheance: "", libelle: "", compte: "", ht: "", tva: false };
   const [f, setF] = useState(vide);
   const [cle, setCle] = useState(nouvelleCle);
   const maj = (p: Partial<typeof vide>) => setF((x) => ({ ...x, ...p }));
   const { donnees: commandes } = useDonnees(() => (f.fournisseur ? api.facturesFournisseurs.commandesAFacturer(Number(f.fournisseur)) : Promise.resolve([])), [f.fournisseur]);
   const c = (commandes ?? []).find((x) => String(x.id) === f.commande);
   const saisie = { fournisseurId: f.fournisseur ? Number(f.fournisseur) : null, directe: f.directe, commandeId: c?.id ?? null, tranche: f.tranche ? Number(f.tranche) : null,
-    montantHt: f.ht.trim() ? lireMontant(f.ht) : null, tva: f.tva, aJour: f.aJour, compte: f.compte.trim() };
+    montantHt: f.ht.trim() ? lireMontant(f.ht) : null, tva: f.tva, compte: f.compte.trim() };
   const pret = !!f.fournisseur && (f.directe ? !!saisie.montantHt && !!saisie.compte : !!c && !!f.tranche);
   const { donnees: ap } = useDonnees(async () => { if (!pret) return null; try { return await api.facturesFournisseurs.apercuFacture(saisie); } catch { return null; } },
     [pret, f.fournisseur, f.directe, f.commande, f.tranche, f.ht, f.tva, f.compte]);
@@ -246,7 +246,6 @@ function Enregistrement({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
         {f.directe && <label className="case"><input type="checkbox" checked={f.tva} onChange={(e) => maj({ tva: e.target.checked })} /><span>Ajouter TVA</span></label>}
         <Champ libelle="TVA">{(p) => <Lecture {...p} value={ap ? decimal.format(ap.tva / 100) : ""} />}</Champ>
         <Champ libelle="TTC:">{(p) => <Lecture {...p} value={ap ? decimal.format(ap.ttc / 100) : ""} />}</Champ>
-        <div className="ligne-champ"><label className="case"><input type="checkbox" checked={f.aJour} onChange={(e) => maj({ aJour: e.target.checked })} /><span>Fournisseur à jour</span></label></div>
         <Charges charges={ap?.charges ?? []} titre="Liste des retenues fiscales" />
         <p>Montant à payer: <strong className="chiffres">{ap ? cdf(ap.aPayer) : ""}</strong></p>
       </fieldset>

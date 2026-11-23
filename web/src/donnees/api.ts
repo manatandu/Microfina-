@@ -7262,7 +7262,7 @@ const facturesFournisseurs = {
       throw new ErreurMetier("Réf. Facture : cette facture du fournisseur est déjà enregistrée.");
     const f: FactureFournisseur = { id: prochain(E.facturesFournisseurs), cle, numero: String(E.facturesFournisseurs.length + 1).padStart(6, "0"), commandeId: x.c?.id ?? null, tranche: x.tranche,
       fournisseurId: x.f.id, typeFacture: x.typeFacture, reference, date, echeance, libelle, ht: x.ht, tva: x.tva, ttc: x.ttc, charges: x.charges, imputation: x.imputation, du: x.du, aPayer: x.aPayer,
-      aJour: d.aJour !== false, nif: false, statut: "saisie", saisiPar: u.id, piece: "" };
+      aJour: true, nif: false, statut: "saisie", saisiPar: u.id, piece: "" };
     E.facturesFournisseurs.push(f); enregistrer(); return vueFactureF(f);
   },
   /** Liste « N° Facture » du règlement : factures validées du fournisseur qui ne sont pas soldées */

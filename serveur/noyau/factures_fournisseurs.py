@@ -337,7 +337,7 @@ def enregistrer_facture(u, d) -> dict:
                                                      saisi_par, cle_idempotence)
                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
                  (i, u["agence_id"], f"{n:06d}", x["commande"]["id"] if x["commande"] else None, x["tranche"], x["fournisseur"]["id"], x["typeFacture"], reference, date_f,
-                  echeance, libelle, x["ht"], x["tva"], x["ttc"], Jsonb(x["charges"]), Jsonb(x["imputation"]), x["du"], x["aPayer"], bool(d.get("aJour", True)),
+                  echeance, libelle, x["ht"], x["tva"], x["ttc"], Jsonb(x["charges"]), Jsonb(x["imputation"]), x["du"], x["aPayer"], True,
                   False, u["id"], cle))
     return vue_facture(une("select * from facture_fournisseur where id = %s", (fid,)))
 
