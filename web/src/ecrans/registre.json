@@ -298,30 +298,12 @@
   },
   {
     "id": "S37",
-    "nom": "Enrôlement personne physique",
-    "acces": "Client > Enrôlement > Physique",
-    "but": "Créer un client",
+    "nom": "Nouveau membre",
+    "acces": "Client > Nouveau membre",
+    "but": "Enrôler une personne physique, une entreprise ou un groupe",
     "module": "clients",
     "priorite": "must",
     "chemin": "/clients/s37"
-  },
-  {
-    "id": "S38",
-    "nom": "Enrôlement entreprise",
-    "acces": "Client > Enrôlement > Entreprise",
-    "but": "Créer une personne morale",
-    "module": "clients",
-    "priorite": "must",
-    "chemin": "/clients/s38"
-  },
-  {
-    "id": "S39",
-    "nom": "Enrôlement groupe",
-    "acces": "Client > Enrôlement > Groupe",
-    "but": "Créer un groupement, une association, une ONG",
-    "module": "clients",
-    "priorite": "must",
-    "chemin": "/clients/s39"
   },
   {
     "id": "S40",

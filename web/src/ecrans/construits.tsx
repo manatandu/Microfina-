@@ -220,9 +220,7 @@ const OuvertureFermetureGuichets = paresseux(() => import("./Guichets"), "Ouvert
 const CompleterJournalDetail = paresseux(() => import("./Exercices"), "CompleterJournalDetail");
 const NouvelExercice = paresseux(() => import("./Exercices"), "NouvelExercice");
 const OuvertureExercice = paresseux(() => import("./Exercices"), "OuvertureExercice");
-const EnrolementEntreprise = paresseux(() => import("./Membres"), "EnrolementEntreprise");
-const EnrolementGroupe = paresseux(() => import("./Membres"), "EnrolementGroupe");
-const EnrolementPhysique = paresseux(() => import("./Membres"), "EnrolementPhysique");
+const NouveauMembre = paresseux(() => import("./Membres"), "NouveauMembre");
 const MiseAJourClient = paresseux(() => import("./Membres"), "MiseAJourClient");
 const RapportTransactions = paresseux(() => import("./Transactions"), "default");
 const ListesGenerales = paresseux(() => import("./Secteurs"), "default");
@@ -299,9 +297,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S06: GestionProfilsUtilisateur,
   S07: Connexions,
   S16: FraisOperations,
-  S37: EnrolementPhysique,
-  S38: EnrolementEntreprise,
-  S39: EnrolementGroupe,
+  S37: NouveauMembre,
   S40: VisaClient,
   S41: ModificationFrais,
   S42: ValidationClientModifie,

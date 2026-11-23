@@ -251,42 +251,42 @@ const OUT = process.argv[2];
   await p.getByLabel('Date de délivrance : *').fill('05032023'); await p.getByLabel('Lieu de délivrance : *').fill('Kinshasa'); await p.getByLabel('Autorité de délivrance : *').fill('CENI');
   await p.getByLabel("Date d'expiration : *").fill('01012031');
   await etape('04b-renseignements');
-  await p.getByRole('tab', { name: 'Autres renseignements' }).click(); await adresseKinsaku('Kinsaku', '12');
+  await p.getByRole('tab', { name: 'Adresse et activité' }).click(); await adresseKinsaku('Kinsaku', '12');   // cinq onglets communs (plan 3.1)
   await p.getByLabel('Activité :').selectOption('Commerce, vente et grande distribution');
   await p.getByLabel("Pièce d'habilitation professionnelle : *").fill('Patente 0412/2026');   // A7 : loi 22/068, art. 33, al. 4
   await etape('04b2-autres-renseignements');
-  await p.getByRole('tab', { name: 'Héritiers désignés' }).click(); await p.getByRole('button', { name: '+Ajouter' }).click();
+  await p.getByRole('tab', { name: 'Personnes' }).click(); await p.getByRole('region', { name: 'Héritiers désignés' }).getByRole('button', { name: '+Ajouter' }).click();
   const be = p.getByRole('dialog', { name: 'Bénéficiaire' }); await be.getByLabel('Nom : *').fill('Tshala'); await be.getByLabel('Prénom :').fill('Paul');
   await be.getByRole('button', { name: 'Ajouter', exact: true }).click(); await be.getByRole('button', { name: 'Fermer' }).click();
   await p.getByRole('cell', { name: 'Paul' }).waitFor(); await etape('04b3-beneficiaires');
-  await p.getByRole('tab', { name: 'Personnes Liées' }).click();
-  await p.getByLabel('Membre :').fill('Kalala'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('button', { name: '+Ajouter' }).click();
+  const pl = p.getByRole('region', { name: 'Personnes liées' });
+  await pl.getByLabel('Membre :').fill('Kalala'); await pl.getByRole('button', { name: 'Rechercher' }).click(); await pl.getByRole('button', { name: '+Ajouter' }).click();
   await p.getByRole('cell', { name: '0412-000318' }).waitFor(); await etape('04c-personnes-liees');
-  await p.getByRole('tab', { name: 'Photo' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click();
+  await p.getByRole('tab', { name: 'Photos et pièces' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click();
   await p.getByRole('dialog', { name: 'Confirmation' }).waitFor(); await etape('04d-confirmation');
   await oui(); await etape('05-enrole');
-  // Groupe (S39)
-  await aller('/clients/s39');
+  // Groupe : même écran « Nouveau membre », nature Groupe (plan 3.1)
+  await aller('/clients/s37?nature=groupe');
   await p.getByLabel('Nombre de Femme :').fill('12');
   await p.getByLabel('Type de compte à créer *').selectOption('EAV-CDF'); await etape('05g-groupe');
   await p.getByLabel('Objet et nature de la relation : *').fill('Épargne et crédit');   // A8 : loi 22/068, art. 47
   await p.getByRole('button', { name: 'Suivant' }).click();
   await p.getByLabel('Dénomination : *').fill('Mamans de Kinsaku');
-  await p.getByRole('tab', { name: 'Autres renseignements' }).click(); await adresseKinsaku('Kinsaku', ''); await p.getByRole('tab', { name: 'Renseignements généraux' }).click();
+  await p.getByRole('tab', { name: 'Adresse et activité' }).click(); await adresseKinsaku('Kinsaku', ''); await p.getByRole('tab', { name: 'Identité' }).click();
   await p.getByLabel('Forme juridique : *').selectOption('Association sans but lucratif à caractère culturel, social, éducatif ou économique'); await etape('05g2-groupe-renseignements');   // S39-5 : formes des groupes
   if (await p.getByLabel('Forme juridique : *').locator('option', { hasText: 'Société anonyme' }).count()) throw new Error('Groupe : forme de société proposée');
-  await p.getByRole('button', { name: 'Suivant' }).click(); await p.getByRole('button', { name: 'Ajouter', exact: true }).click();
+  await p.getByRole('tab', { name: 'Personnes' }).click(); await p.getByRole('region', { name: 'Membres du groupe' }).getByRole('button', { name: 'Ajouter', exact: true }).click();
   const mb = p.getByRole('dialog', { name: 'Membre du groupe' });
   await representant(mb, 'Mbuyi', 'Anne', "Carte d'électeur", '1-0412-7777');
   await etape('05h-fiche-membre');
   await mb.getByRole('button', { name: 'Enregistrer' }).click(); await mb.getByRole('button', { name: 'Fermer' }).click();
   await p.getByRole('cell', { name: 'Mbuyi' }).waitFor(); await etape('05i-membres-groupe');
-  await p.getByRole('button', { name: 'Suivant' }).click();
+  await p.getByRole('tab', { name: 'Adresse et activité' }).click();
   await p.getByLabel('Activité :').selectOption('Pisciculture'); await etape('05i2-groupe-autres');   // registre S39-1
-  await p.getByRole('tab', { name: 'Photo' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('tab', { name: 'Photos et pièces' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await succes();
-  // Entreprise (S38)
-  await aller('/clients/s38');
+  // Entreprise : même écran, nature Entreprise (plan 3.1)
+  await aller('/clients/s37?nature=entreprise');
   await p.getByLabel('Agent économique (PCCI) : *').selectOption('Entreprises privées'); await p.getByLabel('Zone : *').selectOption('Matete');
   await p.getByLabel('Type de compte à créer *').selectOption('EAV-CDF'); await etape('05b-entreprise');
   await p.getByLabel('Objet et nature de la relation : *').fill('Épargne et crédit');   // A8 : loi 22/068, art. 47
@@ -296,17 +296,17 @@ const OUT = process.argv[2];
   await p.getByLabel('N° du registre : *').fill('CD/KNG/RCCM/24-B-00001');
   await p.getByRole('button', { name: 'Suivant' }).click(); await adresseKinsaku('Kinsaku', '3');
   await p.getByLabel('Activité :').selectOption('Pisciculture'); await etape('05b2-entreprise-autres');
-  await p.getByRole('tab', { name: 'Dirigeant' }).click();
-  await representant(p, 'Ilunga', 'Paul', 'Passeport', 'OP9', 'Gérant');
+  await p.getByRole('tab', { name: 'Personnes' }).click();
+  await representant(p.getByRole('region', { name: 'Dirigeant' }), 'Ilunga', 'Paul', 'Passeport', 'OP9', 'Gérant');
   await etape('05c-dirigeant');
   // Personnes liées : bénéficiaire effectif (registre S38-3)
-  await p.getByRole('tab', { name: 'Personnes Liées' }).click(); await p.getByLabel('Lien :').selectOption({ label: 'Bénéficiaire effectif' });
-  await p.getByLabel('Membre :').fill('Kalala'); await p.getByRole('button', { name: 'Rechercher' }).click();
-  await p.getByRole('button', { name: '+Ajouter' }).click(); await p.getByRole('cell', { name: 'Bénéficiaire effectif' }).waitFor();
+  const ple = p.getByRole('region', { name: 'Personnes liées et bénéficiaires effectifs' }); await ple.getByLabel('Lien :').selectOption({ label: 'Bénéficiaire effectif' });
+  await ple.getByLabel('Membre :').fill('Kalala'); await ple.getByRole('button', { name: 'Rechercher' }).click();
+  await ple.getByRole('button', { name: '+Ajouter' }).click(); await p.getByRole('cell', { name: 'Bénéficiaire effectif' }).waitFor();
   // nature du contrôle et part (loi 22/068, art. 34 bis et 39, al. 2)
   await p.getByLabel(/^Nature du contrôle : Kalala/).selectOption('Participation de contrôle'); await p.getByLabel(/^Part \(%\) : Kalala/).fill('60');
   await etape('05c2-beneficiaire-effectif');
-  await p.getByRole('tab', { name: 'Signataires' }).click(); await p.getByRole('button', { name: '+Ajouter' }).click();
+  await p.getByRole('region', { name: 'Signataires' }).getByRole('button', { name: '+Ajouter' }).click();
   const sig = p.getByRole('dialog', { name: 'Signataire' });
   await representant(sig, 'Ilunga', 'Paul', 'Passeport', 'OP9', 'Gérant');
   await etape('05d-fiche-signataire');
@@ -316,8 +316,8 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: 'Mbuyi' }).waitFor();
   await p.getByRole('row', { name: /Mbuyi/ }).getByRole('button', { name: 'Retirer' }).click();   // registre S38-2
   await p.getByRole('cell', { name: 'Mbuyi' }).waitFor({ state: 'detached' });
-  await p.getByRole('cell', { name: 'Ilunga' }).waitFor(); await etape('05e-signataires');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('region', { name: 'Signataires' }).getByRole('cell', { name: 'Ilunga' }).waitFor(); await etape('05e-signataires');
+  await p.getByRole('tab', { name: 'Photos et pièces' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await succes(); await etape('05f-entreprise-enregistree');
   // Chef : valider billetages et viser
   await login('J.-P. Mukendi');
@@ -466,7 +466,7 @@ const OUT = process.argv[2];
   await p.getByRole('heading', { name: "Modification d'une entreprise" }).waitFor();
   await p.getByRole('button', { name: 'Modifier' }).click(); await p.getByRole('tab', { name: 'Renseignements généraux' }).click();
   await p.getByLabel("Principal centre d'activité :").fill('Lemba');
-  await p.getByRole('tab', { name: 'Signataires' }).click(); await p.getByRole('button', { name: '+Ajouter' }).click();
+  await p.getByRole('region', { name: 'Signataires' }).getByRole('button', { name: '+Ajouter' }).click();
   const sig2 = p.getByRole('dialog', { name: 'Signataire' });
   await representant(sig2, 'Kabila', 'Rose', 'Passeport', 'OP11', 'Directrice financière');
   await sig2.getByRole('button', { name: 'Enregistrer' }).click(); await sig2.getByRole('button', { name: 'Fermer' }).click();
@@ -525,8 +525,8 @@ const OUT = process.argv[2];
   await p.getByLabel("Forme d'identité : *").selectOption('Passeport'); await p.getByLabel('N° de pièce : *').fill('OP7');
   await p.getByLabel('Date de délivrance : *').fill('10012024'); await p.getByLabel('Lieu de délivrance : *').fill('Kinshasa'); await p.getByLabel('Autorité de délivrance : *').fill('DGM');
   await p.getByLabel("Date d'expiration : *").fill('10012030');
-  await p.getByRole('tab', { name: 'Autres renseignements' }).click(); await adresseKinsaku('Kinsaku', '20');
-  await p.getByRole('tab', { name: 'Photo' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
+  await p.getByRole('tab', { name: 'Adresse et activité' }).click(); await adresseKinsaku('Kinsaku', '20');
+  await p.getByRole('tab', { name: 'Photos et pièces' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   // Types de procuration (S47)
   await aller('/clients/s47'); await p.getByLabel('Libellé *').fill('Procuration générale');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();

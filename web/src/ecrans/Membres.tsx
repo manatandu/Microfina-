@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { useSearchParams } from "react-router-dom";
 import { enClair } from "../lib/enclair";
 import { api, enrolementVide, IMAGE_MAX, NATURES_EFFECTIF, type Images, type NouveauTiers, type RepresentantSaisi } from "../donnees/api";
 import type { Beneficiaire, ControleEffectif, Tiers } from "../donnees/types";
@@ -476,9 +477,63 @@ function RenseignementsGroupe({ f, maj, ctx }: { f: NouveauTiers; maj: Maj; ctx:
   );
 }
 
-// ---------- S37 : Client > Enrôlement > Physique (manuel p. 48 et 49) ----------
+// ---------- S37 : Membre > Nouveau membre (manuel p. 48 à 50) ----------
 
-const ONGLETS_PHYSIQUE = ["Informations de base", "Renseignements généraux", "Autres renseignements", "Personnes Liées", "Héritiers désignés", "Photo"] as const;
+/** Mêmes onglets, même ordre pour les trois natures ; seuls Identité et Personnes changent (plan d'allègement, point 3.1) */
+const ONGLETS_MEMBRE = ["Informations de base", "Identité", "Adresse et activité", "Personnes", "Photos et pièces"] as const;
+type Nature = "physique" | "entreprise" | "groupe";
+
+/** Un seul « Nouveau membre » : la première question est la nature (plan d'allègement, point 3.1 ; Instr. BCC 15, art. 12 à 18) */
+export function NouveauMembre() {
+  const [params, setParams] = useSearchParams();
+  const nature = (["physique", "entreprise", "groupe"].includes(params.get("nature") ?? "") ? params.get("nature") : "physique") as Nature;
+  return (
+    <>
+      <fieldset className="cadre-champs choix-nature">
+        <legend>Nature du membre</legend>
+        <div className="ligne-champ">
+          {([["physique", "Personne physique"], ["entreprise", "Entreprise"], ["groupe", "Groupe"]] as const).map(([k, l]) => (
+            <label key={k} className="case"><input type="radio" name="nature-membre" checked={nature === k} onChange={() => setParams(k === "physique" ? {} : { nature: k })} /><span>{l}</span></label>))}
+        </div>
+      </fieldset>
+      {nature === "physique" ? <EnrolementPhysique key="p" /> : nature === "entreprise" ? <EnrolementEntreprise key="e" /> : <EnrolementGroupe key="g" />}
+    </>
+  );
+}
+
+/** Une rubrique de l'onglet Personnes : un rôle (plan d'allègement, point 3.3) */
+function Rubrique({ titre, children }: { titre: string; children: ReactNode }) {
+  return <section className="pile" aria-label={titre}><h3>{titre}</h3>{children}</section>;
+}
+
+/** Onglet « Photos et pièces » : un cadre par document, dans les trois natures ; statuts et registre pour l'entreprise
+ *  (Instr. BCC 15, art. 12, 13 et 17 a : copies exigées dès l'entrée en relation ; plan d'allègement, point 3.4) */
+function PhotosEtPieces({ nature, images, onChange, erreur }: { nature: Nature; images: Images; onChange: (i: Images) => void; erreur: (m: string) => void }) {
+  const cadres: [keyof Images, string][] = nature === "entreprise"
+    ? [["copiePiece", "Copie des statuts"], ["justificatifAdresse", "Copie du registre (acte de constitution)"]]
+    : [["photo", "Photo"], ["signature", "Signature"], ["copiePiece", "Copie de la pièce d'identité"], ["justificatifAdresse", "Justificatif d'adresse"],
+      ...(nature === "physique" ? [["copieHabilitation", "Pièce d'habilitation professionnelle"]] as [keyof Images, string][] : [])];
+  function charger(k: keyof Images, fichier: File | undefined) {
+    if (!fichier) return;
+    if (fichier.size > IMAGE_MAX) { erreur("Image trop lourde."); return; }
+    const r = new FileReader();
+    r.onload = () => onChange({ ...images, [k]: String(r.result) });
+    r.readAsDataURL(fichier);
+  }
+  return (
+    <div className="grille-deux">
+      {cadres.map(([k, titre]) => (
+        <fieldset key={k} className="pile cadre-champs">
+          <legend>{titre}</legend>
+          <label className="bouton secondaire">Choisir un fichier<input className="sr-only" type="file" accept="image/png,image/jpeg" aria-label={`Choisir : ${titre}`}
+            onChange={(e) => { charger(k, e.target.files?.[0]); e.target.value = ""; }} /></label>
+          <div className="cadre-signature apercu-grand">{images[k] ? <img src={images[k]} alt={`Aperçu : ${titre}`} /> : <p className="muet">Aucun document</p>}</div>
+        </fieldset>))}
+    </div>
+  );
+}
+
+
 
 export function EnrolementPhysique() {
   const c = useCommun();
@@ -489,7 +544,7 @@ export function EnrolementPhysique() {
   const { ctx } = c.donnees;
   const { f, maj } = c;
   return (
-    <Enrolement titre="Enrôlement d'un Client physique" onglets={ONGLETS_PHYSIQUE} numero={c.cree?.numero} onglet={c.onglet} setOnglet={c.setOnglet}
+    <Enrolement titre="Nouveau membre : personne physique" onglets={ONGLETS_MEMBRE} numero={c.cree?.numero} onglet={c.onglet} setOnglet={c.setOnglet}
       boite={c.boite} setBoite={c.setBoite}
       enregistrer={() => c.confirmer((m) => api.tiers.creer({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id) }, images, prospect?.id), () => { setImages({}); setProspect(null); })}
       textes={["Manuel Microfina++, p. 48 et 49 : onglets, champs de l'onglet Informations de base, boutons Suivant, Précédent, Enregistrer ; fiche des bénéficiaires (+Ajouter, Ajouter, Fermer)",
@@ -516,18 +571,20 @@ export function EnrolementPhysique() {
 
       {c.onglet === 2 && <AutresRenseignements f={f} maj={maj} ctx={ctx} physique />}
 
-      {c.onglet === 3 && <PersonnesLiees key={c.generation} liees={c.liees} onChange={c.setLiees} />}
+      {/* Personnes autour du membre, une rubrique par rôle (plan d'allègement, point 3.3 ; Instr. BCC 15, art. 16, 17 b et 18) */}
+      {c.onglet === 3 && <>
+        <Rubrique titre="Personnes liées"><PersonnesLiees key={c.generation} liees={c.liees} onChange={c.setLiees} /></Rubrique>
+        <Rubrique titre="Héritiers désignés"><Beneficiaires liste={f.beneficiaires ?? []} onChange={(l) => maj({ beneficiaires: l })} filiations={ctx.listesFiche.filiation ?? []} /></Rubrique>
+      </>}
 
-      {c.onglet === 4 && <Beneficiaires liste={f.beneficiaires ?? []} onChange={(l) => maj({ beneficiaires: l })} filiations={ctx.listesFiche.filiation ?? []} />}
-
-      {c.onglet === 5 && <ChargementImages key={c.generation} images={images} onChange={setImages} erreur={c.erreur} />}
+      {c.onglet === 4 && <PhotosEtPieces key={c.generation} nature="physique" images={images} onChange={setImages} erreur={c.erreur} />}
     </Enrolement>
   );
 }
 
 // ---------- S38 : Client > Enrôlement > Entreprise (manuel p. 49 et 50) ----------
 
-const ONGLETS_ENTREPRISE = ["Informations de base", "Renseignements généraux", "Autres renseignements", "Dirigeant", "Personnes Liées", "Signataires"] as const;
+
 
 export function EnrolementEntreprise() {
   const c = useCommun();
@@ -536,14 +593,19 @@ export function EnrolementEntreprise() {
   const [signataires, setSignataires] = useState<RepresentantSaisi[]>([]);
   const [effectifs, setEffectifs] = useState<Tiers[]>([]);
   const [controles, setControles] = useState<Controles>({});
+  const [images, setImages] = useState<Images>({});
   if (!c.donnees) return <Chargement />;
   const { ctx } = c.donnees;
   const { f, maj } = c;
-  function vider() { setAvecDirigeant(true); setDirigeant(REPRESENTANT_VIDE); setSignataires([]); setEffectifs([]); setControles({}); }
+  function vider() { setAvecDirigeant(true); setDirigeant(REPRESENTANT_VIDE); setSignataires([]); setEffectifs([]); setControles({}); setImages({}); }
   return (
-    <Enrolement titre="Enregistrement d'une entreprise" onglets={ONGLETS_ENTREPRISE} numero={c.cree?.numero} onglet={c.onglet} setOnglet={c.setOnglet}
+    <Enrolement titre="Nouveau membre : entreprise" onglets={ONGLETS_MEMBRE} numero={c.cree?.numero} onglet={c.onglet} setOnglet={c.setOnglet}
       boite={c.boite} setBoite={c.setBoite}
-      enregistrer={() => c.confirmer((m) => api.tiers.creerEntreprise({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id), beneficiairesEffectifs: effectifs.map((t) => t.id), controleEffectifs: versControles(effectifs, controles) }, avecDirigeant ? dirigeant : null, signataires), vider)}
+      enregistrer={() => c.confirmer(async (m) => {
+        const t = await api.tiers.creerEntreprise({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id), beneficiairesEffectifs: effectifs.map((t) => t.id), controleEffectifs: versControles(effectifs, controles) }, avecDirigeant ? dirigeant : null, signataires);
+        if (images.copiePiece || images.justificatifAdresse) await api.tiers.changerSpecimen(t.id, images);   // statuts et registre déposés dès l'enrôlement (plan 3.4)
+        return t;
+      }, vider)}
       textes={["Manuel Microfina++, p. 49 : onglets, champs de l'onglet Informations de base, Renseigner Dirigeant coché par défaut, personnes liées (+Ajouter, Retirer), fiche des signataires",
         "Onglet Autres renseignements et listes : comme le client physique (S37) ; Forme juridique : Paramétrage > Info de base > Client > Général (S14i) ; Sensibilisateur, Gestionnaire, Commercial : Agence > Paramètre (S33)",
         "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
@@ -560,27 +622,25 @@ export function EnrolementEntreprise() {
 
       {c.onglet === 2 && <AutresRenseignements f={f} maj={maj} ctx={ctx} />}
 
-      {c.onglet === 3 && (
-        <>
+      {c.onglet === 3 && <>
+        <Rubrique titre="Dirigeant">
           <label className="case"><input type="checkbox" checked={avecDirigeant} onChange={(e) => setAvecDirigeant(e.target.checked)} /><span>Renseigner Dirigeant</span></label>
-          {avecDirigeant && (
-            <>
-              <ChampsRepresentant r={dirigeant} maj={(p) => setDirigeant({ ...dirigeant, ...p })} ctx={ctx} qualite exposee />
-            </>
-          )}
-        </>
-      )}
+          {avecDirigeant && <ChampsRepresentant r={dirigeant} maj={(p) => setDirigeant({ ...dirigeant, ...p })} ctx={ctx} qualite exposee />}
+        </Rubrique>
+        <Rubrique titre="Signataires"><ListeRepresentants fiche="Signataire" ajouter="+Ajouter" liste={signataires} onChange={setSignataires} ctx={ctx} qualite erreur={c.erreur} /></Rubrique>
+        <Rubrique titre="Personnes liées et bénéficiaires effectifs">
+          <PersonnesLiees key={c.generation} liees={c.liees} onChange={c.setLiees} effectifs={effectifs} onEffectifs={setEffectifs} controles={controles} onControles={setControles} />
+        </Rubrique>
+      </>}
 
-      {c.onglet === 4 && <PersonnesLiees key={c.generation} liees={c.liees} onChange={c.setLiees} effectifs={effectifs} onEffectifs={setEffectifs} controles={controles} onControles={setControles} />}
-
-      {c.onglet === 5 && <ListeRepresentants fiche="Signataire" ajouter="+Ajouter" liste={signataires} onChange={setSignataires} ctx={ctx} qualite erreur={c.erreur} />}
+      {c.onglet === 4 && <PhotosEtPieces key={c.generation} nature="entreprise" images={images} onChange={setImages} erreur={c.erreur} />}
     </Enrolement>
   );
 }
 
 // ---------- S39 : Client > Enrôlement > Groupe (manuel p. 47 et 50) ----------
 
-const ONGLETS_GROUPE = ["Informations de base", "Renseignements généraux", "Membres Groupe", "Autres renseignements", "Personnes Liées", "Photo"] as const;
+
 
 export function EnrolementGroupe() {
   const c = useCommun();
@@ -590,7 +650,7 @@ export function EnrolementGroupe() {
   const { ctx } = c.donnees;
   const { f, maj } = c;
   return (
-    <Enrolement titre="Enregistrement d'un groupe" onglets={ONGLETS_GROUPE} numero={c.cree?.numero} onglet={c.onglet} setOnglet={c.setOnglet}
+    <Enrolement titre="Nouveau membre : groupe" onglets={ONGLETS_MEMBRE} numero={c.cree?.numero} onglet={c.onglet} setOnglet={c.setOnglet}
       boite={c.boite} setBoite={c.setBoite}
       enregistrer={() => c.confirmer((m) => api.tiers.creerGroupe({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id) }, membres, images),
         () => { setMembres([]); setImages({}); })}
@@ -607,13 +667,14 @@ export function EnrolementGroupe() {
 
       {c.onglet === 1 && <RenseignementsGroupe f={f} maj={maj} ctx={ctx} />}
 
-      {c.onglet === 2 && <ListeRepresentants fiche="Membre du groupe" ajouter="Ajouter" liste={membres} onChange={setMembres} ctx={ctx} erreur={c.erreur} />}
+      {c.onglet === 2 && <AutresRenseignements f={f} maj={maj} ctx={ctx} />}
 
-      {c.onglet === 3 && <AutresRenseignements f={f} maj={maj} ctx={ctx} />}
+      {c.onglet === 3 && <>
+        <Rubrique titre="Membres du groupe"><ListeRepresentants fiche="Membre du groupe" ajouter="Ajouter" liste={membres} onChange={setMembres} ctx={ctx} erreur={c.erreur} /></Rubrique>
+        <Rubrique titre="Personnes liées"><PersonnesLiees key={c.generation} liees={c.liees} onChange={c.setLiees} /></Rubrique>
+      </>}
 
-      {c.onglet === 4 && <PersonnesLiees key={c.generation} liees={c.liees} onChange={c.setLiees} />}
-
-      {c.onglet === 5 && <ChargementImages key={c.generation} images={images} onChange={setImages} erreur={c.erreur} />}
+      {c.onglet === 4 && <PhotosEtPieces key={c.generation} nature="groupe" images={images} onChange={setImages} erreur={c.erreur} />}
     </Enrolement>
   );
 }
