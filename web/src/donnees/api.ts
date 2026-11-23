@@ -3444,8 +3444,15 @@ const dossiers = {
     controlerRetard(t.id);   // registre CR-15
     if (t.statut !== "actif") throw new ErreurMetier("Le client n'est pas actif (adhésion visée et payée).");
     if (!({ physique: p.clientPhysique, groupe: p.clientGroupe, morale: p.clientEntreprise } as Record<string, unknown>)[t.type]) throw new ErreurMetier("Ce produit n'est pas ouvert à ce type de client (Produits > Crédits, Type de client).");
-    const e = effectifsDossier(d);
-    if (JSON.stringify(effectifsDossier((d.ressaisie ?? {}) as Record<string, unknown>)) !== JSON.stringify(e)) throw new ErreurMetier("Les effectifs et montants ressaisis ne correspondent pas à ceux de la première page.");
+    // Plan d'allègement, point 6.3 : un « Montant demandé » ; personne physique : une personne de son sexe ; groupe et personne morale : effectifs et montants
+    // saisis, qui font le montant demandé ; plus de ressaisie (comme le serveur)
+    const md = d.montant as unknown;
+    if (md !== undefined && md !== null && (!Number.isInteger(md) || (md as number) <= 0)) throw new ErreurMetier("À remplir : Montant demandé.");
+    const homme = t.sexe === "M";
+    const e = md != null && t.type === "physique"
+      ? { nbHommes: homme ? 1 : 0, nbFemmes: homme ? 0 : 1, montantHommes: homme ? md as number : 0, montantFemmes: homme ? 0 : md as number, nbGroupes: 0 }
+      : effectifsDossier(d);
+    if (md != null && t.type !== "physique" && e.montantHommes + e.montantFemmes !== md) throw new ErreurMetier("Montants des hommes et des femmes : ils font le montant demandé.");
     if (e.nbHommes + e.nbFemmes < 1) throw new ErreurMetier("Effectif : au moins une personne.");
     if (t.type === "physique" && (e.nbHommes !== (t.sexe === "M" ? 1 : 0) || e.nbFemmes !== (t.sexe === "M" ? 0 : 1))) throw new ErreurMetier("Personne physique : effectif d'une personne, de son sexe (fiche client).");
     const montant = e.montantHommes + e.montantFemmes;

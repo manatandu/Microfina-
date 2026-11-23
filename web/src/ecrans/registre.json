@@ -773,8 +773,8 @@
   },
   {
     "id": "S86",
-    "nom": "Dossier : demande",
-    "acces": "Crédit > Dossier de crédit > Analyse",
+    "nom": "Demande de crédit",
+    "acces": "Crédit > Demande de crédit",
     "but": "Saisir la demande",
     "module": "credit",
     "priorite": "must",

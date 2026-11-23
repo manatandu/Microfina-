@@ -2,6 +2,8 @@
 // Plan d'allègement, point 6.10 : un bouton Calculer au lieu de l'onglet Récapitulatif ; les listes à une valeur deviennent une phrase ; le client, facultatif,
 // est repris en tête de l'échéancier ; un seul TEG, annuel (Instr. BCC 38, art. 2 ; le taux actuariel disparaît, registre T137).
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { vers } from "./registre";
 import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -17,6 +19,7 @@ const pct = (x: number | null | undefined) => (x === null || x === undefined ? "
 const VIDE = { produit: "", periodicite: "", montant: "", duree: "", differe: "0", deblocage: "" };
 
 export default function SimulationCredit() {
+  const navigate = useNavigate();
   const { donnees } = useDonnees(async () => ({ p: await api.produitsCredit.lire(), j: await api.journees.courante() }));
   const [f, setF] = useState(VIDE);
   const [t, setT] = useState<Tiers | null>(null);
@@ -84,6 +87,9 @@ export default function SimulationCredit() {
         <div className="actions-onglets">
           <button className="bouton" type="button" disabled={!f.produit} onClick={() => calculer("recap")}>Calculer</button>
           <button className="bouton secondaire" type="button" disabled={!f.produit} onClick={() => calculer("echeancier")}>Echéancier</button>
+          {/* plan d'allègement, point 6.2 : la demande reprend client, produit, montant, durée et différé */}
+          <button className="bouton secondaire" type="button" disabled={!r} onClick={() => navigate(vers("S86", `?${new URLSearchParams({ produit: f.produit, montant: f.montant.trim(),
+            duree: f.duree.trim(), differe: f.differe.trim(), ...(t ? { client: String(t.id) } : {}) })}`))}>Créer la demande</button>
           <button className="bouton secondaire" type="button" onClick={() => { setF(VIDE); setT(null); setR(null); }}>Effacer</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 111 : client, produit, périodicité, mode de calcul, mode différé ; montant et durée ; Récapitulatif, Échéancier, imprimer ; capture",

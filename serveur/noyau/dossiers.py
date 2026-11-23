@@ -146,12 +146,21 @@ def demander(u, d) -> dict:
         raise ErreurMetier("Le client n'est pas actif (adhésion visée et payée).")
     if not {"physique": p["client_physique"], "groupe": p["client_groupe"], "morale": p["client_entreprise"]}.get(t["type"]):
         raise ErreurMetier("Ce produit n'est pas ouvert à ce type de client (Produits > Crédits, Type de client).")
-    e = effectifs(d)
-    if effectifs(d.get("ressaisie") or {}) != e:
-        raise ErreurMetier("Les effectifs et montants ressaisis ne correspondent pas à ceux de la première page.")
+    # Plan d'allègement, point 6.3 : un « Montant demandé » ; une personne physique compte pour une, de son sexe (fiche client) ; pour un groupe ou une
+    # personne morale, les effectifs et les montants des hommes et des femmes se saisissent et font le montant demandé ; plus de ressaisie en page 2
+    md = d.get("montant")
+    if md is not None and (not isinstance(md, int) or isinstance(md, bool) or md <= 0):
+        raise ErreurMetier("À remplir : Montant demandé.")
+    sexe = valeur("select sexe from tiers_personne where tiers_id = %s", (t["id"],)) if t["type"] == "physique" else None
+    if md is not None and t["type"] == "physique":
+        e = {"nbHommes": 1 if sexe == "M" else 0, "nbFemmes": 0 if sexe == "M" else 1, "montantHommes": md if sexe == "M" else 0,
+             "montantFemmes": 0 if sexe == "M" else md, "nbGroupes": 0}
+    else:
+        e = effectifs(d)
+        if md is not None and e["montantHommes"] + e["montantFemmes"] != md:
+            raise ErreurMetier("Montants des hommes et des femmes : ils font le montant demandé.")
     if e["nbHommes"] + e["nbFemmes"] < 1:
         raise ErreurMetier("Effectif : au moins une personne.")
-    sexe = valeur("select sexe from tiers_personne where tiers_id = %s", (t["id"],)) if t["type"] == "physique" else None
     if t["type"] == "physique" and (e["nbHommes"], e["nbFemmes"]) != ((1, 0) if sexe == "M" else (0, 1)):
         raise ErreurMetier("Personne physique : effectif d'une personne, de son sexe (fiche client).")
     montant = e["montantHommes"] + e["montantFemmes"]

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1074 décisions.** Solidité : 505 fortes (le manuel ou un texte répond), 487 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1062 déjà en place, 12 à appliquer.
+**1076 décisions.** Solidité : 505 fortes (le manuel ou un texte répond), 489 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1064 déjà en place, 12 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1611,6 +1611,18 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S86-7 | Consentement à la Centrale des risques | Le consentement se recueille dans la demande de crédit : cadre « Consentement à la Centrale des risques » avec la date de signature et la référence de la pièce signée, obligatoires ; la demande l'enregistre au registre des consentements, que l'approbation vérifie. L'écran séparé « Consentement BIC » (S50) et son entrée de menu disparaissent. | Texte réglementaire : Instr. BCC 05, art. 13 (consentement écrit ; « une clause d'autorisation de partage d'informations personnelles doit être prévue lors de la demande de crédit ») ; plan d'allègement, point 3.14 | forte | en place |
+
+## S86 Demande de crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S86-7 | Une page, un montant | « Dossier : demande » devient « Demande de crédit », sur une page : Produit, client, N° analyse, Montant demandé, Durée, Différé ; une personne physique compte pour une, de son sexe (« Effectif (fiche client) », lu) ; un groupe ou une personne morale saisit effectifs et montants des hommes et des femmes, qui font le montant demandé, et la part de chaque membre d'un groupe ; Lieu de l'activité (province, ville ou territoire, commune) prérempli d'après l'adresse du membre ; Crédit (objet, usage, comptes, assureur, ligne de financement) ; consentement à la Centrale des risques ; Echéancier, Enregistrer, Effacer. La page 2 et la ressaisie des effectifs disparaissent. | Écran voisin : Plan d'allègement, point 6.3 ; loi 11/020, art. 44 ; Instr. BCC 05, art. 13 | moyenne | en place |
+
+## S84 et S86 Saisir une fois
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S86-8 | Simulation et analyse | « Créer la demande », dans la simulation calculée, ouvre la demande avec le client (s'il est choisi), le produit, le montant, la durée et le différé. Choisir l'analyse dans la demande remplit le montant et la durée recommandés (à défaut ceux de l'analyse) et l'objet quand son libellé est dans la liste des objets. Restent deux ressaisies voulues : le montant à la vérification et à la décision. | Écran voisin : Plan d'allègement, point 6.2 | moyenne | en place |
 
 ## S87 Dossier : contrôle
 

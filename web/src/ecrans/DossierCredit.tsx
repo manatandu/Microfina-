@@ -2,6 +2,7 @@
 // mise en place demandait ; la vérification réunit le contrôle et le visa du responsable crédit ; la décision réunit l'approbation et le visa du comité,
 // et le crédit naît à la décision. Registre S86-1 à S86-6, S87-1 à S87-3, S88-1 à S88-6, CR-3, CR-4, CR-8, CR-14, CR-25.
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -24,42 +25,62 @@ function Effectifs({ e, maj, prefixe }: { e: Effectifs; maj: (x: Effectifs) => v
     inputMode={s === "m" ? "decimal" : "numeric"} autoComplete="off" value={e[k]} onChange={(ev) => maj({ ...e, [k]: ev.target.value })} />}</Champ>)}</>;
 }
 
-/** S86 : 2.1 à 2.8 (p. 113) : produit, client, cycle, effectifs ; Suivant ; région (province), préfecture (ville), effectifs ressaisis ; Enregistrer */
+/** S86 : Demande de crédit (manuel p. 113, 2.1 à 2.8 ; plan d'allègement, points 6.1 à 6.3) : une page ; un « Montant demandé » ; une personne physique compte pour
+ *  une, de son sexe (fiche client) ; groupe et personne morale : effectifs et montants des hommes et des femmes ; lieu prérempli d'après l'adresse du membre.
+ *  Ouverte depuis la simulation (client, produit, montant, durée, différé) ; l'analyse choisie remplit le montant, la durée et l'objet recommandés (point 6.2). */
 export function DemandeCredit() {
-  const { donnees: ctx } = useDonnees(() => api.dossiers.contexte());
+  const [params] = useSearchParams();
+  const { donnees: ctx } = useDonnees(async () => {
+    const c = await api.dossiers.contexte(), tid = Number(params.get("client")) || null;
+    return { c, t0: tid ? await api.tiers.lire(tid).catch(() => null) : null };
+  });
   const [t, setT] = useState<Tiers | null>(null);
-  const VIDE_F = { produit: "", cycle: "", analyse: "", duree: "", province: "", ville: "", commune: "", consentementLe: "", consentementRef: "",
+  const VIDE_F = { produit: "", analyse: "", montant: "", duree: "", province: "", ville: "", commune: "", consentementLe: "", consentementRef: "",
     differe: "0", objet: "", usage: "", epargne: "", solidarite: "", assureur: "", ligne: "" };
-  const [f, setF] = useState(VIDE_F);
+  const [f, setF] = useState<typeof VIDE_F | null>(null);
   const [echeancier, setEcheancier] = useState<Awaited<ReturnType<typeof api.simulationCredit.simuler>> | null>(null);
   const [e, setE] = useState<Effectifs>(VIDES);
-  const [r, setR] = useState<Effectifs>(VIDES);
   const [parts, setParts] = useState<string[]>([]);
-  const [page, setPage] = useState<1 | 2>(1);
   const [recherche, setRecherche] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
-  const { donnees: h } = useDonnees(() => (t ? api.analyses.historique(t.id) : Promise.resolve(null)), [t?.id]);
-  const { donnees: comptes } = useDonnees(() => (t ? api.tiers.comptes(t.id) : Promise.resolve([])), [t?.id]);
+  const client = t ?? ctx?.t0 ?? null;
+  const { donnees: h } = useDonnees(() => (client ? api.analyses.historique(client.id) : Promise.resolve(null)), [client?.id]);
+  const { donnees: comptes } = useDonnees(() => (client ? api.tiers.comptes(client.id) : Promise.resolve([])), [client?.id]);
   if (!ctx) return <Chargement />;
-  const produit = ctx.produits.find((x) => String(x.id) === f.produit);
-  const comptesDevise = (comptes ?? []).filter((c) => c.devise === produit?.devise);
-  const assureurs = ctx.assureurs.filter((a) => produit?.typeAssuranceId && a.typeAssuranceId === produit.typeAssuranceId);
-  const montantDemande = () => { const v = valeurs(e); return Number(v.montantHommes) + Number(v.montantFemmes); };
+  const c = ctx.c;
+  /** Lieu de l'activité prérempli d'après l'adresse du membre (plan 6.3) */
+  const lieu = (x: Tiers | null) => {
+    const pr = c.provinces.find((y) => y.nom === x?.province), vi = c.villes.find((y) => y.provinceId === pr?.id && y.nom === x?.ville);
+    const co = c.communes.find((y) => y.villeId === vi?.id && y.nom === x?.commune);
+    return { province: pr ? String(pr.id) : "", ville: vi ? String(vi.id) : "", commune: co ? String(co.id) : "" };
+  };
+  const g = f ?? { ...VIDE_F, ...lieu(client), produit: params.get("produit") ?? "", montant: params.get("montant") ?? "", duree: params.get("duree") ?? "", differe: params.get("differe") ?? "0" };
+  const produit = c.produits.find((x) => String(x.id) === g.produit);
+  const comptesDevise = (comptes ?? []).filter((k) => k.devise === produit?.devise);
+  const assureurs = c.assureurs.filter((a) => produit?.typeAssuranceId && a.typeAssuranceId === produit.typeAssuranceId);
+  const personne = client?.type === "physique";
   async function voirEcheancier() {
-    try { setEcheancier(await api.simulationCredit.simuler({ produitId: Number(f.produit), montant: montantDemande(), duree: entier(f.duree), differe: entier(f.differe) || 0 })); }
+    try { setEcheancier(await api.simulationCredit.simuler({ produitId: Number(g.produit), montant: somme(g.montant), duree: entier(g.duree), differe: entier(g.differe) || 0 })); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
-  const analyses = (h?.analyses ?? []).filter((a) => String(a.produitId) === f.produit);
-  const maj = (x: Partial<typeof f>) => setF({ ...f, ...x });
-  const effacer = () => { setT(null); setF(VIDE_F); setE(VIDES); setR(VIDES); setParts([]); setPage(1); };
+  const analyses = (h?.analyses ?? []).filter((a) => String(a.produitId) === g.produit);
+  const maj = (x: Partial<typeof VIDE_F>) => setF({ ...g, ...x });
+  /** L'analyse choisie remplit le montant, la durée et l'objet recommandés (plan 6.2) */
+  const choisirAnalyse = (id: string) => {
+    const a = analyses.find((x) => String(x.id) === id);
+    const m = a ? a.montantRecommande ?? a.montant : null, d = a ? a.dureeRecommandee ?? a.duree : null, o = a ? c.objets.find((x) => x.libelle === a.objet) : undefined;
+    maj({ analyse: id, ...(m ? { montant: (m / 100).toFixed(2).replace(".", ",") } : {}), ...(d ? { duree: String(d) } : {}), ...(o ? { objet: String(o.id) } : {}) });
+  };
+  const choisirClient = (x: Tiers) => { setT(x); setF({ ...g, ...lieu(x), analyse: "", epargne: "", solidarite: "" }); setParts((x.membres ?? []).map(() => "")); setE(VIDES); };
+  const effacer = () => { setT(null); setF({ ...VIDE_F }); setE(VIDES); setParts([]); };
   function enregistrer() {
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try {
-        const x = await api.dossiers.demander({ produitId: Number(f.produit), tiersId: t?.id, analyseId: f.analyse ? Number(f.analyse) : null,
-          ...valeurs(e), duree: entier(f.duree), provinceId: Number(f.province) || null, villeId: Number(f.ville) || null, communeId: Number(f.commune) || null, ressaisie: valeurs(r), consentementLe: f.consentementLe, consentementRef: f.consentementRef.trim(),
-          parts: t?.type === "groupe" ? parts.map((m) => ({ montant: somme(m) })) : [],
-          differe: entier(f.differe) || 0, objetId: f.objet ? Number(f.objet) : null, usagePrecis: f.usage.trim(), compteEpargneId: f.epargne ? Number(f.epargne) : null,
-          compteSolidariteId: f.solidarite ? Number(f.solidarite) : null, assureurId: f.assureur ? Number(f.assureur) : null, ligneBudgetId: f.ligne ? Number(f.ligne) : null });
+        const x = await api.dossiers.demander({ produitId: Number(g.produit), tiersId: client?.id, analyseId: g.analyse ? Number(g.analyse) : null, montant: somme(g.montant) || null,
+          ...(personne ? {} : valeurs(e)), duree: entier(g.duree), provinceId: Number(g.province) || null, villeId: Number(g.ville) || null, communeId: Number(g.commune) || null,
+          consentementLe: g.consentementLe, consentementRef: g.consentementRef.trim(), parts: client?.type === "groupe" ? parts.map((m) => ({ montant: somme(m) })) : [],
+          differe: entier(g.differe) || 0, objetId: g.objet ? Number(g.objet) : null, usagePrecis: g.usage.trim(), compteEpargneId: g.epargne ? Number(g.epargne) : null,
+          compteSolidariteId: g.solidarite ? Number(g.solidarite) : null, assureurId: g.assureur ? Number(g.assureur) : null, ligneBudgetId: g.ligne ? Number(g.ligne) : null });
         effacer(); setBoite({ type: "succes", message: `Enregistré avec succès ! Demande N° ${x.numero}.` });
       } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
@@ -67,77 +88,72 @@ export function DemandeCredit() {
   return (
     <>
       <section className="bloc pile" aria-label="Demande de crédit">
-        {page === 1 ? <>
+        <div className="grille-deux">
           <fieldset className="cadre-champs formulaire">
             <legend>Demande</legend>
-            <Champ libelle="Produit crédit *">{(pp) => <select {...pp} className="saisie" value={f.produit} onChange={(ev) => maj({ produit: ev.target.value, analyse: "" })}>
-              <option value=""></option>{ctx.produits.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
+            <Champ libelle="Produit crédit *">{(pp) => <select {...pp} className="saisie" value={g.produit} onChange={(ev) => maj({ produit: ev.target.value, analyse: "" })}>
+              <option value=""></option>{c.produits.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
             <div className="ligne-champ">
-              <Champ libelle="Numéro client">{(pp) => <input {...pp} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
+              <Champ libelle="Numéro client">{(pp) => <input {...pp} className="saisie code" readOnly value={client?.numero ?? ""} />}</Champ>
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
-            <Champ libelle="Intitulé">{(pp) => <Lecture {...pp} value={t ? nomComplet(t) : ""} />}</Champ>
-            <Champ libelle="N° analyse">{(pp) => <select {...pp} className="saisie" value={f.analyse} onChange={(ev) => maj({ analyse: ev.target.value })}>
+            <Champ libelle="Intitulé">{(pp) => <Lecture {...pp} value={client ? nomComplet(client) : ""} />}</Champ>
+            <Champ libelle="N° analyse">{(pp) => <select {...pp} className="saisie" value={g.analyse} onChange={(ev) => choisirAnalyse(ev.target.value)}>
               <option value=""></option>{analyses.map((a) => <option key={a.id} value={a.id}>{`${a.numero} du ${fr(a.date)}`}</option>)}</select>}</Champ>
-            <Champ libelle="Durée (mois) *">{(pp) => <input {...pp} className="saisie code" inputMode="numeric" autoComplete="off" value={f.duree} onChange={(ev) => maj({ duree: ev.target.value })} />}</Champ>
-            <Effectifs e={e} maj={setE} prefixe="" />
+            <Champ libelle="Montant demandé *">{(pp) => <input {...pp} className="saisie montant" inputMode="decimal" autoComplete="off" value={g.montant} onChange={(ev) => maj({ montant: ev.target.value })} />}</Champ>
+            <Champ libelle="Durée (mois) *">{(pp) => <input {...pp} className="saisie code" inputMode="numeric" autoComplete="off" value={g.duree} onChange={(ev) => maj({ duree: ev.target.value })} />}</Champ>
+            <Champ libelle="Différé (mois)">{(pp) => <input {...pp} className="saisie code" inputMode="numeric" autoComplete="off" value={g.differe} onChange={(ev) => maj({ differe: ev.target.value })} />}</Champ>
+            {personne ? <Champ libelle="Effectif (fiche client)">{(pp) => <Lecture {...pp} value={client?.sexe === "M" ? "1 homme" : "1 femme"} />}</Champ>
+              : client && <Effectifs e={e} maj={setE} prefixe="" />}
           </fieldset>
-          {/* Clause d'autorisation de partage des informations, signée par l'emprunteur (Instr. BCC 05, art. 13 ; plan d'allègement, point 3.14) */}
           <fieldset className="cadre-champs formulaire">
-            <legend>Consentement à la Centrale des risques</legend>
-            <ChampDate libelle="Signé le *" valeur={f.consentementLe} onChange={(v) => maj({ consentementLe: v })} requis />
-            <Champ libelle="Référence de la pièce signée *">{(pp) => <input {...pp} className="saisie" autoComplete="off" value={f.consentementRef} onChange={(ev) => maj({ consentementRef: ev.target.value })} />}</Champ>
-          </fieldset>
-          <div className="actions-onglets">
-            <button className="bouton" type="button" disabled={!f.produit || !t} onClick={() => { setPage(2); setParts((t?.membres ?? []).map(() => "")); }}>Suivant</button>
-            <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
-          </div>
-        </> : <>
-          <fieldset className="cadre-champs formulaire">
-            <legend>Détail de la demande</legend>
-            <Champ libelle="Région (province) *">{(pp) => <select {...pp} className="saisie" value={f.province} onChange={(ev) => maj({ province: ev.target.value, ville: "", commune: "" })}>
-              <option value=""></option>{ctx.provinces.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
-            <Champ libelle="Préfecture (ville ou territoire) *">{(pp) => <select {...pp} className="saisie" value={f.ville} onChange={(ev) => maj({ ville: ev.target.value, commune: "" })}>
+            <legend>Lieu de l'activité</legend>
+            <Champ libelle="Région (province) *">{(pp) => <select {...pp} className="saisie" value={g.province} onChange={(ev) => maj({ province: ev.target.value, ville: "", commune: "" })}>
+              <option value=""></option>{c.provinces.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
+            <Champ libelle="Préfecture (ville ou territoire) *">{(pp) => <select {...pp} className="saisie" value={g.ville} onChange={(ev) => maj({ ville: ev.target.value, commune: "" })}>
               <option value=""></option>
               {(["Ville", "Territoire"] as const).map((nat) => <optgroup key={nat} label={nat === "Ville" ? "Villes" : "Territoires"}>   {/* registre S20-8 */}
-                {ctx.villes.filter((v) => String(v.provinceId) === f.province && (v.nature || "Ville") === nat).map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</optgroup>)}</select>}</Champ>
-            {/* lieu de l'activité jusqu'à la commune, au secteur ou à la chefferie (registre T41) */}
-            <Champ libelle="Commune, secteur ou chefferie">{(pp) => <select {...pp} className="saisie" value={f.commune} disabled={!f.ville} onChange={(ev) => maj({ commune: ev.target.value })}>
+                {c.villes.filter((v) => String(v.provinceId) === g.province && (v.nature || "Ville") === nat).map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</optgroup>)}</select>}</Champ>
+            <Champ libelle="Commune, secteur ou chefferie">{(pp) => <select {...pp} className="saisie" value={g.commune} disabled={!g.ville} onChange={(ev) => maj({ commune: ev.target.value })}>
               <option value=""></option>
               {(["Commune", "Secteur", "Chefferie"] as const).map((nat) => <optgroup key={nat} label={nat === "Chefferie" ? "Chefferies" : `${nat}s`}>
-                {ctx.communes.filter((c) => String(c.villeId) === f.ville && (c.nature || "Commune") === nat).map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</optgroup>)}</select>}</Champ>
-            <Effectifs e={r} maj={setR} prefixe="Ressaisir : " />
+                {c.communes.filter((k) => String(k.villeId) === g.ville && (k.nature || "Commune") === nat).map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</optgroup>)}</select>}</Champ>
           </fieldset>
-          {/* Plan d'allègement, point 6.1 : ce que la mise en place demandait se saisit ici (manuel p. 113 et 114, 2.16 à 2.23) */}
-          <fieldset className="cadre-champs formulaire">
-            <legend>Crédit</legend>
-            <Champ libelle="Différé (mois)">{(pp) => <input {...pp} className="saisie code" inputMode="numeric" autoComplete="off" value={f.differe} onChange={(ev) => maj({ differe: ev.target.value })} />}</Champ>
-            <Champ libelle="Objet de crédit *">{(pp) => <select {...pp} className="saisie" value={f.objet} onChange={(ev) => maj({ objet: ev.target.value })}>
-              <option value=""></option>{ctx.objets.map((o) => <option key={o.id} value={o.id}>{o.libelle}</option>)}</select>}</Champ>
-            <Champ libelle="Usage précis">{(pp) => <input {...pp} className="saisie" autoComplete="off" maxLength={200} value={f.usage} onChange={(ev) => maj({ usage: ev.target.value })} />}</Champ>
-            <Champ libelle="Compte d'épargne obligatoire">{(pp) => <select {...pp} className="saisie code" value={f.epargne} onChange={(ev) => maj({ epargne: ev.target.value })}>
-              <option value=""></option>{comptesDevise.map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
-            <Champ libelle="Compte du fonds de solidarité">{(pp) => <select {...pp} className="saisie code" value={f.solidarite} onChange={(ev) => maj({ solidarite: ev.target.value })}>
-              <option value=""></option>{comptesDevise.map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
-            {assureurs.length > 0 && <Champ libelle="Assureur *">{(pp) => <select {...pp} className="saisie" value={f.assureur} onChange={(ev) => maj({ assureur: ev.target.value })}>
-              <option value=""></option>{assureurs.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>}
-            <Champ libelle="Ligne de financement">{(pp) => <select {...pp} className="saisie" value={f.ligne} onChange={(ev) => maj({ ligne: ev.target.value })}>
-              <option value=""></option>{ctx.lignesBudget.map((l) => <option key={l.id} value={l.id}>{`${l.numero} ${l.libelle}`}</option>)}</select>}</Champ>
-          </fieldset>
-          {t?.type === "groupe" && <fieldset className="cadre-champs formulaire">
-            <legend>Part de chaque membre du groupe</legend>
-            {t.membres.map((m, i) => <Champ key={i} libelle={[m.nom, m.prenom].filter(Boolean).join(" ")}>{(pp) => <input {...pp} className="saisie montant" inputMode="decimal"
-              autoComplete="off" value={parts[i] ?? ""} onChange={(ev) => setParts(parts.map((x, j) => (j === i ? ev.target.value : x)))} />}</Champ>)}
-          </fieldset>}
-          <div className="actions-onglets">
-            <button className="bouton secondaire" type="button" onClick={() => setPage(1)}>Précédent</button>
-            <button className="bouton secondaire" type="button" onClick={voirEcheancier}>Echéancier</button>
-            <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
-          </div>
-        </>}
-        <Textes sources={["Manuel Microfina++, p. 113, 2.1 à 2.8 : produit, client, cycle, effectifs et montants hommes et femmes, groupes solidaires ; Suivant ; région, préfecture, effectifs ressaisis ; Enregistrer",
-          "Registre S86-1 à S86-6 : région et préfecture lues comme province et ville ou territoire (S20-1) ; durée ; analyse financière (S85) ; groupe : part de chaque membre (CR-8, loi 11/020, art. 44)",
-          "Plan d'allègement, point 6.1 : différé, objet, comptes, assureur et ligne de financement saisis à la demande ; échéancier calculé (Instr. BCC 38, art. 3 et 11)"]} />
+        </div>
+        {/* Plan d'allègement, point 6.1 : ce que la mise en place demandait se saisit ici (manuel p. 113 et 114, 2.16 à 2.23) */}
+        <fieldset className="cadre-champs formulaire">
+          <legend>Crédit</legend>
+          <Champ libelle="Objet de crédit *">{(pp) => <select {...pp} className="saisie" value={g.objet} onChange={(ev) => maj({ objet: ev.target.value })}>
+            <option value=""></option>{c.objets.map((o) => <option key={o.id} value={o.id}>{o.libelle}</option>)}</select>}</Champ>
+          <Champ libelle="Usage précis">{(pp) => <input {...pp} className="saisie" autoComplete="off" maxLength={200} value={g.usage} onChange={(ev) => maj({ usage: ev.target.value })} />}</Champ>
+          <Champ libelle="Compte d'épargne obligatoire">{(pp) => <select {...pp} className="saisie code" value={g.epargne} onChange={(ev) => maj({ epargne: ev.target.value })}>
+            <option value=""></option>{comptesDevise.map((k) => <option key={k.id} value={k.id}>{k.numero}</option>)}</select>}</Champ>
+          <Champ libelle="Compte du fonds de solidarité">{(pp) => <select {...pp} className="saisie code" value={g.solidarite} onChange={(ev) => maj({ solidarite: ev.target.value })}>
+            <option value=""></option>{comptesDevise.map((k) => <option key={k.id} value={k.id}>{k.numero}</option>)}</select>}</Champ>
+          {assureurs.length > 0 && <Champ libelle="Assureur *">{(pp) => <select {...pp} className="saisie" value={g.assureur} onChange={(ev) => maj({ assureur: ev.target.value })}>
+            <option value=""></option>{assureurs.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>}
+          <Champ libelle="Ligne de financement">{(pp) => <select {...pp} className="saisie" value={g.ligne} onChange={(ev) => maj({ ligne: ev.target.value })}>
+            <option value=""></option>{c.lignesBudget.map((l) => <option key={l.id} value={l.id}>{`${l.numero} ${l.libelle}`}</option>)}</select>}</Champ>
+        </fieldset>
+        {client?.type === "groupe" && <fieldset className="cadre-champs formulaire">
+          <legend>Part de chaque membre du groupe</legend>
+          {client.membres.map((m, i) => <Champ key={i} libelle={[m.nom, m.prenom].filter(Boolean).join(" ")}>{(pp) => <input {...pp} className="saisie montant" inputMode="decimal"
+            autoComplete="off" value={parts[i] ?? ""} onChange={(ev) => setParts(client.membres.map((_, j) => (j === i ? ev.target.value : parts[j] ?? "")))} />}</Champ>)}
+        </fieldset>}
+        {/* Clause d'autorisation de partage des informations, signée par l'emprunteur (Instr. BCC 05, art. 13 ; plan d'allègement, point 3.14) */}
+        <fieldset className="cadre-champs formulaire">
+          <legend>Consentement à la Centrale des risques</legend>
+          <ChampDate libelle="Signé le *" valeur={g.consentementLe} onChange={(v) => maj({ consentementLe: v })} requis />
+          <Champ libelle="Référence de la pièce signée *">{(pp) => <input {...pp} className="saisie" autoComplete="off" value={g.consentementRef} onChange={(ev) => maj({ consentementRef: ev.target.value })} />}</Champ>
+        </fieldset>
+        <div className="actions-onglets">
+          <button className="bouton secondaire" type="button" disabled={!g.produit} onClick={voirEcheancier}>Echéancier</button>
+          <button className="bouton" type="button" disabled={!g.produit || !client} onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
+        </div>
+        <Textes sources={["Manuel Microfina++, p. 113, 2.1 à 2.8 : produit, client, cycle, effectifs et montants hommes et femmes, groupes solidaires, région, préfecture ; Enregistrer",
+          "Plan d'allègement, points 6.1 à 6.3 : une page, un montant demandé, effectifs de la fiche pour une personne, lieu d'après l'adresse du membre ; différé, objet, comptes, assureur et ligne de financement",
+          "Registre S86-1 à S86-7 : région et préfecture lues comme province et ville ou territoire (S20-1) ; groupe : part de chaque membre (CR-8, loi 11/020, art. 44)"]} />
       </section>
       <Fiche titre="Echéancier" ouverte={!!echeancier} fermer={() => setEcheancier(null)}>
         {echeancier && <div className="pile">
@@ -152,7 +168,7 @@ export function DemandeCredit() {
         </div>}
       </Fiche>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
-        <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif") : [])} choisir={(x) => { setT(x); setRecherche(false); }} fermer={() => setRecherche(false)} />
+        <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif") : [])} choisir={(x) => { choisirClient(x); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>

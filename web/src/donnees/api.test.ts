@@ -2197,7 +2197,6 @@ describe("journée de guichet", () => {
     await expect(api.dossiers.demander({ ...d, consentementRef: "" })).rejects.toThrow("pièce signée");   // Instr. BCC 05, art. 13 (plan 3.14)
     await expect(api.dossiers.demander({ ...d, objetId: null })).rejects.toThrow("Objet de crédit");   // la demande porte ce que demandait la mise en place (plan 6.1)
     await expect(api.dossiers.demander({ ...d, compteEpargneId: null })).rejects.toThrow("épargne obligatoire");
-    await expect(api.dossiers.demander({ ...d, ressaisie: { ...e, montantFemmes: 90000000 } })).rejects.toThrow("ressaisis");
     const x = await api.dossiers.demander(d);
     expect([x.numero, x.statut, x.montant]).toEqual(["DC000001", "saisie", 100000000]);
     await expect(api.dossiers.controler(x.id, VERIF)).rejects.toThrow("Quatre yeux");
@@ -2235,6 +2234,20 @@ describe("journée de guichet", () => {
     expect((await api.visasCredit.viser(cid, "service_financier", { avis: "accepte" })).statut).toBe("vise");
     const h = await api.visasCredit.historique("comite", "accepte", "2026-01-01", "2026-12-31");
     expect([h[0]!.numero, h[0]!.referencePv, h[0]!.membres.length]).toEqual(["0412/L001/00001", "PV-1", 3]);
+  });
+
+  it("demande (plan 6.3) : un montant demandé ; l'effectif d'une personne se lit sur sa fiche ; plus de ressaisie (comme le serveur)", async () => {
+    await journeeOuverte();
+    await connecter("jpmukendi");
+    const pid = (await api.produitsCredit.enregistrer(PRODUIT_CREDIT)).produits[0]!.id;
+    const objet = (await api.credit.enregistrer("objets", { libelle: "Achat de marchandises" })).lignes.find((x) => x.libelle === "Achat de marchandises")!.id;
+    await connecter("bkasongo");
+    const ctx = await api.dossiers.contexte();
+    const pr = ctx.provinces.find((x) => x.nom === "Kinshasa")!.id, vi = ctx.villes.find((x) => x.provinceId === pr)!.id;
+    const base = { produitId: pid, tiersId: 1, duree: 12, provinceId: pr, villeId: vi, consentementLe: "2026-11-01", consentementRef: "CR-1", ...(await infosCredit(objet)) };
+    await expect(api.dossiers.demander({ ...base, montant: 0 })).rejects.toThrow("Montant demandé");
+    const x = await api.dossiers.demander({ ...base, montant: 100000000 });
+    expect([x.montant, x.nbFemmes, x.nbHommes, x.montantFemmes]).toEqual([100000000, 1, 0, 100000000]);
   });
 
   it("portefeuille de crédits (plan 6.4) : la demande puis le crédit selon son état ; historique du crédit (registre S93-5 à S93-7, comme le serveur)", async () => {

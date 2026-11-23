@@ -549,12 +549,12 @@ const OUT = process.argv[2];
   await p.getByLabel('Produit crédit *').selectOption({ label: 'Crédit commerce' }); await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rdm = p.getByRole('dialog', { name: "Recherche d'un client" });
   await rdm.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rdm.getByRole('row').filter({ hasText: 'Kalala' }).first().click();
-  await p.getByLabel('Durée (mois) *').fill('12'); await p.getByLabel('Effectif femmes', { exact: true }).fill('1'); await p.getByLabel('Montant femmes', { exact: true }).fill('1 000 000');
+  // Plan 6.3 : un montant demandé ; l'effectif d'une personne se lit sur sa fiche ; plus de page 2
+  await p.getByLabel('Montant demandé *').fill('1 000 000'); await p.getByLabel('Durée (mois) *').fill('12');
+  if ((await p.getByLabel('Effectif (fiche client)').inputValue()) !== '1 femme') throw new Error('6.3 : effectif de la fiche');
   // Consentement écrit à la Centrale des risques, recueilli dans la demande (Instr. BCC 05, art. 13 ; plan d'allègement, point 3.14)
   await p.getByLabel('Signé le *').fill('01/11/2026'); await p.getByLabel('Référence de la pièce signée *').fill('CR-1'); await etape('06w-consentement');
-  await p.getByRole('button', { name: 'Suivant', exact: true }).click();
   await p.getByLabel('Région (province) *').selectOption({ label: 'Kinshasa' }); await p.getByLabel('Préfecture (ville ou territoire) *').selectOption({ label: 'Kinshasa' });
-  await p.getByLabel('Ressaisir : Effectif femmes').fill('1'); await p.getByLabel('Ressaisir : Montant femmes').fill('1 000 000');
   // Plan d'allègement, point 6.1 : ce que la mise en place demandait se saisit à la demande ; l'échéancier se calcule ici
   await p.getByLabel('Objet de crédit *').selectOption({ label: 'Achat de marchandises' });
   await p.getByLabel("Compte d'épargne obligatoire").selectOption({ index: 1 }); await p.getByLabel('Compte du fonds de solidarité').selectOption({ index: 1 }); await etape('06w1-demande-credit');
@@ -742,7 +742,7 @@ const OUT = process.argv[2];
   await p.getByRole('group', { name: 'Billetage' }).getByLabel('Nombre de coupures de 20 000 CDF').fill('5');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Reçu' }).getByText('Remboursement de crédit enregistré').waitFor(); await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
-  await p.getByRole('button', { name: 'Situation.' }).click(); await p.getByRole('dialog', { name: 'Brouillard des remboursements' }).getByText('100 000,00 CDF').first().waitFor();
+  await p.getByRole('button', { name: 'Situation', exact: true }).click(); await p.getByRole('dialog', { name: 'Brouillard des remboursements' }).getByText('100 000,00 CDF').first().waitFor();
   await etape('11e2-brouillard-remboursements'); await p.getByRole('dialog', { name: 'Brouillard des remboursements' }).getByRole('button', { name: 'Fermer' }).click();
   // État de crédit (S93, p. 115 et 116), par l'agent de crédit : situation des crédits approuvés sur la période
   await login('Bijou Kasongo'); await aller('/credit/s93'); await p.getByRole('button', { name: 'Exécuter' }).click();

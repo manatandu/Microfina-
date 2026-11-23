@@ -1664,7 +1664,6 @@ def test_dossier_credit(clients, journee):
     assert "pièce signée" in refus(agent, "/api/credit/dossiers", {**d, "consentementRef": ""})     # Instr. BCC 05, art. 13 (plan 3.14)
     assert "Objet de crédit" in refus(agent, "/api/credit/dossiers", {**d, "objetId": None})          # la demande porte ce que demandait la mise en place (plan 6.1)
     assert "épargne obligatoire" in refus(agent, "/api/credit/dossiers", {**d, "compteEpargneId": None})
-    assert "ressaisis" in refus(agent, "/api/credit/dossiers", {**d, "ressaisie": {**e, "montantFemmes": 90000000}})
     assert "de son sexe" in refus(agent, "/api/credit/dossiers", {**d, "nbHommes": 1, "nbFemmes": 0, "montantHommes": 100000000, "montantFemmes": 0,
                                                                   "ressaisie": {**e, "nbHommes": 1, "nbFemmes": 0, "montantHommes": 100000000, "montantFemmes": 0}})
     from noyau.bd import executer                                             # plafond facultatif du cycle (plan 2.13 ; registre T141)
@@ -1775,6 +1774,20 @@ def test_verification_refus(clients, journee):
     assert (r["statut"], r["refusNiveau"], r["motif"], r["creditId"]) == ("rejetee", "responsable_credit", "Revenus non justifiés", None)
     h = chef.get("/api/credit/visas-historique?niveau=responsable_credit&avis=refuse&du=2026-01-01&au=2026-12-31", **H).json()
     assert (h[0]["numero"], h[0]["motif"]) == ("DC000001", "Revenus non justifiés")
+
+
+def test_demande_montant(clients, journee):
+    """Plan 6.3 : un « Montant demandé » ; l'effectif d'une personne physique se lit sur sa fiche ; plus de ressaisie"""
+    chef, agent = clients["chef"], clients["agent"]
+    pid = chef.post("/api/produits-credit", PRODUIT, **H).json()["produits"][0]["id"]
+    ctx = agent.get("/api/credit/dossiers/contexte", **H).json()
+    pr = next(x for x in ctx["provinces"] if x["nom"] == "Kinshasa")["id"]; vi = next(x for x in ctx["villes"] if x["provinceId"] == pr)["id"]
+    k = T("0412-000318")
+    base = {"produitId": pid, "tiersId": k, "duree": 12, "provinceId": pr, "villeId": vi, "consentementLe": "2026-11-01", "consentementRef": "CR-1", **infos_credit(chef, k)}
+    assert "Montant demandé" in agent.post("/api/credit/dossiers", {**base, "montant": 0}, **H).json()["message"]
+    x = agent.post("/api/credit/dossiers", {**base, "montant": 100000000}, **H)
+    assert x.status_code == 200, x.content
+    assert (x.json()["montant"], x.json()["nbFemmes"], x.json()["nbHommes"], x.json()["montantFemmes"]) == (100000000, 1, 0, 100000000)
 
 
 def test_commission_unanime(clients, journee):
