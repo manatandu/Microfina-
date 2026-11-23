@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1056 décisions.** Solidité : 502 fortes (le manuel ou un texte répond), 472 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1043 déjà en place, 13 à appliquer.
+**1057 décisions.** Solidité : 503 fortes (le manuel ou un texte répond), 472 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1044 déjà en place, 13 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2434,6 +2434,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | SE02-1 | Un écran pour la fin de mois | Intérêts des comptes à vue et frais de tenue de compte, jusqu'ici trois onglets de Calculs (S128), deviennent l'écran « Fin de mois de l'épargne » (Épargne > Fin de mois) : Exercice et Mois (le dernier mois terminé proposé), Calculer, deux listes (intérêts avec leur retenue, frais), un seul Valider qui sert les intérêts et prélève les frais. Calculs garde l'état des provisions et les intérêts courus sur crédits. Le profil comptable de départ reçoit l'écran. | Écran voisin : Plan d'allègement, point 5.6 ; loi 23/053, art. 78, 80 et 120 (retenue) | moyenne | en place |
+
+## SE01 Comptes en voie de prescription
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| E11-4 | Nom et étapes de la procédure | SE01 prend le nom « Comptes en voie de prescription » (la loi parle d'un compte « susceptible d'être atteint par la prescription »). La procédure se suit sur un écran : lettre avec accusé de réception, clôture aux dix ans, puis versement des avoirs à la BCC (venu du bas de S70, droits de ces deux actions passés à SE01). S70 ne garde que la clôture demandée par le client. Dans les rapports d'épargne (S72), l'onglet des comptes dormants (même population) disparaît ; celui des comptes inactifs devient « Comptes sans mouvement », titré « Comptes sans mouvement depuis N jours ». | Écran voisin : Plan d'allègement, point 5.7 ; loi 22/069, titre III, chap. Ier (lu) ; PCCI, compte 36 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

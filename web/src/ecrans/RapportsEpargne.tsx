@@ -14,7 +14,7 @@ import { lireMontant, montant, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
 const ONGLETS = [["virements", "Rapports virement compte à compte"], ["garanties", "Rapport des garanties"], ["multicritere", "Recherche multicritère"],
-  ["indicateurs", "Indicateur crédit épargne"], ["inactifs", "Rapports des comptes inactifs"], ["dormants", "Rapports des comptes dormants"]] as const;
+  ["indicateurs", "Indicateur crédit épargne"], ["inactifs", "Comptes sans mouvement"]] as const;   // « comptes dormants » : SE01, même population (point 5.7)
 type Onglet = (typeof ONGLETS)[number][0];
 type Agent = { id: number; nom: string };
 const debutAnnee = debutExercice;
@@ -38,8 +38,7 @@ export default function RapportsEpargne() {
       {onglet === "garanties" && <Garanties erreur={erreur} />}
       {onglet === "multicritere" && <Multicritere erreur={erreur} />}
       {onglet === "indicateurs" && <Indicateurs erreur={erreur} />}
-      {onglet === "inactifs" && <Inactivite key="inactifs" dormants={false} erreur={erreur} />}
-      {onglet === "dormants" && <Inactivite key="dormants" dormants erreur={erreur} />}
+      {onglet === "inactifs" && <Inactivite erreur={erreur} />}
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );
@@ -345,15 +344,15 @@ function Indicateurs({ erreur }: Proprietes) {
   );
 }
 
-/** 7.5 Listes des comptes inactifs et 7.6 Listes des comptes dormants (captures p. 83 et 84) : Paramètres, Exécuter, Export (registre S72-5, S72-6) */
-function Inactivite({ dormants, erreur }: Proprietes & { dormants: boolean }) {
+/** 7.5 Listes des comptes inactifs (capture p. 83), nommé « Comptes sans mouvement depuis N jours » ; les comptes dormants (7.6) sont dans SE01 (plan d'allègement, point 5.7 ; registre S72-5) */
+function Inactivite({ erreur }: Proprietes) {
   const [f, setF] = useState({ jours: "0", tous: false, date: "" });
   const [l, setL] = useState<Awaited<ReturnType<typeof api.rapportsEpargne.inactivite>>>([]);
-  const titre = dormants ? "Listes des comptes dormants" : "Listes des comptes inactifs";
+  const n = /^\d{1,5}$/.test(f.jours.trim()) ? Number(f.jours.trim()) : -1;
+  const titre = `Comptes sans mouvement depuis ${n >= 0 ? n : "N"} jours`;
   async function executer() {
     try {
-      const j = dormants ? null : /^\d{1,5}$/.test(f.jours.trim()) ? Number(f.jours.trim()) : -1;
-      setL(await api.rapportsEpargne.inactivite(f.date, j, f.tous));
+      setL(await api.rapportsEpargne.inactivite(f.date, n, f.tous));
     } catch (x) { erreur(x); }
   }
   const COL = ["N° Membre", "N°Compte", "Nom et prenoms", "Date Création", "Date dernière", "Nbres de jr inactif", "Solde"];
@@ -362,7 +361,7 @@ function Inactivite({ dormants, erreur }: Proprietes & { dormants: boolean }) {
       <h2>{titre}</h2>
       <fieldset className="cadre-champs"><legend>Parametres</legend>
         <div className="ligne-champ">
-          {!dormants && <Champ libelle="Nombres de jours">{(p) => <input {...p} className="saisie chiffres" inputMode="numeric" autoComplete="off" value={f.jours} onChange={(e) => setF({ ...f, jours: e.target.value })} />}</Champ>}
+          <Champ libelle="Nombres de jours">{(p) => <input {...p} className="saisie chiffres" inputMode="numeric" autoComplete="off" value={f.jours} onChange={(e) => setF({ ...f, jours: e.target.value })} />}</Champ>
           <label className="case"><input type="checkbox" checked={f.tous} onChange={(e) => setF({ ...f, tous: e.target.checked })} /><span>Afficher les comptes</span></label>
           <ChampDate libelle="Date" valeur={f.date} onChange={(v) => setF({ ...f, date: v })} />
         </div>
@@ -380,9 +379,9 @@ function Inactivite({ dormants, erreur }: Proprietes & { dormants: boolean }) {
             <td className="chiffres">{fr(x.derniere)}</td><td className="num chiffres">{x.jours}</td><td className="num chiffres">{m(x.solde, x.devise)}</td></tr>)}
         </tbody>
       </table></div>)}</Paginee>
-      <Textes sources={[dormants ? "Manuel Microfina++, p. 84 : 7.6 Rapport des comptes dormants ; capture Listes des comptes dormants" : "Manuel Microfina++, p. 83 : 7.5 Rapport des comptes inactifs ; capture Listes des comptes inactifs",
-        dormants ? "Loi 22/069, titre III, chap. Ier : compte sans opération ni réclamation depuis dix ans (registre S72-6)"
-          : "Registre S72-5 : jours depuis la dernière opération ou réclamation, à la date choisie (date de la journée si vide) ; « Afficher les comptes » ajoute les comptes à solde nul"]} />
+      <Textes sources={["Manuel Microfina++, p. 83 : 7.5 Rapport des comptes inactifs ; capture Listes des comptes inactifs",
+        "Registre S72-5 : jours depuis la dernière opération ou réclamation, à la date choisie (date de la journée si vide) ; « Afficher les comptes » ajoute les comptes à solde nul",
+        "Plan d'allègement, point 5.7 : les comptes dormants (dix ans, loi 22/069) se suivent dans Épargne > Comptes en voie de prescription"]} />
     </section>
   );
 }

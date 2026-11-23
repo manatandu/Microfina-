@@ -2644,7 +2644,7 @@ const clotures = {
     E.clotures.push(y); enregistrer(); return vueCloture(y);
   },
   /** Avoirs en cours de prescription, versés ou à verser à la BCC (registre S70-4) */
-  avoirs() { lectureAdmin(["S70"]); return E.clotures.filter((x) => x.motif === "inactivite" && x.solde > 0).map(vueCloture); },
+  avoirs() { lectureAdmin(["SE01"]); return E.clotures.filter((x) => x.motif === "inactivite" && x.solde > 0).map(vueCloture); },
   /** Versement à la BCC : débit 369, crédit du compte bancaire choisi ; une seule devise par versement (registre S70-5) */
   verserBcc(d: { ids?: number[]; compteBancaireId?: number; reference?: string }) {
     const u = exiger();

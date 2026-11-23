@@ -1,7 +1,7 @@
 // Épargne > Dépôts à terme (plan d'allègement, point 5.1) : une liste filtrée par statut, les actions permises sur chaque ligne, un bouton « Nouveau DAT ».
 // Reprend S65 mise en place (manuel Microfina++, p. 75 et 76), S66 validation et contrat (p. 76), S67 rupture (p. 76 et 77), S68 recherche (p. 77).
 // Le DAT attend sa validation par une autre personne, qui passe l'écriture (PCCI 340). Registre S65-1 à S65-13, S67-1 à S67-6.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ajouterMois, api, interetDat } from "../donnees/api";
 import type { Beneficiaire, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -266,8 +266,13 @@ function ContratDat({ c }: { c: Contrat }) {
 type Apercu = Awaited<ReturnType<typeof api.depotsTerme.apercuRupture>>;
 /** Action « Rompre » d'un DAT en cours : la fenêtre de S67 (manuel p. 76 texte, p. 77 capture). Registre S67-1 à S67-6. */
 function FormulaireRupture({ dat, fini }: { dat: Dat; fini: (piece?: string) => void }) {
-  const { donnees: j } = useDonnees(async () => { const jj = await api.journees.courante(); const d = jj && jj.statut === "ouverte" ? jj.date : "";
-    try { setCalc(await api.depotsTerme.apercuRupture(dat.id, d)); } catch (e) { setBoite({ type: "erreur", message: message(e) }); } return jj; }, [dat.id]);
+  const { donnees: j } = useDonnees(() => api.journees.courante());
+  const [parti, setParti] = useState(false);
+  useEffect(() => {   // l'aperçu se calcule une fois : les données relues après la rupture ne le refont pas
+    if (j === undefined || parti) return;
+    setParti(true);
+    api.depotsTerme.apercuRupture(dat.id, j && j.statut === "ouverte" ? j.date : "").then(setCalc, (e) => setBoite({ type: "erreur", message: message(e) }));
+  }, [j, parti, dat.id]);
   const [date, setDate] = useState("");
   const [demande, setDemande] = useState("");
   const choix = dat;

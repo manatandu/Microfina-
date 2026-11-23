@@ -1,4 +1,5 @@
-// Écart E11 (docs/reglementaire/ECARTS-2026-11-15.md) : Épargne > Comptes inactifs. Écran imposé par la loi, absent de Microfina++.
+// Écart E11 (docs/reglementaire/ECARTS-2026-11-15.md) : Épargne > Comptes en voie de prescription (mots de la loi ; plan d'allègement, point 5.7). Écran imposé par la loi, absent de Microfina++.
+// La procédure va jusqu'au bout : lettre, clôture aux dix ans, versement des avoirs à la BCC (venu de S70).
 // Loi 22/069, titre III, chap. Ier : comptes sans opération ni réclamation depuis dix ans clôturés, fonds versés à la BCC ; lettre avec accusé de réception
 // six mois avant. La loi s'applique aux COOPEC et aux sociétés de microfinance (titre Ier). Registre E11-1 à E11-3.
 import { useState } from "react";
@@ -18,12 +19,20 @@ export default function ComptesInactifs() {
   const [filtre, setFiltre] = useState<(typeof FILTRES)[number][0]>("");
   const [relu, setRelu] = useState(0);
   const { donnees, erreur } = useDonnees(() => api.inactifs.comptes(filtre), [filtre, relu]);
+  const { donnees: av } = useDonnees(async () => ({ avoirs: await api.clotures.avoirs(), banques: await api.banques.lire() }), [relu]);
+  const [coches, setCoches] = useState<number[]>([]);
+  const [versement, setVersement] = useState({ compteBancaire: "", reference: "" });
   const [choisi, setChoisi] = useState<Compte | null>(null);
   const [envoi, setEnvoi] = useState({ date: "", reference: "" });
   const [lettre, setLettre] = useState<Lettre | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   if (erreur) return <><p role="alert" className="erreur-champ">{erreur}</p></>;
-  if (!donnees || j === undefined) return <Chargement />;
+  if (!donnees || j === undefined || !av) return <Chargement />;
+  const cb = av.banques.comptes.find((x) => String(x.id) === versement.compteBancaire);
+  const verser = () => setBoite({ type: "confirmation", message: "Voulez-vous vraiment verser à la BCC les avoirs cochés ?", oui: async () => {
+    try { await api.clotures.verserBcc({ ids: coches, compteBancaireId: cb?.id, reference: versement.reference }); setCoches([]); setVersement({ compteBancaire: "", reference: "" }); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+    catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  } });
   const jour = j?.date ?? "";
   const ouvrir = (x: Compte) => { setChoisi(x); setEnvoi({ date: "", reference: "" }); };
   const noter = () => choisi && setBoite({ type: "confirmation", message: "Voulez-vous vraiment noter l'envoi de cette lettre ?", oui: async () => {
@@ -33,7 +42,7 @@ export default function ComptesInactifs() {
   return (
     <>
       
-      <section className="bloc pile" aria-label="Comptes inactifs">
+      <section className="bloc pile" aria-label="Comptes en voie de prescription">
         <div className="ligne-champ" role="radiogroup" aria-label="Comptes">
           {FILTRES.map(([k, l]) => <label key={k || "tous"} className="case"><input type="radio" name="filtre-inactifs" checked={filtre === k} onChange={() => setFiltre(k)} /><span>{l}</span></label>)}
         </div>
@@ -54,7 +63,29 @@ export default function ComptesInactifs() {
           "Loi 22/069, titre Ier : la loi s'applique aux coopératives d'épargne et de crédit et aux sociétés de microfinance",
           "Dernière opération : dernier mouvement du compte hors reprise des soldes, dernière plainte du client (réclamation) ou date d'ouverture"]} />
       </section>
-      <Fiche titre={choisi ? `Compte inactif ${choisi.compte}` : ""} ouverte={!!choisi} fermer={() => setChoisi(null)}>
+      <section className="bloc pile" aria-label="Avoirs en cours de prescription">
+        <h2>Avoirs en cours de prescription</h2>
+        <Paginee lignes={av.avoirs}>{(visibles) => (<div className="defile-x"><table className="grille">
+          <thead><tr><th scope="col"><span className="sr-only">Verser</span></th><th scope="col">Compte</th><th scope="col">Client</th><th scope="col">Clôturé le</th>
+            <th scope="col" className="num">Solde</th><th scope="col">Versé à la BCC le</th><th scope="col">Référence</th></tr></thead>
+          <tbody>
+            {visibles.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
+            {visibles.map((x) => <tr key={x.id}>
+              <td>{!x.verseeBccLe && <input type="checkbox" aria-label={`Verser : ${x.compte}`} checked={coches.includes(x.id)} onChange={(e) => setCoches(e.target.checked ? [...coches, x.id] : coches.filter((y) => y !== x.id))} />}</td>
+              <td className="chiffres">{x.compte}</td><td>{x.client} ({x.membre})</td><td className="chiffres">{fr(x.dateCloture)}</td>
+              <td className="num chiffres">{montant(x.solde, x.devise as Devise)}</td><td className="chiffres">{fr(x.verseeBccLe)}</td><td className="chiffres">{x.referenceBcc}</td></tr>)}
+          </tbody>
+        </table></div>)}</Paginee>
+        <div className="grille-deux">
+          <Champ libelle="Compte bancaire : *">{(pp) => <select {...pp} className="saisie" value={versement.compteBancaire} onChange={(e) => setVersement({ ...versement, compteBancaire: e.target.value })}>
+            <option value=""></option>{av.banques.comptes.map((x) => <option key={x.id} value={x.id}>{x.numeroBancaire} ({x.devise})</option>)}</select>}</Champ>
+          <Champ libelle="Référence du versement : *">{(pp) => <input {...pp} className="saisie code" value={versement.reference} onChange={(e) => setVersement({ ...versement, reference: e.target.value })} />}</Champ>
+        </div>
+        <div className="actions-onglets"><button className="bouton" type="button" disabled={!coches.length} onClick={verser}>Verser à la BCC</button></div>
+        <Textes sources={["Loi 22/069, titre III, chap. Ier : fonds versés à la BCC, qui les détient cinq ans pour le titulaire ou ses ayants droit, puis au Trésor public",
+          "PCCI, compte 36 : avoirs en cours de prescription (369 Autres sommes dues à la clientèle) ; débit 369, crédit du compte bancaire (registre S70-4, S70-5)"]} />
+      </section>
+      <Fiche titre={choisi ? `Compte ${choisi.compte}` : ""} ouverte={!!choisi} fermer={() => setChoisi(null)}>
         {choisi && <div className="pile">
           <dl className="info-ligne-liste">
             <div className="info-ligne"><dt>Client</dt><dd>{choisi.client} ({choisi.membre})</dd></div>
@@ -100,7 +131,7 @@ function LettreInactivite({ l, jour }: { l: Lettre; jour: string }) {
   const e = l.entete, cl = l.client, x = l.compte;
   const nom = cl.intitule || [cl.nom, cl.postnom, cl.prenom].filter(Boolean).join(" ");
   return (
-    <article className="releve-std contrat-dat a-imprimer" aria-label="Lettre au titulaire d'un compte inactif">
+    <article className="releve-std contrat-dat a-imprimer" aria-label="Lettre au titulaire d'un compte en voie de prescription">
       <header className="releve-tete">
         <p className="releve-num">Compte <span className="chiffres">{x.compte}</span></p>
         <h2 className="releve-titre">LETTRE AVEC ACCUSÉ DE RÉCEPTION</h2>

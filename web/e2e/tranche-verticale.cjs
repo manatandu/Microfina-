@@ -713,8 +713,9 @@ const OUT = process.argv[2];
   await fd.getByRole('button', { name: "Noter l'information" }).click(); await oui(); await fd.getByText(/Informées le/).waitFor(); await etape('10n-gel-avoirs');
   await fd.getByLabel('Référence de la décision de levée : *').fill('CONASAFIC/2026/020'); await fd.getByRole('button', { name: 'Lever le gel' }).click(); await oui();
   await fd.getByText(/Levé le/).waitFor(); await fd.getByRole('button', { name: 'Fermer' }).click();
-  // Comptes inactifs (écart E11 ; loi 22/069, titre III, chap. Ier) : aucun compte n'approche des dix ans dans la graine
-  await aller('/epargne/se01'); await p.getByRole('heading', { name: 'Comptes inactifs' }).waitFor(); await p.getByRole('cell', { name: 'Aucune ligne.' }).waitFor(); await etape('10o-comptes-inactifs');
+  // Comptes en voie de prescription (écart E11 ; loi 22/069, titre III, chap. Ier ; point 5.7) : aucun compte n'approche des dix ans dans la graine
+  await aller('/epargne/se01'); await p.getByRole('heading', { name: 'Comptes en voie de prescription' }).waitFor(); await p.getByRole('heading', { name: 'Avoirs en cours de prescription' }).waitFor();
+  await p.getByRole('cell', { name: 'Aucune ligne.' }).first().waitFor(); await etape('10o-comptes-inactifs');
   // Registre des membres (écart E12 ; loi 002/2002, art. 67) : ordre chronologique, parts souscrites et libérées
   await aller('/clients/sc04'); await p.getByRole('heading', { name: 'Registre des membres' }).waitFor(); await p.getByRole('cell', { name: '0412-000318', exact: true }).waitFor(); await etape('10p-registre-membres');
   // Conditions de banque (écart E15 ; Instr. BCC 40, art. 2 à 6) : état à afficher chaque trimestre et à transmettre à la BCC
@@ -1010,8 +1011,8 @@ const OUT = process.argv[2];
   await p.getByLabel('Nom', { exact: true }).fill('Kalala'); await p.getByRole('button', { name: 'Rechercher', exact: true }).click();
   await p.getByRole('cell', { name: '0412-000318-01' }).waitFor(); await etape('06c34-multicritere-epargne');
   await p.getByRole('tab', { name: 'Indicateur crédit épargne' }).click(); await p.getByRole('heading', { name: 'Indicateurs crédit épargne' }).waitFor(); await p.getByRole('button', { name: 'Exécuter' }).click();
-  await p.getByRole('cell', { name: 'Féminin', exact: true }).first().waitFor();   // crédits et garanties lus du module Crédit (S72-4) await etape('06c35-indicateurs');
-  await p.getByRole('tab', { name: 'Rapports des comptes inactifs' }).click(); await p.getByRole('heading', { name: 'Listes des comptes inactifs' }).waitFor(); await p.getByRole('button', { name: 'Exécuter' }).click();
+  await p.getByRole('cell', { name: 'Féminin', exact: true }).first().waitFor(); await etape('06c35-indicateurs');   // crédits et garanties lus du module Crédit (S72-4)
+  await p.getByRole('tab', { name: 'Comptes sans mouvement' }).click(); await p.getByRole('heading', { name: 'Comptes sans mouvement depuis 0 jours' }).waitFor(); await p.getByRole('button', { name: 'Exécuter' }).click();
   await p.getByRole('cell', { name: '0412-000318-01' }).waitFor(); await etape('06c36-comptes-inactifs');
   await login('Esther Ngalula');
   // Apurement avant la résiliation (registre S48-1) : Lukusa retire tout son solde (85 000 CDF)

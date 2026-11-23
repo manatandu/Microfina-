@@ -89,10 +89,10 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "S70"
 ],
 "clotures.cloturerInactif": [
-"S70"
+"SE01"
 ],
 "clotures.verserBcc": [
-"S70"
+"SE01"
 ],
 "comptabilisation.comptabiliser": [
 "S111"
