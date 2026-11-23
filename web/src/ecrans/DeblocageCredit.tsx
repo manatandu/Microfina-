@@ -1,5 +1,5 @@
-// S75 : Caisse > Opération > Déblocage crédit (manuel Microfina++, p. 86 et 87, capture « Déblocage crédit »), S54 : Banque > Déblocage crédit (p. 62)
-// et S105 : Comptabilité > Déblocage crédit sur le compte d'épargne (p. 124, 156 et 157).
+// S75 : Caisse > Opération > Déblocage crédit (manuel Microfina++, p. 86 et 87, capture « Déblocage crédit ») ; S54 (banque, p. 62) et S105 (compte d'épargne,
+// p. 124, 156 et 157) réunis dans Crédit > Déblocage (plan d'allègement, point 6.6).
 // Choisir le crédit visé, Débloquer ; échéancier, contrat de prêt, reconnaissance de dette. Plan d'allègement, points 4.7 et 6.7 : plus d'étape « Encaisser frais »
 // ni « Prélever les frais », qui n'écrivaient rien ; une seule confirmation montre les retenues et le montant remis (Instr. BCC 38, art. 6 ; registre CR-6).
 // Registre S75-1 à S75-8, S54-2 à S54-5, S105-1 à S105-4, CR-6, CR-10, CR-12.
@@ -149,103 +149,57 @@ export function DeblocageGuichet() {
   );
 }
 
-/** S54 : Banque > Déblocage crédit (capture p. 62) : Infos banque, Infos crédit, Info client, Frais, Financement ; Contrat de prêt */
-export function DeblocageBanque() {
+const MODES_DEBLOCAGE = [["epargne", "Compte d'épargne du client", "S105"], ["banque", "Chèque bancaire", "S54"]] as const;
+/** Crédit > Déblocage (plan d'allègement, point 6.6) : S105 (compte d'épargne, captures p. 124 et 157) et S54 (banque, capture p. 62) en un écran, le mode choisi
+ *  dedans selon les droits ; au guichet, le même déblocage en espèces (S75). Mêmes boutons partout : Echéancier, Contrat de prêt, Reconnaissance de dette. */
+export function Deblocage() {
   const [cid, setCid] = useState<number | null>(null);
-  const [relu] = useState(0);
+  const [mode, setMode] = useState<"" | "epargne" | "banque">("");
   const [f, setF] = useState({ banque: "", compte: "", cheque: "" });
-  const [fait, setFait] = useState(false);
-  const [fiche, setFiche] = useState<"" | "echeancier" | "contrat">("");
-  const [boite, setBoite] = useState<Boite | null>(null);
-  const { donnees } = useDonnees(async () => ({ t: await api.transferts.contexte(), d: cid && !fait ? await api.deblocage.detail(cid) : null }), [cid, relu, fait]);
-  if (!donnees) return <Chargement />;
-  const { t, d } = donnees;
-  const comptes = t.comptes.filter((c) => String(c.banqueId) === f.banque);
-  const cb = comptes.find((c) => String(c.id) === f.compte);
-  const erreur = (x: unknown) => setBoite({ type: "erreur", message: message(x) });
-  const effacer = () => { setCid(null); setF({ banque: "", compte: "", cheque: "" }); setFait(false); };
-  function debloquer() {
-    if (!d || !cb) return;
-    const dv = d.devise as Devise;
-    setBoite({ type: "confirmation", message: recapitulatif(`Déblocage du crédit ${d.numero}`, [["Client", `${d.client} (${d.membre})`], ["Prêt", montant(d.montant, dv)],
-      ["Retenues", montant(d.montant - d.retenues.net, dv)], ["Montant remis", montant(d.retenues.net, dv)], ["Chèque", f.cheque.trim()]]), oui: async () => {
-      try { await api.deblocage.debloquerBanque(d.id, { compteBancaireId: cb.id, cheque: f.cheque }); setFait(true); setBoite({ type: "succes", message: "Crédit débloqué avec succès !" }); }
-      catch (x) { erreur(x); }
-    } });
-  }
-  return (
-    <>
-      <h2>Déblocage crédit</h2>
-      <section className="bloc pile" aria-label="Déblocage crédit par banque">
-        <fieldset className="cadre-champs formulaire"><legend>Infos banque</legend>
-          <Champ libelle="Banque *">{(p) => <select {...p} className="saisie" value={f.banque} onChange={(e) => setF({ ...f, banque: e.target.value, compte: "" })}><option value=""></option>
-            {t.banques.map((b) => <option key={b.id} value={b.id}>{b.libelle}</option>)}</select>}</Champ>
-          <Champ libelle="Compte *">{(p) => <select {...p} className="saisie" value={f.compte} disabled={!f.banque} onChange={(e) => setF({ ...f, compte: e.target.value })}><option value="">{f.banque ? "" : "Choisir d'abord la banque"}</option>
-            {comptes.map((c) => <option key={c.id} value={c.id}>{`${c.compte} (${c.devise})`}</option>)}</select>}</Champ>
-          <p>Solde banque <strong className="chiffres">{cb ? montant(cb.solde, cb.devise as Devise) : ""}</strong></p>
-          <Champ libelle="N°chèque *">{(p) => <input {...p} className="saisie code" autoComplete="off" value={f.cheque} onChange={(e) => setF({ ...f, cheque: e.target.value })} />}</Champ>
-        </fieldset>
-        <div className="grille-deux">
-          <fieldset className="cadre-champs formulaire"><legend>Infos crédit</legend>
-            <Champ libelle="N° crédit">{(p) => <input {...p} className="saisie code" readOnly value={d?.numero ?? ""} />}</Champ>
-            <div className="ligne-champ"><ChoixCredit choisir={(x) => { effacer(); setCid(x); }} /></div>
-            <InfosCredit d={d} />
-          </fieldset>
-          <div className="pile">
-            <fieldset className="cadre-champs formulaire"><legend>Info Client</legend>
-              <Champ libelle="N° Client">{(p) => <Lecture {...p} value={d?.membre ?? ""} />}</Champ>
-              <Champ libelle="Intitulé du compte">{(p) => <Lecture {...p} value={d?.client ?? ""} />}</Champ>
-              <Champ libelle="Numéro compte">{(p) => <Lecture {...p} value={d?.compteClient ?? ""} />}</Champ>
-            </fieldset>
-            <fieldset className="cadre-champs"><legend>Frais</legend>{d && <Retenues d={d} />}</fieldset>
-            <fieldset className="cadre-champs formulaire"><legend>Financement</legend>
-              <Champ libelle="Ligne budgetaire">{(p) => <Lecture {...p} value={d?.ligneFinancement ?? ""} />}</Champ>
-            </fieldset>
-          </div>
-        </div>
-        <div className="actions-onglets">
-          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("echeancier")}>Echéancier</button>
-          <button className="bouton secondaire" type="button" disabled={!cid} onClick={() => setFiche("contrat")}>Contrat de prêt</button>
-          <button className="bouton" type="button" disabled={!d || !cb || !f.cheque.trim() || fait} onClick={debloquer}>Débloquer</button>
-          <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
-        </div>
-        <Textes sources={["Manuel Microfina++, p. 62 : infos banque (banque, compte, solde, numéro de chèque), infos crédit, info client, frais, financement ; contrat de prêt ; capture",
-          "Registre S54-2 à S54-5 : chèque d'un chéquier du compte bancaire (S60-5) ; retenues (CR-6) ; contrat de prêt (CR-12)"]} />
-      </section>
-      <Fiche titre="Echéancier" ouverte={fiche === "echeancier"} fermer={() => setFiche("")}>{d && <Echeancier d={d} fermer={() => setFiche("")} />}</Fiche>
-      <Fiche titre="Contrat de prêt" ouverte={fiche === "contrat"} fermer={() => setFiche("")}>{cid && <ContratPret id={cid} titre="Contrat de prêt" fermer={() => setFiche("")} />}</Fiche>
-      <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </>
-  );
-}
-
-/** S105 : Comptabilité > Déblocage crédit (captures p. 124 et 157) : Infos crédit, Info Client, Frais, Financement ; Echéancier, Contrat de prêt, Reconnaissance de dette */
-export function DeblocageEpargne() {
-  const [cid, setCid] = useState<number | null>(null);
-  const [relu] = useState(0);
   const [fait, setFait] = useState<{ piece: string } | null>(null);
   const [fiche, setFiche] = useState<"" | "echeancier" | "contrat" | "reconnaissance">("");
   const [boite, setBoite] = useState<Boite | null>(null);
-  const { donnees } = useDonnees(async () => ({ j: await api.journees.courante(), d: cid && !fait ? await api.deblocage.detail(cid) : null }), [cid, relu, fait]);
+  const { donnees } = useDonnees(async () => {
+    const [j, u, t] = await Promise.all([api.journees.courante(), api.session.courante(), api.transferts.contexte().catch(() => ({ banques: [], comptes: [] }))]);
+    return { j, t, droits: new Set((u as { droits?: string[] } | null)?.droits ?? []), d: cid && !fait ? await api.deblocage.detail(cid) : null };
+  }, [cid, fait]);
   if (!donnees) return <Chargement />;
-  const { j, d } = donnees;
+  const { j, t, droits, d } = donnees;
+  const modes = MODES_DEBLOCAGE.filter(([, , dr]) => droits.has(dr));
+  const m = mode || modes[0]?.[0] || "";
+  const comptes = t.comptes.filter((c) => String(c.banqueId) === f.banque);
+  const cb = comptes.find((c) => String(c.id) === f.compte);
   const erreur = (x: unknown) => setBoite({ type: "erreur", message: message(x) });
-  const effacer = () => { setCid(null); setFait(null); };
+  const effacer = () => { setCid(null); setF({ banque: "", compte: "", cheque: "" }); setFait(null); };
+  const pret = !!d && !fait && (m === "epargne" || (m === "banque" && !!cb && !!f.cheque.trim()));
   function debloquer() {
     if (!d) return;
     const dv = d.devise as Devise;
     setBoite({ type: "confirmation", message: recapitulatif(`Déblocage du crédit ${d.numero}`, [["Client", `${d.client} (${d.membre})`], ["Prêt", montant(d.montant, dv)],
-      ["Retenues", montant(d.montant - d.retenues.net, dv)], ["Montant remis", montant(d.retenues.net, dv)], ["Porté au compte", d.comptePositionnement]]), oui: async () => {
-      try { const x = await api.deblocage.debloquerEpargne(d.id); setFait({ piece: x.piece }); setBoite({ type: "succes", message: "Crédit débloqué avec succès !" }); }
-      catch (x) { erreur(x); }
+      ["Retenues", montant(d.montant - d.retenues.net, dv)], ["Montant remis", montant(d.retenues.net, dv)],
+      m === "banque" ? ["Chèque", f.cheque.trim()] : ["Porté au compte", d.comptePositionnement]]), oui: async () => {
+      try {
+        const x = m === "banque" ? await api.deblocage.debloquerBanque(d.id, { compteBancaireId: cb!.id, cheque: f.cheque }) : await api.deblocage.debloquerEpargne(d.id);
+        setFait({ piece: (x as { piece?: string }).piece ?? "" }); setBoite({ type: "succes", message: "Crédit débloqué avec succès !" });
+      } catch (x) { erreur(x); }
     } });
   }
   return (
     <>
-      <h2>Déblocage crédit</h2>
-      <section className="bloc pile" aria-label="Déblocage crédit sur compte d'épargne">
-        <div className="entete-ecran">{(fait?.piece ?? "") ? <p>Numéro de pièce : <strong className="chiffres">{fait?.piece ?? ""}</strong></p> : null}
+      <section className="bloc pile" aria-label="Déblocage">
+        <div className="entete-ecran">{fait?.piece ? <p>Numéro de pièce : <strong className="chiffres">{fait.piece}</strong></p> : <span />}
           <Champ libelle="Date Opération :">{(p) => <Lecture {...p} value={fr(j?.date ?? "")} />}</Champ></div>
+        <fieldset className="cadre-champs"><legend>Mode *</legend><div className="ligne-champ">
+          {modes.map(([k, l]) => <label key={k} className="case"><input type="radio" name="mode-deblocage" checked={m === k} disabled={!!fait} onChange={() => setMode(k)} /><span>{l}</span></label>)}
+        </div></fieldset>
+        {m === "banque" && <fieldset className="cadre-champs formulaire"><legend>Infos banque</legend>
+          <Champ libelle="Banque *">{(p) => <select {...p} className="saisie" value={f.banque} onChange={(e) => setF({ ...f, banque: e.target.value, compte: "" })}><option value=""></option>
+            {t.banques.map((b) => <option key={b.id} value={b.id}>{b.libelle}</option>)}</select>}</Champ>
+          <Champ libelle="Compte *">{(p) => <select {...p} className="saisie" value={f.compte} disabled={!f.banque} onChange={(e) => setF({ ...f, compte: e.target.value })}><option value="">{f.banque ? "" : "Choisir d'abord la banque"}</option>
+            {comptes.map((c) => <option key={c.id} value={c.id}>{`${c.compte} (${c.devise})`}</option>)}</select>}</Champ>
+          <Champ libelle="Solde banque">{(p) => <Lecture {...p} value={cb ? montant(cb.solde, cb.devise as Devise) : ""} />}</Champ>
+          <Champ libelle="N°chèque *">{(p) => <input {...p} className="saisie code" autoComplete="off" value={f.cheque} onChange={(e) => setF({ ...f, cheque: e.target.value })} />}</Champ>
+        </fieldset>}
         <div className="grille-deux">
           <fieldset className="cadre-champs formulaire"><legend>Infos crédit</legend>
             <Champ libelle="N° crédit">{(p) => <input {...p} className="saisie code" readOnly value={d?.numero ?? ""} />}</Champ>
@@ -256,7 +210,7 @@ export function DeblocageEpargne() {
             <fieldset className="cadre-champs formulaire"><legend>Info Client</legend>
               <Champ libelle="N° Client">{(p) => <Lecture {...p} value={d?.membre ?? ""} />}</Champ>
               <Champ libelle="Intitulé du compte">{(p) => <Lecture {...p} value={d?.client ?? ""} />}</Champ>
-              <Champ libelle="Numéro compte">{(p) => <Lecture {...p} value={d?.comptePositionnement ?? ""} />}</Champ>
+              <Champ libelle="Numéro compte">{(p) => <Lecture {...p} value={(m === "banque" ? d?.compteClient : d?.comptePositionnement) ?? ""} />}</Champ>
             </fieldset>
             <fieldset className="cadre-champs"><legend>Frais</legend>{d && <Retenues d={d} />}</fieldset>
             <fieldset className="cadre-champs formulaire"><legend>Financement</legend>
@@ -268,13 +222,13 @@ export function DeblocageEpargne() {
         <div className="actions-onglets">
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("echeancier")}>Echéancier</button>
           <button className="bouton secondaire" type="button" disabled={!cid} onClick={() => setFiche("contrat")}>Contrat de prêt</button>
-          <button className="bouton" type="button" disabled={!d || !!fait} onClick={debloquer}>Débloquer</button>
           <button className="bouton secondaire" type="button" disabled={!cid} onClick={() => setFiche("reconnaissance")}>Reconnaissance de dette</button>
+          <button className="bouton" type="button" disabled={!pret} onClick={debloquer}>Débloquer</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         </div>
-        <Textes sources={["Manuel Microfina++, p. 124 : infos crédit, info client, frais, financement ; échéancier, contrat de prêt, débloquer ; capture",
-          "Manuel Microfina++, p. 156 et 157 : « Déblocage de crédit par positionnement sur compte épargne » ; échéancier et reconnaissance de dette ; capture",
-          "Registre S105-1 à S105-4 : le net est porté au compte d'épargne du client ; retenues (CR-6) ; contrat de prêt (CR-12)"]} />
+        <Textes sources={["Manuel Microfina++, p. 62 (banque), p. 124, 156 et 157 (compte d'épargne) ; plan d'allègement, point 6.6 : un écran dans le menu Crédit, le mode choisi dedans",
+          "Registre S54-2 à S54-5 : chèque d'un chéquier du compte bancaire (S60-5) ; S105-1 à S105-4 : le net est porté au compte d'épargne du client ; retenues (CR-6) ; contrat de prêt (CR-12)",
+          "Instr. BCC 008, art. 66 : seul le caissier manie les espèces ; le déblocage en espèces se fait au guichet (S75)"]} />
       </section>
       <Fiche titre="Echéancier" ouverte={fiche === "echeancier"} fermer={() => setFiche("")}>{d && <Echeancier d={d} fermer={() => setFiche("")} />}</Fiche>
       <Fiche titre="Contrat de prêt" ouverte={fiche === "contrat"} fermer={() => setFiche("")}>{cid && <ContratPret id={cid} titre="Contrat de prêt" fermer={() => setFiche("")} />}</Fiche>

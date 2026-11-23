@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1073 décisions.** Solidité : 505 fortes (le manuel ou un texte répond), 486 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1061 déjà en place, 12 à appliquer.
+**1074 décisions.** Solidité : 505 fortes (le manuel ou un texte répond), 487 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1062 déjà en place, 12 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1769,6 +1769,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S105-2 | Date Opération | La journée ouverte, en lecture ; l'échéancier est recalé dessus comme au guichet (S75-6) | Écran voisin : Capture p. 124 (Date Opération *) ; S75-6 | moyenne | en place |
 | S105-3 | Écriture du déblocage | Comme au guichet (S75-4), le compte de dépôt du client remplaçant le guichet ; journal des opérations diverses ; aucune sortie d'espèces, donc ni billetage ni examen renforcé de caisse | Texte réglementaire : PCCI, comptes 330 et 334 ; S75-4 | moyenne | en place |
 | S105-4 | Frais, financement et boutons | « Prélever les frais » avant Débloquer, comme par banque (S54-3). Financement en lecture : Type budget (Fonds propres ou Ressources affectées, S89-3) et Ligne budgétaire. Boutons Echéancier, Contrat de prêt (p. 124), Reconnaissance de dette (p. 157), Débloquer, Effacer | Manuel : Captures p. 124 et 157 ; texte p. 157 ; S54-3 ; S89-3 ; CR-12 | moyenne | en place |
+
+## S54, S105, S55, S106 Déblocage et remboursement
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S105-5 | Un écran chacun | Dans le menu Crédit, « Déblocage » (S105 et S54 réunis) et « Remboursement » (S106 et S55 réunis), le mode choisi dedans : Déblocage, « Compte d'épargne du client » ou « Chèque bancaire » (le déblocage par banque se fait par un chèque d'un chéquier, S54-2) ; Remboursement, « Prélèvement sur le compte d'épargne » (ordre du client, mandataire) ou « Chèque ou virement bancaire ». Chaque mode n'apparaît qu'avec son droit (S105, S54, S106, S55). Au guichet, le même déblocage et le même remboursement en espèces (S75, S76), seul le caissier maniant les espèces. Mêmes boutons partout : au déblocage Echéancier, Contrat de prêt, Reconnaissance de dette ; au remboursement Situation, Échéancier prévu, Paiements reçus, Mémo, Imprimer (avis de remboursement, ou reçu au guichet). S54 et S55 sortent des menus ; qui avait S54 ou S55 reçoit S105 ou S106 pour voir l'écran du menu. | Écran voisin : Plan d'allègement, point 6.6 ; Instr. BCC 008, art. 66 | moyenne | en place |
 
 ## S106 Remboursement par prélèvement
 

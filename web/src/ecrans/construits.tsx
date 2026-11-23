@@ -184,13 +184,11 @@ const MiseEnPlace = paresseux(() => import("./MiseEnPlace"), "default");
 const AffectationDossier = paresseux(() => import("./SuiviCredit"), "AffectationDossier");
 const Portefeuille = paresseux(() => import("./SuiviCredit"), "Portefeuille");
 const HistoriqueVisas = paresseux(() => import("./SuiviCredit"), "HistoriqueVisas");
-const DeblocageBanque = paresseux(() => import("./DeblocageCredit"), "DeblocageBanque");
+const Deblocage = paresseux(() => import("./DeblocageCredit"), "Deblocage");
 const DeblocageGuichet = paresseux(() => import("./DeblocageCredit"), "DeblocageGuichet");
-const DeblocageEpargne = paresseux(() => import("./DeblocageCredit"), "DeblocageEpargne");
 const ConsulterPret = paresseux(() => import("./RemboursementCredit"), "ConsulterPret");
-const RemboursementBanque = paresseux(() => import("./RemboursementCredit"), "RemboursementBanque");
+const Remboursement = paresseux(() => import("./RemboursementCredit"), "Remboursement");
 const RemboursementGuichet = paresseux(() => import("./RemboursementCredit"), "RemboursementGuichet");
-const RemboursementPrelevement = paresseux(() => import("./RemboursementCredit"), "RemboursementPrelevement");
 const Garanties = paresseux(() => import("./Garanties"), "default");
 const ListeRouge = paresseux(() => import("./ListeRouge"), "default");
 const Provisions = paresseux(() => import("./Provisions"), "default");
@@ -293,8 +291,8 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S51: RapportsClients,
   S52: OperationsBanque,
   S53: VirementPrelevement,
-  S54: DeblocageBanque,
-  S55: RemboursementBanque,
+  S54: Deblocage,
+  S55: Remboursement,
   S56: AdhesionBanque,
   S57: VisaBanque,
   S58: CreationBanque,
@@ -351,8 +349,8 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S79: BilletageCaisse,
   S80: ValidationBilletage,
   S102: PlanComptes,
-  S105: DeblocageEpargne,
-  S106: RemboursementPrelevement,
+  S105: Deblocage,
+  S106: Remboursement,
   S103: PlanTiers,
   S104: Taxes,
   S111: Comptabilisation,

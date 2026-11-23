@@ -452,7 +452,8 @@
     "but": "Verser un crédit par chèque",
     "module": "banque",
     "priorite": "must",
-    "chemin": "/banque/s54"
+    "chemin": "/banque/s54",
+    "menu": false
   },
   {
     "id": "S55",
@@ -461,7 +462,8 @@
     "but": "Recevoir un remboursement par banque",
     "module": "banque",
     "priorite": "must",
-    "chemin": "/banque/s55"
+    "chemin": "/banque/s55",
+    "menu": false
   },
   {
     "id": "S56",
@@ -966,21 +968,21 @@
   },
   {
     "id": "S105",
-    "nom": "Déblocage par compte d'épargne",
-    "acces": "Comptabilité > Déblocage crédit",
-    "but": "Verser un crédit sur le compte du client",
-    "module": "comptabilite",
+    "nom": "Déblocage",
+    "acces": "Crédit > Déblocage",
+    "but": "Débloquer un crédit sur le compte d'épargne du client ou par chèque bancaire ; échéancier, contrat de prêt, reconnaissance de dette (plan d'allègement, point 6.6)",
+    "module": "credit",
     "priorite": "must",
-    "chemin": "/comptabilite/s105"
+    "chemin": "/credit/s105"
   },
   {
     "id": "S106",
-    "nom": "Remboursement par prélèvement",
-    "acces": "Comptabilité > Remboursement par prélèvement",
-    "but": "Prélever une échéance sur l'épargne",
-    "module": "comptabilite",
+    "nom": "Remboursement",
+    "acces": "Crédit > Remboursement",
+    "but": "Recevoir un remboursement par prélèvement sur le compte d'épargne ou par banque (plan d'allègement, point 6.6)",
+    "module": "credit",
     "priorite": "must",
-    "chemin": "/comptabilite/s106"
+    "chemin": "/credit/s106"
   },
   {
     "id": "S142",
