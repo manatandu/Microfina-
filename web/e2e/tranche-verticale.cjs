@@ -1298,8 +1298,10 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('cell', { name: 'Agence de Matete' }).waitFor(); await etape('29g-consommation-centre');
   // Comptable : calculs (S128, p. 163) et clôtures (S127)
   await aller('/budget/s128'); await p.getByRole('heading', { name: 'Frais de tenue de comptes' }).waitFor(); await etape('30a-calculs');
-  await p.getByRole('tab', { name: 'Calcul des intérêts sur DAT' }).click(); await p.getByRole('heading', { name: 'Calcul des intérêts sur DAT' }).waitFor();
-  await p.getByRole('button', { name: 'Calculer' }).click(); await p.getByText('Intérêts courus au').waitFor(); await etape('30b-interets-dat');
+  // Intérêts courus des DAT : un seul tableau, dans Dépôts à terme (plan d'allègement, point 5.3)
+  await aller('/epargne/s68'); await p.getByRole('button', { name: 'Intérêts courus' }).click(); const dic = p.getByRole('dialog', { name: 'Intérêts courus sur dépôts à terme' });
+  await dic.getByRole('button', { name: 'Calculer' }).click(); await dic.getByText('Intérêts courus au').waitFor(); await dic.getByRole('button', { name: 'Valider' }).waitFor(); await etape('30b-interets-dat');
+  await dic.getByRole('button', { name: 'Fermer' }).click();
   await aller('/budget/s127'); await p.getByRole('heading', { name: 'État des provisions de crédits' }).waitFor(); await etape('30c-cloture-credit');
   await p.getByRole('tab', { name: 'Comptabilité' }).click(); await p.getByRole('heading', { name: 'Clôture comptable' }).waitFor();
   await p.getByRole('region', { name: 'Clôture comptable' }).getByRole('button', { name: 'Afficher' }).click(); await p.getByText('Soldes de gestion de l\'exercice').waitFor(); await etape('30d-cloture-comptable');

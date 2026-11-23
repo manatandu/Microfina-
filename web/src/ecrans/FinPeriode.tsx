@@ -7,6 +7,7 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
+import { imprimer } from "../lib/imprimer";
 import { decimal, lireMontant } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, type Boite } from "../composants";
 
@@ -93,20 +94,19 @@ function TableDat({ r }: { r: Dat }) {
       <td className="num chiffres"><strong>{n(v.aPasser)}</strong></td><td colSpan={2}></td></tr>)}</tfoot></table>;
 }
 
-function InteretsDat({ jour, passer }: { jour: string; passer: boolean }) {
+/** Intérêts courus des DAT (PCCI § 6.4) : un seul tableau, ouvert depuis Épargne > Dépôts à terme (plan d'allègement, point 5.3) ; Valider avec le droit S128 */
+export function InteretsDat({ jour, valider }: { jour: string; valider: boolean }) {
   const [d, setD] = useState(jour);
   const [r, setR] = useState<Dat | null>(null);
   const t = useTraitement();
-  const lire = passer ? api.finPeriode.apercuInteretsDat : api.finPeriode.interetsCourusDepot;
-  const calculer = async () => { try { setR(await lire({ date: d })); } catch (x) { t.erreur(x); } };
-  const titre = passer ? "Calcul des intérêts sur DAT" : "Intérêts courus sur dépôts à terme";
-  return <section className="bloc pile" aria-label={titre}><h2>{titre}</h2>
+  const calculer = async () => { try { setR(await api.finPeriode.apercuInteretsDat({ date: d })); } catch (x) { t.erreur(x); } };
+  return <section className="pile" aria-label="Intérêts courus sur dépôts à terme">
     <fieldset className="cadre-champs formulaire"><legend className="sr-only">Date</legend><ChampDate libelle="Date :" valeur={d} onChange={(v) => { setD(v); setR(null); }} /></fieldset>
-    <div className="actions-onglets"><button className="bouton" type="button" onClick={calculer}>{passer ? "Calculer" : "Afficher"}</button>
-      {passer ? <button className="bouton secondaire" type="button" disabled={!r?.lignes.some((x) => x.aPasser)}
-        onClick={() => t.confirmer("Voulez-vous vraiment passer les intérêts courus ?", async () => setR(await api.finPeriode.passerInteretsDat({ date: d })))}>Valider</button>
-        : <button className="bouton secondaire" type="button" disabled={!r} onClick={() => window.print()}>Imprimer</button>}</div>
-    {r && <TableDat r={r} />}
+    <div className="actions-onglets sans-impression"><button className="bouton" type="button" onClick={calculer}>Calculer</button>
+      <button className="bouton secondaire" type="button" disabled={!r} onClick={() => imprimer(".fiche .a-imprimer")}>Imprimer</button>
+      {valider && <button className="bouton secondaire" type="button" disabled={!r?.lignes.some((x) => x.aPasser)}
+        onClick={() => t.confirmer("Voulez-vous vraiment passer les intérêts courus ?", async () => setR(await api.finPeriode.passerInteretsDat({ date: d })))}>Valider</button>}</div>
+    {r && <div className="defile-x a-imprimer"><TableDat r={r} /></div>}
     {t.dialogue}</section>;
 }
 
@@ -260,7 +260,7 @@ function useCadreCloture() {
   return donnees;
 }
 
-const PAGES_CALCULS = [["tenue", "Frais de tenue de comptes"], ["dav", "Calcul intérêt sur DAV"], ["dat", "Calcul des intérêts sur DAT"], ["interets-frais", "Intérêt et frais de tenue de comptes"],
+const PAGES_CALCULS = [["tenue", "Frais de tenue de comptes"], ["dav", "Calcul intérêt sur DAV"], ["interets-frais", "Intérêt et frais de tenue de comptes"],
   ["provisions", "État des provisions de crédits"], ["credits", "Intérêts courus sur crédits"]] as const;
 export function Calculs() {
   const o = Onglets({ pages: PAGES_CALCULS, titre: "Calculs", defaut: "tenue" });
@@ -269,17 +269,17 @@ export function Calculs() {
   const jour = cadre.j?.date ?? new Date().toISOString().slice(0, 10);
   return <>{o.barre}
     {o.page === "tenue" && <FraisTenue ctx={cadre.ctx} jour={jour} />}{o.page === "dav" && <InteretsDav ctx={cadre.ctx} jour={jour} />}
-    {o.page === "dat" && <InteretsDat jour={jour} passer />}{o.page === "interets-frais" && <InteretsEtFrais ctx={cadre.ctx} jour={jour} />}
+    {o.page === "interets-frais" && <InteretsEtFrais ctx={cadre.ctx} jour={jour} />}
     {o.page === "provisions" && <EtatProvisions jour={jour} cloture={false} />}{o.page === "credits" && <InteretsCredits jour={jour} />}</>;
 }
 
-const PAGES_CLOTURE = [["credit", "Crédit"], ["depot", "Dépôt"], ["comptabilite", "Comptabilité"]] as const;
+const PAGES_CLOTURE = [["credit", "Crédit"], ["comptabilite", "Comptabilité"]] as const;   // « Dépôt » : intérêts courus des DAT, dans Dépôts à terme (point 5.3)
 export function Clotures() {
   const o = Onglets({ pages: PAGES_CLOTURE, titre: "Clôture", defaut: "credit" });
   const cadre = useCadreCloture();
   if (!cadre) return <Chargement />;
   const jour = cadre.j?.date ?? new Date().toISOString().slice(0, 10);
   return <><h2>Clôture</h2>{o.barre}
-    {o.page === "credit" && <EtatProvisions jour={jour} cloture />}{o.page === "depot" && <InteretsDat jour={jour} passer={false} />}
+    {o.page === "credit" && <EtatProvisions jour={jour} cloture />}
     {o.page === "comptabilite" && <><ClotureComptable ctx={cadre.ctx} jour={jour} /><AffectationResultat jour={jour} /></>}</>;
 }

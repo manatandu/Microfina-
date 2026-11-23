@@ -11,6 +11,7 @@ import { imprimer } from "../lib/imprimer";
 import { lireMontant, montant, montantEnLettres, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee, LigneFiltres } from "../composants";
 import { RechercheClient } from "./Visa";
+import { InteretsDat } from "./FinPeriode";
 
 type Dat = Awaited<ReturnType<typeof api.depotsTerme.liste>>[number];
 type Contrat = Awaited<ReturnType<typeof api.depotsTerme.contrat>>;
@@ -135,11 +136,12 @@ const FILTRES: [string, string, Dat["statut"][]][] = [["", "Tous", []], ["saisie
 export default function DepotsATerme() {
   const [relu, setRelu] = useState(0);
   const { donnees } = useDonnees(async () => {
-    const [lignes, u] = await Promise.all([api.depotsTerme.liste(), api.session.courante()]);
-    return { lignes, droits: new Set((u as { droits?: string[] } | null)?.droits ?? []) };
+    const [lignes, u, j] = await Promise.all([api.depotsTerme.liste(), api.session.courante(), api.journees.courante()]);
+    return { lignes, droits: new Set((u as { droits?: string[] } | null)?.droits ?? []), jour: j?.date ?? "" };
   }, [relu]);
   const [filtre, setFiltre] = useState("");
   const [nouveau, setNouveau] = useState(false);
+  const [courus, setCourus] = useState(false);
   const [rompre, setRompre] = useState<Dat | null>(null);
   const [contrat, setContrat] = useState<Contrat | null>(null);
   const [avis, setAvis] = useState<Contrat | null>(null);
@@ -171,6 +173,7 @@ export default function DepotsATerme() {
           <Champ libelle="Statut :">{(pp) => <select {...pp} className="saisie" value={filtre} onChange={(e) => setFiltre(e.target.value)}>
             {FILTRES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ>
           {droits.has("S65") && <button className="bouton" type="button" onClick={() => setNouveau(true)}>Nouveau DAT</button>}
+          <button className="bouton secondaire" type="button" onClick={() => setCourus(true)}>Intérêts courus</button>
         </div>
         {piece ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}
         <Paginee lignes={lignes} colonnes={(x) => [num(x), fr(x.dateDepot), x.membre, x.client, x.compteDat, montant(x.montant, x.devise as Devise), `${x.duree} mois`, `${x.tauxInteret} %`,
@@ -192,10 +195,15 @@ export default function DepotsATerme() {
         <Textes sources={["Manuel Microfina++, p. 75 à 77 : mise en place, validation et contrat, rupture, recherche des DAT",
           "Plan d'allègement, point 5.1 : une liste par statut, les actions sur la ligne, un bouton Nouveau DAT",
           "Quatre yeux : la validation vient d'une autre personne que celle qui a mis le DAT en place (Instr. BCC 008, art. 66) ; écriture du compte émetteur au compte DAT (PCCI 340)",
+          "Intérêts courus des DAT : PCCI § 6.4 (charges rattachées à la période)",
           "Rupture : retenue de 20 % sur l'intérêt brut des dépôts à échéance fixe des personnes physiques (loi 23/053, art. 78, 81 et 120), au compte 433 ; pénalité au compte 7791"]} />
       </section>
       <Fiche titre="Mise en place DAT" ouverte={nouveau} fermer={() => setNouveau(false)}>
         {nouveau && <FormulaireDat fini={() => { setNouveau(false); relire(); }} />}
+      </Fiche>
+      <Fiche titre="Intérêts courus sur dépôts à terme" ouverte={courus} fermer={() => setCourus(false)}>
+        {courus && <InteretsDat jour={donnees.jour} valider={droits.has("S128")} />}
+        <div className="actions-onglets sans-impression"><button className="bouton secondaire" type="button" onClick={() => setCourus(false)}>Fermer</button></div>
       </Fiche>
       <Fiche titre="Rupture DAT" ouverte={!!rompre} fermer={() => { setRompre(null); relire(); }}>
         {rompre && <FormulaireRupture dat={rompre} fini={(pc) => { setRompre(null); if (pc) setPiece(pc); relire(); }} />}
