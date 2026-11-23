@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1062 décisions.** Solidité : 504 fortes (le manuel ou un texte répond), 476 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1050 déjà en place, 12 à appliquer.
+**1063 décisions.** Solidité : 504 fortes (le manuel ou un texte répond), 477 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1051 déjà en place, 12 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2455,6 +2455,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S84-10 | Disposition | Un cadre Crédit (client facultatif, produit, montant, durée, différé, date de déblocage) et un cadre Produit (périodicité, taux, phrase « Intérêts calculés sur le capital restant dû (méthode dégressive), à taux fixe ; différé réparti »). Boutons Calculer (le récapitulatif s'affiche dessous), Echéancier, Effacer. Le client choisi est repris en tête de l'échéancier. Un seul TEG, annuel, dans la simulation, la mise en place et le contrat de prêt. | Écran voisin : Plan d'allègement, point 6.10 ; registre T137 ; Instr. BCC 38, art. 2, 4 et 11 | moyenne | en place |
+
+## S95 Consulter prêt, S76 S55 S106 Remboursement
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S95-4 | Classe du crédit | « Degré crédit » et « Degré réel », qui montraient la même valeur, deviennent une ligne : « Classe (Instr. BCC 003) : Impayé, 12 jours de retard ». La date de la consultation s'appelle « Situation au », sans astérisque. Le différé s'affiche en mois, comme à la mise en place. | Écran voisin : Plan d'allègement, point 6.5 ; Instr. BCC 003, art. 12 (classes) | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

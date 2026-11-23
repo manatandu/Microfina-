@@ -456,7 +456,7 @@ def consultation(u, cid: int, d: str | None = None) -> dict:
     p = une("select interet_anticipation from produit_credit where id = %s", (c["produit_id"],))
     return {**v, "rang": valeur("select count(*) from credit where tiers_id = %s and id <= %s and statut <> 'refuse'", (c["tiers_id"], c["id"])),
             "terme": FIXES["termes"][terme(c["duree_mois"]) - 1]["libelle"], "tauxAnnuel": float(Decimal(c["taux_interet"]) * 12),
-            "periodiciteLibelle": PERIODICITES[c["periodicite"] or "M"]["libelle"], "differeJours": c["differe_jours"] or 0,
+            "periodiciteLibelle": PERIODICITES[c["periodicite"] or "M"]["libelle"], "differeMois": c["differe_mois"] or 0,   # le différé en mois, comme ailleurs (plan d'allègement, point 6.5)
             "interetAnticipation": bool(p["interet_anticipation"]),
             "groupe": valeur("""select g.nom from groupe_solidaire_membre m join groupe_solidaire g on g.id = m.groupe_id where m.tiers_id = %s order by g.id limit 1""",
                              (c["tiers_id"],)) or ""}

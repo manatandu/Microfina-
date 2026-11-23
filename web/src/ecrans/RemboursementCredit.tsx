@@ -122,7 +122,7 @@ function InfosClient({ e, fige, rechercher, choisir, children }: { e: Etat; fige
   </fieldset>;
 }
 
-function InfosCredit({ e, fige, banque, action }: { e: Etat; fige: boolean; banque?: boolean; action?: ReactNode }) {
+function InfosCredit({ e, fige, action }: { e: Etat; fige: boolean; action?: ReactNode }) {
   const d = e.donnees?.d ?? null, dv = (d?.devise ?? "CDF") as Devise, l = e.donnees?.credits ?? [];
   return <fieldset className="pile cadre-champs"><legend>Infos crédit</legend>
     <Champ libelle="Credit:">{(p) => <select {...p} className="saisie code" disabled={fige || l.length < 2} value={d?.id ?? ""} onChange={(x) => { e.setCid(Number(x.target.value)); e.setModifie(null); }}>
@@ -133,8 +133,7 @@ function InfosCredit({ e, fige, banque, action }: { e: Etat; fige: boolean; banq
       <div className="info-ligne"><dt>Capital restant :</dt><dd className="chiffres">{d ? montant(d.capitalRestant, dv) : ""}</dd></div>
       <div className="info-ligne"><dt>Reste à payer :</dt><dd className="chiffres">{d ? montant(d.resteAPayer, dv) : ""}</dd></div>
       <div className="info-ligne"><dt>Produit crédit:</dt><dd>{d?.produit ?? ""}</dd></div>
-      <div className="info-ligne"><dt>Degré crédit:</dt><dd>{d ? <>{d.degre} <span className="negatif">Jour retard : {d.joursRetard}</span></> : ""}</dd></div>
-      {banque && <div className="info-ligne"><dt>Degré réel</dt><dd>{d?.degre ?? ""}</dd></div>}
+      <div className="info-ligne"><dt>Classe (Instr. BCC 003)</dt><dd>{d ? `${d.degre}${d.joursRetard ? `, ${d.joursRetard} jours de retard` : ""}` : ""}</dd></div>
     </dl>
     <div className="ligne-champ">
       <Champ libelle="Montant à payer: *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" readOnly={fige || !d} value={e.saisie}
@@ -279,7 +278,7 @@ export function RemboursementBanque() {
             : <ChampDate libelle="Date règlement : *" valeur={date || j?.date || ""} onChange={setDate} />}</div>
         <div className="grille-cadres client-large">
           <InfosClient e={e} fige={fige} rechercher={() => setFiche("recherche")} />
-          <InfosCredit e={e} fige={fige} banque />
+          <InfosCredit e={e} fige={fige} />
           <fieldset className="pile cadre-champs formulaire"><legend>Info banque</legend>
             <dl className="infos"><div className="info-ligne"><dt>Agence</dt><dd>{r.agence.nom}</dd></div></dl>
             <Champ libelle="Banque: *">{(p) => <select {...p} className="saisie" disabled={fige} value={f.banque} onChange={(x) => setF({ banque: x.target.value, compte: "" })}><option value=""></option>
@@ -359,7 +358,7 @@ export function RemboursementPrelevement() {
             <Champ libelle="Solde:">{(p) => <Lecture {...p} value={k ? montant(k.disponible, k.devise as Devise) : ""} />}</Champ>
             <Champ libelle="Ordre du client : *">{(p) => <input {...p} className="saisie" autoComplete="off" readOnly={fige} value={ordre} onChange={(x) => setOrdre(x.target.value)} />}</Champ>
           </InfosClient>
-          <InfosCredit e={e} fige={fige} banque />
+          <InfosCredit e={e} fige={fige} />
         </div>
         <div className="onglets" role="tablist" aria-label="Crédit">
           <button type="button" role="tab" aria-selected={onglet === "detail"} onClick={() => setOnglet("detail")}>Détail crédit</button>
@@ -432,7 +431,7 @@ export function ConsulterPret() {
       <h2>Consultation de prêts</h2>
       <section className="bloc pile" aria-label="Consultation de prêts">
         <div className="entete-ecran"><span></span>
-          <ChampDate libelle="Date règlement : *" valeur={date || j?.date || ""} onChange={setDate} /></div>
+          <ChampDate libelle="Situation au" valeur={date || j?.date || ""} onChange={setDate} /></div>
         <div className="grille-deux">
           <fieldset className="pile cadre-champs"><legend>Infos Client</legend>
             <div className="ligne-champ"><Champ libelle="N° du Client :">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
@@ -449,8 +448,7 @@ export function ConsulterPret() {
               <div className="info-ligne"><dt>Capital restant :</dt><dd className="chiffres">{d ? montant(d.capitalRestant, dv) : ""}</dd></div>
               <div className="info-ligne"><dt>Reste à payer :</dt><dd className="chiffres">{d ? montant(d.resteAPayer, dv) : ""}</dd></div>
               <div className="info-ligne"><dt>Produit crédit:</dt><dd>{d?.produit ?? ""}</dd></div>
-              <div className="info-ligne"><dt>Degré crédit:</dt><dd>{d ? <>{d.degre} <span className="negatif">Jour retard : {d.joursRetard}</span></> : ""}</dd></div>
-              <div className="info-ligne"><dt>Degré réel</dt><dd>{d?.degre ?? ""}</dd></div>
+              <div className="info-ligne"><dt>Classe (Instr. BCC 003)</dt><dd>{d ? `${d.degre}${d.joursRetard ? `, ${d.joursRetard} jours de retard` : ""}` : ""}</dd></div>
               <div className="info-ligne"><dt>Terme :</dt><dd>{d?.terme ?? ""}</dd></div>
               <div className="info-ligne"><dt>Agent de crédit :</dt><dd>{d?.agent ?? ""}</dd></div>
             </dl>
@@ -464,7 +462,7 @@ export function ConsulterPret() {
             {ro("Retard capil.", mt(d?.du.capital))}{ro("Retard intérêt", mt(d?.du.interet))}{ro("Retard fonds de solidarité", mt(d?.du.solidarite))}{ro("Retard épargne obligatoire", mt(d?.du.epargne))}
             {ro("Pénalité", mt(d?.du.penalite))}{ro("Retard total", d ? montant(d.retardTotal, dv) : "")}{ro("Durée prêt (mois)", String(d?.duree ?? ""))}
             {ro("Taux d'intérêt mensuel (%)", d ? decimal.format(d.tauxAnnuel / 12) : "")}{ro("Équivalent annuel (%)", d ? decimal.format(d.tauxAnnuel) : "")}{ro("Nbre trait", String(d?.nombreTraites ?? ""))}{ro("Périodicité", d?.periodiciteLibelle ?? "")}
-            {ro("Différé de paiement (jour)", String(d?.differeJours ?? ""))}
+            {ro("Différé (mois)", String(d?.differeMois ?? ""))}
           </div>
         </fieldset>
         <div className="actions-onglets">

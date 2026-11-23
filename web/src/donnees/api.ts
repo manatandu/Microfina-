@@ -4817,7 +4817,7 @@ const remboursementsCredit = {
       capitalRestant: s.capitalRestant, resteAPayer: s.resteAPayer, interetTotal: s.interetTotal, interetRestant: s.interetNonEchu + s.du.interet!, dernierPaiement: s.dernierPaiement,
       du: s.du, retardTotal: sommeDu(s), toutSurLeCredit: toutCredit(c, s), ordre: ordreRemb(c, s.degre),
       rang: E.credits.filter((x) => x.tiersId === c.tiersId && x.id <= c.id && x.statut !== "refuse").length, terme: String(fixeCredit("termes")[termeCredit(c.duree) - 1]!.libelle),
-      tauxAnnuel: Number(c.tauxInteret.replace(",", ".")) * 12, periodiciteLibelle: periodicitePlan(c.periodicite || "M")!.libelle, differeJours: 0,
+      tauxAnnuel: Number(c.tauxInteret.replace(",", ".")) * 12, periodiciteLibelle: periodicitePlan(c.periodicite || "M")!.libelle, differeMois: c.differe ?? 0,
       interetAnticipation: !!p.interetAnticipation, groupe: g?.nom ?? "" };
   },
   creditsConsultation(tid: number) {
