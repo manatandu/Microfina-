@@ -98,7 +98,6 @@ const FICHIERS: (() => Promise<unknown>)[] = [
   () => import("./Visa"),
   () => import("./Parametrage"),
   () => import("./Groupes"),
-  () => import("./Prospects"),
   () => import("./Procurations"),
   () => import("./Rapports"),
   () => import("./Parts"),
@@ -253,7 +252,6 @@ const ResiliationClient = paresseux(() => import("./Visa"), "ResiliationClient")
 const MembresAViser = paresseux(() => import("./Visa"), "MembresAViser");
 const FraisOperations = paresseux(() => import("./Parametrage"), "FraisOperations");
 const GroupeSolidaire = paresseux(() => import("./Groupes"), "GroupeSolidaire");
-const NouveauProspect = paresseux(() => import("./Prospects"), "NouveauProspect");
 const TypesProcuration = paresseux(() => import("./Procurations"), "TypesProcuration");
 const RapportsClients = paresseux(() => import("./Rapports"), "RapportsClients");
 const PartsSociales = paresseux(() => import("./Parts"), "PartsSociales");
@@ -299,7 +297,6 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S40: MembresAViser,
   S43: InformationsClient,
   S44: GroupeSolidaire,
-  S45: NouveauProspect,
   S46: MiseAJourClient,
   S47: TypesProcuration,
   S48: ResiliationClient,

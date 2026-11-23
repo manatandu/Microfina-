@@ -504,13 +504,13 @@ const OUT = process.argv[2];
   await rg2.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rg2.getByRole('row').filter({ hasText: 'Kalala' }).first().click();
   await p.getByRole('button', { name: 'Ajouter', exact: true }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Erreur' }).getByText(/déjà membre du groupe « Grp Kinsaku »/).waitFor(); await etape('06q3-un-seul-groupe'); await p.getByRole('button', { name: 'Ok' }).click();
-  // Prospect (S45)
-  await aller('/clients/s45');
-  await p.getByLabel('Nom : *').fill('Tshibangu'); await p.getByLabel('Prénoms : *').fill('Anne'); await p.getByLabel('Date naissance : *').fill('01031995');
-  await p.getByLabel('à : *').fill('Kinshasa'); await p.getByLabel('Sexe : *').selectOption('F'); await p.getByLabel('Profession :').selectOption('Commerçant');
-  await adresseKinsaku('Lukusa', '7'); await p.getByLabel('Portable :').fill('+243 810 000 111'); await etape('06r-prospect');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
-  await p.getByRole('cell', { name: 'Tshibangu Anne' }).waitFor(); await etape('06s-prospect-enregistre');
+  // Prospect : la fiche physique de « Nouveau membre », enregistrée comme prospect (plan d'allègement, point 3.11)
+  await aller('/clients/s37'); await p.getByRole('tab', { name: 'Identité' }).click();
+  await p.getByLabel('Nom : *', { exact: true }).fill('Tshibangu'); await p.getByLabel('Prénom : *').fill('Anne'); await p.getByLabel('Date de naissance : *').fill('01031995');
+  await p.getByLabel('Lieu de naissance : *').fill('Kinshasa'); await p.getByLabel('Sexe :').selectOption('F');
+  await p.getByRole('tab', { name: 'Adresse et activité' }).click(); await adresseKinsaku('Lukusa', '7');
+  await p.getByLabel('Numéro de téléphone :').fill('+243 810 000 111'); await p.getByLabel('Profession :').fill('Commerçant'); await etape('06r-prospect');
+  await p.getByRole('button', { name: 'Enregistrer comme prospect' }).click(); await ok(); await etape('06s-prospect-enregistre');
   // Choisir prospect à l'enrôlement (S37)
   await aller('/clients/s37'); await p.getByRole('button', { name: 'Choisir prospect' }).click();
   await p.getByRole('dialog', { name: 'Prospects' }).getByRole('row').filter({ hasText: 'Tshibangu' }).click();

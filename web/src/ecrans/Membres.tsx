@@ -15,8 +15,8 @@ const nomComplet = (t: { nom: string; postnom: string; prenom: string }) => [t.n
 // ---------- Parties communes aux enrôlements (S37, S38, S39) ----------
 
 /** Onglets, boutons Suivant, Précédent, Enregistrer et boîtes de dialogue (manuel p. 10, 11, 48 à 51) */
-function Enrolement({ titre, onglets, numero, onglet, setOnglet, enregistrer, boite, setBoite, textes, children }: {
-  titre: string; onglets: readonly string[]; numero?: string; onglet: number; setOnglet: (i: number) => void; enregistrer: () => void;
+function Enrolement({ titre, onglets, numero, onglet, setOnglet, enregistrer, prospect, boite, setBoite, textes, children }: {
+  titre: string; onglets: readonly string[]; numero?: string; onglet: number; setOnglet: (i: number) => void; enregistrer: () => void; prospect?: () => void;
   boite: Boite | null; setBoite: (b: Boite | null) => void; textes: string[]; children: ReactNode;
 }) {
   const dernier = onglets.length - 1;
@@ -38,6 +38,8 @@ function Enrolement({ titre, onglets, numero, onglet, setOnglet, enregistrer, bo
           {onglet > 0 && <button className="bouton secondaire" type="button" onClick={() => setOnglet(onglet - 1)}>Précédent</button>}
           {onglet < dernier && <button className="bouton" type="button" onClick={() => setOnglet(onglet + 1)}>Suivant</button>}
           {onglet === dernier && <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>}
+          {/* Prospect : la fiche physique enregistrée « comme prospect », les autres onglets facultatifs (plan d'allègement, point 3.11) */}
+          {prospect && <button className="bouton secondaire" type="button" onClick={prospect}>Enregistrer comme prospect</button>}
         </div>
         <Textes sources={textes} />
       </section>
@@ -548,6 +550,13 @@ export function EnrolementPhysique() {
     <Enrolement titre="Nouveau membre : personne physique" onglets={ONGLETS_MEMBRE} numero={c.cree?.numero} onglet={c.onglet} setOnglet={c.setOnglet}
       boite={c.boite} setBoite={c.setBoite}
       enregistrer={() => c.confirmer((m) => api.tiers.creer({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id) }, images, prospect?.id), () => { setImages({}); setProspect(null); })}
+      prospect={() => c.setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ce prospect ?", oui: async () => {
+        const d = { nom: f.nom, prenom: f.prenom, naissance: f.naissance, lieuNaissance: f.lieuNaissance, sexe: f.sexe, profession: f.profession, pays: f.pays, province: f.province ?? "",
+          ville: f.ville, commune: f.commune ?? "", quartier: f.quartier, rue: f.rue, numeroRue: f.numeroRue ?? "", email: f.email, bp: f.bp, telephoneFixe: f.telephoneFixe, telephone: f.telephone,
+          sensibilisateurId: f.sensibilisateurId ?? null, commercialId: f.commercialId ?? null };
+        try { await (prospect ? api.tiers.modifierProspect(prospect.id, d) : api.tiers.creerProspect(d)); setProspect(null); c.maj(enrolementVide(f.dateDemande)); c.setOnglet(0); c.setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+        catch (x) { c.erreur(message(x)); }
+      } })}
       textes={["Manuel Microfina++, p. 48 et 49 : onglets, champs de l'onglet Informations de base, boutons Suivant, Précédent, Enregistrer ; fiche des bénéficiaires (+Ajouter, Ajouter, Fermer)",
         "Champs des onglets non montrés, pris aux écrans qui affichent le client : contrat d'adhésion p. 52 (profession, fils de, et de), résiliation p. 56 (secteur, type d'activité, catégorie, nationalité, pièce, établie à, date d'expiration), rapport p. 58, situation p. 74 (domicile, BP, email)",
         "Listes lues dans le paramétrage : Info de base > Client > Général (S14 à S14n), Localisation (S20), Agence > Paramètre (S33)",

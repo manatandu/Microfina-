@@ -333,15 +333,6 @@
     "chemin": "/clients/s44"
   },
   {
-    "id": "S45",
-    "nom": "Prospect",
-    "acces": "Client > Nouveau prospect",
-    "but": "Enregistrer un prospect, réutilisable à l'enrôlement",
-    "module": "clients",
-    "priorite": "must",
-    "chemin": "/clients/s45"
-  },
-  {
     "id": "S46",
     "nom": "Mise à jour d'un client",
     "acces": "Client > Mise à jour",
