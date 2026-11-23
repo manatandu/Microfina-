@@ -4974,12 +4974,12 @@ const transferts = {
     if (!cb) throw new ErreurMetier("À remplir : Compte Banque.");
     if (p.banqueId !== undefined && p.banqueId !== cb.banqueId) throw new ErreurMetier("Ce compte n'est pas un compte de la banque choisie.");
     const cheque = typeof p.cheque === "string" ? p.cheque.trim() : "";
-    if (!cheque) throw new ErreurMetier("À remplir : No de chèque.");
+    if (!cheque) throw new ErreurMetier("À remplir : N° du bordereau de versement.");
     if (!Number.isInteger(p.montant) || p.montant <= 0) throw new ErreurMetier("Montant : un montant supérieur à zéro.");
     const dv = cb.devise, c = nettoyer(p.coupures ?? {});
     controlerCoupures(c, p.montant, dv); sortiePossible(s.id, dv, c);
     const m = p.montant;
-    const e = poster({ evenement: "transfert_banque", journal: "CA", journeeId: s.journeeId, libelle: `Versement en banque, chèque ${cheque}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes: [
+    const e = poster({ evenement: "transfert_banque", journal: "CA", journeeId: s.journeeId, libelle: `Versement en banque, bordereau ${cheque}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes: [
       { compte: "591", sens: "D", devise: dv, montant: m, montantCdf: cdf(m, dv) },
       { compte: "570", contrat: `guichet:${g.id}`, sens: "C", devise: dv, montant: m, montantCdf: cdf(m, dv) },
       { compte: cb.compte, sens: "D", devise: dv, montant: m, montantCdf: cdf(m, dv) },

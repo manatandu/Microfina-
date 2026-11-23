@@ -1093,7 +1093,7 @@ describe("journée de guichet", () => {
     const r = await api.operations.recu(o.id);
     const net = (c: string) => r.lignes.filter((x) => x.compte === c).reduce((v, x) => v + (x.sens === "D" ? x.montant : -x.montant), 0);
     expect([net("579"), net("570")]).toEqual([0, 0]);
-    await expect(t.caisseVersBanque({ cle: cle(), sessionId: s.id, compteBancaireId: cb.id, montant: 100000, cheque: "", coupures: { 1000: 1 } })).rejects.toThrow("No de chèque");
+    await expect(t.caisseVersBanque({ cle: cle(), sessionId: s.id, compteBancaireId: cb.id, montant: 100000, cheque: "", coupures: { 1000: 1 } })).rejects.toThrow("bordereau");
     const avant = (await t.contexte()).comptes.find((c) => c.id === cb.id)!.solde;
     const v = await t.caisseVersBanque({ cle: cle(), sessionId: s.id, compteBancaireId: cb.id, montant: 100000, cheque: "0001234", coupures: { 1000: 1 } });
     expect(v.type).toBe("versement_banque");

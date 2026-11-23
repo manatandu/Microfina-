@@ -130,7 +130,7 @@ def caisse_vers_banque(u, p) -> dict:
         raise ErreurMetier("Ce compte n'est pas un compte de la banque choisie.")
     cheque = (p.get("cheque") or "").strip() if isinstance(p.get("cheque"), str) else ""
     if not cheque:
-        raise ErreurMetier("À remplir : No de chèque.")
+        raise ErreurMetier("À remplir : N° du bordereau de versement.")
     m = p.get("montant")
     if not isinstance(m, int) or isinstance(m, bool) or m <= 0:
         raise ErreurMetier("Montant : un montant supérieur à zéro.")
@@ -139,7 +139,7 @@ def caisse_vers_banque(u, p) -> dict:
     controler_montant_coupures(c, m, dv)
     sortie_possible(s["id"], dv, c)
     j = une("select date_comptable from journee_comptable where id = %s", (s["journee_id"],))
-    eid = poster(u, journal="CA", journee_id=s["journee_id"], libelle=f"Versement en banque, chèque {cheque}", piece=nouvelle_piece(u, "CA", j["date_comptable"]),
+    eid = poster(u, journal="CA", journee_id=s["journee_id"], libelle=f"Versement en banque, bordereau {cheque}", piece=nouvelle_piece(u, "CA", j["date_comptable"]),
                  evenement="transfert_banque", cle=cle, valide_par=u["id"], lignes_ecr=[
                      {"compte": VIREMENT_CAISSE_BANQUE, "sens": "D", "devise": dv, "montant": m},
                      {"compte": "570", "contrat": f"guichet:{s['guichet_id']}", "sens": "C", "devise": dv, "montant": m},

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1029 décisions.** Solidité : 482 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1020 déjà en place, 9 à appliquer.
+**1030 décisions.** Solidité : 483 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1021 déjà en place, 9 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2372,6 +2372,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S76-9 | Allégé | « Plan » et « Réel », que la Situation redit, disparaissent. « Enregistrer » se place à côté du montant à payer ; le billetage s'ouvre dessous ; le détail du crédit se replie, le retard total restant visible dans son titre. | Choix du porteur : Plan d'allègement, point 4.8 | forte | en place |
+
+## S81 Transferts de fonds
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S81-8 | Caisse de l'utilisateur, banque avant montant | La caisse d'origine est celle de l'utilisateur, affichée sans liste. Vers la banque : banque et compte se choisissent avant le montant, puisque le compte fixe la devise ; « Type d'opération », grisé, disparaît ; le numéro saisi s'appelle « N° du bordereau de versement » et reste obligatoire ; le libellé de l'écriture dit « bordereau ». Le billetage s'ouvre sous le montant (4.2). La fusion avec les virements de la banque reste au lot 7 (7.5). | Choix du porteur : Plan d'allègement, point 4.10 ; PCCI, comptes 579 et 591 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

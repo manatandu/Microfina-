@@ -1050,22 +1050,20 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Reçu' }).getByText('Encaissement enregistré').waitFor(); await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
   await p.getByText(/Numéro de pièce : \S+/).waitFor(); await etape('14d-ed-divers');
-  // Transfert entre caisse (S81, p. 92 et 93 ; registre S81-1 à S81-7) : versement de 1 000 CDF de la caisse vers le compte CDF de Rawbank
+  // Transferts de fonds (S81, p. 92 et 93 ; registre S81-1 à S81-7) : versement de 1 000 CDF de la caisse vers le compte CDF de Rawbank
   await aller('/caisse/s81?page=caisse'); await p.getByRole('heading', { name: 'Caisse vers Caisse' }).waitFor(); await etape('14e-caisse-vers-caisse');
   await p.getByRole('tab', { name: 'Caisse vers banque' }).click(); await p.getByRole('heading', { name: 'Caisse vers Banque' }).waitFor();
-  await p.getByLabel('Caisse *').selectOption({ label: 'Caisse 2' }); await p.getByLabel('Montant *').fill('1 000');
-  await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'RAW:Rawbank' });
+  await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'RAW:Rawbank' });   // la caisse est celle de l'utilisateur ; banque et compte avant le montant (plan 4.10)
   await p.getByLabel('Compte Banque *').selectOption(await p.getByLabel('Compte Banque *').locator('option', { hasText: '56010002' }).getAttribute('value'));
-  await p.getByLabel('No de chèque *').fill('0001234'); await p.getByText('mille francs congolais', { exact: false }).first().waitFor();
-  await p.getByRole('button', { name: 'Billetage' }).click();
-  await p.getByRole('dialog', { name: 'Billetage' }).getByLabel('Nombre de coupures de 1 000 CDF').fill('1');
-  await p.getByRole('dialog', { name: 'Billetage' }).getByRole('button', { name: 'Fermer' }).click();
+  await p.getByLabel('Montant (CDF) *').fill('1 000');
+  await p.getByLabel('N° du bordereau de versement *').fill('0001234'); await p.getByText('mille francs congolais', { exact: false }).first().waitFor();
+  await p.getByLabel('Nombre de coupures de 1 000 CDF').fill('1');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok(); await p.getByText(/Numéro de pièce : \S+/).waitFor(); await etape('14f-caisse-vers-banque');
   // Journal des opérations de caisse (S83, p. 95 ; registre S83-1 à S83-5) : le versement en banque sort de la caisse, au crédit
   await aller('/caisse/s83'); await p.getByRole('heading', { name: 'Journal des Opérations' }).waitFor();
   await p.getByLabel('Rechercher par :').selectOption({ label: 'Libellé' }); await p.getByLabel('Valeur :').fill('Versement en banque');
   await p.getByRole('button', { name: 'Rechercher', exact: true }).click();
-  await p.getByRole('row').filter({ hasText: 'Versement en banque, chèque 0001234' }).getByRole('cell', { name: '1 000,00 CDF' }).waitFor();
+  await p.getByRole('row').filter({ hasText: 'Versement en banque, bordereau 0001234' }).getByRole('cell', { name: '1 000,00 CDF' }).waitFor();
   await p.getByRole('table', { name: 'Soldes et totaux par devise' }).getByRole('cell', { name: 'CDF', exact: true }).waitFor(); await etape('14g-journal-caisse');   // registre S83-6
   // Comptabilité : saisie d'écriture (S109, p. 128 et 129), autres opérations (S116, p. 133 à 135), virements mensuels (S117, p. 136)
   await login('Patrick Lumbala'); await aller('/comptabilite/s109');

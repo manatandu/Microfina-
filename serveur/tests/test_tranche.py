@@ -988,7 +988,7 @@ def test_transferts(clients, journee):
     assert o["type"] == "transfert_sortie" and (n(s["id"]), n(s1["id"])) == (a2 - 2, a1 + 2)
     assert ident("""select coalesce(sum(case l.sens when 'D' then l.montant_devise else -l.montant_devise end), 0) from ligne_ecriture l join compte c on c.id = l.compte_id
                     where c.numero = '579' and l.ecriture_id = %s""", (o["ecritureId"],)) == 0
-    assert "No de chèque" in refus(vb({"sessionId": s["id"], "compteBancaireId": cb["id"], "montant": 100000, "cheque": "", "coupures": {"1000": 1}}))
+    assert "bordereau" in refus(vb({"sessionId": s["id"], "compteBancaireId": cb["id"], "montant": 100000, "cheque": "", "coupures": {"1000": 1}}))
     solde = lambda: next(c for c in caisse.get("/api/caisse/transferts").json()["comptes"] if c["id"] == cb["id"])["solde"]
     avant = solde()
     v = vb({"sessionId": s["id"], "compteBancaireId": cb["id"], "montant": 100000, "cheque": "0001234", "coupures": {"1000": 1}}).json()
