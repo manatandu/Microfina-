@@ -2285,7 +2285,7 @@ describe("journée de guichet", () => {
     expect([c.credit.numero, c.credit.statut, c.retenues.net]).toEqual(["0412/L001/00001", "debloque", 99000000]);
   });
 
-  it("déblocage par banque (S54, p. 62) : Prélever les frais, chèque du chéquier du compte bancaire (S54-2 à S54-5, S60-5)", async () => {
+  it("déblocage par banque (S54, p. 62) : un seul Débloquer (plan 6.7), chèque du chéquier du compte bancaire (S54-2 à S54-5, S60-5)", async () => {
     const cid = await creditVise();
     await connecter("jpmukendi");
     const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
@@ -2294,9 +2294,7 @@ describe("journée de guichet", () => {
     await api.banques.enregistrerCompte({ ...b, compte: "56010003", numeroBancaire: "R-CDF-1", devise: "CDF" });
     await connecter("plumbala");
     const cbs = (await api.banqueOperations.lire()).comptes, usd = cbs.find((x) => x.devise === "USD")!.id, cdf = cbs.find((x) => x.devise === "CDF")!.id;
-    await expect(api.deblocage.debloquerBanque(cid, { compteBancaireId: cdf, cheque: "0000001" })).rejects.toThrow("Prélever les frais");
-    await api.deblocage.encaisserFrais(cid);
-    await expect(api.deblocage.debloquerBanque(cid, { compteBancaireId: usd, cheque: "0000001" })).rejects.toThrow("devise du crédit");
+    await expect(api.deblocage.debloquerBanque(cid, { compteBancaireId: usd, cheque: "0000001" })).rejects.toThrow("devise du crédit");   // un seul Débloquer (plan 6.7)
     await expect(api.deblocage.debloquerBanque(cid, { compteBancaireId: cdf, cheque: " " })).rejects.toThrow("N° chèque");
     await expect(api.deblocage.debloquerBanque(cid, { compteBancaireId: cdf, cheque: "0000001" })).rejects.toThrow("aucun chéquier");
     await api.chequiers.generer({ cle: cle(), compteBancaireId: cdf, nbFeuillets: 25, debut: "0000001", barre: true });
@@ -2446,9 +2444,7 @@ describe("journée de guichet", () => {
     const d = await api.deblocage.detail(cid);
     const tid = d.tiersId, compteDe = async () => (await api.remboursementsCredit.comptesClient(tid)).find((x) => x.numero === d.comptePositionnement)!;
     const avant = (await compteDe()).solde;
-    await expect(api.deblocage.debloquerEpargne(cid)).rejects.toThrow("Prélever les frais");
-    await api.deblocage.encaisserFrais(cid);
-    const x = await api.deblocage.debloquerEpargne(cid);
+    const x = await api.deblocage.debloquerEpargne(cid);   // un seul Débloquer (plan 6.7)
     expect([x.statut, x.compteCredite, x.piece.includes("OD")]).toEqual(["debloque", d.comptePositionnement, true]);
     const k = await compteDe();
     expect(k.solde - avant).toBeGreaterThanOrEqual(d.retenues.net);

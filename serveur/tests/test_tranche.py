@@ -1864,9 +1864,7 @@ def test_deblocage_banque(clients, journee):
     cid = credit_vise(clients)
     def refus(corps):
         r = compta.post(f"/api/banque/deblocage/{cid}", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
-    assert "Prélever les frais" in refus({"compteBancaireId": ids["R-CDF-1"], "cheque": "0000001"})
-    compta.post(f"/api/credit/deblocage/{cid}/frais", **H)
-    assert "Banque et Compte" in refus({"cheque": "0000001"})
+    assert "Banque et Compte" in refus({"cheque": "0000001"})          # plus d'étape « Prélever les frais » (plan d'allègement, point 6.7)
     assert "devise du crédit" in refus({"compteBancaireId": ids["R-USD-1"], "cheque": "0000001"})
     assert "N° chèque" in refus({"compteBancaireId": ids["R-CDF-1"], "cheque": " "})
     assert "aucun chéquier" in refus({"compteBancaireId": ids["R-CDF-1"], "cheque": "0000001"})
@@ -1969,11 +1967,8 @@ def test_deblocage_epargne(clients, journee):
     assert [x["etat"] for x in compta.get(f"/api/tiers/{tid}/credits", **H).json()] == ["Visé, à débloquer"]      # S43, onglet Crédits (registre S43-4)
     solde = lambda: next(x for x in compta.get(f"/api/credit/remboursement/comptes/{tid}", **H).json() if x["numero"] == d["comptePositionnement"])
     k, avant = solde()["id"], solde()["solde"]
-    r = compta.post(f"/api/comptabilite/deblocage/{cid}", {}, **H)
-    assert r.status_code == 422 and "Prélever les frais" in r.json()["message"]
     assert caisse.post(f"/api/comptabilite/deblocage/{cid}", {}, **H).status_code == 403
-    compta.post(f"/api/credit/deblocage/{cid}/frais", **H)
-    r = compta.post(f"/api/comptabilite/deblocage/{cid}", {}, **H)
+    r = compta.post(f"/api/comptabilite/deblocage/{cid}", {}, **H)        # un seul Débloquer (plan 6.7)
     assert r.status_code == 200, r.content
     assert (r.json()["statut"], r.json()["compteCredite"], "OD" in r.json()["piece"]) == ("debloque", d["comptePositionnement"], True)
     assert ident("select mode_deblocage from credit where id = %s", (cid,)) == "epargne"

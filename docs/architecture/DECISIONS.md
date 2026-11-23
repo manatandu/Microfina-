@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1065 décisions.** Solidité : 504 fortes (le manuel ou un texte répond), 479 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1053 déjà en place, 12 à appliquer.
+**1067 décisions.** Solidité : 505 fortes (le manuel ou un texte répond), 480 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1055 déjà en place, 12 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2473,6 +2473,18 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S142-6 | Modes annulables et bouton | L'annulation s'ouvre aux remboursements par banque, en plus des prélèvements sur compte : même écriture inverse liée à l'origine, même contrôle quatre yeux. La liste montre le mode ; le compte affiché est celui du client (prélèvement) ou le compte bancaire de l'institution (banque). Le bouton s'appelle « Annuler ce remboursement ». | Écran voisin : Plan d'allègement, point 6.9 ; PCCI § 3.3 ; Instr. BCC 008, art. 66 | moyenne | en place |
+
+## S86 à S90 Dossier de crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-29 | Parcours en cinq étapes | 1. Demande complète : en plus de la demande du manuel, le différé, l'objet et son usage, les comptes de l'épargne obligatoire et du fonds de solidarité, l'assureur et la ligne de financement, avec un bouton Echéancier ; la zone est celle du membre, l'agent celui qui saisit. 2. Vérification (S87, contrôle et visa du responsable crédit réunis) : montant ressaisi sans le voir, consultation de la Centrale des risques, avis Accepté ou Refusé avec motif. 3. Décision (S88, approbation et visa du comité réunis) : montant approuvé, commission de crédit d'une COOPEC (trois membres, unanimité), procès-verbal, plafonds et apparentés ; accordé, le crédit naît à la décision et les deux premiers visas sont ceux de la vérification et de la décision ; refusé, la demande s'arrête, l'appel au Conseil se fait sur cet écran. 4. Visa du service financier (S90). 5. Déblocage. La mise en place (S89) sort du menu. Chaque étape par une personne différente. | Écran voisin : Plan d'allègement, point 6.1 ; Instr. BCC 008, art. 66 ; loi 002/2002, art. 41 à 43 ; Instr. BCC 007, art. 18 et 32 ; Instr. BCC 05, art. 4 et 13 ; Instr. BCC 002, art. 25 à 29 | forte | en place |
+
+## S54 et S105 Déblocage de crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S54-6 | Une seule étape | « Prélever les frais » (S54, S105), qui n'écrivait rien, disparaît comme « Encaisser frais » au guichet (point 4.7) : la date des frais se note au déblocage. Un seul bouton « Débloquer » ; sa confirmation montre le client, le prêt, les retenues et le montant remis (et le chèque ou le compte crédité). | Écran voisin : Plan d'allègement, point 6.7 ; Instr. BCC 38, art. 6 ; registre CR-6 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

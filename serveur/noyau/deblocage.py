@@ -204,8 +204,9 @@ def debloquer_banque(u, cid: int, p) -> dict:
     """S54 : déblocage par banque : le net part du compte bancaire choisi, par un chèque du chéquier de l'institution (registre S54-2 à S54-5, S60-5)"""
     exiger(u)
     c = credit_vise(u, cid, True)
-    if not c["frais_encaisses_le"]:
-        raise ErreurMetier("Prélever les frais d'abord (capture p. 62 : « Prélever les frais »).")
+    if not c["frais_encaisses_le"]:                 # plan d'allègement, point 6.7 : plus d'étape « Prélever les frais » ; la date se note au déblocage
+        executer("update credit set frais_encaisses_le = %s, frais_encaisses_par = %s where id = %s", (jour(u), u["id"], c["id"]))
+        c = {**c, "frais_encaisses_le": jour(u), "frais_encaisses_par": u["id"]}
     cbid = (p or {}).get("compteBancaireId")
     cb = une("""select cb.*, co.numero as compte from compte_bancaire cb join compte co on co.id = cb.compte_id
                 where cb.id = %s and cb.institution_id = %s and cb.supprime_le is null""", (cbid, u["institution_id"])) if isinstance(cbid, int) else None
@@ -231,8 +232,9 @@ def debloquer_epargne(u, cid: int, p) -> dict:
     le net est porté au compte d'épargne du client, celui du crédit ou son premier compte ouvert dans la devise (registre S105-1 à S105-3)"""
     exiger(u)
     c = credit_vise(u, cid, True)
-    if not c["frais_encaisses_le"]:
-        raise ErreurMetier("Prélever les frais d'abord (capture p. 124 : « Prélever les frais »).")
+    if not c["frais_encaisses_le"]:                 # plan d'allègement, point 6.7 : plus d'étape « Prélever les frais » ; la date se note au déblocage
+        executer("update credit set frais_encaisses_le = %s, frais_encaisses_par = %s where id = %s", (jour(u), u["id"], c["id"]))
+        c = {**c, "frais_encaisses_le": jour(u), "frais_encaisses_par": u["id"]}
     from .services import compte_du_produit
     k = compte_positionnement(c)
     if not k:

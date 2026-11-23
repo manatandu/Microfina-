@@ -4180,7 +4180,7 @@ const deblocage = {
   debloquerBanque(id: number, p: { compteBancaireId: number; cheque: string }) {
     const u = exiger();
     const c = creditVise(id, true);
-    if (!c.fraisEncaissesLe) throw new ErreurMetier("Prélever les frais d'abord (capture p. 62 : « Prélever les frais »).");
+    if (!c.fraisEncaissesLe) { c.fraisEncaissesLe = jourDeblocage().date; c.fraisEncaissesPar = u.id; }   // plan 6.7 : la date se note au déblocage
     const cb = E.comptesBancaires.find((x) => x.id === p.compteBancaireId);
     if (!cb) throw new ErreurMetier("À remplir : Banque et Compte.");
     if (cb.devise !== c.devise) throw new ErreurMetier("Le compte bancaire n'est pas dans la devise du crédit.");
@@ -4197,7 +4197,7 @@ const deblocage = {
   debloquerEpargne(id: number) {
     const u = exiger();
     const c = creditVise(id, true);
-    if (!c.fraisEncaissesLe) throw new ErreurMetier("Prélever les frais d'abord (capture p. 124 : « Prélever les frais »).");
+    if (!c.fraisEncaissesLe) { c.fraisEncaissesLe = jourDeblocage().date; c.fraisEncaissesPar = u.id; }   // plan 6.7 : la date se note au déblocage
     const k = comptePositionnement(c);
     if (!k) throw new ErreurMetier("Le client n'a pas de compte d'épargne ouvert dans la devise du crédit.");
     const e = ecritureDeblocage(c, { compte: k.pcci, contrat: `depot:${k.id}` }, "OD", u.id);

@@ -1,6 +1,7 @@
 // S75 : Caisse > Opération > Déblocage crédit (manuel Microfina++, p. 86 et 87, capture « Déblocage crédit »), S54 : Banque > Déblocage crédit (p. 62)
 // et S105 : Comptabilité > Déblocage crédit sur le compte d'épargne (p. 124, 156 et 157).
-// Choisir le crédit visé, Encaisser frais (Prélever les frais par banque), Débloquer ; échéancier, contrat de prêt, reconnaissance de dette.
+// Choisir le crédit visé, Débloquer ; échéancier, contrat de prêt, reconnaissance de dette. Plan d'allègement, points 4.7 et 6.7 : plus d'étape « Encaisser frais »
+// ni « Prélever les frais », qui n'écrivaient rien ; une seule confirmation montre les retenues et le montant remis (Instr. BCC 38, art. 6 ; registre CR-6).
 // Registre S75-1 à S75-8, S54-2 à S54-5, S105-1 à S105-4, CR-6, CR-10, CR-12.
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -151,7 +152,7 @@ export function DeblocageGuichet() {
 /** S54 : Banque > Déblocage crédit (capture p. 62) : Infos banque, Infos crédit, Info client, Frais, Financement ; Contrat de prêt */
 export function DeblocageBanque() {
   const [cid, setCid] = useState<number | null>(null);
-  const [relu, setRelu] = useState(0);
+  const [relu] = useState(0);
   const [f, setF] = useState({ banque: "", compte: "", cheque: "" });
   const [fait, setFait] = useState(false);
   const [fiche, setFiche] = useState<"" | "echeancier" | "contrat">("");
@@ -163,16 +164,11 @@ export function DeblocageBanque() {
   const cb = comptes.find((c) => String(c.id) === f.compte);
   const erreur = (x: unknown) => setBoite({ type: "erreur", message: message(x) });
   const effacer = () => { setCid(null); setF({ banque: "", compte: "", cheque: "" }); setFait(false); };
-  function prelever() {
-    if (!d) return;
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment prélever les frais ?", oui: async () => {
-      try { await api.deblocage.encaisserFrais(d.id); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Frais prélevés : ils sont retenus sur le prêt au déblocage." }); }
-      catch (x) { erreur(x); }
-    } });
-  }
   function debloquer() {
     if (!d || !cb) return;
-    setBoite({ type: "confirmation", message: `Voulez-vous vraiment débloquer le crédit ${d.numero}, ${d.client} ? Montant du prêt : ${montant(d.montant, d.devise as Devise)}.`, oui: async () => {
+    const dv = d.devise as Devise;
+    setBoite({ type: "confirmation", message: recapitulatif(`Déblocage du crédit ${d.numero}`, [["Client", `${d.client} (${d.membre})`], ["Prêt", montant(d.montant, dv)],
+      ["Retenues", montant(d.montant - d.retenues.net, dv)], ["Montant remis", montant(d.retenues.net, dv)], ["Chèque", f.cheque.trim()]]), oui: async () => {
       try { await api.deblocage.debloquerBanque(d.id, { compteBancaireId: cb.id, cheque: f.cheque }); setFait(true); setBoite({ type: "succes", message: "Crédit débloqué avec succès !" }); }
       catch (x) { erreur(x); }
     } });
@@ -201,8 +197,7 @@ export function DeblocageBanque() {
               <Champ libelle="Intitulé du compte">{(p) => <Lecture {...p} value={d?.client ?? ""} />}</Champ>
               <Champ libelle="Numéro compte">{(p) => <Lecture {...p} value={d?.compteClient ?? ""} />}</Champ>
             </fieldset>
-            <fieldset className="cadre-champs"><legend>Frais</legend>{d && <><Retenues d={d} />
-              <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={d.fraisEncaisses} onClick={prelever}>Prélever les frais</button></div></>}</fieldset>
+            <fieldset className="cadre-champs"><legend>Frais</legend>{d && <Retenues d={d} />}</fieldset>
             <fieldset className="cadre-champs formulaire"><legend>Financement</legend>
               <Champ libelle="Ligne budgetaire">{(p) => <Lecture {...p} value={d?.ligneFinancement ?? ""} />}</Champ>
             </fieldset>
@@ -211,7 +206,7 @@ export function DeblocageBanque() {
         <div className="actions-onglets">
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("echeancier")}>Echéancier</button>
           <button className="bouton secondaire" type="button" disabled={!cid} onClick={() => setFiche("contrat")}>Contrat de prêt</button>
-          <button className="bouton" type="button" disabled={!d || !d.fraisEncaisses || !cb || !f.cheque.trim() || fait} onClick={debloquer}>Débloquer</button>
+          <button className="bouton" type="button" disabled={!d || !cb || !f.cheque.trim() || fait} onClick={debloquer}>Débloquer</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 62 : infos banque (banque, compte, solde, numéro de chèque), infos crédit, info client, frais, financement ; contrat de prêt ; capture",
@@ -227,7 +222,7 @@ export function DeblocageBanque() {
 /** S105 : Comptabilité > Déblocage crédit (captures p. 124 et 157) : Infos crédit, Info Client, Frais, Financement ; Echéancier, Contrat de prêt, Reconnaissance de dette */
 export function DeblocageEpargne() {
   const [cid, setCid] = useState<number | null>(null);
-  const [relu, setRelu] = useState(0);
+  const [relu] = useState(0);
   const [fait, setFait] = useState<{ piece: string } | null>(null);
   const [fiche, setFiche] = useState<"" | "echeancier" | "contrat" | "reconnaissance">("");
   const [boite, setBoite] = useState<Boite | null>(null);
@@ -236,16 +231,11 @@ export function DeblocageEpargne() {
   const { j, d } = donnees;
   const erreur = (x: unknown) => setBoite({ type: "erreur", message: message(x) });
   const effacer = () => { setCid(null); setFait(null); };
-  function prelever() {
-    if (!d) return;
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment prélever les frais ?", oui: async () => {
-      try { await api.deblocage.encaisserFrais(d.id); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Frais prélevés : ils sont retenus sur le prêt au déblocage." }); }
-      catch (x) { erreur(x); }
-    } });
-  }
   function debloquer() {
     if (!d) return;
-    setBoite({ type: "confirmation", message: `Voulez-vous vraiment débloquer le crédit ${d.numero}, ${d.client} ? Montant du prêt : ${montant(d.montant, d.devise as Devise)}.`, oui: async () => {
+    const dv = d.devise as Devise;
+    setBoite({ type: "confirmation", message: recapitulatif(`Déblocage du crédit ${d.numero}`, [["Client", `${d.client} (${d.membre})`], ["Prêt", montant(d.montant, dv)],
+      ["Retenues", montant(d.montant - d.retenues.net, dv)], ["Montant remis", montant(d.retenues.net, dv)], ["Porté au compte", d.comptePositionnement]]), oui: async () => {
       try { const x = await api.deblocage.debloquerEpargne(d.id); setFait({ piece: x.piece }); setBoite({ type: "succes", message: "Crédit débloqué avec succès !" }); }
       catch (x) { erreur(x); }
     } });
@@ -268,8 +258,7 @@ export function DeblocageEpargne() {
               <Champ libelle="Intitulé du compte">{(p) => <Lecture {...p} value={d?.client ?? ""} />}</Champ>
               <Champ libelle="Numéro compte">{(p) => <Lecture {...p} value={d?.comptePositionnement ?? ""} />}</Champ>
             </fieldset>
-            <fieldset className="cadre-champs"><legend>Frais</legend>{d && <><Retenues d={d} />
-              <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={d.fraisEncaisses} onClick={prelever}>Prélever les frais</button></div></>}</fieldset>
+            <fieldset className="cadre-champs"><legend>Frais</legend>{d && <Retenues d={d} />}</fieldset>
             <fieldset className="cadre-champs formulaire"><legend>Financement</legend>
               <Champ libelle="Type budget">{(p) => <Lecture {...p} value={d ? (d.ligneFinancement ? "Ressources affectées" : "Fonds propres") : ""} />}</Champ>
               <Champ libelle="Ligne budgétaire">{(p) => <Lecture {...p} value={d?.ligneFinancement ?? ""} />}</Champ>
@@ -279,7 +268,7 @@ export function DeblocageEpargne() {
         <div className="actions-onglets">
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("echeancier")}>Echéancier</button>
           <button className="bouton secondaire" type="button" disabled={!cid} onClick={() => setFiche("contrat")}>Contrat de prêt</button>
-          <button className="bouton" type="button" disabled={!d || !d.fraisEncaisses || !!fait} onClick={debloquer}>Débloquer</button>
+          <button className="bouton" type="button" disabled={!d || !!fait} onClick={debloquer}>Débloquer</button>
           <button className="bouton secondaire" type="button" disabled={!cid} onClick={() => setFiche("reconnaissance")}>Reconnaissance de dette</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         </div>
