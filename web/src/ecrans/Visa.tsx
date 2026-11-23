@@ -1,10 +1,12 @@
 import { Fragment, useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { enClair } from "../lib/enclair";
 import { api, IMAGE_MAX, ageAu, MAJORITE } from "../donnees/api";
 import type { Representant, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
+import { vers } from "./registre";
 import { jourOuvert } from "../lib/dates";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Silhouette, Textes, type Boite, Lecture, Paginee } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture, Paginee } from "../composants";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
 import { aDesParts, mots } from "../lib/vocabulaire";
 
@@ -470,70 +472,79 @@ const CHAMPS_SUIVIS: [keyof Tiers, string][] = [["nom", "Nom"], ["postnom", "Pos
 const enTexte = (v: unknown) => (typeof v === "boolean" ? (v ? "Oui" : "Non") : Array.isArray(v) ? v.join(", ") : /^\d{4}-\d{2}-\d{2}$/.test(String(v ?? "")) ? fr(String(v)) : String(v ?? ""));
 
 /** S43 : Client > Consulter client (manuel Microfina++, p. 54) : informations initiales et actuelles du client */
+/** Un écran ouvert depuis la fiche du membre reçoit le membre par « ?tiers= » et n'a plus besoin de sa propre recherche (plan d'allègement, point 3.8) */
+export function useTiersDeLAdresse(choisir: (t: Tiers) => void) {
+  const [params] = useSearchParams();
+  const id = Number(params.get("tiers")) || null;
+  useEffect(() => { if (id) api.tiers.lire(id).then((t) => { if (t) choisir(t); }, () => undefined); }, [id]);   // eslint-disable-line react-hooks/exhaustive-deps
+}
+
+/** S43 : Membre > Fiche du membre (manuel Microfina++, p. 54). La porte d'entrée : on cherche le membre une fois, on voit ses onglets, on agit par des boutons
+ *  (plan d'allègement, point 3.8) */
 export function InformationsClient() {
+  const nav = useNavigate();
   const { donnees: ctx } = useDonnees(() => api.referentiel.contexte());
   const [t, setT] = useState<Tiers | null>(null);
   const [onglet, setOnglet] = useState(0);
   const [recherche, setRecherche] = useState(false);
+  useTiersDeLAdresse((x) => { setT(x); setOnglet(0); });
   const { donnees: detail } = useDonnees(async () => t
     ? { images: await api.tiers.images(t.id), modifications: await api.tiers.modifications(t.id), comptes: await api.tiers.comptes(t.id), parts: await api.tiers.parts(t.id), adhesion: await api.tiers.adhesion(t.id),
-        credits: await api.tiers.credits(t.id) }
+        credits: await api.tiers.credits(t.id), procurations: await api.procurations.duClient(t.id).catch(() => []),
+        noms: Object.fromEntries(await Promise.all([...(t.liees ?? []), ...(t.beneficiairesEffectifs ?? [])].map(async (id) => [id, await api.tiers.lire(id).then((x) => (x ? `${x.numero} ${x.intitule || nomComplet(x)}` : String(id)), () => String(id))] as const))) as Record<number, string> }
     : null, [t?.id]);
   if (!ctx) return <Chargement />;
-  const onglets = ["Renseignements généraux", "Autres renseignements", "Dépôts", "Crédits", "Part sociale"];
+  const onglets = ["Identité", "Adresse et activité", "Personnes", "Photos et pièces", "Comptes", "Crédits", "Parts", "Procurations", "Historique"];
   const lu = (libelle: string, v: string) => <Champ libelle={libelle}>{(p) => <Lecture {...p} value={v} />}</Champ>;
   const initial = detail?.modifications[0]?.avant;
   const ecarts = t && initial ? CHAMPS_SUIVIS.filter(([k]) => enTexte(initial[k]) !== enTexte(t[k])) : [];
+  const nomUtil = (id?: number) => ((ctx as { utilisateurs?: { id: number; nom: string }[] }).utilisateurs ?? []).find((x) => x.id === id)?.nom ?? "";
+  const ouvrir = (ecranId: string) => t && nav(vers(ecranId, `?tiers=${t.id}`));
+  const personne = (r: { nom: string; postnom?: string; prenom?: string }) => [r.nom, r.postnom, r.prenom].filter(Boolean).join(" ");
+  const liste = (titre: string, noms: string[]) => noms.length > 0 && <><h3>{titre}</h3><ul>{noms.map((n, i) => <li key={i}>{n}</li>)}</ul></>;
+  const image = (titre: string, src: string | null | undefined) => <figure className="apercu"><figcaption>{titre}</figcaption>{src ? <img src={src} alt={titre} /> : <span className="muet">Aucun document</span>}</figure>;
   return (
     <>
-      <h2>Informations client</h2>
+      <h2>Fiche du membre</h2>
       <section className="bloc pile" aria-label="Client">
         <div className="formulaire">
           <div className="ligne-champ">
             <Champ libelle="N° Client :">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
             <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
           </div>
-          {lu("Date d'adhésion : *", detail?.adhesion ? fr(detail.adhesion) : "")}
+          {lu("Intitulé :", t ? t.intitule || nomComplet(t) : "")}
+          {lu("Date d'adhésion :", detail?.adhesion ? fr(detail.adhesion) : "")}
         </div>
-        <div className="deux-colonnes">
-          <fieldset className="cadre-champs formulaire">
-            <legend>Renseignements généraux</legend>
-            {lu("N° du Client :", t?.numero ?? "")}{lu("Gestionnaire :", agent((ctx as Agents)?.gestionnaires, t?.gestionnaireId))}
-            {lu("Commercial :", agent((ctx as Agents)?.commerciaux, t?.commercialId))}
-            {lu("Sensibilisateur :", agent((ctx as Agents)?.sensibilisateurs, t?.sensibilisateurId))}
-          </fieldset>
-          <fieldset className="cadre-champs">
-            <legend>Photo / Signature</legend>
-            <div className="photo-signature">
-              {detail?.images.photo ? <img src={detail.images.photo} alt="Photo du client" /> : <Silhouette />}
-              <div className="cadre-signature">{detail?.images.signature ? <img src={detail.images.signature} alt="Signature du client" /> : null}</div>
-            </div>
-          </fieldset>
+        <div className="actions-onglets">
+          <button className="bouton secondaire" type="button" disabled={!t || t.statut === "resilie"} onClick={() => ouvrir("S46")}>Modifier</button>
+          <button className="bouton secondaire" type="button" disabled={!t || t.statut !== "actif"} onClick={() => ouvrir("S47")}>Procurations</button>
+          <button className="bouton secondaire" type="button" disabled={!t || t.statut !== "actif"} onClick={() => ouvrir("S48")}>Résilier</button>
         </div>
       </section>
-      <div className="onglets" role="tablist" aria-label="Informations client">
+      <div className="onglets" role="tablist" aria-label="Fiche du membre">
         {onglets.map((o, i) => <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{o}</button>)}
       </div>
       <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}>
-        {t && onglet === 0 && <>
+        {t && onglet === 0 && <div className="formulaire">
+          {t.type === "physique" ? <>
+            {lu("Nom :", t.nom)}{lu("Post-nom :", t.postnom)}{lu("Prénom :", t.prenom)}{lu("Sexe :", t.sexe === "F" ? "Féminin" : t.sexe === "M" ? "Masculin" : "")}
+            {lu("Date de naissance :", fr(t.naissance))}{lu("Lieu de naissance :", t.lieuNaissance)}
+            {lu("Pièce d'identité :", t.pieceType)}{lu("N° de pièce :", t.pieceNumero)}{lu("Valide jusqu'au :", fr(t.pieceExpire))}
+            {lu("Personne politiquement exposée :", enTexte(t.personneExposee))}
+          </> : <>
+            {lu("Dénomination :", t.nom)}{lu("Forme juridique :", t.formeJuridique)}{lu("N° du registre :", t.registre)}
+          </>}
+          {lu("Date demande :", fr(t.dateDemande))}{lu("Date Visa :", fr(t.dateVisa))}
+        </div>}
+        {t && onglet === 1 && <>
           <div className="formulaire">
-            {t.type === "physique" ? <>
-              {lu("Nom :", t.nom)}{lu("Post-nom :", t.postnom)}{lu("Prénom :", t.prenom)}{lu("Sexe :", t.sexe === "F" ? "Féminin" : t.sexe === "M" ? "Masculin" : "")}
-              {lu("Date de naissance :", fr(t.naissance))}{lu("Lieu de naissance :", t.lieuNaissance)}{lu("Adresse :", t.adresse)}{lu("Téléphone :", t.telephone)}
-              {lu("Pièce d'identité :", t.pieceType)}{lu("N° de pièce :", t.pieceNumero)}{lu("Valide jusqu'au :", fr(t.pieceExpire))}
-            </> : <>
-              {lu("Dénomination :", t.nom)}{lu("Forme juridique :", t.formeJuridique)}{lu("N° du registre :", t.registre)}{lu("Adresse :", t.adresse)}{lu("Nature de l'activité :", t.activite)}
-            </>}
+            {lu("Adresse :", t.adresse)}{lu("Téléphone :", t.telephone)}{lu("Résident :", enTexte(t.resident))}
+            {lu("Activité :", t.typeActivite || t.activite)}{lu("Secteur :", enClair(t.secteurActivite ?? ""))}{t.type === "physique" && lu("Profession :", t.profession)}
+            {lu("Zone :", t.zone)}{lu("Gestionnaire :", agent((ctx as Agents)?.gestionnaires, t.gestionnaireId))}
+            {lu("Commercial :", agent((ctx as Agents)?.commerciaux, t.commercialId))}{lu("Sensibilisateur :", agent((ctx as Agents)?.sensibilisateurs, t.sensibilisateurId))}
           </div>
-          <h2>Informations initiales et actuelles</h2>
-          {ecarts.length === 0 ? <p>Aucune modification.</p> : (
-            <table className="grille">
-              <thead><tr><th scope="col">Champ</th><th scope="col">Initial</th><th scope="col">Actuel</th></tr></thead>
-              <tbody>{ecarts.map(([k, l]) => <tr key={k}><td>{l}</td><td>{enTexte(initial![k])}</td><td>{enTexte(t[k])}</td></tr>)}</tbody>
-            </table>
-          )}
           {/* Un membre qui déménage : chaque ancienne adresse reste, avec la date du changement (registre T41 ; loi 22/068, art. 48 : conservation) */}
-          <h2>Adresses successives</h2>
+          <h3>Adresses successives</h3>
           <table className="grille" aria-label="Adresses successives">
             <thead><tr><th scope="col">Adresse</th><th scope="col">Jusqu'au</th><th scope="col">Changement validé</th></tr></thead>
             <tbody>
@@ -543,15 +554,21 @@ export function InformationsClient() {
             </tbody>
           </table>
         </>}
-        {t && onglet === 1 && (
-          <div className="formulaire">
-            {lu("Type Client :", t.typeClient)}{lu("Zone :", t.zone)}{lu("Date demande :", fr(t.dateDemande))}{lu("Date Visa :", fr(t.dateVisa))}
-            {lu("Résident :", enTexte(t.resident))}{lu("Prelever Agios :", enTexte(t.preleverAgios))}{lu("Calculer intéret :", enTexte(t.calculerInteret))}
-            {lu("Personne politiquement exposée :", enTexte(t.personneExposee))}
-          </div>
-        )}
-        {t && onglet === 2 && (
-          <table className="grille">
+        {t && onglet === 2 && <>
+          {t.dirigeant && liste("Dirigeant", [personne(t.dirigeant)])}
+          {liste("Signataires", (t.signataires ?? []).map(personne))}
+          {liste("Membres du groupe", (t.membres ?? []).map(personne))}
+          {liste("Héritiers désignés", (t.beneficiaires ?? []).map((b) => `${personne(b)}${b.filiation ? ` (${b.filiation})` : ""}`))}
+          {liste("Personnes liées", (t.liees ?? []).map((x) => detail?.noms[x] ?? ""))}
+          {liste("Bénéficiaires effectifs", (t.beneficiairesEffectifs ?? []).map((x) => detail?.noms[x] ?? ""))}
+        </>}
+        {t && onglet === 3 && <div className="formulaire">
+          {t.type === "morale" ? <>{image("Copie des statuts", detail?.images.copiePiece)}{image("Copie du registre", detail?.images.justificatifAdresse)}</> : <>
+            {image("Photo", detail?.images.photo)}{image("Signature", detail?.images.signature)}{image("Copie de la pièce d'identité", detail?.images.copiePiece)}
+            {image("Justificatif d'adresse", detail?.images.justificatifAdresse)}{t.type === "physique" && image("Pièce d'habilitation professionnelle", detail?.images.copieHabilitation)}</>}
+        </div>}
+        {t && onglet === 4 && (
+          <table className="grille" aria-label="Comptes du membre">
             <thead><tr><th scope="col">N° Compte</th><th scope="col">Produit</th><th scope="col">Solde</th><th scope="col">Bloqué</th><th scope="col">Disponible</th></tr></thead>
             <tbody>
               {(!detail || detail.comptes.length === 0) && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
@@ -560,19 +577,44 @@ export function InformationsClient() {
             </tbody>
           </table>
         )}
-        {t && onglet === 3 && ((detail?.credits ?? []).length === 0 ? <p>Aucune ligne.</p> : (
+        {t && onglet === 5 && ((detail?.credits ?? []).length === 0 ? <p>Aucune ligne.</p> : (
           <table className="grille" aria-label="Crédits du membre"><thead><tr><th scope="col">N° crédit</th><th scope="col">Produit</th><th scope="col" className="num">Montant</th>
             <th scope="col">Débloqué le</th><th scope="col">État</th></tr></thead>
             <tbody>{detail!.credits.map((c) => <tr key={c.numero}><td className="code">{c.numero}</td><td>{c.produit}</td><td className="num chiffres">{montant(c.montant, c.devise as Devise)}</td>
               <td className="chiffres">{c.debloqueLe ? fr(c.debloqueLe) : ""}</td><td>{c.etat}</td></tr>)}</tbody></table>))}
-        {t && onglet === 4 && (
-          <div className="formulaire">
-            {lu("Nombre de parts :", String(detail?.parts ?? 0))}{lu("Valeur des parts :", montant((detail?.parts ?? 0) * (ctx.valeurPart ?? 0), "CDF"))}
-          </div>
+        {t && onglet === 6 && <div className="formulaire">
+          {lu("Nombre de parts :", String(detail?.parts ?? 0))}{lu("Valeur des parts :", montant((detail?.parts ?? 0) * (ctx.valeurPart ?? 0), "CDF"))}
+        </div>}
+        {t && onglet === 7 && (
+          <table className="grille" aria-label="Procurations du membre">
+            <thead><tr><th scope="col">Mandataire</th><th scope="col">Type</th><th scope="col">Du</th><th scope="col">Au</th><th scope="col">État</th></tr></thead>
+            <tbody>
+              {(detail?.procurations ?? []).length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
+              {(detail?.procurations ?? []).map((x) => <tr key={x.id}><td>{personne(x)}</td><td>{x.type}</td><td className="chiffres">{fr(x.dateDebut)}</td>
+                <td className="chiffres">{fr(x.dateFin)}</td><td>{x.enCours ? "En cours" : x.finLe ? `Fin le ${fr(x.finLe)}` : "Terminée"}</td></tr>)}
+            </tbody>
+          </table>
         )}
-        {!t && <p className="muet">Rechercher d'abord le client.</p>}
-        <Textes sources={["Manuel Microfina++, p. 54 : écran Informations client, recherche par le bouton du champ Numéro client, informations initiales et actuelles",
-          "Onglet Crédits : le module crédit n'est pas encore construit",
+        {t && onglet === 8 && <>
+          <h3>Informations initiales et actuelles</h3>
+          {ecarts.length === 0 ? <p>Aucune modification.</p> : (
+            <table className="grille" aria-label="Informations initiales et actuelles">
+              <thead><tr><th scope="col">Champ</th><th scope="col">Initial</th><th scope="col">Actuel</th></tr></thead>
+              <tbody>{ecarts.map(([k, l]) => <tr key={k}><td>{l}</td><td>{enTexte(initial![k])}</td><td>{enTexte(t[k])}</td></tr>)}</tbody>
+            </table>
+          )}
+          <h3>Modifications</h3>
+          <table className="grille" aria-label="Modifications de la fiche">
+            <thead><tr><th scope="col">Le</th><th scope="col">Par</th><th scope="col">Validée</th></tr></thead>
+            <tbody>
+              {(detail?.modifications ?? []).length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
+              {(detail?.modifications ?? []).map((m) => <tr key={m.modifieLe}><td className="chiffres">{fr(m.modifieLe.slice(0, 10))}</td><td>{nomUtil(m.modifiePar)}</td>
+                <td>{m.validePar ? `Oui, par ${nomUtil(m.validePar)}` : "En attente"}</td></tr>)}
+            </tbody>
+          </table>
+        </>}
+        {!t && <p className="muet">Rechercher d'abord le membre.</p>}
+        <Textes sources={["Manuel Microfina++, p. 54 : écran Informations client, recherche par le bouton du champ Numéro client, informations initiales et actuelles ; la fiche devient la porte d'entrée (plan d'allègement, point 3.8)",
           "Loi 002/2002, art. 22, 2° et 5° : part sociale libérée et droit d'adhésion acquitté ; la Date d'adhésion est celle de l'encaissement en caisse"]} />
       </section>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
@@ -586,6 +628,7 @@ export function InformationsClient() {
 export function ResiliationClient() {
   const { donnees: ctx } = useDonnees(() => api.referentiel.contexte());
   const [t, setT] = useState<Tiers | null>(null);
+  useTiersDeLAdresse(setT);   // ouvert depuis la fiche du membre (plan 3.8)
   const [motif, setMotif] = useState("");
   const [deces, setDeces] = useState({ date: "", reference: "" });   // A16
   const [exclusion, setExclusion] = useState({ reference: "", date: "" });   // P1
@@ -739,6 +782,7 @@ function Capture({ ouverte, fermer, prise }: { ouverte: boolean; fermer: () => v
 
 export function PhotosSignatures() {
   const [t, setT] = useState<Tiers | null>(null);
+  useTiersDeLAdresse((x) => setT(x));   // ouvert depuis la fiche du membre (plan 3.8)
   const [photo, setPhoto] = useState<string | null>(null);
   const [signature, setSignature] = useState<string | null>(null);
   const [piece, setPiece] = useState<string | null>(null);

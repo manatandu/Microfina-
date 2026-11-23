@@ -5,7 +5,7 @@ import type { Procuration, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture, Paginee } from "../composants";
 import { ChampsRepresentant } from "./Membres";
-import { lireImage, RechercheClient } from "./Visa";
+import { lireImage, RechercheClient, useTiersDeLAdresse } from "./Visa";
 
 const ONGLETS = ["Nouveau type procuration", "Procurations"] as const;
 
@@ -71,6 +71,7 @@ const VIDE: Omit<SaisieProcuration, "mandantId" | "typeId"> = { dateDebut: "", n
  * Instr. BCC 15, art. 11, 12, 16 et 29). Au guichet, le retrait par un mandataire se fait sur une procuration en cours. */
 function ProcurationsClient() {
   const [t, setT] = useState<Tiers | null>(null);
+  useTiersDeLAdresse((x) => setT(x));   // ouvert depuis la fiche du membre (plan 3.8)
   const [relu, setRelu] = useState(0);
   const { donnees } = useDonnees(async () => ({ ctx: await api.referentiel.contexte(), types: await api.procurations.lire(),
     liste: t ? await api.procurations.duClient(t.id) : [] }), [t?.id, relu]);

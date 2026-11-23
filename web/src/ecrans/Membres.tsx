@@ -7,7 +7,7 @@ import { BlocAdresse } from "../composants/Adresse";
 import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
 import { lireMontant } from "@design/montant.js";
-import { RechercheClient } from "./Visa";
+import { RechercheClient, useTiersDeLAdresse } from "./Visa";
 
 type Ctx = Awaited<ReturnType<typeof api.referentiel.contexte>>;
 const nomComplet = (t: { nom: string; postnom: string; prenom: string }) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
@@ -696,6 +696,7 @@ const gardeRepresentant = ({ photo, specimen, ...r }: Tiers["signataires"][numbe
 export function MiseAJourClient() {
   const { donnees: ctx } = useDonnees(() => api.referentiel.contexte());
   const [t, setT] = useState<Tiers | null>(null);
+  useTiersDeLAdresse((x) => void choisir(x));   // ouvert depuis la fiche du membre (plan 3.8)
   const [f, setF] = useState<NouveauTiers | null>(null);
   const [liees, setLiees] = useState<Tiers[]>([]);
   const [effectifs, setEffectifs] = useState<Tiers[]>([]);

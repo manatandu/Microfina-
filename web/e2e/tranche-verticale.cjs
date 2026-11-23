@@ -473,8 +473,8 @@ const OUT = process.argv[2];
   await aller('/clients/s43'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rc = p.getByRole('dialog', { name: "Recherche d'un client" });
   await rc.getByLabel('Nom:', { exact: true }).fill('Mwamba'); await rc.getByRole('row').filter({ hasText: 'Mwamba' }).click();
-  await p.getByRole('cell', { name: '+243 990 000 001' }).waitFor(); await etape('06m-informations-client');
-  await p.getByRole('tab', { name: 'Dépôts' }).click(); await p.getByRole('cell', { name: '0412-000319-02' }).waitFor(); await etape('06n-informations-depots');
+  await p.getByRole('tab', { name: 'Historique' }).click(); await p.getByRole('cell', { name: '+243 990 000 001' }).waitFor(); await etape('06m-informations-client');   // fiche du membre (plan 3.8)
+  await p.getByRole('tab', { name: 'Comptes' }).click(); await p.getByRole('cell', { name: '0412-000319-02' }).waitFor(); await etape('06n-informations-depots');
   // Groupe solidaire (S44)
   await aller('/clients/s44');
   await p.getByLabel('nom groupe *').fill('Grp Kinsaku'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
@@ -639,9 +639,9 @@ const OUT = process.argv[2];
   await aller('/clients/s43'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rc2 = p.getByRole('dialog', { name: "Recherche d'un client" });
   await rc2.getByLabel('Nom:', { exact: true }).fill('Tshala'); await rc2.getByRole('row').filter({ hasText: 'Tshala' }).click();
-  const da = p.getByLabel("Date d'adhésion : *"); for (let i = 0; i < 50 && (await da.inputValue()) === ''; i++) await p.waitForTimeout(100);
+  const da = p.getByLabel("Date d'adhésion :"); for (let i = 0; i < 50 && (await da.inputValue()) === ''; i++) await p.waitForTimeout(100);
   if ((await da.inputValue()) !== '05/11/2026') throw new Error("S43 : date d'adhésion attendue 05/11/2026");
-  await p.getByRole('tab', { name: 'Part sociale' }).click(); await etape('08c-date-adhesion');
+  await p.getByRole('tab', { name: 'Parts' }).click(); await etape('08c-date-adhesion');
   await login('Esther Ngalula');
   // Dépôt / Retrait (S74, manuel p. 86)
   const client = async (nom) => {

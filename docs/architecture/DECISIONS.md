@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1011 décisions.** Solidité : 464 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1002 déjà en place, 9 à appliquer.
+**1012 décisions.** Solidité : 465 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1003 déjà en place, 9 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2233,6 +2233,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S43-4 | Agents et crédits | Les agents de la fiche, et dans l'onglet Crédits les prêts du membre (numéro, produit, montant, déblocage, état) au lieu d'une liste toujours vide | Écran voisin : Plan d'allègement, point 0.16 | moyenne | en place |
+
+## S43 Fiche du membre
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S43-5 | La porte d'entrée | On cherche le membre une fois ; la fiche montre ses onglets (identité, adresse et activité, personnes, photos et pièces, comptes, crédits, parts, procurations, historique) ; on agit par Modifier, Procurations, Résilier, qui ouvrent l'écran voulu sur le même membre (« ?tiers= »). La mise à jour (S46), les procurations (S47), la résiliation (S48), les photos (S49) et l'adhésion au guichet (S73) reçoivent ainsi le membre sans leur propre recherche ; la recherche reste pour qui y entre directement. | Choix du porteur : Plan d'allègement, point 3.8 (accord du porteur, 22/11/2026) ; manuel p. 54 (informations initiales et actuelles, gardées dans Historique) | forte | en place |
 
 ## S42 Validation d'un client modifié
 

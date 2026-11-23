@@ -10,7 +10,7 @@ import { nouvelleCle } from "../lib/cle";
 import { lireMontant, montant, montantEnLettres, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
 import { OngletsGuichet, Recu, SoldesCaisse } from "./Guichet";
-import { RechercheClient } from "./Visa";
+import { RechercheClient, useTiersDeLAdresse } from "./Visa";
 
 const fr = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
 const nomComplet = (t: Tiers) => t.intitule || [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
@@ -19,6 +19,7 @@ const enSaisie = (m: number) => (m ? String(m / 100).replace(".", ",") : "0");
 /** S73 : Caisse > Opération > Adhésion (manuel Microfina++, p. 85 ; écran complet p. 89, « Adhésion à la Banque ») */
 export default function Adhesion() {
   const [t, setT] = useState<Tiers | null>(null);
+  useTiersDeLAdresse((x) => { setT(x); setDepot(enSaisie(x.premierDepot)); setParts("1"); });   // ouvert depuis la fiche du membre (plan 3.8)
   const [depot, setDepot] = useState("");
   const [parts, setParts] = useState("1");
   const [coupures, setCoupures] = useState<Comptage>({});
