@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1023 décisions.** Solidité : 476 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1014 déjà en place, 9 à appliquer.
+**1029 décisions.** Solidité : 482 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1020 déjà en place, 9 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2339,6 +2339,9 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S74-11 | Une entrée, huit onglets, un bandeau | Le menu Caisse n'a plus qu'une entrée « Guichet ». Ses onglets, du plus fréquent au plus rare : Dépôt, Retrait, Remboursement, Adhésion, Déblocage, Parts sociales, Autres encaissements et décaissements, Paiements préparés ; chacun n'apparaît qu'avec le droit de son écran. Dépôt et Retrait deviennent deux onglets. Au-dessus des onglets, un bandeau donne la caisse, le caissier et ses soldes par devise, rechargés après chaque opération ; les cadres « Info guichet » (agence, caisse, caissier, soldes) de chaque onglet disparaissent. Le menu « Part sociale » disparaît avec l'entrée de son écran. | Choix du porteur : Plan d'allègement, points 4.1 et 4.5 ; manuel p. 85 ; registre S74-9 | forte | en place |
+| S74-12 | Billetage sous le montant | Dans chaque onglet du guichet (dépôt, retrait, adhésion, déblocage, remboursement, parts sociales, autres encaissements et décaissements), la grille du billetage s'ouvre sous le montant dès qu'un montant est saisi, une grille par devise ; « Enregistrer » (ou « Débloquer ») ne s'active que quand le compte des coupures égale le montant. Le bouton et la fenêtre « Billetage » disparaissent. | Choix du porteur : Plan d'allègement, point 4.2 ; registre T12 | forte | en place |
+| S74-13 | Récapitulatif, puis le reçu | La question de confirmation devient un récapitulatif : l'opération, le client et son numéro, le compte, le montant en chiffres et en lettres, versé par ou remis à. Après « Oui », le reçu s'ouvre d'office avec Imprimer et Nouvelle opération ; la boîte de succès ne paraît plus, sauf pour un avertissement (plafond dépassé) ou un retrait en attente de visa. | Choix du porteur : Plan d'allègement, point 4.3 ; Instr. BCC 40, art. 13 (un document est remis au client) | forte | en place |
+| S74-14 | N° client saisissable | Le n° client du dépôt, du retrait, de l'adhésion, des parts sociales et du remboursement se tape : un numéro ou un nom, deux caractères au moins, et le logiciel propose jusqu'à huit clients actifs pendant la frappe ; Entrée prend le premier. « Rechercher » reste à côté pour les cas difficiles. | Choix du porteur : Plan d'allègement, point 4.4 | forte | en place |
 
 ## S82 Paiements préparés
 
@@ -2351,6 +2354,24 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S83-5 | Quatre entrées | Le menu Caisse : Guichet, Transferts de fonds, Arrêté de caisse (comptage, validation), Journal de caisse. Les écrans des onglets du guichet sortent du menu et restent dans l'arbre des droits. | Choix du porteur : Plan d'allègement, point 4.13 | forte | en place |
+
+## S77 Parts sociales
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S77-5 | Sans compte d'épargne | L'achat et le retrait de parts ne touchent pas le compte d'épargne : N° Compte, N° comptable, produit et solde du compte disparaissent de l'onglet. | Choix du porteur : Plan d'allègement, point 4.6 ; registre S77-1 ; loi 002/2002, art. 20 et 21 | forte | en place |
+
+## S75 Déblocage au guichet
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S75-9 | Un seul Débloquer | L'étape « Encaisser frais », qui n'écrivait rien, disparaît. L'onglet montre les retenues et le billetage du montant remis ; « Débloquer » demande confirmation sur un récapitulatif (prêt, retenues, montant remis, en lettres) et note la date des frais au déblocage. Les déblocages par banque et par épargne gardent « Prélever les frais » (lot 7). | Choix du porteur : Plan d'allègement, point 4.7 ; registre CR-6 ; Instr. BCC 38, art. 9 | forte | en place |
+
+## S76 Remboursement au guichet
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S76-9 | Allégé | « Plan » et « Réel », que la Situation redit, disparaissent. « Enregistrer » se place à côté du montant à payer ; le billetage s'ouvre dessous ; le détail du crédit se replie, le retard total restant visible dans son titre. | Choix du porteur : Plan d'allègement, point 4.8 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

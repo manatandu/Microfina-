@@ -6,11 +6,10 @@ import { boiteOperation } from "../lib/examen";
 import type { Operation, Tiers } from "../donnees/types";
 import { useDonnees } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
-import { montant, type Comptage } from "@design/montant.js";
+import { montant, montantEnLettres, type Comptage } from "@design/montant.js";
 import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
-import { OngletsGuichet, Recu } from "./Guichet";
+import { billetageBon, ChampClient, OngletsGuichet, recapitulatif, Recu } from "./Guichet";
 import { RechercheClient } from "./Visa";
-import { MASQUE } from "./Guichet";
 
 const fr = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
 const nomComplet = (t: Tiers) => t.intitule || [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
@@ -18,39 +17,35 @@ const nomComplet = (t: Tiers) => t.intitule || [t.nom, t.postnom, t.prenom].filt
 /** S77 : Caisse > Opération > Part sociale (Achat/Retrait) (manuel Microfina++, p. 88 et 89) */
 export function PartsSociales() {
   const [t, setT] = useState<Tiers | null>(null);
-  const [compteId, setCompteId] = useState(0);
   const [sens, setSens] = useState<"achat" | "retrait">("achat");
   const [nombre, setNombre] = useState("");
   const [coupures, setCoupures] = useState<Comptage>({});
   const [cle, setCle] = useState(nouvelleCle);
   const [fait, setFait] = useState<Operation | null>(null);
-  const [billetage, setBilletage] = useState(false);
   const [recu, setRecu] = useState(false);
   const [recherche, setRecherche] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees } = useDonnees(async () => {
     const [s, ctx, u, j] = await Promise.all([api.caisses.duCaissier(), api.referentiel.contexte(), api.session.courante(), api.journees.courante()]);
     const stock = s ? await api.caisses.theorique(s.id, "CDF") : {};
-    const comptes = t ? await api.tiers.comptes(t.id) : [];
     const parts = t ? await api.tiers.parts(t.id) : 0;
     const piece = fait ? (await api.operations.recu(fait.id)).piece : "";
-    return { s, ctx, u, j, stock, comptes, parts, piece };
+    return { s, ctx, u, j, stock, parts, piece };
   }, [t?.id, fait?.id]);
   if (!donnees) return <Chargement />;
-  const { s, ctx, j, stock, comptes, parts, piece } = donnees;
+  const { s, ctx, j, stock, parts, piece } = donnees;
   if (!s || s.statut !== "ouverte") return (
     <><OngletsGuichet /><Attention>Aucune caisse ouverte à votre nom. <Link to={vers("S09")}>Ouvrir une caisse</Link>.</Attention></>
   );
-  const compteP = compteId || (comptes.length === 1 ? comptes[0]!.id : 0);   // une seule valeur : prise d'office (plan d'allègement, point 1.11)
-  const c = comptes.find((x) => x.id === compteP);
   const n = /^\d+$/.test(nombre.trim()) ? Number(nombre.trim()) : 0;
   const aPayer = n * (ctx.valeurPart ?? 0);   // valeur de la ligne de part des frais d'adhésion (registre S16-11)
   const achat = sens === "achat";
-  const effacer = () => { setT(null); setCompteId(0); setNombre(""); setCoupures({}); setCle(nouvelleCle()); setFait(null); };
+  const effacer = () => { setT(null); setNombre(""); setCoupures({}); setCle(nouvelleCle()); setFait(null); };
   function enregistrer() {
-    if (!t || !c) { setBoite({ type: "erreur", message: "À remplir : numéro client, N° Compte." }); return; }
-    setBoite({ type: "confirmation", message: `Voulez-vous vraiment enregistrer ? ${achat ? "Achat" : "Retrait"} de ${n} part(s) sociale(s) : ${montant(aPayer, "CDF")}${c ? `, compte ${c.numero}` : ""}.`, oui: async () => {
-      try { const o = await api.guichet.parts({ cle, tiersId: t.id, sens, nombre: n, coupures }); setFait(o); setBoite({ type: "succes", message: ["Enregistré avec succès !", o.avertissement].filter(Boolean).join(" ") }); }
+    if (!t) { setBoite({ type: "erreur", message: "À remplir : numéro client." }); return; }
+    setBoite({ type: "confirmation", message: recapitulatif(`${achat ? "Achat" : "Retrait"} de parts sociales`, [["Client", `${nomComplet(t)} (${t.numero})`], ["Parts", String(n)],
+      ["Montant", montant(aPayer, "CDF")], ["En lettres", montantEnLettres(aPayer, "CDF")], [achat ? "Versé par" : "Remis à", "Le titulaire"]]), oui: async () => {
+      try { const o = await api.guichet.parts({ cle, tiersId: t.id, sens, nombre: n, coupures }); setFait(o); setRecu(true); if (o.avertissement) setBoite({ type: "succes", message: o.avertissement }); }
       catch (x) { setBoite(boiteOperation(x, { type: sens === "retrait" ? "retrait_parts" : "achat_parts", tiersId: t.id, montant: aPayer, devise: "CDF" }, setBoite)); }
     } });
   }
@@ -67,19 +62,10 @@ export function PartsSociales() {
           <fieldset className="pile cadre-champs">
             <legend>Client</legend>
             <div className="ligne-champ">
-              <Champ libelle="Numéro client">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
+              <ChampClient libelle="Numéro client" client={t} desactive={!!fait} choisir={(x) => { setT(x); setNombre(""); setCoupures({}); }} />
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" disabled={!!fait} onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
             <Champ libelle="Intitulé">{(p) => <Lecture {...p} value={t ? nomComplet(t) : ""} />}</Champ>
-            <Champ libelle="N° Compte *">{(p) => <select {...p} className="saisie" required disabled={!!fait || !t} value={compteP} onChange={(e) => setCompteId(Number(e.target.value))}>
-              <option value={0}>{t ? "" : "Choisir d'abord le client"}</option>{comptes.map((x) => <option key={x.id} value={x.id}>{x.numero}</option>)}</select>}</Champ>
-            <Champ libelle="N° Comptable">{(p) => <input {...p} className="saisie code" readOnly value={c?.pcci ?? ""} />}</Champ>
-            <Champ libelle="Produit">{(p) => <Lecture {...p} value={c ? `${c.intitule} ${c.devise}` : ""} />}</Champ>
-          </fieldset>
-          <fieldset className="pile cadre-champs">
-            <legend>Info compte</legend>
-            <p>Solde du compte</p>
-            <p className="chiffres"><strong>{!c ? "" : c.masque ? <span className="muet" title={MASQUE}>•••••</span> : montant(c.solde, c.devise)}</strong></p>
           </fieldset>
         </div>
         <div className="onglets" role="tablist" aria-label="Achat ou retrait">
@@ -95,9 +81,10 @@ export function PartsSociales() {
             autoComplete="off" value={nombre} onChange={(e) => { if (/^\d{0,6}$/.test(e.target.value)) { setNombre(e.target.value); setCle(nouvelleCle()); } }} />}</Champ>
           <Champ libelle={achat ? "Montant à payer" : "Montant à remettre"}>{(p) => <input {...p} className="saisie montant" readOnly value={montant(aPayer, "CDF")} />}</Champ>
         </fieldset>
+        {t && n > 0 && !fait && <fieldset className="pile cadre-champs"><legend>Billetage</legend>
+          <Billetage devise="CDF" comptage={coupures} onChange={(x) => { setCoupures(x); setCle(nouvelleCle()); }} cible={aPayer} sens={achat ? "recue" : "remise"} stock={achat ? undefined : stock} /></fieldset>}
         <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={!t || !c || n < 1 || !!fait} onClick={enregistrer}>Enregistrer</button>
-          <button className="bouton secondaire" type="button" disabled={!t || n < 1 || !!fait} onClick={() => setBilletage(true)}>Billetage</button>
+          <button className="bouton" type="button" disabled={!t || n < 1 || !!fait || !billetageBon(coupures, aPayer)} onClick={enregistrer}>Enregistrer</button>
           <button className="bouton secondaire" type="button" disabled={!fait} onClick={() => setRecu(true)}>Imprimer</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         </div>
@@ -106,18 +93,12 @@ export function PartsSociales() {
           "PCCI, compte 103 : 1030 personnes physiques, 1031 groupements solidaires, 1032 personnes morales ; débité au retrait ou à la démission",
           "Instr. BCC 15 bis : examen renforcé à 10 000 USD en espèces dans la journée"]} />
       </section>
-      <Fiche titre="Billetage" ouverte={billetage} fermer={() => setBilletage(false)}>
-        <div className="pile">
-          <Billetage devise="CDF" comptage={coupures} onChange={setCoupures} cible={aPayer} sens={achat ? "recue" : "remise"} stock={achat ? undefined : stock} />
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={() => setBilletage(false)}>Fermer</button></div>
-        </div>
-      </Fiche>
       <Fiche titre="Reçu" ouverte={recu} fermer={() => setRecu(false)}>
         {fait && <Recu id={fait.id} onNouveau={() => { setRecu(false); effacer(); }} />}
       </Fiche>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif" || x.statut === "resilie") : [])}
-          choisir={(x) => { setT(x); setCompteId(0); setNombre(""); setCoupures({}); setRecherche(false); }} fermer={() => setRecherche(false)} />
+          choisir={(x) => { setT(x); setNombre(""); setCoupures({}); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>

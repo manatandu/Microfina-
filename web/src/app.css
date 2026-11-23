@@ -711,3 +711,10 @@ select.saisie { max-width: 100%; }
 /* Bandeau de la caisse au-dessus des onglets du guichet (plan d'allègement, point 4.5) */
 .bandeau-caisse dl.infos { display: flex; flex-wrap: wrap; gap: var(--espace-2) var(--espace-6); }
 .bandeau-caisse .info-ligne { display: flex; gap: var(--espace-2); border-bottom: 0; padding: 0; }
+/* Récapitulatif de la confirmation sur plusieurs lignes (plan d'allègement, point 4.3) */
+.boite > p { white-space: pre-line; }
+/* N° client saisissable : propositions pendant la frappe (plan d'allègement, point 4.4) */
+.champ-client { position: relative; }
+.champ-client .propositions { position: absolute; z-index: 5; inset-inline: 0; top: 100%; margin: 0; padding: var(--espace-1) 0; list-style: none; background: var(--cadre); border: 1px solid var(--trait); border-radius: var(--rayon-champ); max-height: 16rem; overflow: auto; }
+.champ-client .propositions li { padding: var(--espace-1) var(--espace-3); cursor: pointer; }
+.champ-client .propositions li:hover { background: var(--ligne); }

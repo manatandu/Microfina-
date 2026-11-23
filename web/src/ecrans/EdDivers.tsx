@@ -8,9 +8,9 @@ import type { Operation } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
-import { DEVISES, lireMontant, type Comptage, type Devise } from "@design/montant.js";
+import { DEVISES, lireMontant, montant, montantEnLettres, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
-import { OngletsGuichet } from "./Guichet";
+import { billetageBon, OngletsGuichet, recapitulatif, Recu } from "./Guichet";
 
 type TypeOp = "ENCAISSEMENT" | "DECAISSEMENT";
 const SENS: Record<TypeOp, "PRODUIT" | "CHARGE"> = { ENCAISSEMENT: "PRODUIT", DECAISSEMENT: "CHARGE" };
@@ -21,7 +21,7 @@ export default function EdDivers() {
   const [coupures, setCoupures] = useState<Partial<Record<Devise, Comptage>>>({});
   const [cle, setCle] = useState(nouvelleCle);
   const [fait, setFait] = useState<Operation | null>(null);
-  const [billetage, setBilletage] = useState(false);
+  const [recu, setRecu] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees } = useDonnees(async () => {
     const [s, ctx, u, j, ed] = await Promise.all([api.caisses.duCaissier(), api.referentiel.contexte(), api.session.courante(), api.journees.courante(), api.edDivers.lire()]);
@@ -44,11 +44,12 @@ export default function EdDivers() {
   function enregistrer() {
     if (!od || saisies.length === 0) { setBoite({ type: "erreur", message: "À remplir : Opérations, Compte, Montant." }); return; }
     if (DEVISES.some((d) => lu(d) === null)) { setBoite({ type: "erreur", message: "Montant invalide." }); return; }
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+    setBoite({ type: "confirmation", message: recapitulatif(encaissement ? "Encaissement divers" : "Décaissement divers", [["Opération", od.libelle], ["Libellé", f.libelle.trim()],
+      ["Montant", saisies.map((d) => montant(lu(d) ?? 0, d)).join(" et ")], ["En lettres", saisies.map((d) => montantEnLettres(lu(d) ?? 0, d)).join(" ; ")]]), oui: async () => {
       try {
         const o = await api.guichet.edDivers({ cle, typeOperation: f.type, operationId: od.id, libelle: f.libelle,
           montants: Object.fromEntries(saisies.map((d) => [d, lu(d) ?? 0])), coupures: Object.fromEntries(saisies.map((d) => [d, coupures[d] ?? {}])) });
-        setFait(o); setBoite({ type: "succes", message: ["Enregistré avec succès !", o.avertissement].filter(Boolean).join(" ") });
+        setFait(o); setRecu(true); if (o.avertissement) setBoite({ type: "succes", message: o.avertissement });
       } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
   }
@@ -74,9 +75,11 @@ export default function EdDivers() {
           {DEVISES.map((d) => <Champ key={d} libelle={`Montant (${d})${d === DEVISES[0] ? " *" : ""}`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off"
             readOnly={!!fait} value={f.montants[d] ?? ""} onChange={(e) => { setF({ ...f, montants: { ...f.montants, [d]: e.target.value } }); setCoupures({ ...coupures, [d]: {} }); nouveau(); }} />}</Champ>)}
         </fieldset>
+        {saisies.length > 0 && !fait && <fieldset className="pile cadre-champs"><legend>Billetage</legend>
+          {saisies.map((d) => <Billetage key={d} devise={d} comptage={coupures[d] ?? {}} onChange={(c) => { setCoupures({ ...coupures, [d]: c }); nouveau(); }}
+            cible={lu(d) ?? 0} sens={encaissement ? "recue" : "remise"} stock={encaissement ? undefined : stocks[d]} />)}</fieldset>}
         <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={!od || saisies.length === 0 || !!fait} onClick={enregistrer}>Enregistrer</button>
-          <button className="bouton secondaire" type="button" disabled={saisies.length === 0 || !!fait} onClick={() => setBilletage(true)}>Billetage</button>
+          <button className="bouton" type="button" disabled={!od || saisies.length === 0 || !!fait || !saisies.every((d) => billetageBon(coupures[d] ?? {}, lu(d)))} onClick={enregistrer}>Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 89 et 90 : ED Divers, Type operation Encaissement ou Décaissement, le compte, le montant, Enregistrer ou Annuler (deux captures)",
@@ -84,12 +87,8 @@ export default function EdDivers() {
           "Paramétrage > ED divers (S31, registre S31-1) : opérations PRODUIT proposées en encaissement, CHARGE en décaissement ; seules les ACTIF",
           "Registre T12 : un montant par devise tenue ; billetage de chaque devise (décision du porteur du 19/11/2026, registre S78-3)"]} />
       </section>
-      <Fiche titre="Billetage" ouverte={billetage} fermer={() => setBilletage(false)}>
-        <div className="pile">
-          {saisies.map((d) => <Billetage key={d} devise={d} comptage={coupures[d] ?? {}} onChange={(c) => { setCoupures({ ...coupures, [d]: c }); nouveau(); }}
-            cible={lu(d) ?? 0} sens={encaissement ? "recue" : "remise"} stock={encaissement ? undefined : stocks[d]} />)}
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={() => setBilletage(false)}>Fermer</button></div>
-        </div>
+      <Fiche titre="Reçu" ouverte={recu} fermer={() => setRecu(false)}>
+        {fait && <Recu id={fait.id} onNouveau={() => { setRecu(false); annuler(); }} />}
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>

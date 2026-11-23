@@ -4044,7 +4044,6 @@ const deblocage = {
   debloquerCaisse(id: number, p: { cle: string; coupures: Comptage }) {
     const prec = dejaFaite(p.cle); if (prec) return prec;
     const c = creditVise(id, true);
-    if (!c.fraisEncaissesLe) throw new ErreurMetier("Encaisser frais d'abord (texte p. 86 : « Encaisser frais » puis « Débloquer »).");
     const { u, s } = sessionOuverte(c.devise);
     const net = retenuesCredit(c).net, cp = nettoyer(p.coupures ?? {});
     controlerCoupures(cp, net, c.devise);
@@ -4054,6 +4053,7 @@ const deblocage = {
     const e = ecritureDeblocage(c, { compte: "570", contrat: guichetDe(s) }, "CA", u.id);
     const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "deblocage_credit", statut: "validee", sessionId: s.id, tiersId: c.tiersId, montant: net, devise: c.devise,
       coupures: cp, remisPar: titulaire(E.tiers.find((t) => t.id === c.tiersId)!), motif: `Déblocage ${c.numero}`, saisiPar: u.id, ecritureId: e.id, heure: heure() };
+    if (!c.fraisEncaissesLe) { c.fraisEncaissesLe = jourDeblocage().date; c.fraisEncaissesPar = u.id; }   // plan 4.7 : la date se note au déblocage
     E.operations.push(o); apresDeblocage(c, e.id, "caisse", u.id); lierExamen(examen, o.id); enregistrer(); return o;
   },
   /** S54 : déblocage par banque, chèque d'un chéquier du compte bancaire (S60-5) */

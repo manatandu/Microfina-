@@ -12,7 +12,7 @@ import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { montant, montantEnLettres, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
-import { OngletsGuichet } from "./Guichet";
+import { billetageBon, OngletsGuichet, recapitulatif, Recu } from "./Guichet";
 import { ContratPret } from "./ContratPret";
 
 type Detail = Awaited<ReturnType<typeof api.deblocage.detail>>;
@@ -76,11 +76,11 @@ function Echeancier({ d, fermer }: { d: Detail; fermer: () => void }) {
 /** S75 : onglet Déblocage crédit du guichet (capture p. 87) */
 export function DeblocageGuichet() {
   const [cid, setCid] = useState<number | null>(null);
-  const [relu, setRelu] = useState(0);
+  const [relu] = useState(0);
   const [coupures, setCoupures] = useState<Comptage>({});
   const [cle, setCle] = useState(nouvelleCle);
   const [fait, setFait] = useState<Operation | null>(null);
-  const [fiche, setFiche] = useState<"" | "billetage" | "echeancier" | "frais" | "reconnaissance" | "contrat">("");
+  const [fiche, setFiche] = useState<"" | "recu" | "echeancier" | "reconnaissance" | "contrat">("");
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees } = useDonnees(async () => {
     const [s, ctx, u, j] = await Promise.all([api.caisses.duCaissier(), api.referentiel.contexte(), api.session.courante(), api.journees.courante()]);
@@ -96,17 +96,12 @@ export function DeblocageGuichet() {
   const dv = (d?.devise ?? fait?.devise ?? "CDF") as Devise;
   const erreur = (x: unknown) => setBoite({ type: "erreur", message: message(x) });
   const effacer = () => { setCid(null); setCoupures({}); setCle(nouvelleCle()); setFait(null); };
-  function encaisser() {
-    if (!d) return;
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment encaisser les frais ?", oui: async () => {
-      try { await api.deblocage.encaisserFrais(d.id); setFiche(""); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Frais encaissés : ils sont retenus sur le prêt au déblocage." }); }
-      catch (x) { erreur(x); }
-    } });
-  }
   function debloquer() {
     if (!d) return;
-    setBoite({ type: "confirmation", message: `Voulez-vous vraiment débloquer le crédit ${d.numero}, ${d.client} ? Montant du prêt : ${montant(d.montant, d.devise as Devise)}.`, oui: async () => {
-      try { const o = await api.deblocage.debloquerCaisse(d.id, { cle, coupures }); setFait(o); setBoite({ type: "succes", message: "Crédit débloqué avec succès !" }); }
+    const r = d.retenues;
+    setBoite({ type: "confirmation", message: recapitulatif(`Déblocage du crédit ${d.numero}`, [["Client", `${d.client} (${d.membre})`], ["Prêt", montant(d.montant, dv)],
+      ["Retenues", montant(d.montant - r.net, dv)], ["Montant remis", montant(r.net, dv)], ["En lettres", montantEnLettres(r.net, dv)], ["Remis à", d.client]]), oui: async () => {
+      try { const o = await api.deblocage.debloquerCaisse(d.id, { cle, coupures }); setFait(o); setFiche("recu"); }
       catch (x) { erreur(x); }
     } });
   }
@@ -126,30 +121,25 @@ export function DeblocageGuichet() {
             <Champ libelle="N° client">{(p) => <Lecture {...p} value={d?.membre ?? ""} />}</Champ>
             <Champ libelle="Intitulé du compte">{(p) => <Lecture {...p} value={d?.client ?? ""} />}</Champ>
             <Champ libelle="Numéro compte">{(p) => <Lecture {...p} value={d?.compteClient ?? ""} />}</Champ>
-            {d && <p>{d.fraisEncaisses ? "Frais encaissés." : "Frais à encaisser."} Montant remis : <strong className="chiffres">{montant(d.retenues.net, dv)}</strong></p>}
           </fieldset>
         </div>
+        {d && !fait && <div className="deux-colonnes">
+          <fieldset className="pile cadre-champs"><legend>Retenues</legend><Retenues d={d} /></fieldset>
+          <fieldset className="pile cadre-champs"><legend>Billetage</legend>
+            <Billetage devise={dv} comptage={coupures} onChange={(c) => { setCoupures(c); setCle(nouvelleCle()); }} cible={d.retenues.net} sens="remise" stock={stock} /></fieldset>
+        </div>}
         <div className="actions-onglets">
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("echeancier")}>Echéancier</button>
-          <button className="bouton secondaire" type="button" disabled={!d || d.fraisEncaisses || !!fait} onClick={() => setFiche("frais")}>Encaisser frais</button>
-          <button className="bouton secondaire" type="button" disabled={!d || !d.fraisEncaisses || !!fait} onClick={() => setFiche("billetage")}>Billetage</button>
-          <button className="bouton" type="button" disabled={!d || !d.fraisEncaisses || !!fait} onClick={debloquer}>Débloquer</button>
+          <button className="bouton" type="button" disabled={!d || !!fait || !billetageBon(coupures, d.retenues.net)} onClick={debloquer}>Débloquer</button>
           <button className="bouton secondaire" type="button" disabled={!cid} onClick={() => setFiche("reconnaissance")}>Reconnaissance de dette</button>
           <button className="bouton secondaire" type="button" disabled={!cid} onClick={() => setFiche("contrat")}>Contrat de prêt</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         </div>
-        <Textes sources={["Manuel Microfina++, p. 86 : sélectionner le crédit à décaisser, Encaisser frais, Débloquer ; visualiser l'échéancier et le contrat de prêt ; capture p. 87",
+        <Textes sources={["Manuel Microfina++, p. 86 : sélectionner le crédit à décaisser, Débloquer ; visualiser l'échéancier et le contrat de prêt ; capture p. 87. L'étape « Encaisser frais », qui n'écrivait rien, disparaît (plan d'allègement, point 4.7)",
           "Registre CR-6 : frais, assurance, épargne obligatoire et fonds de solidarité retenus sur le prêt ; l'épargne obligatoire est bloquée en garantie (Instr. BCC 38, art. 9)",
           "Registre S75-1 : échéance d'un jour non ouvré reportée au premier jour ouvré ; CR-10 : octroi à déclarer à la Centrale des risques (Instr. BCC 05, art. 10) ; billetage (S75-5)"]} />
       </section>
-      <Fiche titre="Frais" ouverte={fiche === "frais"} fermer={() => setFiche("")}>
-        {d && <div className="pile"><Retenues d={d} /><div className="actions-onglets"><button className="bouton" type="button" onClick={encaisser}>Encaisser frais</button>
-          <button className="bouton secondaire" type="button" onClick={() => setFiche("")}>Fermer</button></div></div>}
-      </Fiche>
-      <Fiche titre="Billetage" ouverte={fiche === "billetage"} fermer={() => setFiche("")}>
-        {d && <div className="pile"><Billetage devise={dv} comptage={coupures} onChange={(c) => { setCoupures(c); setCle(nouvelleCle()); }} cible={d.retenues.net} sens="remise" stock={stock} />
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={() => setFiche("")}>Fermer</button></div></div>}
-      </Fiche>
+      <Fiche titre="Reçu" ouverte={fiche === "recu"} fermer={() => setFiche("")}>{fait && <Recu id={fait.id} onNouveau={() => { setFiche(""); effacer(); }} />}</Fiche>
       <Fiche titre="Echéancier" ouverte={fiche === "echeancier"} fermer={() => setFiche("")}>{d && <Echeancier d={d} fermer={() => setFiche("")} />}</Fiche>
       <Fiche titre="Reconnaissance de dette" ouverte={fiche === "reconnaissance"} fermer={() => setFiche("")}>{cid && <ContratPret id={cid} titre="Reconnaissance de dette" fermer={() => setFiche("")} />}</Fiche>
       <Fiche titre="Contrat de prêt" ouverte={fiche === "contrat"} fermer={() => setFiche("")}>{cid && <ContratPret id={cid} titre="Contrat de prêt" fermer={() => setFiche("")} />}</Fiche>

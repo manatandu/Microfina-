@@ -9,7 +9,7 @@ import { useDonnees } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { lireMontant, montant, montantEnLettres, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
-import { OngletsGuichet, Recu } from "./Guichet";
+import { billetageBon, ChampClient, OngletsGuichet, recapitulatif, Recu } from "./Guichet";
 import { RechercheClient, useTiersDeLAdresse } from "./Visa";
 
 const fr = (iso: string) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
@@ -26,7 +26,6 @@ export default function Adhesion() {
   const [coupuresDepot, setCoupuresDepot] = useState<Comptage>({});   // registre S73-1 : billetage du premier dépôt dans la devise du compte
   const [cle, setCle] = useState(nouvelleCle);
   const [fait, setFait] = useState<Operation | null>(null);
-  const [billetage, setBilletage] = useState(false);
   const [recu, setRecu] = useState(false);
   const [recherche, setRecherche] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
@@ -53,11 +52,15 @@ export default function Adhesion() {
   // Registre S73-1 : frais et parts en CDF ; premier dépôt dans la devise du compte ; un billetage par devise (T12)
   const devDepot = (produit?.devise ?? "CDF") as Devise, enDevise = devDepot !== "CDF";
   const totalCdf = enDevise ? total - (mDepot ?? 0) : total;
+  // Billetage juste dans chaque devise (plan 4.2 ; registre T12)
+  const bon = (totalCdf <= 0 || billetageBon(coupures, totalCdf)) && (!enDevise || !mDepot || billetageBon(coupuresDepot, mDepot)) && total > 0;
   const effacer = () => { setT(null); setDepot(""); setParts("1"); setCoupures({}); setCoupuresDepot({}); setCle(nouvelleCle()); setFait(null); };
   function enregistrer() {
     if (!t || mDepot === null) { setBoite({ type: "erreur", message: !t ? "À remplir : N° Client." : "Premier dépôt invalide." }); return; }
-    setBoite({ type: "confirmation", message: `Voulez-vous vraiment enregistrer ? Adhésion : ${montant(totalCdf, "CDF")}${enDevise && mDepot ? ` et premier dépôt de ${montant(mDepot, devDepot)}` : ""}.`, oui: async () => {
-      try { const o = await api.guichet.adhesion({ cle, tiersId: t.id, parts: nParts, depot: mDepot, coupures, ...(enDevise ? { coupuresDepot } : {}) }); setFait(o); setBoite({ type: "succes", message: ["Enregistré avec succès !", o.avertissement].filter(Boolean).join(" ") }); }
+    const lettres = [totalCdf > 0 ? montantEnLettres(totalCdf, "CDF") : "", enDevise && mDepot ? montantEnLettres(mDepot, devDepot) : ""].filter(Boolean).join(" ; ");
+    setBoite({ type: "confirmation", message: recapitulatif("Adhésion", [["Client", `${t.intitule || [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ")} (${t.numero})`], ["Compte", compte?.numero ?? ""],
+      ["Montant", [montant(totalCdf, "CDF"), enDevise && mDepot ? `premier dépôt ${montant(mDepot, devDepot)}` : ""].filter(Boolean).join(" et ")], ["En lettres", lettres], ["Versé par", "Le titulaire"]]), oui: async () => {
+      try { const o = await api.guichet.adhesion({ cle, tiersId: t.id, parts: nParts, depot: mDepot, coupures, ...(enDevise ? { coupuresDepot } : {}) }); setFait(o); setRecu(true); if (o.avertissement) setBoite({ type: "succes", message: o.avertissement }); }
       catch (x) { setBoite(boiteOperation(x, { type: "adhesion", tiersId: t.id, montant: totalCdf, devise: "CDF" }, setBoite)); }
     } });
   }
@@ -74,7 +77,7 @@ export default function Adhesion() {
           <fieldset className="pile cadre-champs">
             <legend>Informations sur le Client</legend>
             <div className="ligne-champ">
-              <Champ libelle="N° Client :">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
+              <ChampClient libelle="N° Client :" client={t} desactive={!!fait} choisir={(x) => { setT(x); setDepot(enSaisie(x.premierDepot)); setParts("1"); setCoupures({}); setCle(nouvelleCle()); }} />
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" disabled={!!fait} onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
             <Champ libelle="Intitulé :">{(p) => <Lecture {...p} value={t ? nomComplet(t) : ""} />}</Champ>
@@ -104,11 +107,14 @@ export default function Adhesion() {
             </tbody>
           </table>
         </fieldset>
+        {t && !fait && total > 0 && <fieldset className="pile cadre-champs"><legend>Billetage</legend>
+          {totalCdf > 0 && <Billetage devise="CDF" comptage={coupures} onChange={(c) => { setCoupures(c); setCle(nouvelleCle()); }} cible={totalCdf} sens="recue" />}
+          {enDevise && mDepot ? <Billetage devise={devDepot} comptage={coupuresDepot} onChange={(c) => { setCoupuresDepot(c); setCle(nouvelleCle()); }} cible={mDepot} sens="recue" /> : null}
+        </fieldset>}
         <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={!t || !!fait} onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton" type="button" disabled={!t || !!fait || !bon} onClick={enregistrer}>Enregistrer</button>
           <button className="bouton secondaire" type="button" disabled={!fait} onClick={() => setRecu(true)}>Imprimer</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
-          <button className="bouton secondaire" type="button" disabled={!t || !!fait || total <= 0} onClick={() => setBilletage(true)}>Billetage</button>
         </div>
         <p className="montant-lettres">{[totalCdf > 0 ? montantEnLettres(totalCdf, "CDF") : "", enDevise && mDepot ? montantEnLettres(mDepot, devDepot) : ""].filter(Boolean).join(" ; ")}</p>
         <Textes sources={["Manuel Microfina++, p. 85 : Adhésion (N° Client, Intitulé*, Catégorie*, N° compte épargne*, Premier dépôt*, Total, Info guichet) ; p. 89 : Liste des Frais, Enregistrer, Imprimer, Effacer, Billetage, montant en lettres",
@@ -116,13 +122,6 @@ export default function Adhesion() {
           "Loi 002/2002, art. 21 et 22 : au moins une part, intégralement libérée ; PCCI, comptes 103 (parts) et 330 (épargne)",
           "Instr. BCC 37 : ouverture de compte gratuite ; Instr. BCC 15 bis : examen renforcé à 10 000 USD en espèces"]} />
       </section>
-      <Fiche titre="Billetage" ouverte={billetage} fermer={() => setBilletage(false)}>
-        <div className="pile">
-          {totalCdf > 0 && <Billetage devise="CDF" comptage={coupures} onChange={(c) => { setCoupures(c); setCle(nouvelleCle()); }} cible={totalCdf} sens="recue" />}
-          {enDevise && mDepot ? <Billetage devise={devDepot} comptage={coupuresDepot} onChange={(c) => { setCoupuresDepot(c); setCle(nouvelleCle()); }} cible={mDepot} sens="recue" /> : null}
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={() => setBilletage(false)}>Fermer</button></div>
-        </div>
-      </Fiche>
       <Fiche titre="Reçu" ouverte={recu} fermer={() => setRecu(false)}>
         {fait && <Recu id={fait.id} onNouveau={() => { setRecu(false); effacer(); }} />}
       </Fiche>

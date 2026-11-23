@@ -170,8 +170,9 @@ def debloquer_caisse(u, cid: int, p) -> dict:
     if prec and prec["statut"] == "validee":
         return vue_operation(prec)
     c = credit_vise(u, cid, True)
-    if not c["frais_encaisses_le"]:
-        raise ErreurMetier("Encaisser frais d'abord (texte p. 86 : « Encaisser frais » puis « Débloquer »).")
+    if not c["frais_encaisses_le"]:                 # plan d'allègement, point 4.7 : plus d'étape « Encaisser frais » au guichet ; la date se note au déblocage
+        executer("update credit set frais_encaisses_le = %s, frais_encaisses_par = %s where id = %s", (jour(u), u["id"], c["id"]))
+        c = {**c, "frais_encaisses_le": jour(u), "frais_encaisses_par": u["id"]}
     dv = c["devise"].strip()
     s = session_ouverte(u, dv)
     net = retenues(c)["net"]

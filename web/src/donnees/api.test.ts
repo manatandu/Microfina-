@@ -577,6 +577,7 @@ describe("journée de guichet", () => {
     await connecter("bkasongo");
     const t = await api.tiers.creer({ ...enrolementVide("2026-11-05"), ...IDENTITE, produitCode: "EAV-CDF", nom: "Kasa", postnom: "Lufu", prenom: "Rita", naissance: "1993-07-01",
       pieceType: "Carte d'électeur", pieceNumero: "1-0412-0666", pieceExpire: "2031-01-01", adresse: "Matete" });
+    await connecter("engalula");   // la caissière n'a pas les Centrales de la BCC
     await expect(api.conformite.cip("2026-01-01", "2026-12-31")).rejects.toThrow("Droit manquant");
     await connecter("jpmukendi");
     await api.tiers.viser(t.id);
@@ -2299,15 +2300,14 @@ describe("journée de guichet", () => {
     return cid;
   }
 
-  it("déblocage au guichet (S75, p. 86 et 87) : Encaisser frais puis Débloquer, retenues sur le prêt (CR-6), épargne bloquée (Instr. BCC 38, art. 9), octroi déclaré (CR-10)", async () => {
+  it("déblocage au guichet (S75, p. 86 et 87) : Débloquer, frais notés au déblocage (plan 4.7), retenues sur le prêt (CR-6), épargne bloquée (Instr. BCC 38, art. 9), octroi déclaré (CR-10)", async () => {
     const cid = await creditVise();
     await connecter("engalula");
     expect((await api.deblocage.aDebloquer()).map((x) => x.id)).toEqual([cid]);
     const d = await api.deblocage.detail(cid);
     expect([d.fraisEncaisses, d.retenues.net, d.retenues.epargneObligatoire]).toEqual([false, 89000000, 10000000]);   // comme le serveur
     expect(d.echeancierDeblocage[0]!.date > "2026-11-05").toBe(true);
-    await expect(api.deblocage.debloquerCaisse(cid, { cle: cle(), coupures: {} })).rejects.toThrow("Encaisser frais d'abord");
-    expect((await api.deblocage.encaisserFrais(cid)).fraisEncaisses).toBe(true);
+    await expect(api.deblocage.debloquerCaisse(cid, { cle: cle(), coupures: {} })).rejects.toThrow("billetage");   // plus d'étape « Encaisser frais » (plan 4.7)
     const s = (await api.caisses.duCaissier())!, stock = await api.caisses.theorique(s.id, "CDF");
     const cp: Comptage = {}; let reste = 890000;
     for (const v of Object.keys(stock).map(Number).sort((a, b) => b - a)) { const n = Math.min(stock[v] ?? 0, Math.floor(reste / v)); if (n) { cp[v] = n; reste -= n * v; } }

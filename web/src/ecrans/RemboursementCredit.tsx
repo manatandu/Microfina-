@@ -11,9 +11,9 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { boiteOperation } from "../lib/examen";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
-import { decimal, lireMontant, montant, totalComptage, type Comptage, type Devise } from "@design/montant.js";
+import { decimal, lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Billetage, Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
-import { OngletsGuichet, Recu } from "./Guichet";
+import { billetageBon, ChampClient, OngletsGuichet, recapitulatif, Recu } from "./Guichet";
 import { RechercheClient } from "./Visa";
 
 type Rep = Record<string, number>;
@@ -111,9 +111,10 @@ function useRemboursement(date?: string) {
 }
 type Etat = ReturnType<typeof useRemboursement>;
 
-function InfosClient({ e, fige, rechercher, children }: { e: Etat; fige: boolean; rechercher: () => void; children?: ReactNode }) {
+function InfosClient({ e, fige, rechercher, choisir, children }: { e: Etat; fige: boolean; rechercher: () => void; choisir?: (t: Tiers) => void; children?: ReactNode }) {
   return <fieldset className="pile cadre-champs"><legend>Infos client</legend>
-    <div className="ligne-champ"><Champ libelle="N° du client :">{(p) => <input {...p} className="saisie code" readOnly value={e.t?.numero ?? ""} />}</Champ>
+    <div className="ligne-champ">{choisir ? <ChampClient libelle="N° du client :" client={e.t} desactive={fige} choisir={choisir} />
+      : <Champ libelle="N° du client :">{(p) => <input {...p} className="saisie code" readOnly value={e.t?.numero ?? ""} />}</Champ>}
       <button className="bouton secondaire" type="button" aria-label="Rechercher un client" disabled={fige} onClick={rechercher}>Rechercher</button></div>
     <Champ libelle="Intitulé:">{(p) => <textarea {...p} className="saisie" rows={2} readOnly value={e.donnees?.d?.client ?? (e.t ? [e.t.nom, e.t.postnom, e.t.prenom].filter(Boolean).join(" ") : "")} />}</Champ>
     {children}
@@ -121,7 +122,7 @@ function InfosClient({ e, fige, rechercher, children }: { e: Etat; fige: boolean
   </fieldset>;
 }
 
-function InfosCredit({ e, fige, banque }: { e: Etat; fige: boolean; banque?: boolean }) {
+function InfosCredit({ e, fige, banque, action }: { e: Etat; fige: boolean; banque?: boolean; action?: ReactNode }) {
   const d = e.donnees?.d ?? null, dv = (d?.devise ?? "CDF") as Devise, l = e.donnees?.credits ?? [];
   return <fieldset className="pile cadre-champs"><legend>Infos crédit</legend>
     <Champ libelle="Credit:">{(p) => <select {...p} className="saisie code" disabled={fige || l.length < 2} value={d?.id ?? ""} onChange={(x) => { e.setCid(Number(x.target.value)); e.setModifie(null); }}>
@@ -135,12 +136,15 @@ function InfosCredit({ e, fige, banque }: { e: Etat; fige: boolean; banque?: boo
       <div className="info-ligne"><dt>Degré crédit:</dt><dd>{d ? <>{d.degre} <span className="negatif">Jour retard : {d.joursRetard}</span></> : ""}</dd></div>
       {banque && <div className="info-ligne"><dt>Degré réel</dt><dd>{d?.degre ?? ""}</dd></div>}
     </dl>
-    <Champ libelle="Montant à payer: *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" readOnly={fige || !d} value={e.saisie}
-      onChange={(x) => { e.setSaisie(x.target.value); e.setModifie(null); }} />}</Champ>
+    <div className="ligne-champ">
+      <Champ libelle="Montant à payer: *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" readOnly={fige || !d} value={e.saisie}
+        onChange={(x) => { e.setSaisie(x.target.value); e.setModifie(null); }} />}</Champ>
+      {action}
+    </div>
   </fieldset>;
 }
 
-function RepartitionDetail({ e, fige, setBoite }: { e: Etat; fige: boolean; setBoite: (b: Boite) => void }) {
+function RepartitionDetail({ e, fige, setBoite, replie }: { e: Etat; fige: boolean; setBoite: (b: Boite) => void; replie?: boolean }) {
   const d = e.donnees?.d ?? null, dv = (d?.devise ?? "CDF") as Devise, rep = e.modifie ?? e.donnees?.rep ?? null;
   const ro = (l: string, v: number | undefined) => <Champ key={l} libelle={l}>{(p) => <Lecture {...p} value={d ? montant(v ?? 0, dv) : ""} />}</Champ>;
   return <div className="deux-colonnes">
@@ -153,7 +157,16 @@ function RepartitionDetail({ e, fige, setBoite }: { e: Etat; fige: boolean; setB
         if (rep?.anticipation) { setBoite({ type: "erreur", message: "Répartition modifiée : pas d'anticipation ; laisser la répartition proposée." }); return; }
         e.setModifie(Object.fromEntries(REPARTITION.map(([k]) => [k, rep?.[k] ?? 0]))); }}>Modifier</button></div>
     </fieldset>
-    <fieldset className="pile cadre-champs"><legend>Détail crédit</legend>
+    {replie ? <details className="pile cadre-champs"><summary>Détail crédit · Retard total : <span className="chiffres">{d ? montant(d.retardTotal, dv) : ""}</span></summary>
+      <DetailCredit e={e} fige={fige} /></details>
+    : <fieldset className="pile cadre-champs"><legend>Détail crédit</legend><DetailCredit e={e} fige={fige} /></fieldset>}
+  </div>;
+}
+
+function DetailCredit({ e, fige }: { e: Etat; fige: boolean }) {
+  const d = e.donnees?.d ?? null, dv = (d?.devise ?? "CDF") as Devise;
+  const ro = (l: string, v: number | undefined) => <Champ key={l} libelle={l}>{(p) => <Lecture {...p} value={d ? montant(v ?? 0, dv) : ""} />}</Champ>;
+  return <>
       <div className="grille-deux">
         <Champ libelle="Dernier payement">{(p) => <Lecture {...p} value={d?.dernierPaiement ? fr(d.dernierPaiement) : ""} />}</Champ>
         {ro("Interêt total", d?.interetTotal)}{ro("Int. restant", d?.interetRestant)}{ro("Retard capit.", d?.du.capital)}{ro("Retard intérêt", d?.du.interet)}
@@ -161,8 +174,7 @@ function RepartitionDetail({ e, fige, setBoite }: { e: Etat; fige: boolean; setB
         <Champ libelle="Retard total">{(p) => <Lecture {...p} value={d ? montant(d.retardTotal, dv) : ""} />}</Champ>
       </div>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={fige || !d} onClick={() => { e.setModifie(null); e.setSaisie(d ? decimal.format(d.toutSurLeCredit / 100) : ""); }}>Tout sur le crédit</button></div>
-    </fieldset>
-  </div>;
+  </>;
 }
 
 /** S76 : onglet Remboursement de crédit du guichet (capture p. 87) */
@@ -171,7 +183,7 @@ export function RemboursementGuichet() {
   const [coupures, setCoupures] = useState<Comptage>({});
   const [cle, setCle] = useState(nouvelleCle);
   const [fait, setFait] = useState<Operation | null>(null);
-  const [fiche, setFiche] = useState<"" | "situation" | "plan" | "reel" | "memo" | "billetage" | "recu" | "recherche">("");
+  const [fiche, setFiche] = useState<"" | "situation" | "memo" | "recu" | "recherche">("");
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees: g } = useDonnees(async () => {
     const [s, ctx, u, j] = await Promise.all([api.caisses.duCaissier(), api.referentiel.contexte(), api.session.courante(), api.journees.courante()]);
@@ -186,10 +198,11 @@ export function RemboursementGuichet() {
   function enregistrer() {
     const manque = !d ? "N° du client" : !e.m ? "Montant à payer" : !e.mandataire.trim() ? "Versé par" : "";
     if (manque) { setBoite({ type: "erreur", message: `À remplir : ${manque}.` }); return; }
-    setBoite({ type: "confirmation", message: `Voulez-vous vraiment enregistrer ? Remboursement : ${montant(e.m!, d!.devise as Devise)}, crédit ${d!.numero}, ${d!.client}.`, oui: async () => {
+    setBoite({ type: "confirmation", message: recapitulatif(`Remboursement du crédit ${d!.numero}`, [["Client", `${d!.client}${e.t ? ` (${e.t.numero})` : ""}`], ["Montant", montant(e.m!, dv)],
+      ["En lettres", montantEnLettres(e.m!, dv)], ["Versé par", e.mandataire.trim()]]), oui: async () => {
       try {
         const o = await api.remboursementsCredit.rembourserCaisse(d!.id, { cle, mandataire: e.mandataire, montant: e.m!, coupures, repartition: e.modifie });
-        setFait(o); setBoite({ type: "succes", message: "Enregistré avec succès !" });
+        setFait(o); setFiche("recu");
       } catch (x) {
         setBoite(boiteOperation(x, { type: "remboursement_credit", tiersId: d!.tiersId, compteId: null, montant: totalComptage(coupures) || e.m!, devise: dv, motif: "" }, setBoite));
       }
@@ -202,18 +215,17 @@ export function RemboursementGuichet() {
       <section className="bloc pile" aria-label="Remboursement de crédit">
         <div className="entete-ecran">{(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}<p>Date règlement : <strong className="chiffres">{fr(j?.date ?? "")}</strong></p></div>
         <div className="grille-cadres client-large">
-          <InfosClient e={e} fige={fige} rechercher={() => setFiche("recherche")} />
-          <InfosCredit e={e} fige={fige} />
+          <InfosClient e={e} fige={fige} rechercher={() => setFiche("recherche")} choisir={(x) => { effacer(); e.setT(x); }} />
+          <InfosCredit e={e} fige={fige} action={<div className="champ"><span className="libelle-vide" aria-hidden="true">&nbsp;</span>
+            <button className="bouton" type="button" disabled={!d || fige || !billetageBon(coupures, e.m)} onClick={enregistrer}>Enregistrer</button></div>} />
         </div>
-        <RepartitionDetail e={e} fige={fige} setBoite={setBoite} />
+        {d && e.m && !fige ? <fieldset className="pile cadre-champs"><legend>Billetage</legend>
+          <Billetage devise={dv} comptage={coupures} onChange={(c) => { setCoupures(c); setCle(nouvelleCle()); }} cible={e.m} sens="recue" stock={stock} /></fieldset> : null}
+        <RepartitionDetail e={e} fige={fige} setBoite={setBoite} replie />
         <div className="actions-onglets">
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("situation")}>Situation.</button>
-          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("plan")}>Plan</button>
-          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("reel")}>Réel</button>
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("memo")}>Mémo</button>
-          <button className="bouton secondaire" type="button" disabled={!d || !e.m || fige} onClick={() => setFiche("billetage")}>Billetage</button>
           <button className="bouton secondaire" type="button" disabled={!fait} onClick={() => setFiche("recu")}>Imprimer</button>
-          <button className="bouton" type="button" disabled={!d || fige} onClick={enregistrer}>Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 87 et 88 : client, montant à payer, Enregistrer, sinon modifier la répartition proposée ; Situation, Plan, Réel, Memo ; captures p. 87 et 88",
@@ -221,11 +233,7 @@ export function RemboursementGuichet() {
           "Instr. BCC 38, art. 11 et 14 : intérêts recalculés sur le capital restant dû après un remboursement anticipé ; pénalité d'anticipation au plus 50 % des intérêts restant dus",
           "Registre S76-8 : moins que la plus petite coupure versé en trop, l'appoint va au compte d'épargne du client"]} />
       </section>
-      <FenetresCredit cid={d?.id ?? null} devise={dv} ouverte={(["situation", "plan", "reel", "memo"] as const).find((x) => x === fiche) ?? ""} fermer={() => setFiche("")} />
-      <Fiche titre="Billetage" ouverte={fiche === "billetage"} fermer={() => setFiche("")}>
-        <div className="pile"><Billetage devise={dv} comptage={coupures} onChange={(c) => { setCoupures(c); setCle(nouvelleCle()); }} cible={e.m} sens="recue" stock={stock} />
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={() => setFiche("")}>Fermer</button></div></div>
-      </Fiche>
+      <FenetresCredit cid={d?.id ?? null} devise={dv} ouverte={(["situation", "memo"] as const).find((x) => x === fiche) ?? ""} fermer={() => setFiche("")} />
       <Fiche titre="Reçu" ouverte={fiche === "recu"} fermer={() => setFiche("")}>{fait && <Recu id={fait.id} onNouveau={() => { setFiche(""); effacer(); }} />}</Fiche>
       <Fiche titre="Recherche d'un client" ouverte={fiche === "recherche"} fermer={() => setFiche("")}>
         <RechercheClient source={async (x) => (x ? (await api.tiers.rechercher(x)).filter((y) => y.statut === "actif") : [])}

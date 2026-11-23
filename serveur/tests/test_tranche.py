@@ -1829,7 +1829,7 @@ def test_deblocage_caisse(clients, journee):
     assert d["echeancierDeblocage"][0]["date"] > "2026-11-05"
     def refus(c, route, corps=None):
         r = c.post(route, corps or {}, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
-    assert "Encaisser frais d'abord" in refus(caisse, f"/api/guichet/deblocage/{cid}", {"cle": cle(), "coupures": {}})
+    assert "billetage" in refus(caisse, f"/api/guichet/deblocage/{cid}", {"cle": cle(), "coupures": {}})   # plus d'étape « Encaisser frais » au guichet (plan 4.7)
     assert "Droit manquant" in refus(agent, f"/api/credit/deblocage/{cid}/frais")
     assert caisse.post(f"/api/credit/deblocage/{cid}/frais", **H).json()["fraisEncaisses"] is True
     stock = caisse.get(f"/api/caisses/{s['id']}/theorique?devise=CDF", **H).json()
@@ -3708,7 +3708,8 @@ def test_centrale_incidents(clients, journee):
     agent, chef = clients["agent"], clients["chef"]
     t = agent.post("/api/tiers", {**FICHE, "nom": "Kasa", "postnom": "Lufu", "prenom": "Rita", "naissance": "1993-07-01", "pieceType": "Carte d'électeur",
                                   "pieceNumero": "1-0412-0666", "pieceExpire": "2031-01-01", "adresse": "Matete"}, **H).json()
-    assert agent.get("/api/conformite/cip?du=2026-01-01&au=2026-12-31", **H).status_code == 403
+    connecter(clients["caisse"], "engalula")
+    assert clients["caisse"].get("/api/conformite/cip?du=2026-01-01&au=2026-12-31", **H).status_code == 403   # la caissière n'a pas les Centrales de la BCC
     assert chef.post(f"/api/tiers/{t['id']}/visa", **H).status_code == 200
     l = chef.get("/api/conformite/cip?du=2026-11-01&au=2026-11-30&statut=a_declarer", **H).json()
     nc = next(e for e in l if e["type"] == "nouveau_client" and e["tiersId"] == t["id"])

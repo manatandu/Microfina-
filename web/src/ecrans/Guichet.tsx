@@ -7,6 +7,7 @@ import type { Operation, Tiers } from "../donnees/types";
 import { useDonnees } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
+import { imprimer } from "../lib/imprimer";
 import { lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Paginee, Silhouette, Specimen, Textes, Touche, type Boite, Lecture, LigneFiltres } from "../composants";
 import { RechercheClient } from "./Visa";
@@ -44,6 +45,37 @@ export function OngletsGuichet({ version }: { version?: unknown }) {
 
 const nomComplet = (t: Tiers) => t.intitule || titulaireDe(t);
 
+/** N° client saisissable (plan d'allègement, point 4.4) : un numéro ou un nom, les clients actifs proposés pendant la frappe ; « Rechercher » reste à côté */
+export function ChampClient({ client, choisir, desactive, libelle = "N° client" }: { client: Tiers | null; choisir: (t: Tiers) => void; desactive?: boolean; libelle?: string }) {
+  const [q, setQ] = useState<string | null>(null);
+  const [proposes, setProposes] = useState<Tiers[]>([]);
+  useEffect(() => {
+    const t = q?.trim() ?? "";
+    if (t.length < 2) { setProposes([]); return; }
+    let vivant = true;
+    const minuterie = setTimeout(() => { void api.tiers.rechercher(t).then((r) => { if (vivant) setProposes(r.filter((x) => x.statut === "actif").slice(0, 8)); }); }, 200);
+    return () => { vivant = false; clearTimeout(minuterie); };
+  }, [q]);
+  const prendre = (t: Tiers) => { setQ(null); setProposes([]); choisir(t); };
+  return (
+    <div className="champ-client">
+      <Champ libelle={libelle}>{(p) => <input {...p} className="saisie code" role="combobox" aria-expanded={proposes.length > 0} aria-autocomplete="list" autoComplete="off"
+        disabled={desactive} value={q ?? client?.numero ?? ""} onChange={(e) => setQ(e.target.value)} onBlur={() => setTimeout(() => setProposes([]), 150)}
+        onKeyDown={(e) => { if (e.key === "Enter" && proposes[0]) { e.preventDefault(); prendre(proposes[0]); } else if (e.key === "Escape") { setQ(null); setProposes([]); } }} />}</Champ>
+      {proposes.length > 0 && <ul className="propositions" role="listbox" aria-label="Clients proposés">
+        {proposes.map((t) => <li key={t.id} role="option" aria-selected={false} onMouseDown={(e) => { e.preventDefault(); prendre(t); }}>
+          <span className="chiffres">{t.numero}</span> {nomComplet(t)}</li>)}</ul>}
+    </div>
+  );
+}
+
+/** Récapitulatif de la confirmation (plan d'allègement, point 4.3) : l'opération, puis client, compte, montant en chiffres et en lettres, versé par ou remis à */
+export function recapitulatif(operation: string, lignes: [string, string | undefined][]) {
+  return [operation, ...lignes.filter(([, v]) => v).map(([k, v]) => `${k} : ${v}`), "", "Voulez-vous vraiment enregistrer ?"].join("\n");
+}
+/** Billetage sous le montant (plan d'allègement, point 4.2) : Enregistrer ne s'active que quand le compte des coupures égale le montant */
+export const billetageBon = (comptage: Comptage, cible: number | null | undefined) => !!cible && cible > 0 && totalComptage(comptage) === cible;
+
 /** Solde de la caisse dans chaque devise, chargé dès l'ouverture : le même dans tous les onglets du guichet (plan d'allègement, point 0.10 ; registre S74-9) */
 export function SoldesCaisse({ sessionId }: { sessionId: number }) {
   const { donnees } = useDonnees(async () => {
@@ -70,7 +102,6 @@ export default function GuichetDepotRetrait() {
   const [fait, setFait] = useState<Operation | null>(null);
   const [recherche, setRecherche] = useState(false);
   const [images, setImages] = useState(false);
-  const [billetage, setBilletage] = useState(false);
   const [recu, setRecu] = useState(false);
   const [detail, setDetail] = useState<Awaited<ReturnType<typeof api.releves.releve>> | null>(null);   // registre S74-1
   const [boite, setBoite] = useState<Boite | null>(null);
@@ -107,7 +138,8 @@ export default function GuichetDepotRetrait() {
   function enregistrer() {
     const manque = !t ? "N° client" : !c ? "N° compte" : !m ? "Montant" : "";
     if (manque) { setBoite({ type: "erreur", message: `À remplir : ${manque}.` }); return; }
-    setBoite({ type: "confirmation", message: `Voulez-vous vraiment enregistrer ? ${cadre} : ${montant(m!, devise)}, compte ${c!.numero}, ${nomComplet(t!)}.`, oui: async () => {
+    const personne: [string, string] = op === "depot" ? ["Versé par", mandataire.trim() || "Le titulaire"] : ["Remis à", procurationId ? (() => { const x = procurations.find((y) => y.id === procurationId); return x ? [x.nom, x.postnom, x.prenom].filter(Boolean).join(" ") : ""; })() : "Le titulaire"];
+    setBoite({ type: "confirmation", message: recapitulatif(cadre, [["Client", `${nomComplet(t!)} (${t!.numero})`], ["Compte", c!.numero], ["Montant", montant(m!, devise)], ["En lettres", montantEnLettres(m!, devise)], personne, ["Motif", motif.trim()]]), oui: async () => {
       try {
         const corps = { cle, compteId: c!.id, montant: m!, coupures, mandataire, motif };
         const o = op === "depot" ? await api.guichet.depot(corps) : await api.guichet.retrait({ ...corps, mandataire: "", procurationId });
@@ -116,8 +148,8 @@ export default function GuichetDepotRetrait() {
           setBoite({ type: "succes", message: "Enregistré avec succès ! Retrait au-delà du plafond du guichet : il attend le visa « Retrait plafond » (Visa > Retrait plafond). Après le visa, enregistrer de nouveau ce retrait pour le payer." });
           return;
         }
-        setFait(o);
-        setBoite({ type: "succes", message: ["Enregistré avec succès !", o.avertissement].filter(Boolean).join(" ") });
+        setFait(o); setRecu(true);   // le reçu s'ouvre d'office (plan 4.3 ; Instr. BCC 40, art. 13)
+        if (o.avertissement) setBoite({ type: "succes", message: o.avertissement });
       } catch (x) { setBoite(boiteOperation(x, { type: op === "depot" ? "depot" : "retrait", tiersId: t!.id, compteId: c!.id, montant: m!, devise: c!.devise, motif }, setBoite)); }
     } });
   }
@@ -134,7 +166,7 @@ export default function GuichetDepotRetrait() {
           <fieldset className="pile cadre-champs">
             <legend>Info client</legend>
             <div className="ligne-champ">
-              <Champ libelle="N° client">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
+              <ChampClient client={t} desactive={!!fait} choisir={(x) => { setT(x); setCompteId(0); setCoupures({}); nouvelle(); }} />
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" disabled={!!fait} onClick={() => setRecherche(true)}>Rechercher</button>
               <button className="bouton secondaire" type="button" aria-label="Photo et signature du client" disabled={!t} onClick={() => setImages(true)}>Photo</button>
             </div>
@@ -170,12 +202,14 @@ export default function GuichetDepotRetrait() {
               <Champ libelle="Motif:">{(p) => <input {...p} className="saisie" readOnly={!!fait} value={motif} onChange={(e) => setMotif(e.target.value)} />}</Champ>
             </fieldset>
             {/* Ni « Total frais » ni « Frais d'opération » : dépôt et retrait d'espèces sont gratuits (Instr. BCC 37, art. 2, 3 et annexe ; plan d'allègement, point 0.15) */}
+            {c && m && !fait ? <fieldset className="pile cadre-champs"><legend>Billetage</legend>
+              <Billetage devise={devise} comptage={coupures} onChange={(x) => { setCoupures(x); nouvelle(); }} stock={op === "retrait" ? stock : undefined}
+                cible={m} sens={op === "retrait" ? "remise" : "recue"} /></fieldset> : null}
           </div>
           <div className="actions-onglets">
-            <button className="bouton" type="button" disabled={!t || !!fait} onClick={enregistrer}>Enregistrer</button>
+            <button className="bouton" type="button" disabled={!t || !!fait || !billetageBon(coupures, m)} onClick={enregistrer}>Enregistrer</button>
             <button className="bouton secondaire" type="button" disabled={!fait} onClick={() => setRecu(true)}>Imprimer</button>
             <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
-            <button className="bouton secondaire" type="button" disabled={!c || !!fait || !m} onClick={() => setBilletage(true)}>Billetage</button>
             <button className="bouton secondaire" type="button" disabled={!c} onClick={async () => {
               if (!c) return; const jour = j?.date ?? new Date().toISOString().slice(0, 10);
               try { setDetail(await api.releves.releve(c.id, `${jour.slice(0, 4)}-01-01`, jour)); } catch (x) { setBoite({ type: "erreur", message: x instanceof Error ? x.message : String(x) }); }
@@ -189,13 +223,6 @@ export default function GuichetDepotRetrait() {
           "Instr. BCC 15 bis, art. 1 : examen renforcé dès 10 000 USD en espèces",
           "Manuel Microfina++, p. 20 : case « Voir solde client » de l'affectation du guichet (S10) ; loi 22/069, titre III, chapitre II : secret professionnel"]} />
       </section>
-      <Fiche titre="Billetage" ouverte={billetage} fermer={() => setBilletage(false)}>
-        <div className="pile">
-          <Billetage devise={devise} comptage={coupures} onChange={(x) => { setCoupures(x); nouvelle(); }} stock={op === "retrait" ? stock : undefined}
-            cible={m ?? 0} sens={op === "retrait" ? "remise" : "recue"} />
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={() => setBilletage(false)}>Fermer</button></div>
-        </div>
-      </Fiche>
       <Fiche titre="Reçu" ouverte={recu} fermer={() => setRecu(false)}>
         {fait && <Recu id={fait.id} onNouveau={() => { setRecu(false); effacer(); }} />}
       </Fiche>
@@ -239,7 +266,7 @@ export function Recu({ id, onNouveau }: { id: number; onNouveau: () => void }) {
   return (
     <div className="pile">
       <p className="resultat-ok" role="status"><strong>{titre}.</strong> Pièce <span className="chiffres">{r.piece}</span>.</p>
-      <div className="papier" aria-label="Aperçu du reçu">
+      <div className="papier a-imprimer" aria-label="Aperçu du reçu">
         <dl>
           <dt>Pièce</dt><dd className="chiffres">{r.piece}</dd>
           <dt>Date</dt><dd className="chiffres">{fr(r.date)} à {r.o.heure}</dd>
@@ -258,6 +285,7 @@ export function Recu({ id, onNouveau }: { id: number; onNouveau: () => void }) {
           <tbody>{r.lignes.map((l, i) => <tr key={i}><td className="chiffres">{l.compte}</td><td className="num">{l.sens === "D" ? montant(l.montant, l.devise) : ""}</td><td className="num">{l.sens === "C" ? montant(l.montant, l.devise) : ""}</td></tr>)}</tbody></table>
       </details>
       <div className="rangee">
+        <button type="button" className="bouton secondaire" onClick={() => imprimer(".fiche .a-imprimer")}>Imprimer</button>
         <button type="button" className="bouton" onClick={onNouveau}>Nouvelle opération <Touche>Échap</Touche></button>
       </div>
     </div>
