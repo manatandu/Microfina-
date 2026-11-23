@@ -314,9 +314,10 @@ const OUT = process.argv[2];
   await sig.getByRole('button', { name: 'Enregistrer' }).click();
   await representant(sig, 'Mbuyi', 'Jean', 'Passeport', 'OP10', 'Comptable');
   await sig.getByRole('button', { name: 'Enregistrer' }).click(); await sig.getByRole('button', { name: 'Fermer' }).click();
-  await p.getByRole('cell', { name: 'Mbuyi' }).waitFor();
-  await p.getByRole('row', { name: /Mbuyi/ }).getByRole('button', { name: 'Retirer' }).click();   // registre S38-2
-  await p.getByRole('cell', { name: 'Mbuyi' }).waitFor({ state: 'detached' });
+  const rsig = p.getByRole('region', { name: 'Signataires' });
+  await rsig.getByRole('cell', { name: 'Mbuyi' }).waitFor();
+  await rsig.getByRole('row', { name: /Mbuyi/ }).getByRole('button', { name: 'Retirer' }).click();   // registre S38-2
+  await rsig.getByRole('cell', { name: 'Mbuyi' }).waitFor({ state: 'detached' });
   await p.getByRole('region', { name: 'Signataires' }).getByRole('cell', { name: 'Ilunga' }).waitFor(); await etape('05e-signataires');
   await p.getByRole('tab', { name: 'Photos et pièces' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await succes(); await etape('05f-entreprise-enregistree');
