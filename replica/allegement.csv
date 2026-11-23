@@ -104,7 +104,7 @@ id,lot,titre,ecrans,statut,question,reste
 5.5,5,Rupture,,fait,,
 5.6,5,Fin de mois de l'épargne,S128,fait,,
 5.7,5,Comptes en voie de prescription,S70 S72 SE01,fait,,
-5.8,5,Rapports épargne,S72,à faire,,
+5.8,5,Rapports épargne,S72,fait,,
 5.9,5,Blocage,S71,fait,,
 5.10,5,Relevé,S64,fait,,
 5.11,5,Ouverture de compte,S63,fait,,

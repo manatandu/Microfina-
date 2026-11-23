@@ -2761,7 +2761,7 @@ const rapportsEpargne = {
   /** 7.2 Rapport des garanties (p. 82) : crédits débloqués dans la période ; épargne obligatoire (S75) et dépôts de garantie (S94), garantie encours
    * à la date de fin, garantie libérée (registre S72-2). Mêmes règles que serveur/noyau/rapports_epargne.py */
   garanties(du: string, au: string, produitId?: number | null, agentId?: number | null) {
-    lectureAdmin(["S72"]); DATE_RAPPORT(du, "Date de début"); DATE_RAPPORT(au, "Date de fin");
+    lectureAdmin(["S101"]); DATE_RAPPORT(du, "Date de début"); DATE_RAPPORT(au, "Date de fin");   // point 5.8 : au Crédit
     return E.credits.filter((c) => c.debloqueLe && c.debloqueLe >= du && c.debloqueLe <= au && (!produitId || c.produitId === produitId) && (!agentId || c.agentId === agentId))
       .sort((a, b) => a.debloqueLe.localeCompare(b.debloqueLe) || a.id - b.id).map((c) => {
         const g = garantiesA(c.id, au), oblig = etatCredit(c, au).capitalRestant > 0 ? c.epargneObligatoire : 0;

@@ -12,7 +12,8 @@ import { montant, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Paginee, Textes, type Boite } from "../composants";
 
 const ONGLETS = [["journal", "Journal"], ["base", "Rapports de base"], ["multicritere", "Rapport multicritère"], ["synthese", "Synthèse de la balance Agée"],
-  ["taux", "Taux de remboursements"], ["previsionnel", "Encours Prévisionnel"], ["exigibles", "Rapport des exigibles"], ["indicateurs", "Indicateur de Gestion"]] as const;
+  ["taux", "Taux de remboursements"], ["previsionnel", "Encours Prévisionnel"], ["exigibles", "Rapport des exigibles"], ["indicateurs", "Indicateur de Gestion"],
+  ["garanties", "Rapport des garanties"]] as const;   // venu des rapports d'épargne (plan d'allègement, point 5.8)
 type Onglet = (typeof ONGLETS)[number][0];
 type Rapport = Awaited<ReturnType<typeof api.rapportsCredit.rapport>>;
 const debutAnnee = debutExercice;
@@ -22,7 +23,7 @@ const CRITERES: Record<Onglet, { periode?: boolean; date?: boolean; filtres?: bo
   journal: { periode: true, filtres: true, libelle: "Période (date de l'écriture)" }, base: { periode: true, filtres: true, libelle: "Période (date de déblocage)" },
   multicritere: { date: true, filtres: true, multi: true }, synthese: { date: true, filtres: true, libelle: "Date de la balance âgée" },
   taux: { periode: true, filtres: true, libelle: "Période (date d'échéance)" }, previsionnel: { periode: true, filtres: true, libelle: "Période (mois)" },
-  exigibles: { periode: true, filtres: true, libelle: "Période (date d'échéance)" }, indicateurs: { periode: true, libelle: "Période" } };
+  exigibles: { periode: true, filtres: true, libelle: "Période (date d'échéance)" }, indicateurs: { periode: true, libelle: "Période" }, garanties: {} };
 const TEXTES: Record<Onglet, string> = {
   journal: "Registre S101-2 : les écritures de la période qui touchent un crédit (déblocage, remboursement, garanties, provisions, passage en perte)",
   base: "Registre S101-3 : les crédits débloqués dans la période et leur situation à la date de fin, colonnes de l'état de crédit (S93)",
@@ -31,7 +32,8 @@ const TEXTES: Record<Onglet, string> = {
   taux: "Registre S101-6 : échéances dues dans la période et part couverte par les paiements faits au plus tard à la date de fin, par agent ; taux = remboursé / échu",
   previsionnel: "Registre S101-7 : à partir de la journée, capital et intérêts attendus chaque mois selon les échéanciers, et encours prévu en fin de mois (l'impayé reste dans l'encours)",
   exigibles: "Registre S101-8 : échéances dues dans la période, pas entièrement payées au jour de la journée, avec le contact du client",
-  indicateurs: "Registre S101-9 et S101-10 ; Instr. BCC 004, art. 3 à 8 et annexe : onze ratios, formules et normes de l'annexe ; montants en CDF ; « moyen » : moyenne du début et de la fin de la période" };
+  indicateurs: "Registre S101-9 et S101-10 ; Instr. BCC 004, art. 3 à 8 et annexe : onze ratios, formules et normes de l'annexe ; montants en CDF ; « moyen » : moyenne du début et de la fin de la période",
+  garanties: "Registre S72-2" };
 
 export default function RapportsCredit() {
   const [params, setParams] = useSearchParams();
@@ -45,7 +47,8 @@ export default function RapportsCredit() {
       <div className="onglets" role="tablist" aria-label="Rapports crédit">
         {ONGLETS.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={onglet === k} onClick={() => setParams({ page: k })}>{l}</button>)}
       </div>
-      <UnRapport key={onglet} onglet={onglet} ctx={ctx} erreur={(x) => setBoite({ type: "erreur", message: message(x) })} />
+      {onglet === "garanties" ? <Garanties erreur={(x) => setBoite({ type: "erreur", message: message(x) })} />
+        : <UnRapport key={onglet} onglet={onglet} ctx={ctx} erreur={(x) => setBoite({ type: "erreur", message: message(x) })} />}
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );
@@ -106,6 +109,64 @@ function UnRapport({ onglet, ctx, erreur }: { onglet: Onglet; ctx: Ctx; erreur: 
       </table></div>)}</Paginee>}
       <Textes sources={["Manuel Microfina++, p. 121 : 12-Rapport, menu seul (Journal, Rapports de base, Rapport multicritère, Synthèse de la balance Agée, Taux de remboursements, Encours Prévisionnel, Rapport des exigibles, Indicateur de Gestion)",
         "Registre CR-13 et S101-1 : rapports définis par nous sur le modèle des rapports épargne (S72) et de l'état de crédit (S93), gabarit rapport", TEXTES[onglet]]} />
+    </section>
+  );
+}
+
+type Agent = { id: number; nom: string };
+const m = (v: number, d: string) => montant(v, d as Devise);
+const vide = (n: number, texte = "Aucune ligne.") => <tr><td colSpan={n}>{texte}</td></tr>;
+
+/** 7.2 Rapport des garanties (capture p. 82) : Rechercher, Période (Date deblocage), Produit, Agence, Agent ; Afficher, Grouper, Export (registre S72-2) */
+function Garanties({ erreur }: { erreur: (x: unknown) => void }) {
+  const { donnees } = useDonnees(async () => ({ ctx: await api.referentiel.contexte(), produits: (await api.produitsCredit.lire()).produits }));
+  const [f, setF] = useState({ mode: "periode", du: debutAnnee(), au: aujourdhui(), produit: "", agent: "" });
+  const [l, setL] = useState<Awaited<ReturnType<typeof api.rapportsEpargne.garanties>>>([]);
+  const [groupe, setGroupe] = useState(false);
+  if (!donnees) return <Chargement />;
+  const { ctx, produits } = donnees;
+  const agents = [...new Map(([...ctx.gestionnaires, ...ctx.commerciaux, ...ctx.sensibilisateurs] as Agent[]).map((a) => [a.id, a])).values()];
+  async function afficher(g: boolean) {
+    try {
+      const du = f.mode === "periode" ? f.du : f.au;
+      setL(await api.rapportsEpargne.garanties(du, f.au, f.produit ? Number(f.produit) : null, f.agent ? Number(f.agent) : null)); setGroupe(g);
+    } catch (x) { erreur(x); }
+  }
+  const nomProduit = (id: number) => produits.find((p) => p.id === id)?.nom ?? "";
+  const COL = ["N° Client", "N° Crédit", "Nom Prénom", "Montant prêt", "Epargne de garantie", "Garantie encours", "Garantie libérée"];
+  const lignes = groupe ? [...l].sort((a, b) => nomProduit(a.produitId).localeCompare(nomProduit(b.produitId)) || a.credit.localeCompare(b.credit)) : l;
+  return (
+    <section className="bloc pile" aria-label="Rapport des garanties">
+      <h2>Rapport des garanties</h2>
+      <div className="grille-cadres">
+        <fieldset className="pile cadre-champs"><legend>Période(Date deblocage)</legend>
+          <ChampDate libelle="Du :" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} />
+          <ChampDate libelle="Au :" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} />
+        </fieldset>
+        <fieldset className="pile cadre-champs"><legend><span className="sr-only">Filtres</span></legend>
+          <Champ libelle="Produit">{(p) => <select {...p} className="saisie" value={f.produit} onChange={(e) => setF({ ...f, produit: e.target.value })}>
+            <option value="">Tous les produits</option>{produits.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
+          <Champ libelle="Agent">{(p) => <select {...p} className="saisie" value={f.agent} onChange={(e) => setF({ ...f, agent: e.target.value })}>
+            <option value="">Tous les agents</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
+        </fieldset>
+      </div>
+      <div className="actions-onglets">
+        <button className="bouton" type="button" onClick={() => afficher(false)}>Afficher</button>
+        <button className="bouton secondaire" type="button" onClick={() => afficher(true)}>Grouper</button>
+        <button className="bouton secondaire" type="button" disabled={l.length === 0}
+          onClick={() => exporterExcel("Rapport des garanties", COL, lignes.map((x) => [x.membre, x.credit, x.client, m(x.montantPret, x.devise), m(x.epargneGarantie, x.devise), m(x.garantieEncours, x.devise), m(x.garantieLiberee, x.devise)]))}>Export</button>
+      </div>
+      <Paginee lignes={lignes}>{(v) => (<div className="defile-x"><table className="grille">
+        <thead><tr>{COL.map((c, i) => <th key={c} scope="col" className={i > 2 ? "num" : undefined}>{c}</th>)}</tr></thead>
+        <tbody>
+          {v.length === 0 && vide(7)}
+          {v.map((x) => <tr key={x.credit}><td className="code">{x.membre}</td><td className="code">{x.credit}</td><td>{x.client}{groupe ? ` (${nomProduit(x.produitId)})` : ""}</td>
+            <td className="num chiffres">{m(x.montantPret, x.devise)}</td><td className="num chiffres">{m(x.epargneGarantie, x.devise)}</td>
+            <td className="num chiffres">{m(x.garantieEncours, x.devise)}</td><td className="num chiffres">{m(x.garantieLiberee, x.devise)}</td></tr>)}
+        </tbody>
+      </table></div>)}</Paginee>
+      <Textes sources={["Manuel Microfina++, p. 82 : 7.2 Rapport des garanties ; capture (Rechercher, Période (Date deblocage), Produit, Agence, Agent, Afficher, Grouper, Export)",
+        "Registre S72-2 : crédits débloqués dans la période ; épargne de garantie = épargne obligatoire retenue au déblocage et dépôts de garantie ; garantie encours = ce qui reste bloqué à la date de fin (cautions comprises) ; libérée = le reste ; Grouper range les lignes par produit"]} />
     </section>
   );
 }

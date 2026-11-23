@@ -1,5 +1,5 @@
-// S72 : Épargne > Rapport (manuel Microfina++, p. 82 à 84, six captures) : virements compte à compte, garanties, recherche multicritère,
-// indicateur crédit épargne, comptes inactifs, comptes dormants. Registre S72-1 à S72-8.
+// S72 : Épargne > Rapport (manuel Microfina++, p. 82 à 84, six captures). Plan d'allègement, point 5.8 : virements entre comptes, recherche multicritère
+// (comptes d'épargne et dépôts à terme, celle de S68), indicateurs, comptes sans mouvement. Registre S72-1 à S72-8.
 import { enClair } from "../lib/enclair";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -13,8 +13,8 @@ import { CATEGORIES, CRITERES_TRI, INCONNU, multicritere, valeur, type ContexteR
 import { lireMontant, montant, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
-const ONGLETS = [["virements", "Rapports virement compte à compte"], ["garanties", "Rapport des garanties"], ["multicritere", "Recherche multicritère"],
-  ["indicateurs", "Indicateur crédit épargne"], ["inactifs", "Comptes sans mouvement"]] as const;   // « comptes dormants » : SE01, même population (point 5.7)
+// Plan d'allègement, point 5.8 : quatre onglets ; le rapport des garanties, qui liste des crédits, est au Crédit ; les comptes dormants sont dans SE01 (point 5.7)
+const ONGLETS = [["virements", "Virements entre comptes"], ["multicritere", "Recherche multicritère"], ["indicateurs", "Indicateurs"], ["inactifs", "Comptes sans mouvement"]] as const;
 type Onglet = (typeof ONGLETS)[number][0];
 type Agent = { id: number; nom: string };
 const debutAnnee = debutExercice;
@@ -35,7 +35,6 @@ export default function RapportsEpargne() {
         {ONGLETS.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={onglet === k} onClick={() => setParams({ page: k })}>{l}</button>)}
       </div>
       {onglet === "virements" && <Virements erreur={erreur} />}
-      {onglet === "garanties" && <Garanties erreur={erreur} />}
       {onglet === "multicritere" && <Multicritere erreur={erreur} />}
       {onglet === "indicateurs" && <Indicateurs erreur={erreur} />}
       {onglet === "inactifs" && <Inactivite erreur={erreur} />}
@@ -74,62 +73,11 @@ function Virements({ erreur }: Proprietes) {
   );
 }
 
-/** 7.2 Rapport des garanties (capture p. 82) : Rechercher, Période (Date deblocage), Produit, Agence, Agent ; Afficher, Grouper, Export (registre S72-2) */
-function Garanties({ erreur }: Proprietes) {
-  const { donnees } = useDonnees(async () => ({ ctx: await api.referentiel.contexte(), produits: (await api.produitsCredit.lire()).produits }));
-  const [f, setF] = useState({ mode: "periode", du: debutAnnee(), au: aujourdhui(), produit: "", agent: "" });
-  const [l, setL] = useState<Awaited<ReturnType<typeof api.rapportsEpargne.garanties>>>([]);
-  const [groupe, setGroupe] = useState(false);
-  if (!donnees) return <Chargement />;
-  const { ctx, produits } = donnees;
-  const agents = [...new Map(([...ctx.gestionnaires, ...ctx.commerciaux, ...ctx.sensibilisateurs] as Agent[]).map((a) => [a.id, a])).values()];
-  async function afficher(g: boolean) {
-    try {
-      const du = f.mode === "periode" ? f.du : f.au;
-      setL(await api.rapportsEpargne.garanties(du, f.au, f.produit ? Number(f.produit) : null, f.agent ? Number(f.agent) : null)); setGroupe(g);
-    } catch (x) { erreur(x); }
-  }
-  const nomProduit = (id: number) => produits.find((p) => p.id === id)?.nom ?? "";
-  const COL = ["N° Client", "N° Crédit", "Nom Prénom", "Montant prêt", "Epargne de garantie", "Garantie encours", "Garantie libérée"];
-  const lignes = groupe ? [...l].sort((a, b) => nomProduit(a.produitId).localeCompare(nomProduit(b.produitId)) || a.credit.localeCompare(b.credit)) : l;
-  return (
-    <section className="bloc pile" aria-label="Rapport des garanties">
-      <h2>Rapport des garanties</h2>
-      <div className="grille-cadres">
-        <fieldset className="pile cadre-champs"><legend>Période(Date deblocage)</legend>
-          <ChampDate libelle="Du :" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} />
-          <ChampDate libelle="Au :" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} />
-        </fieldset>
-        <fieldset className="pile cadre-champs"><legend><span className="sr-only">Filtres</span></legend>
-          <Champ libelle="Produit">{(p) => <select {...p} className="saisie" value={f.produit} onChange={(e) => setF({ ...f, produit: e.target.value })}>
-            <option value="">Tous les produits</option>{produits.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
-          <Champ libelle="Agent">{(p) => <select {...p} className="saisie" value={f.agent} onChange={(e) => setF({ ...f, agent: e.target.value })}>
-            <option value="">Tous les agents</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
-        </fieldset>
-      </div>
-      <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={() => afficher(false)}>Afficher</button>
-        <button className="bouton secondaire" type="button" onClick={() => afficher(true)}>Grouper</button>
-        <button className="bouton secondaire" type="button" disabled={l.length === 0}
-          onClick={() => exporterExcel("Rapport des garanties", COL, lignes.map((x) => [x.membre, x.credit, x.client, m(x.montantPret, x.devise), m(x.epargneGarantie, x.devise), m(x.garantieEncours, x.devise), m(x.garantieLiberee, x.devise)]))}>Export</button>
-      </div>
-      <Paginee lignes={lignes}>{(v) => (<div className="defile-x"><table className="grille">
-        <thead><tr>{COL.map((c, i) => <th key={c} scope="col" className={i > 2 ? "num" : undefined}>{c}</th>)}</tr></thead>
-        <tbody>
-          {v.length === 0 && vide(7)}
-          {v.map((x) => <tr key={x.credit}><td className="code">{x.membre}</td><td className="code">{x.credit}</td><td>{x.client}{groupe ? ` (${nomProduit(x.produitId)})` : ""}</td>
-            <td className="num chiffres">{m(x.montantPret, x.devise)}</td><td className="num chiffres">{m(x.epargneGarantie, x.devise)}</td>
-            <td className="num chiffres">{m(x.garantieEncours, x.devise)}</td><td className="num chiffres">{m(x.garantieLiberee, x.devise)}</td></tr>)}
-        </tbody>
-      </table></div>)}</Paginee>
-      <Textes sources={["Manuel Microfina++, p. 82 : 7.2 Rapport des garanties ; capture (Rechercher, Période (Date deblocage), Produit, Agence, Agent, Afficher, Grouper, Export)",
-        "Registre S72-2 : crédits débloqués dans la période ; épargne de garantie = épargne obligatoire retenue au déblocage et dépôts de garantie ; garantie encours = ce qui reste bloqué à la date de fin (cautions comprises) ; libérée = le reste ; Grouper range les lignes par produit"]} />
-    </section>
-  );
-}
-
 type Compte = Awaited<ReturnType<typeof api.rapportsEpargne.comptes>>[number];
-const MULTI_VIDE = () => ({ mode: "periode" as "periode" | "date", du: debutAnnee(), au: aujourdhui(), resultat: "detaille" as "detaille" | "groupe" | "operations",
+type LigneDat = Awaited<ReturnType<typeof api.depotsTerme.recherche>>[number];
+type Resultat = { comptes: Compte[]; dats: LigneDat[] | null; clients: Map<number, Tiers>; resultat: string; liste: string; tri: Tri };
+const CHOIX_DAT = [["mise_en_place", "Mise en place"], ["echus", "Échus"], ["encours", "En cours"]] as const;
+const MULTI_VIDE = () => ({ sur: "comptes" as "comptes" | "dat", dat: "mise_en_place" as (typeof CHOIX_DAT)[number][0], mode: "periode" as "periode" | "date", du: debutAnnee(), au: aujourdhui(), resultat: "detaille" as "detaille" | "groupe" | "operations",
   tri: "secteur" as Tri, ordre: "croissant" as "croissant" | "decroissant", liste: "comptes" as "comptes" | "deposants", produit: "", nom: "", prenoms: "", typeClient: "",
   categorie: "" as CriteresMulticritere["categorie"], zone: "", nationalite: "", gestionnaire: "", commercial: "", secteur: "", genre: "" as CriteresMulticritere["genre"], de: "", a: "" });
 
@@ -137,7 +85,7 @@ const MULTI_VIDE = () => ({ mode: "periode" as "periode" | "date", du: debutAnne
 function Multicritere({ erreur }: Proprietes) {
   const { donnees } = useDonnees(async () => ({ ctx: await api.referentiel.contexte(), clients: await api.rapports.clients(), produits: (await api.produitsEpargne.lire()).produits }));
   const [c, setC] = useState(MULTI_VIDE);
-  const [r, setR] = useState<{ comptes: Compte[]; clients: Map<number, Tiers>; resultat: string; liste: string; tri: Tri } | null>(null);
+  const [r, setR] = useState<Resultat | null>(null);
   if (!donnees) return <Chargement />;
   const { ctx, clients, produits } = donnees;
   const agents = [...ctx.gestionnaires, ...ctx.commerciaux, ...ctx.sensibilisateurs] as Agent[];
@@ -146,16 +94,22 @@ function Multicritere({ erreur }: Proprietes) {
   async function rechercher() {
     try {
       const du = c.mode === "periode" ? c.du : c.au;
-      const tous = await api.rapportsEpargne.comptes(du, c.au);
       // Titulaires retenus par les éléments de la recherche, rangés selon « Ordonner suivant » (règles du rapport client S51)
       const retenus = multicritere(clients, { mode: "date", du: "", au: "", date: "", statut: "tous", tri: c.tri, ordre: c.ordre, nom: c.nom, prenoms: c.prenoms,
         typeClient: c.typeClient, categorie: c.categorie, zone: c.zone, genre: c.genre, secteur: c.secteur, nationalite: c.nationalite,
         gestionnaire: c.gestionnaire, commercial: c.commercial, sensibilisateur: "" }, cx);
       const rang = new Map(retenus.map((t, i) => [t.id, i]));
       const de = c.de.trim() ? lireMontant(c.de) : null, a = c.a.trim() ? lireMontant(c.a) : null;
+      const garde = (tid: number, pid: number | undefined, v: number) => rang.has(tid) && (!c.produit || String(pid) === c.produit) && (de === null || v >= de) && (a === null || v <= a);
+      if (c.sur === "dat") {   // la recherche des DAT (S68) : mis en place, échus ou en cours dans la période (registre S68-1 ; plan d'allègement, point 5.8)
+        const dats = (await api.depotsTerme.recherche(c.dat, du, c.au)).filter((x) => garde(x.tiersId, x.produitId, x.montant))
+          .sort((x, y) => rang.get(x.tiersId)! - rang.get(y.tiersId)! || x.certificat - y.certificat);
+        setR({ comptes: [], dats, clients: new Map(retenus.map((t) => [t.id, t])), resultat: c.resultat, liste: c.liste, tri: c.tri }); return;
+      }
+      const tous = await api.rapportsEpargne.comptes(du, c.au);
       const comptes = tous.filter((x) => rang.has(x.tiersId) && (!c.produit || String(x.produitId) === c.produit) && (de === null || x.solde >= de) && (a === null || x.solde <= a))
         .sort((x, y) => rang.get(x.tiersId)! - rang.get(y.tiersId)! || x.compte.localeCompare(y.compte));
-      setR({ comptes, clients: new Map(retenus.map((t) => [t.id, t])), resultat: c.resultat, liste: c.liste, tri: c.tri });
+      setR({ comptes, dats: null, clients: new Map(retenus.map((t) => [t.id, t])), resultat: c.resultat, liste: c.liste, tri: c.tri });
     } catch (x) { erreur(x); }
   }
   const libelleTri = CRITERES_TRI.find(([k]) => k === r?.tri)?.[1] ?? "";
@@ -163,24 +117,30 @@ function Multicritere({ erreur }: Proprietes) {
     <section className="bloc pile" aria-label="Recherche multicritères épargne">
       <h2>Recherche multicritères épargne</h2>
       <div className="grille-cadres">
+        <fieldset className="pile cadre-champs"><legend>Recherche sur</legend>
+          <label className="case"><input type="radio" name="m-sur" checked={c.sur === "comptes"} onChange={() => { maj({ sur: "comptes" }); setR(null); }} /><span>Comptes d'épargne</span></label>
+          <label className="case"><input type="radio" name="m-sur" checked={c.sur === "dat"} onChange={() => { maj({ sur: "dat" }); setR(null); }} /><span>Dépôts à terme</span></label>
+          {c.sur === "dat" && <Champ libelle="DAT :">{(p) => <select {...p} className="saisie" value={c.dat} onChange={(e) => maj({ dat: e.target.value as typeof c.dat })}>
+            {CHOIX_DAT.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ>}
+        </fieldset>
         <fieldset className="pile cadre-champs"><legend>Période</legend>
           <ChampDate libelle="Du :" valeur={c.du} onChange={(v) => maj({ du: v })} />
           <ChampDate libelle="Au :" valeur={c.au} onChange={(v) => maj({ au: v })} />
         </fieldset>
-        <fieldset className="pile cadre-champs"><legend>Résultat</legend>
+        {c.sur === "comptes" && <fieldset className="pile cadre-champs"><legend>Résultat</legend>
           {([["detaille", "Détaillé"], ["groupe", "Groupé"], ["operations", "Opérations"]] as const).map(([k, l]) =>
             <label key={k} className="case"><input type="radio" name="m-resultat" checked={c.resultat === k} onChange={() => maj({ resultat: k })} /><span>{l}</span></label>)}
-        </fieldset>
+        </fieldset>}
         <fieldset className="pile cadre-champs"><legend>Ordre</legend>
           <Champ libelle="Ordonner suivant">{(p) => <select {...p} className="saisie" value={c.tri} onChange={(e) => maj({ tri: e.target.value as Tri })}>
             {CRITERES_TRI.filter(([k]) => k !== "sensibilisateur").map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ>
           <Champ libelle="Ordre :">{(p) => <select {...p} className="saisie" value={c.ordre} onChange={(e) => maj({ ordre: e.target.value as "croissant" | "decroissant" })}>
             <option value="croissant">Croissant</option><option value="decroissant">Décroissant</option></select>}</Champ>
         </fieldset>
-        <fieldset className="pile cadre-champs"><legend>Liste des</legend>
+        {c.sur === "comptes" && <fieldset className="pile cadre-champs"><legend>Liste des</legend>
           <label className="case"><input type="radio" name="m-liste" checked={c.liste === "comptes"} onChange={() => maj({ liste: "comptes" })} /><span>Comptes</span></label>
           <label className="case"><input type="radio" name="m-liste" checked={c.liste === "deposants"} onChange={() => maj({ liste: "deposants" })} /><span>Déposants</span></label>
-        </fieldset>
+        </fieldset>}
       </div>
       <fieldset className="cadre-champs formulaire">
         <legend>Éléments de la recherche</legend>
@@ -210,14 +170,36 @@ function Multicritere({ erreur }: Proprietes) {
         <button className="bouton" type="button" onClick={rechercher}>Rechercher</button>
         <button className="bouton secondaire" type="button" onClick={() => { setC(MULTI_VIDE()); setR(null); }}>Reinti champs</button>
       </div>
-      {r && <ResultatMulticritere r={r} cx={cx} libelleTri={libelleTri} />}
+      {r && (r.dats ? <ResultatDat l={r.dats} /> : <ResultatMulticritere r={r} cx={cx} libelleTri={libelleTri} />)}
       <Textes sources={["Manuel Microfina++, p. 83 : 7.3 Recherche multicritère ; capture Recherche multicritères épargne (Rechercher, Période, Résultat, Ordre, Liste des, Éléments de la recherche)",
-        "Registre S72-3 : les éléments de la recherche se lisent sur le titulaire comme au rapport client (S51) ; Montant de / à porte sur le solde à la fin de la période ; Groupé totalise par critère de « Ordonner suivant » ; Déposants : une ligne par client et par devise"]} />
+        "Registre S72-3 : les éléments de la recherche se lisent sur le titulaire comme au rapport client (S51) ; Montant de / à porte sur le solde à la fin de la période ; Groupé totalise par critère de « Ordonner suivant » ; Déposants : une ligne par client et par devise",
+        "Dépôts à terme (registre S68-1 et S68-3 ; plan d'allègement, point 5.8) : mis en place, échus ou en cours dans la période ; Montant de / à porte sur le montant du DAT ; terme selon la durée, comme le classement des crédits du PCCI"]} />
     </section>
   );
 }
 
-function ResultatMulticritere({ r, cx, libelleTri }: { r: { comptes: Compte[]; clients: Map<number, Tiers>; resultat: string; liste: string; tri: Tri }; cx: ContexteRapport; libelleTri: string }) {
+/** Résultat de la recherche des DAT (anciennement S68, manuel p. 77) */
+function ResultatDat({ l }: { l: LigneDat[] }) {
+  const COL = ["Certificat", "Date dépôt", "Date échéance", "N° compte DAT", "Client", "Produit", "Terme", "Agent", "Montant"];
+  const totaux = Object.entries(l.reduce<Record<string, number>>((t, x) => ({ ...t, [x.devise]: (t[x.devise] ?? 0) + x.montant }), {}));
+  return (
+    <>
+      <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={l.length === 0}
+        onClick={() => exporterExcel("Recherche des dépôts à terme", COL, l.map((x) => [String(x.certificat).padStart(6, "0"), fr(x.dateDepot), fr(x.dateEcheance), x.compteDat, x.client, x.produit, x.terme, x.agent, m(x.montant, x.devise)]))}>Export</button></div>
+      <Paginee lignes={l}>{(v) => (<div className="defile-x"><table className="grille">
+        <thead><tr>{COL.map((c, i) => <th key={c} scope="col" className={i === 8 ? "num" : undefined}>{c}</th>)}</tr></thead>
+        <tbody>
+          {v.length === 0 && vide(9)}
+          {v.map((x) => <tr key={x.id}><td className="chiffres">{String(x.certificat).padStart(6, "0")}</td><td className="chiffres">{fr(x.dateDepot)}</td><td className="chiffres">{fr(x.dateEcheance)}</td>
+            <td className="code">{x.compteDat}</td><td>{x.client}</td><td>{x.produit}</td><td>{x.terme}</td><td>{x.agent}</td><td className="num chiffres">{m(x.montant, x.devise)}</td></tr>)}
+        </tbody>
+        {totaux.length > 0 && <tfoot>{totaux.map(([d, t]) => <tr key={d}><th scope="row" colSpan={8}>Total {d}</th><td className="num chiffres">{m(t, d)}</td></tr>)}</tfoot>}
+      </table></div>)}</Paginee>
+    </>
+  );
+}
+
+function ResultatMulticritere({ r, cx, libelleTri }: { r: Resultat; cx: ContexteRapport; libelleTri: string }) {
   const t = (x: Compte) => r.clients.get(x.tiersId)!;
   if (r.resultat === "operations") {
     const ops = r.comptes.flatMap((x) => x.operations.map((o) => ({ ...o, compte: x.compte, membre: t(x).numero, devise: x.devise })));

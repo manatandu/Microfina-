@@ -1010,7 +1010,10 @@ const OUT = process.argv[2];
   await aller('/epargne/s72?page=multicritere'); await p.getByRole('heading', { name: 'Recherche multicritères épargne' }).waitFor();
   await p.getByLabel('Nom', { exact: true }).fill('Kalala'); await p.getByRole('button', { name: 'Rechercher', exact: true }).click();
   await p.getByRole('cell', { name: '0412-000318-01' }).waitFor(); await etape('06c34-multicritere-epargne');
-  await p.getByRole('tab', { name: 'Indicateur crédit épargne' }).click(); await p.getByRole('heading', { name: 'Indicateurs crédit épargne' }).waitFor(); await p.getByRole('button', { name: 'Exécuter' }).click();
+  // La recherche des DAT (S68) rejoint la recherche multicritère (point 5.8)
+  await p.getByLabel('Dépôts à terme').check(); await p.getByRole('button', { name: 'Rechercher', exact: true }).click();
+  await p.getByRole('cell', { name: '000001', exact: true }).waitFor(); await etape('06c34b-multicritere-dat');
+  await p.getByRole('tab', { name: 'Indicateurs' }).click(); await p.getByRole('heading', { name: 'Indicateurs crédit épargne' }).waitFor(); await p.getByRole('button', { name: 'Exécuter' }).click();
   await p.getByRole('cell', { name: 'Féminin', exact: true }).first().waitFor(); await etape('06c35-indicateurs');   // crédits et garanties lus du module Crédit (S72-4)
   await p.getByRole('tab', { name: 'Comptes sans mouvement' }).click(); await p.getByRole('heading', { name: 'Comptes sans mouvement depuis 0 jours' }).waitFor(); await p.getByRole('button', { name: 'Exécuter' }).click();
   await p.getByRole('cell', { name: '0412-000318-01' }).waitFor(); await etape('06c36-comptes-inactifs');

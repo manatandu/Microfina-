@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1057 décisions.** Solidité : 503 fortes (le manuel ou un texte répond), 472 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1044 déjà en place, 13 à appliquer.
+**1058 décisions.** Solidité : 503 fortes (le manuel ou un texte répond), 473 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1045 déjà en place, 13 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1366,6 +1366,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S72-6 | Comptes dormants : quel délai ? | Dix ans sans opération ni réclamation : délai après lequel l'établissement clôture le compte | Texte réglementaire : Loi 22/069, titre III, chap. Ier | forte | en place |
 | S72-7 | « Afficher les comptes » : que fait la case ? | Non cochée, seuls les comptes qui ont un solde sont listés ; cochée, les comptes à solde nul s'y ajoutent | Manuel : Captures p. 83 et 84 | faible | en place |
 | S72-8 | Qui voit les rapports épargne ? | Chef d'agence et agent de crédit, comme les rapports clients (S51) ; lecture réservée aux profils qui ont S72 | Écran voisin : S51 | moyenne | en place |
+| S72-9 | Quatre onglets | Virements entre comptes, Recherche multicritère, Indicateurs, Comptes sans mouvement. La recherche multicritère cherche sur les comptes d'épargne ou sur les dépôts à terme (mis en place, échus, en cours dans la période, la recherche de S68), avec les mêmes éléments sur le titulaire ; Montant de / à porte alors sur le montant du DAT. Le rapport des garanties, qui liste des crédits, passe dans les rapports du Crédit (S101) et en prend le droit. | Écran voisin : Plan d'allègement, point 5.8 ; registre S68-1, S68-3, S72-2 | moyenne | en place |
 
 ## S78 ED divers : encaissement, décaissement
 

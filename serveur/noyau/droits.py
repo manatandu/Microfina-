@@ -240,6 +240,7 @@ LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
     (r"/conformite/centrale-risques.*", ["SC02"]),
     (r"/epargne/inactifs.*", ["SE01"]),
     (r"/epargne/clotures/avoirs", ["SE01"]),
+    (r"/epargne/rapports/garanties", ["S101"]),   # plan d'allègement, point 5.8 : le rapport des garanties est au Crédit
     (r"/epargne/rapports/.*", ["S72"]),
     (r"/caisse/journal.*", ["S83"]),
     (r"/credit/analyses.*", ["S85", "S86"]),
