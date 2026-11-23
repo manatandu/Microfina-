@@ -35,6 +35,7 @@ export default function Litigieux() {
   }
   const dv = (s?.devise ?? "CDF") as Devise;
   const ouvert = s?.contentieux.find((x) => !x.closLe);
+  const contentieuxPossible = !!s && (s.joursRetard > 0 || s.contentieux.length > 0);   // Instr. BCC 003, art. 8
   return (
     <>
       
@@ -70,7 +71,8 @@ export default function Litigieux() {
           <button className="bouton secondaire" type="button" disabled={!s} onClick={() => agir("Voulez-vous vraiment proroger ce crédit ? La prorogation n'est autorisée qu'une seule fois.",
             () => api.litigieux.proroger(s!.id, { mois: pr.mois ? Number(pr.mois) : null, motif: pr.motif, demandeLe: pr.demandeLe }))}>Proroger</button>
         </div>}
-        <fieldset className="cadre-champs formulaire"><legend>Contentieux</legend>
+        {/* Plan d'allègement, point 6.14 : le contentieux vise une créance impayée (Instr. BCC 003, art. 8) : son cadre s'ouvre sur un crédit en retard */}
+        {contentieuxPossible && <><fieldset className="cadre-champs formulaire"><legend>Contentieux</legend>
           {ouvert ? <>
             <Champ libelle="Type de résolution:">{(p) => <Lecture {...p} value={ouvert.typeLibelle} />}</Champ>
             <Champ libelle="Référence du dossier:">{(p) => <Lecture {...p} value={ouvert.reference} />}</Champ>
@@ -88,7 +90,7 @@ export default function Litigieux() {
           {ouvert ? <button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment clore ce dossier contentieux ?", () => api.litigieux.cloreContentieux(s!.id, { issue: ct.issue }))}>Clore le dossier</button>
             : <button className="bouton" type="button" disabled={!s} onClick={() => agir("Voulez-vous vraiment ouvrir un dossier contentieux pour ce crédit ?",
               () => api.litigieux.ouvrirContentieux(s!.id, { type: ct.type, reference: ct.reference, observation: ct.observation }))}>Ouvrir le dossier</button>}
-        </div>
+        </div></>}
         <div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">Type de résolution</th><th scope="col">Référence</th><th scope="col">Ouvert le</th><th scope="col">Clos le</th><th scope="col">Issue</th></tr></thead>
           <tbody>{(s?.contentieux ?? []).length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}

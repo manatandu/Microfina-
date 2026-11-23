@@ -74,7 +74,8 @@ export default function EngagementSignature() {
           <Champ libelle="Contacts">{(p) => <Lecture {...p} value={b?.contacts ?? ""} />}</Champ>
           <Champ libelle="Adresse">{(p) => <Lecture {...p} value={b?.adresse ?? ""} />}</Champ>
         </fieldset>
-        <fieldset className="cadre-champs formulaire"><legend>Détails</legend>
+        {/* Plan d'allègement, point 6.14 : les champs regroupés par sens (engagement, coût, garantie, banque) */}
+        <fieldset className="cadre-champs formulaire"><legend>Engagement</legend>
           <Champ libelle="Type engagement *">{(p) => <select {...p} className="saisie" value={f.type} onChange={(e) => maj({ type: e.target.value })}>
             <option value=""></option>{ctx.types.map((t) => <option key={t.code} value={t.code}>{t.libelle}</option>)}</select>}</Champ>
           <Champ libelle="Description *">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.description} onChange={(e) => maj({ description: e.target.value })} />}</Champ>
@@ -82,12 +83,18 @@ export default function EngagementSignature() {
           <Champ libelle="Date Fin">{(p) => <Lecture {...p} value={fr(plusMois(debut, Number(f.duree)))} />}</Champ>
           <Champ libelle="Montant *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.montant} onChange={(e) => maj({ montant: e.target.value })} />}</Champ>
           <Champ libelle="Durée(mois) *">{(p) => <input {...p} className="saisie montant" inputMode="numeric" value={f.duree} onChange={(e) => maj({ duree: e.target.value.replace(/\D/g, "") })} />}</Champ>
+        </fieldset>
+        <fieldset className="cadre-champs formulaire"><legend>Coût</legend>
           <Champ libelle="Pourcentage %">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.pourcentage} onChange={(e) => maj({ pourcentage: e.target.value })} />}</Champ>
           <Champ libelle="Forfait">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.forfait} onChange={(e) => maj({ forfait: e.target.value })} />}</Champ>
           <Champ libelle="Frais à payer">{(p) => <Lecture {...p} value={montant(frais, dv)} />}</Champ>
+        </fieldset>
+        <fieldset className="cadre-champs formulaire"><legend>Garantie</legend>
           <Champ libelle="Garantie">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.garantie} onChange={(e) => maj({ garantie: e.target.value })} />}</Champ>
           <Champ libelle="Compte Epargne *">{(p) => <select {...p} className="saisie" value={f.compteEpargneId} onChange={(e) => maj({ compteEpargneId: e.target.value })}><option value=""></option>{comptes}</select>}</Champ>
           <Champ libelle="Compte Garanti *">{(p) => <select {...p} className="saisie" value={f.compteGarantiId} onChange={(e) => maj({ compteGarantiId: e.target.value })}><option value=""></option>{comptes}</select>}</Champ>
+        </fieldset>
+        <fieldset className="cadre-champs formulaire"><legend>Banque</legend>
           <Champ libelle="Banque">{(p) => <select {...p} className="saisie" value={f.banque} onChange={(e) => maj({ banque: e.target.value, compteBancaireId: "" })}><option value=""></option>
             {banques.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
           <Champ libelle="Compte Banque">{(p) => <select {...p} className="saisie" value={f.compteBancaireId} onChange={(e) => maj({ compteBancaireId: e.target.value })}><option value=""></option>

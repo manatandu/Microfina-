@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1067 décisions.** Solidité : 505 fortes (le manuel ou un texte répond), 480 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1055 déjà en place, 12 à appliquer.
+**1068 décisions.** Solidité : 505 fortes (le manuel ou un texte répond), 481 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1056 déjà en place, 12 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2485,6 +2485,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S54-6 | Une seule étape | « Prélever les frais » (S54, S105), qui n'écrivait rien, disparaît comme « Encaisser frais » au guichet (point 4.7) : la date des frais se note au déblocage. Un seul bouton « Débloquer » ; sa confirmation montre le client, le prêt, les retenues et le montant remis (et le chèque ou le compte crédité). | Écran voisin : Plan d'allègement, point 6.7 ; Instr. BCC 38, art. 6 ; registre CR-6 | moyenne | en place |
+
+## S96, S97, SL01, S100 Autres écrans du crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S97-5 | Champs selon le cas | Liste rouge (S97) : un choix Origine (Institution, BCC) ; la référence de la décision et les dirigeants visés ne s'affichent que pour une mise à l'index de la BCC. Prorogation et contentieux (SL01) : le cadre du contentieux ne s'ouvre que sur un crédit impayé ou qui a déjà un dossier ; la prorogation reste ouverte avant ou après l'échéance. Affectation (S96) : « Agent qui cède », « Agent qui reçoit ». Engagement par signature (S100) : champs en quatre cadres, Engagement, Coût, Garantie, Banque. | Écran voisin : Plan d'allègement, point 6.14 ; Instr. BCC 13, art. 7 ; Instr. BCC 003, art. 5 et 8 | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

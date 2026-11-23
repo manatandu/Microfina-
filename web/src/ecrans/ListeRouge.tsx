@@ -12,6 +12,7 @@ export default function ListeRouge() {
   const [t, setT] = useState<{ id: number; numero: string; nom: string } | null>(null);
   const [motif, setMotif] = useState("");
   const [reference, setReference] = useState("");
+  const [bcc, setBcc] = useState(false);
   const [visees, setVisees] = useState("");
   const [recherche, setRecherche] = useState(false);
   const [relu, setRelu] = useState(0);
@@ -38,8 +39,12 @@ export default function ListeRouge() {
             <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button></div>
           <Champ libelle="Intitulé:">{(p) => <Lecture {...p} value={t?.nom ?? ""} />}</Champ>
           <Champ libelle="Motif: *">{(p) => <textarea {...p} className="saisie" rows={3} value={motif} onChange={(e) => setMotif(e.target.value)} />}</Champ>
-          <Champ libelle="Réf. décision BCC (mise à l'index)">{(p) => <input {...p} className="saisie code" autoComplete="off" value={reference} onChange={(e) => setReference(e.target.value)} />}</Champ>
-          <Champ libelle="Dirigeants et associés visés" aide="Pour une société mise à l'index : un par ligne, nom ; n° de pièce">{(p) => <textarea {...p} className="saisie" rows={2} value={visees} onChange={(e) => setVisees(e.target.value)} />}</Champ>
+          {/* Plan d'allègement, point 6.14 : les champs de la mise à l'index ne s'affichent que si l'origine est la BCC (Instr. BCC 13, art. 7) */}
+          <fieldset className="cadre-champs"><legend>Origine</legend><div className="ligne-champ">
+            <label className="case"><input type="radio" name="origine-lr" checked={!bcc} onChange={() => { setBcc(false); setReference(""); setVisees(""); }} /><span>Institution</span></label>
+            <label className="case"><input type="radio" name="origine-lr" checked={bcc} onChange={() => setBcc(true)} /><span>BCC (mise à l'index)</span></label></div></fieldset>
+          {bcc && <Champ libelle="Réf. décision BCC (mise à l'index)">{(p) => <input {...p} className="saisie code" autoComplete="off" value={reference} onChange={(e) => setReference(e.target.value)} />}</Champ>}
+          {bcc && <Champ libelle="Dirigeants et associés visés" aide="Pour une société mise à l'index : un par ligne, nom ; n° de pièce">{(p) => <textarea {...p} className="saisie" rows={2} value={visees} onChange={(e) => setVisees(e.target.value)} />}</Champ>}
         </fieldset>
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={() => agir("ajouter")}>Ajouter</button>

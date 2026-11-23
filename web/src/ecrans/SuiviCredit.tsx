@@ -279,7 +279,7 @@ export function AffectationDossier() {
       <section className="bloc pile" aria-label="Affectation de crédit">
         <div className="grille-deux">
           <div className="pile">
-            {choix(de, setDe, "Agent de crédit dont le portefeuille sera réduit", true)}
+            {choix(de, setDe, "Agent qui cède", true)}   {/* plan d'allègement, point 6.14 */}
             <Paginee lignes={gauche} colonnes={(x) => [null, x.numero, montant(x.montant, x.devise as Devise), x.client]}>{(v) => (<div className="defile-x"><table className="grille">
               <thead><tr><th scope="col"><input type="checkbox" aria-label="Tout cocher" checked={tous} onChange={(e) => setCoches(e.target.checked ? gauche.map((x) => x.id) : [])} /></th>
                 <th scope="col">Crédit N°</th><th scope="col" className="num">Montant</th><th scope="col">Client</th></tr>
@@ -291,7 +291,7 @@ export function AffectationDossier() {
             </table></div>)}</Paginee>
           </div>
           <div className="pile">
-            {choix(vers, setVers, "Agent de crédit dont le portefeuille sera augmenté")}
+            {choix(vers, setVers, "Agent qui reçoit")}
             <Paginee lignes={droite}>{(v) => (<div className="defile-x"><table className="grille">
               <thead><tr><th scope="col">Crédit N°</th><th scope="col" className="num">Montant</th><th scope="col">Client</th></tr></thead>
               <tbody>{v.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
