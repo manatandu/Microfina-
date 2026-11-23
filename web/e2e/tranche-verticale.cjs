@@ -1060,9 +1060,8 @@ const OUT = process.argv[2];
   await p.getByLabel('Nombre de coupures de 1 000 CDF').fill('1');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok(); await p.getByText(/Numéro de pièce : \S+/).waitFor(); await etape('14f-caisse-vers-banque');
   // Journal des opérations de caisse (S83, p. 95 ; registre S83-1 à S83-5) : le versement en banque sort de la caisse, au crédit
-  await aller('/caisse/s83'); await p.getByRole('heading', { name: 'Journal des Opérations' }).waitFor();
-  await p.getByLabel('Rechercher par :').selectOption({ label: 'Libellé' }); await p.getByLabel('Valeur :').fill('Versement en banque');
-  await p.getByRole('button', { name: 'Rechercher', exact: true }).click();
+  await aller('/caisse/s83'); await p.getByRole('heading', { name: 'Journal de caisse' }).waitFor();
+  await p.getByRole('button', { name: 'Rechercher', exact: true }).click(); await p.getByLabel('Filtrer Libellé').fill('Versement en banque');   // filtres sous les titres (plan 4.12)
   await p.getByRole('row').filter({ hasText: 'Versement en banque, bordereau 0001234' }).getByRole('cell', { name: '1 000,00 CDF' }).waitFor();
   await p.getByRole('table', { name: 'Soldes et totaux par devise' }).getByRole('cell', { name: 'CDF', exact: true }).waitFor(); await etape('14g-journal-caisse');   // registre S83-6
   // Comptabilité : saisie d'écriture (S109, p. 128 et 129), autres opérations (S116, p. 133 à 135), virements mensuels (S117, p. 136)

@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1030 décisions.** Solidité : 483 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1021 déjà en place, 9 à appliquer.
+**1032 décisions.** Solidité : 485 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1023 déjà en place, 9 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2160,6 +2160,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S83-6 | Soldes et totaux | Une colonne Devise ; par devise, le solde au début de la période, les totaux débit et crédit, le solde à la fin ; un montant absent reste vide | Texte réglementaire : PCCI, compte 57 (caisse débitée des entrées, créditée des sorties) ; plan d'allègement, point 0.12 | forte | en place |
+| S83-6 | Sans liste Rapport | La liste « Rapport », à une seule valeur, et le cadre « Rechercher par / Valeur » disparaissent : un filtre se place sous chaque titre de colonne. Soldes et totaux restent par devise (0.12). | Choix du porteur : Plan d'allègement, point 4.12 ; registre T04 | forte | en place |
 
 ## S62 Banque > Rapport
 
@@ -2378,6 +2379,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S81-8 | Caisse de l'utilisateur, banque avant montant | La caisse d'origine est celle de l'utilisateur, affichée sans liste. Vers la banque : banque et compte se choisissent avant le montant, puisque le compte fixe la devise ; « Type d'opération », grisé, disparaît ; le numéro saisi s'appelle « N° du bordereau de versement » et reste obligatoire ; le libellé de l'écriture dit « bordereau ». Le billetage s'ouvre sous le montant (4.2). La fusion avec les virements de la banque reste au lot 7 (7.5). | Choix du porteur : Plan d'allègement, point 4.10 ; PCCI, comptes 579 et 591 | forte | en place |
+
+## S79 S80 Arrêté de caisse
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S80-8 | Comptage et validation | Les deux écrans s'appellent « Arrêté de caisse : comptage » et « Arrêté de caisse : validation ». La validation montre l'écart avant de valider (0.11) ; « Journées » n'y figure plus ; sans guichet ouvert, la phrase « Aucun guichet ouvert aujourd'hui. » remplace la liste vide. Le solde théorique reste affiché pendant le comptage tant que le porteur n'a pas répondu. | Choix du porteur : Plan d'allègement, point 4.11 ; registre S80-7, T130 | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

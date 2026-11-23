@@ -94,8 +94,8 @@ id,lot,titre,ecrans,statut,question,reste
 4.8,4,Remboursement au guichet,S76,fait,,
 4.9,4,Paiements préparés,S82 S141,fait,,
 4.10,4,Transferts de fonds,S81,partiel,,"Fait : caisse de l'utilisateur, banque et compte avant le montant, Type d'opération retiré, bordereau obligatoire. Reste : fusion avec les virements de la banque (7.5)"
-4.11,4,Arrêté de caisse,S79 S80,partiel,oui,Fait : le « Bon de Caisse » supprimé (T130). Reste : le reste du point ; question : masquer le solde théorique pendant le comptage ?
-4.12,4,Journal de caisse,S83,à faire,,
+4.11,4,Arrêté de caisse,S79 S80,partiel,oui,"Fait : écrans « comptage » et « validation », écart affiché, Journées retiré, « Aucun guichet ouvert aujourd'hui », Bon de caisse supprimé (T130). Reste : question au porteur : masquer le solde théorique pendant le comptage ?"
+4.12,4,Journal de caisse,S83,fait,,
 4.13,4,Menu Caisse,S74 S79 S80 S81 S83,fait,,
 5.1,5,Dépôts à terme,S65 S66 S67 S68,à faire,,
 5.2,5,Mise en place d'un DAT,,à faire,oui,

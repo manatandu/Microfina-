@@ -113,12 +113,12 @@ export function ValidationBilletage() {
       <h2>Validation de l'arrêté temporaire : {guichet?.nom ?? ""}</h2>
       <section className="bloc pile" aria-label="Validation du billetage">
         <div className="grille-cadres quatre">
-          <Champ libelle="Guichet">{(p) => (
+          {/* Plan d'allègement, point 4.11 : une phrase plutôt qu'une liste vide ; « Journées » n'existe plus */}
+          {sessions.length === 0 ? <Attention>Aucun guichet ouvert aujourd'hui.</Attention> : <Champ libelle="Guichet">{(p) => (
             <select {...p} className="saisie" value={guichetId || ""} onChange={(e) => setGuichetId(Number(e.target.value))}>
               <option value="" disabled></option>
               {ctx.guichets.filter((g) => sessions.some((x) => x.guichetId === g.id)).map((g) => <option key={g.id} value={g.id}>{g.nom}</option>)}
-            </select>)}</Champ>
-          {/* Registre S80-6 : les journées ouvertes du guichet, comme à S79 */}
+            </select>)}</Champ>}
         </div>
         <div className="pile a-imprimer">
           {/* Registre T12 : la capture p. 92 est reprise pour chaque devise que tient le guichet */}
