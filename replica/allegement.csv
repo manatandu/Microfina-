@@ -117,7 +117,7 @@ id,lot,titre,ecrans,statut,question,reste
 6.5,6,Classe du crédit,,fait,,
 6.6,6,Déblocage et remboursement : un écran chacun,S54 S55 S75 S76 S105 S106,à faire,,
 6.7,6,Une seule étape pour débloquer,S54 S105,à faire,,
-6.8,6,Remboursement,S55 S106,à faire,,
+6.8,6,Remboursement,S55 S106,fait,,
 6.9,6,Annulation d'un remboursement,S142,à faire,,
 6.10,6,Simulation,S84,fait,,
 6.11,6,Analyse financière,S85,à faire,,

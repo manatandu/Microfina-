@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1063 décisions.** Solidité : 504 fortes (le manuel ou un texte répond), 477 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1051 déjà en place, 12 à appliquer.
+**1064 décisions.** Solidité : 504 fortes (le manuel ou un texte répond), 478 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1052 déjà en place, 12 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2461,6 +2461,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S95-4 | Classe du crédit | « Degré crédit » et « Degré réel », qui montraient la même valeur, deviennent une ligne : « Classe (Instr. BCC 003) : Impayé, 12 jours de retard ». La date de la consultation s'appelle « Situation au », sans astérisque. Le différé s'affiche en mois, comme à la mise en place. | Écran voisin : Plan d'allègement, point 6.5 ; Instr. BCC 003, art. 12 (classes) | moyenne | en place |
+
+## S55 et S106 Remboursement de crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S55-5 | Boutons, onglet Budget, mandataire | S55 : le bouton qui enregistre s'appelle « Enregistrer » (et non « Suivant ») ; le mandataire (« Versé par ») disparaît d'un paiement par virement ou chèque. S55 et S106 : l'onglet « Budget » (ligne et bailleur en lecture, bailleur toujours vide) disparaît, le détail du crédit s'affiche directement. S106 garde « Ordre du client ». | Écran voisin : Plan d'allègement, point 6.8 ; loi 11/020, art. 48 ; Code civil, livre III, art. 185, 2° | moyenne | en place |
 
 ## Les décisions faibles, à regarder en premier
 

@@ -1947,7 +1947,7 @@ def test_remboursement_banque(clients, journee):
     cid = credit_debloque(clients, journee)
     def refus(corps):
         r = compta.post(f"/api/banque/remboursement/{cid}", corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
-    b = {"mandataire": "Moi-même", "compteBancaireId": ids["R-CDF-1"], "montant": 1000000}
+    b = {"compteBancaireId": ids["R-CDF-1"], "montant": 1000000}
     assert "devise du crédit" in refus({**b, "compteBancaireId": ids["R-USD-1"]})
     assert "pas après" in refus({**b, "dateReglement": "2026-11-06"})
     r = compta.post(f"/api/banque/remboursement/{cid}", b, **H)

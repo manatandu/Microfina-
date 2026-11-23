@@ -111,14 +111,14 @@ function useRemboursement(date?: string) {
 }
 type Etat = ReturnType<typeof useRemboursement>;
 
-function InfosClient({ e, fige, rechercher, choisir, children }: { e: Etat; fige: boolean; rechercher: () => void; choisir?: (t: Tiers) => void; children?: ReactNode }) {
+function InfosClient({ e, fige, rechercher, choisir, children, sansMandataire }: { e: Etat; fige: boolean; rechercher: () => void; choisir?: (t: Tiers) => void; children?: ReactNode; sansMandataire?: boolean }) {
   return <fieldset className="pile cadre-champs"><legend>Infos client</legend>
     <div className="ligne-champ">{choisir ? <ChampClient libelle="N° du client :" client={e.t} desactive={fige} choisir={choisir} />
       : <Champ libelle="N° du client :">{(p) => <input {...p} className="saisie code" readOnly value={e.t?.numero ?? ""} />}</Champ>}
       <button className="bouton secondaire" type="button" aria-label="Rechercher un client" disabled={fige} onClick={rechercher}>Rechercher</button></div>
     <Champ libelle="Intitulé:">{(p) => <textarea {...p} className="saisie" rows={2} readOnly value={e.donnees?.d?.client ?? (e.t ? [e.t.nom, e.t.postnom, e.t.prenom].filter(Boolean).join(" ") : "")} />}</Champ>
     {children}
-    <Champ libelle="Versé par : *">{(p) => <input {...p} className="saisie" readOnly={fige} value={e.mandataire} onChange={(x) => e.setMandataire(x.target.value)} />}</Champ>
+    {!sansMandataire && <Champ libelle="Versé par : *">{(p) => <input {...p} className="saisie" readOnly={fige} value={e.mandataire} onChange={(x) => e.setMandataire(x.target.value)} />}</Champ>}
   </fieldset>;
 }
 
@@ -243,13 +243,13 @@ export function RemboursementGuichet() {
   );
 }
 
-/** S55 : Banque > Remboursement de crédit (capture p. 63) : Infos Client, Infos crédit, Info banque ; onglets Détail crédit et Budget ; Suivant */
+/** S55 : Banque > Remboursement de crédit (capture p. 63) : Infos Client, Infos crédit, Info banque, Détail crédit ; Enregistrer.
+ * Plan d'allègement, point 6.8 : « Suivant » devient « Enregistrer » ; l'onglet Budget (lecture seule, bailleur toujours vide) et le mandataire disparaissent */
 export function RemboursementBanque() {
   const { donnees: ctx } = useDonnees(async () => ({ t: await api.transferts.contexte(), j: await api.journees.courante(), r: await api.referentiel.contexte() }));
   const [date, setDate] = useState("");
   const e = useRemboursement(date || undefined);
   const [f, setF] = useState({ banque: "", compte: "" });
-  const [onglet, setOnglet] = useState<"detail" | "budget">("detail");
   const [fiche, setFiche] = useState<"" | "situation" | "plan" | "reel" | "memo" | "recherche">("");
   const [fait, setFait] = useState<{ piece: string } | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
@@ -259,12 +259,12 @@ export function RemboursementBanque() {
   const comptes = t.comptes.filter((c) => String(c.banqueId) === f.banque);
   const cb = comptes.find((c) => String(c.id) === f.compte);
   const effacer = () => { e.effacer(); setF({ banque: "", compte: "" }); setFait(null); setDate(""); };
-  function suivant() {
-    const manque = !d ? "N° du Client" : !e.m ? "Montant à payer" : !e.mandataire.trim() ? "Versé par" : !cb ? "Banque et Compte" : "";
+  function enregistrer() {
+    const manque = !d ? "N° du Client" : !e.m ? "Montant à payer" : !cb ? "Banque et Compte" : "";
     if (manque) { setBoite({ type: "erreur", message: `À remplir : ${manque}.` }); return; }
     setBoite({ type: "confirmation", message: `Voulez-vous vraiment enregistrer ? Remboursement : ${montant(e.m!, d!.devise as Devise)}, crédit ${d!.numero}, ${d!.client}.`, oui: async () => {
       try {
-        const x = await api.remboursementsCredit.rembourserBanque(d!.id, { mandataire: e.mandataire, compteBancaireId: cb!.id, montant: e.m!, dateReglement: date || undefined, repartition: e.modifie });
+        const x = await api.remboursementsCredit.rembourserBanque(d!.id, { compteBancaireId: cb!.id, montant: e.m!, dateReglement: date || undefined, repartition: e.modifie });
         setFait(x); setBoite({ type: "succes", message: "Enregistré avec succès !" });
       } catch (y) { setBoite({ type: "erreur", message: message(y) }); }
     } });
@@ -277,7 +277,7 @@ export function RemboursementBanque() {
           {fige ? <Champ libelle="Date règlement :">{(p) => <Lecture {...p} value={fr(date || j?.date || "")} />}</Champ>
             : <ChampDate libelle="Date règlement : *" valeur={date || j?.date || ""} onChange={setDate} />}</div>
         <div className="grille-cadres client-large">
-          <InfosClient e={e} fige={fige} rechercher={() => setFiche("recherche")} />
+          <InfosClient e={e} fige={fige} rechercher={() => setFiche("recherche")} sansMandataire />
           <InfosCredit e={e} fige={fige} />
           <fieldset className="pile cadre-champs formulaire"><legend>Info banque</legend>
             <dl className="infos"><div className="info-ligne"><dt>Agence</dt><dd>{r.agence.nom}</dd></div></dl>
@@ -288,23 +288,16 @@ export function RemboursementBanque() {
             <Champ libelle="Solde banque">{(p) => <Lecture {...p} value={cb ? montant(cb.solde, cb.devise as Devise) : ""} />}</Champ>
           </fieldset>
         </div>
-        <div className="onglets" role="tablist" aria-label="Crédit">
-          <button type="button" role="tab" aria-selected={onglet === "detail"} onClick={() => setOnglet("detail")}>Détail crédit</button>
-          <button type="button" role="tab" aria-selected={onglet === "budget"} onClick={() => setOnglet("budget")}>Budget</button>
-        </div>
-        {onglet === "detail" ? <RepartitionDetail e={e} fige={fige} setBoite={setBoite} />
-          : <fieldset className="pile cadre-champs formulaire"><legend>Budget</legend>
-            <Champ libelle="Ligne budgetaire">{(p) => <Lecture {...p} value={d?.ligneFinancement ?? ""} />}</Champ>
-            <Champ libelle="Bailleur">{(p) => <Lecture {...p} value={d?.bailleur ?? ""} />}</Champ></fieldset>}
+        <RepartitionDetail e={e} fige={fige} setBoite={setBoite} />
         <div className="actions-onglets">
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("situation")}>Situation</button>
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("plan")}>Échéancier prévu</button>
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("reel")}>Paiements reçus</button>
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("memo")}>Mémo</button>
-          <button className="bouton" type="button" disabled={!d || fige} onClick={suivant}>Suivant</button>
+          <button className="bouton" type="button" disabled={!d || fige} onClick={enregistrer}>Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         </div>
-        <Textes sources={["Manuel Microfina++, p. 63 : infos client, infos crédit, info banque, répartition et détail crédit, puis Suivant ; capture",
+        <Textes sources={["Manuel Microfina++, p. 63 : infos client, infos crédit, info banque, répartition et détail crédit ; capture",
           "Registre S55-2 à S55-4 : compte bancaire dans la devise du crédit ; date de règlement au plus la journée ouverte ; mêmes règles de répartition que S76 (CR-7, CR-20)"]} />
       </section>
       <FenetresCredit cid={d?.id ?? null} devise={dv} ouverte={(["situation", "plan", "reel", "memo"] as const).find((x) => x === fiche) ?? ""} fermer={() => setFiche("")} />
@@ -324,7 +317,6 @@ export function RemboursementPrelevement() {
   const e = useRemboursement(date || undefined);
   const [compte, setCompte] = useState("");
   const [ordre, setOrdre] = useState("");
-  const [onglet, setOnglet] = useState<"detail" | "budget">("detail");
   const [fiche, setFiche] = useState<"" | "situation" | "plan" | "reel" | "memo" | "recherche" | "avis">("");
   const [fait, setFait] = useState<Awaited<ReturnType<typeof api.remboursementsCredit.rembourserEpargne>> | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
@@ -360,14 +352,7 @@ export function RemboursementPrelevement() {
           </InfosClient>
           <InfosCredit e={e} fige={fige} />
         </div>
-        <div className="onglets" role="tablist" aria-label="Crédit">
-          <button type="button" role="tab" aria-selected={onglet === "detail"} onClick={() => setOnglet("detail")}>Détail crédit</button>
-          <button type="button" role="tab" aria-selected={onglet === "budget"} onClick={() => setOnglet("budget")}>Budget</button>
-        </div>
-        {onglet === "detail" ? <RepartitionDetail e={e} fige={fige} setBoite={setBoite} />
-          : <fieldset className="pile cadre-champs formulaire"><legend>Budget</legend>
-            <Champ libelle="Ligne budgetaire">{(p) => <Lecture {...p} value={d?.ligneFinancement ?? ""} />}</Champ>
-            <Champ libelle="Bailleur">{(p) => <Lecture {...p} value={d?.bailleur ?? ""} />}</Champ></fieldset>}
+        <RepartitionDetail e={e} fige={fige} setBoite={setBoite} />
         <div className="actions-onglets">
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("situation")}>Situation</button>
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("plan")}>Échéancier prévu</button>

@@ -4850,9 +4850,9 @@ const remboursementsCredit = {
     E.operations.push(o); rb.operationId = o.id; lierExamen(examen, o.id); enregistrer(); return o;
   },
   /** S55 : remboursement sur un compte bancaire de l'institution, date de règlement au plus la journée */
-  rembourserBanque(id: number, p: { mandataire: string; compteBancaireId: number; montant: number; dateReglement?: string; repartition?: Record<string, number> | null }) {
+  rembourserBanque(id: number, p: { mandataire?: string; compteBancaireId: number; montant: number; dateReglement?: string; repartition?: Record<string, number> | null }) {
     const u = exiger();
-    const c = creditEnCours(id), mand = mandataireDe(p.mandataire);
+    const c = creditEnCours(id), mand = "";   // virement ou chèque : pas de mandataire (plan d'allègement, point 6.8)
     const cb = E.comptesBancaires.find((x) => x.id === p.compteBancaireId);
     if (!cb) throw new ErreurMetier("À remplir : Banque et Compte.");
     if (cb.devise !== c.devise) throw new ErreurMetier("Le compte bancaire n'est pas dans la devise du crédit.");

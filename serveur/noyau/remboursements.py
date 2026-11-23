@@ -345,7 +345,7 @@ def rembourser_banque(u, cid: int, p) -> dict:
     """S55 : le remboursement arrive sur un compte bancaire de l'institution, à la date de règlement choisie (au plus la journée ouverte)"""
     exiger(u)
     c = credit_en_cours(u, cid)
-    mand = mandataire_de(p)
+    mand = ""                                          # virement ou chèque : pas de mandataire (plan d'allègement, point 6.8)
     cbid = (p or {}).get("compteBancaireId")
     cb = une("""select cb.*, co.numero as compte from compte_bancaire cb join compte co on co.id = cb.compte_id
                 where cb.id = %s and cb.institution_id = %s and cb.supprime_le is null""", (cbid, u["institution_id"])) if isinstance(cbid, int) else None
