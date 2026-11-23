@@ -1072,6 +1072,9 @@ const tiers = {
     const motif = d.motif.trim();
     if (!motif) throw new ErreurMetier("À remplir : motif.");
     if (!valeursListe("motif_depart").some((l) => l.libelle === motif)) throw new ErreurMetier("Motif inconnu.");
+    // Une seule liste de motifs (plan d'allègement, point 3.13) : chaque motif exige ses pièces. Comme le serveur.
+    if (motif === "Décès" && (t.type !== "physique" || !t.decesLe)) throw new ErreurMetier("Décès : une personne physique dont le décès est déclaré (date et acte de décès).");
+    if (motif.startsWith("Exclusion") && !d.exclusion) throw new ErreurMetier("Exclusion : référence et date de la décision du Conseil d'administration (loi 002/2002, art. 25).");
     // Loi 002/2002, art. 24 : un membre emprunteur ne se retire pas tant que son prêt court (COOPEC ; registre CR-23). Mêmes règles que services.engagements_credit
     if (estCoopec() && E.credits.some((c) => c.tiersId === id && ["mis_en_place", "vise", "debloque"].includes(c.statut)))
       throw new ErreurMetier("Client emprunteur : il ne peut pas se retirer tant que son prêt court (loi 002/2002, art. 24).");

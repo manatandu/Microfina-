@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1004 décisions.** Solidité : 457 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 995 déjà en place, 9 à appliquer.
+**1005 décisions.** Solidité : 458 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 996 déjà en place, 9 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2178,6 +2178,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S48-3 | Frais de résiliation et résumé d'identité | Cadre des frais retiré (clôture gratuite). Le résumé montre le secteur, l'activité, la date de création et la nationalité de la fiche au lieu de cases vides écrites en dur ; « Autorisation d'installation » retirée | Texte réglementaire : Instr. BCC 37, annexe, point 1 ; plan d'allègement, points 0.15 et 0.16 | forte | en place |
+| S48-4 | Une seule liste de motifs | La case « Exclusion » et le cadre « Décès du titulaire » disparaissent : l'exclusion et le décès sont deux motifs de la liste. « Exclusion par le Conseil d'administration » ouvre la référence et la date de la décision ; « Décès » (personne physique seulement) ouvre la date et l'acte de décès, déclarés avec la résiliation. Le serveur refuse ces motifs sans leurs pièces. Le résumé montre la nature du membre et des libellés corrigés. | Texte réglementaire : Loi 002/2002, art. 24, 25 et 27 ; plan d'allègement, point 3.13 ; registre P1, A16 | forte | en place |
 
 ## S41 Frais du membre
 

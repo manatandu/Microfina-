@@ -1621,6 +1621,11 @@ def resilier_tiers(u: dict, tid: int, d: dict) -> dict:
         raise ErreurMetier("À remplir : motif.")
     if not valeur("select 1 from liste_reference where institution_id = %s and liste = 'motif_depart' and libelle = %s and actif", (u["institution_id"], motif)):
         raise ErreurMetier("Motif inconnu.")
+    # Une seule liste de motifs (plan d'allègement, point 3.13) : chaque motif exige ses pièces
+    if motif == "Décès" and (t["type"] != "physique" or not t.get("deces_le")):
+        raise ErreurMetier("Décès : une personne physique dont le décès est déclaré (date et acte de décès).")
+    if motif.startswith("Exclusion") and not (isinstance(d, dict) and isinstance(d.get("exclusion"), dict)):
+        raise ErreurMetier("Exclusion : référence et date de la décision du Conseil d'administration (loi 002/2002, art. 25).")
     if est_coopec(u):
         engagements_credit(tid)
     controler_apurement(tid, est_coopec(u))

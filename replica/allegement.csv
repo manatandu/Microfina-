@@ -79,7 +79,7 @@ id,lot,titre,ecrans,statut,question,reste
 3.10,3,Cases de la fiche,,partiel,,Fait : « N° Manuel » et « N° Matricule » supprimés (T130) ; le numéro du membre s'affiche une fois attribué. Reste : le cadre « Suivi commercial » (agents et zone)
 3.11,3,Prospect,S45 S51,à faire,,
 3.12,3,Groupe solidaire,S39 S44,à faire,,
-3.13,3,Résiliation,S48,à faire,,
+3.13,3,Résiliation,S48,fait,,
 3.14,3,Consentement à la Centrale des risques,S50,partiel,,"Fait : la case « Code » supprimée (T130). Reste : le consentement dans la demande de crédit, l'entrée de menu retirée, « Pays de délivrance » corrigé"
 3.15,3,Registre des membres,SC04,à faire,oui,
 3.16,3,Conformité : un menu à part,SC01 SC02 SC05 SC06,à faire,,

@@ -1009,7 +1009,10 @@ def test_parts_sociales(clients, journee):
     vider_comptes(chef, caisse, m)
     # P1 : une exclusion porte la référence et la date de la décision du Conseil d'administration (loi 002/2002, art. 25)
     assert "Exclusion" in chef.post(f"/api/tiers/{m}/resiliation", {"motif": "Autres", "exclusion": {"reference": "", "date": "2026-11-05"}}, **H).json()["message"]
-    r = chef.post(f"/api/tiers/{m}/resiliation", {"motif": "Autres", "exclusion": {"reference": "CA du 04/11/2026, décision 7", "date": "2026-11-04"}}, **H)
+    # Une seule liste de motifs (plan 3.13) : l'exclusion exige la décision, le décès exige le décès déclaré
+    assert "Exclusion" in chef.post(f"/api/tiers/{m}/resiliation", {"motif": "Exclusion par le Conseil d'administration"}, **H).json()["message"]
+    assert "Décès" in chef.post(f"/api/tiers/{m}/resiliation", {"motif": "Décès"}, **H).json()["message"]
+    r = chef.post(f"/api/tiers/{m}/resiliation", {"motif": "Exclusion par le Conseil d'administration", "exclusion": {"reference": "CA du 04/11/2026, décision 7", "date": "2026-11-04"}}, **H)
     assert r.status_code == 200 and r.json()["exclusionReference"] == "CA du 04/11/2026, décision 7", r.content   # les parts restent, remboursées après (art. 22 et 27)
     assert op({"tiersId": m, "sens": "retrait", "nombre": 1, "coupures": {"1000": 4}}).json()["statut"] == "validee"
     assert "résilié" in refus({"tiersId": m, "sens": "achat", "nombre": 1, "coupures": {"1000": 4}})

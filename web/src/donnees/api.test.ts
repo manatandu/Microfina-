@@ -997,6 +997,8 @@ describe("journée de guichet", () => {
     await connecter("jpmukendi");
     await expect(api.tiers.resilier(3, { motif: "" })).rejects.toThrow("motif");
     await expect(api.tiers.resilier(3, { motif: "Fâché" })).rejects.toThrow("Motif inconnu");
+    await expect(api.tiers.resilier(3, { motif: "Exclusion par le Conseil d'administration" })).rejects.toThrow("Exclusion");   // plan 3.13
+    await expect(api.tiers.resilier(3, { motif: "Décès" })).rejects.toThrow("Décès");
     await expect(api.tiers.resilier(3, { motif: "Décision du client" })).rejects.toThrow("compte à solder");   // registre S48-1 ; loi 002/2002, art. 27
     await viderComptes(3);
     expect(await api.tiers.resilier(3, { motif: "Décision du client" })).toMatchObject({ statut: "resilie", motifDepart: "Décision du client", resilieLe: "2026-11-05" });

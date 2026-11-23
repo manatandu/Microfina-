@@ -537,7 +537,7 @@ export function ResiliationClient() {
   const [t, setT] = useState<Tiers | null>(null);
   const [motif, setMotif] = useState("");
   const [deces, setDeces] = useState({ date: "", reference: "" });   // A16
-  const [exclusion, setExclusion] = useState<{ reference: string; date: string } | null>(null);   // P1
+  const [exclusion, setExclusion] = useState({ reference: "", date: "" });   // P1
   const [recherche, setRecherche] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees: comptes } = useDonnees(() => (t ? api.tiers.comptes(t.id) : Promise.resolve([])), [t?.id]);
@@ -550,7 +550,12 @@ export function ResiliationClient() {
   function resilier() {
     if (!t) { setBoite({ type: "erreur", message: "Rechercher d'abord le client." }); return; }
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment résilier ce client ?", oui: async () => {
-      try { setT(await api.tiers.resilier(t.id, { motif, ...(exclusion ? { exclusion } : {}) })); setExclusion(null); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+      try {
+        // Une seule liste de motifs ; le décès se déclare avec la résiliation (plan d'allègement, point 3.13)
+        if (motif === "Décès" && !t.decesLe) await api.tiers.declarerDeces(t.id, deces);
+        setT(await api.tiers.resilier(t.id, { motif, ...(motif.startsWith("Exclusion") ? { exclusion } : {}) }));
+        setExclusion({ reference: "", date: "" }); setDeces({ date: "", reference: "" }); setBoite({ type: "succes", message: "Enregistré avec succès !" });
+      }
       catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
   }
@@ -563,7 +568,7 @@ export function ResiliationClient() {
             <Champ libelle="N° Client">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
             <button className="bouton secondaire sans-impression" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
           </div>
-          {lu("Intitulé", t ? t.intitule || nomComplet(t) : "")}{lu("Catégorie", t?.typeClient ?? "")}
+          {lu("Intitulé", t ? t.intitule || nomComplet(t) : "")}{lu("Nature", t ? ({ physique: "Personne physique", morale: "Entreprise", groupe: "Groupe" } as Record<string, string>)[t.type] ?? "" : "")}
         </div>
         <fieldset className="cadre-champs formulaire">
           <legend>Informations générales du client</legend>
@@ -571,7 +576,7 @@ export function ResiliationClient() {
           {lu(t?.type === "physique" ? "Nom :" : "Raison sociale :", t ? nomComplet(t) : "")}{t?.type !== "physique" && lu("RCCM :", t?.registre ?? "")}
           {lu("Créé le :", t ? fr(t.creeLe) : "")}{t?.type === "physique" && lu("Nationalité :", t?.nationalite ?? "")}
           {lu("Pièce d'identité :", t?.pieceType ?? "")}{lu("Numéro de pièce :", t?.pieceNumero ?? "")}
-          {lu("Etabli à:", t?.pieceLieu ?? "")}{lu("Date dexpiration : *", t ? fr(t.pieceExpire) : "")}
+          {lu("Établie à :", t?.pieceLieu ?? "")}{lu("Date d'expiration :", t ? fr(t.pieceExpire) : "")}
           {t?.type === "groupe" && <>{lu("Type de Groupement :", t.typeClient)}{lu("Nombre d'Homme :", String(t.nbHommes))}{lu("Nombre de Femme :", String(t.nbFemmes))}</>}
         </fieldset>
         <div className="deux-colonnes">
@@ -580,30 +585,21 @@ export function ResiliationClient() {
             <Champ libelle="Motif *">{(p) => resilie
               ? <Lecture {...p} value={t!.motifDepart} />
               : <select {...p} className="saisie" required value={motif} onChange={(e) => setMotif(e.target.value)}><option value=""></option>
-                  {ctx.motifsDepart.map((m) => <option key={m} value={m}>{enClair(m)}</option>)}</select>}</Champ>
-            {/* P1 (confrontation du 21/11/2026) : exclusion par le Conseil d'administration (loi 002/2002, art. 25) */}
-            {resilie ? t?.exclusionReference && <p>Exclusion : décision {t.exclusionReference} du {fr(t.exclusionLe ?? "")}</p>
-              : <label className="case sans-impression"><input type="checkbox" checked={!!exclusion} onChange={(e) => setExclusion(e.target.checked ? { reference: "", date: "" } : null)} /><span>Exclusion par le Conseil d'administration</span></label>}
-            {!resilie && exclusion && <>
+                  {ctx.motifsDepart.filter((m) => m !== "Décès" || t?.type === "physique").map((m) => <option key={m} value={m}>{enClair(m)}</option>)}</select>}</Champ>
+            {/* Chaque motif ouvre les champs qu'il exige : décision du Conseil d'administration (loi 002/2002, art. 25), acte de décès (plan 3.13) */}
+            {resilie && t?.exclusionReference && <p>Exclusion : décision {t.exclusionReference} du {fr(t.exclusionLe ?? "")}</p>}
+            {resilie && t?.decesLe && <p>Décédé le <strong className="chiffres">{fr(t.decesLe)}</strong>, acte {t.decesReference}.</p>}
+            {!resilie && motif.startsWith("Exclusion") && <>
               <Champ libelle="Référence de la décision : *">{(p) => <input {...p} className="saisie" value={exclusion.reference} onChange={(e) => setExclusion({ ...exclusion, reference: e.target.value })} />}</Champ>
               <ChampDate libelle="Date de la décision : *" valeur={exclusion.date} onChange={(v) => setExclusion({ ...exclusion, date: v })} requis />
             </>}
+            {!resilie && motif === "Décès" && t && (t.decesLe ? <p>Décédé le <strong className="chiffres">{fr(t.decesLe)}</strong>, acte {t.decesReference}.</p> : <>
+              <ChampDate libelle="Date du décès : *" valeur={deces.date} onChange={(v) => setDeces({ ...deces, date: v })} requis />
+              <Champ libelle="Référence de l'acte de décès : *">{(p) => <input {...p} className="saisie" value={deces.reference} onChange={(e) => setDeces({ ...deces, reference: e.target.value })} />}</Champ>
+            </>)}
           </div>
           {/* Aucun frais de résiliation : la clôture de compte est gratuite (Instr. BCC 37, annexe, point 1 ; plan d'allègement, point 0.15) */}
         </div>
-        {/* A16 (confrontation du 21/11/2026) : décès du titulaire ; les procurations prennent fin (Code civil, art. 544), les retraits passent par un ayant droit */}
-        {t?.type === "physique" && <fieldset className="pile cadre-champs sans-impression">
-          <legend>Décès du titulaire</legend>
-          {t.decesLe ? <p>Décédé le <strong className="chiffres">{fr(t.decesLe)}</strong>, acte {t.decesReference}. Retraits par un ayant droit enregistré sur la pièce de succession (Client &gt; Gestion des procurations).</p>
-            : <div className="formulaire">
-                <ChampDate libelle="Date du décès : *" valeur={deces.date} onChange={(v) => setDeces({ ...deces, date: v })} requis />
-                <Champ libelle="Référence de l'acte de décès : *">{(p) => <input {...p} className="saisie" value={deces.reference} onChange={(e) => setDeces({ ...deces, reference: e.target.value })} />}</Champ>
-                <div className="champ"><span className="libelle-vide" aria-hidden="true">&nbsp;</span><button className="bouton secondaire" type="button" onClick={() =>
-                  setBoite({ type: "confirmation", message: "Voulez-vous vraiment déclarer le décès de ce client ?", oui: async () => {
-                    try { setT(await api.tiers.declarerDeces(t.id, deces)); setDeces({ date: "", reference: "" }); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
-                    catch (x) { setBoite({ type: "erreur", message: message(x) }); } } })}>Déclarer le décès</button></div>
-              </div>}
-        </fieldset>}
         <div className="actions-onglets sans-impression">
           <button className="bouton" type="button" disabled={!t || resilie} onClick={resilier}>Résilier</button>
           <button className="bouton secondaire" type="button" disabled={!resilie} onClick={() => window.print()}>Imprimer</button>
