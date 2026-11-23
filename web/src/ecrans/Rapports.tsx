@@ -175,7 +175,7 @@ function Prospects({ ctx, clients }: { ctx: Ctx; clients: Tiers[] }) {
         <ChoixAgent libelle="Commercial :" liste={ctx.commerciaux} valeur={c.commercial} onChange={(v) => maj({ commercial: v })} />
         <Champ libelle="Genre :">{(p) => <select {...p} className="saisie" value={c.genre} onChange={(e) => maj({ genre: e.target.value as CriteresProspect["genre"] })}>
           <option value="">Tous les Client</option><option value="M">Homme</option><option value="F">Femme</option></select>}</Champ>
-        <Champ libelle="Profession :">{(p) => <select {...p} className="saisie" value={c.profession} onChange={(e) => maj({ profession: e.target.value })}><option value=""></option>{ctx.professions.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
+        <Champ libelle="Profession :">{(p) => <input {...p} className="saisie" autoComplete="off" value={c.profession} onChange={(e) => maj({ profession: e.target.value })} />}</Champ>
       </fieldset>
       <div className="actions-onglets">
         <button className="bouton" type="button" onClick={() => setLignes(prospects(clients, c))}>Rechercher</button>

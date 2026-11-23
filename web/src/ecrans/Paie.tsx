@@ -142,7 +142,7 @@ export function NouvelEmploye() {
         </fieldset>
         <fieldset className="cadre-champs formulaire"><legend className="sr-only">Contacts et carrière</legend>
           {choix("groupeSanguin", "Groupe sanguin :", ctx.groupesSanguins)}{texte("contact1", "Contact 1 :")}{texte("contact2", "Contact 2 :")}{texte("adresse", "Adresse :")}
-          {texte("email", "Email :", { type: "email" })}{texte("bp", "BP :")}{choix("profession", "Profession :", ctx.professions)}
+          {texte("email", "Email :", { type: "email" })}{texte("bp", "BP :")}{texte("profession", "Profession :")}
           {texte("personneAPrevenir", "Personne à prévenir et Contacts :")}{date("dateDebutCarriere", "Date de début de carrière :")}{date("dateEmbauche", "Date d'embauche :", true)}
           <Champ libelle="Personne(s) à charge :">{(pp) => <span className="avec-unite"><input {...pp} className="saisie montant" inputMode="numeric" value={v("personnesACharge")}
             onChange={(e) => maj("personnesACharge", e.target.value.replace(/\D/g, ""))} /><button className="bouton secondaire" type="button" aria-label="Personnes à charge" onClick={() => setFenetre("personnes")}>+</button></span>}</Champ>

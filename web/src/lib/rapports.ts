@@ -87,7 +87,7 @@ export interface CriteresProspect { du: string; au: string; nom: string; prenoms
 export function prospects(clients: Tiers[], c: CriteresProspect): Tiers[] {
   return clients.filter((t) => t.statut === "prospect" && (!c.du || t.creeLe >= c.du) && (!c.au || t.creeLe <= c.au)
     && (!c.nom || contient(t.nom, c.nom)) && (!c.prenoms || contient(t.prenom, c.prenoms)) && (!c.quartier || t.quartier === c.quartier)
-    && (!c.genre || t.sexe === c.genre) && (!c.profession || t.profession === c.profession) && memeAgent(c.commercial, t.commercialId));
+    && (!c.genre || t.sexe === c.genre) && (!c.profession.trim() || (t.profession ?? "").toLowerCase().includes(c.profession.trim().toLowerCase())) && memeAgent(c.commercial, t.commercialId));
 }
 
 /** Rapport des clients modifiés (11-3, capture p. 59) */
