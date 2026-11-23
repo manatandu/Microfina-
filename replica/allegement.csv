@@ -119,7 +119,7 @@ id,lot,titre,ecrans,statut,question,reste
 6.7,6,Une seule étape pour débloquer,S54 S105,à faire,,
 6.8,6,Remboursement,S55 S106,à faire,,
 6.9,6,Annulation d'un remboursement,S142,à faire,,
-6.10,6,Simulation,S84,à faire,,
+6.10,6,Simulation,S84,fait,,
 6.11,6,Analyse financière,S85,à faire,,
 6.12,6,Garanties du crédit,S94,à faire,,
 6.13,6,Balance âgée et provisions,S98 S99 S101 S127 S128,à faire,,

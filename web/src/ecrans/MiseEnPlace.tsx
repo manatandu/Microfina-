@@ -68,7 +68,7 @@ export default function MiseEnPlace() {
             <fieldset className="cadre-champs"><legend>Infos Produit</legend><dl className="infos">
               {info("Produit", a.demande.produit)}{info("Périodicité", s.libellePeriodicite)}{info("M. calcul", s.modeCalcul)}{info("Mode différé", s.modeDiffere)}
               {info("Taux Int.", `${s.tauxInteret.replace(".", ",")} %`)}{info("Taux Diff.", `${s.tauxDiffere.replace(".", ",")} %`)}
-              {info("TEG annuel", s.tauxRegle ? "Taux réglementé" : pct(s.tegR))}{info("TEG actuariel", s.tauxRegle ? "Taux réglementé" : pct(s.tegA))}</dl></fieldset>
+              {info("TEG annuel", s.tauxRegle ? "Taux réglementé" : pct(s.tegR))}</dl></fieldset>
           </div>
           <div className="onglets" role="tablist" aria-label="Mise en place">
             {PAGES.map((l, i) => <button key={l} type="button" role="tab" aria-selected={i === page} disabled={i > page} onClick={() => setPage(i)}>{l}</button>)}
