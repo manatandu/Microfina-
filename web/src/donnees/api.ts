@@ -3432,8 +3432,13 @@ const dossiers = {
     if (montant < Number(p.montantMin) * 100 || montant > Number(p.montantMax) * 100)
       throw new ErreurMetier(`Montant demandé : entre ${montantLisible(Number(p.montantMin) * 100, String(p.devise)).replace(",00", "")} et ${montantLisible(Number(p.montantMax) * 100, String(p.devise))} pour ce produit.`);
     if (duree < Number(p.dureeMin) || duree > Number(p.dureeMax)) throw new ErreurMetier(`Durée : entre ${p.dureeMin} et ${p.dureeMax} mois pour ce produit.`);
-    const cid = (d.cycleId ?? null) as number | null;
-    if (cid !== null && !stockCredit("cycles").some((c) => c.id === cid && c.actif !== false)) throw new ErreurMetier("Cycle inconnu.");
+    // Cycle calculé : le n-ième crédit du membre prend le n-ième cycle, le dernier au-delà (plan d'allègement, point 2.13)
+    const n = 1 + E.credits.filter((c) => c.tiersId === t.id && ["debloque", "solde", "passe_en_perte"].includes(c.statut)).length;
+    const cycles = stockCredit("cycles").filter((c) => c.actif !== false).sort((a, b) => String(a.code).localeCompare(String(b.code)));
+    const cy = cycles.length ? cycles[Math.min(n, cycles.length) - 1] : undefined;
+    const cid = cy ? cy.id : null;
+    const mx = Number(cy?.montantMax ?? 0);   // plafond facultatif du cycle, en CDF (registre T141)
+    if (mx && cdf(montant, String(p.devise) as Devise) > mx * 100) throw new ErreurMetier(`Montant demandé : au plus ${montantLisible(mx * 100, "CDF")} pour le cycle « ${String(cy?.libelle ?? "")} ».`);
     const pr = E.lieux.find((l) => l.id === d.provinceId && l.niveau === "province" && l.actif);
     const vi = pr && E.lieux.find((l) => l.id === d.villeId && l.niveau === "ville" && l.parentId === pr.id && l.actif);
     if (!pr || !vi) throw new ErreurMetier("À remplir : Province (région), Ville ou territoire (préfecture).");
@@ -9458,7 +9463,8 @@ export const CATALOGUE_CREDIT: FicheBudget[] = [
       ch("souscriptionParts", "Souscription de parts ou d'actions de l'institution :", "Souscription de parts", "ouiNon", false, { defaut: false })] },
   { page: "types_produit", menu: "Type produit Credit", exporter: true, filtres: true, champs: [ch("nom", "Nom", "Nom"), ch("code", "ID", "ID")],
     fixe: [["NORMAL", "CNO"], ["BDG", "CBD"], ["DECOUVERT", "CDL"], ["EMPLOYE", "TOP"], ["TONTINE CREDIT SPECIAL", "TOS"]].map(([nom, code]) => ({ nom, code })) },
-  { page: "cycles", menu: "Cycle Credit", champs: [ch("code", "Code", "Code"), ch("libelle", "Libellé", "Libellé")] },
+  { page: "cycles", menu: "Cycle Credit", champs: [ch("code", "Code", "Code"), ch("libelle", "Libellé", "Libellé"),
+    ch("montantMax", "Montant maximum (CDF)", "Montant maximum (CDF)", "entier", false)] },   // plafond facultatif (plan 2.13 ; registre T141)
   { page: "zones", menu: "Zone Credit", champs: [ch("code", "Code Zone :", "Code Zone", "texte", true, { grille: false }), ch("nom", "Nom Zone :", "Nom zone"),
     ch("description", "Description :", "Description", "texteLong"), ch("agenceId", "Agence :", "Agence", "choix", true, { ref: "agences" })] },
   // Instr. BCC 003 : art. 3, 6, 7, 9 et 12 (provision sur le capital restant dû) ; ordre de remboursement : S22 (registre S21-1)

@@ -1667,8 +1667,12 @@ def test_dossier_credit(clients, journee):
     assert "ressaisis" in refus(agent, "/api/credit/dossiers", {**d, "ressaisie": {**e, "montantFemmes": 90000000}})
     assert "de son sexe" in refus(agent, "/api/credit/dossiers", {**d, "nbHommes": 1, "nbFemmes": 0, "montantHommes": 100000000, "montantFemmes": 0,
                                                                   "ressaisie": {**e, "nbHommes": 1, "nbFemmes": 0, "montantHommes": 100000000, "montantFemmes": 0}})
+    from noyau.bd import executer                                             # plafond facultatif du cycle (plan 2.13 ; registre T141)
+    executer("update credit_cycle set montant_max = 500000 where code = 'C01'")
+    assert "au plus 500 000 CDF pour le cycle « Premier cycle »" in refus(agent, "/api/credit/dossiers", d)
+    executer("update credit_cycle set montant_max = null where code = 'C01'")
     x = agent.post("/api/credit/dossiers", d, **H).json()
-    assert (x["numero"], x["statut"], x["montant"]) == ("DC000001", "saisie", 100000000)
+    assert (x["numero"], x["statut"], x["montant"], x["cycle"]) == ("DC000001", "saisie", 100000000, "Premier cycle")   # cycle calculé : 1er crédit
     assert "Quatre yeux" in refus(agent, f"/api/credit/dossiers/{x['id']}/controle", {"effectif": 1, "nbGroupes": 0, "montant": 100000000})
     assert "ne correspondent pas" in refus(clients["resp"], f"/api/credit/dossiers/{x['id']}/controle", {"effectif": 1, "nbGroupes": 0, "montant": 90000000})
     assert clients["resp"].post(f"/api/credit/dossiers/{x['id']}/controle", {"effectif": 1, "nbGroupes": 0, "montant": 100000000}, **H).json()["statut"] == "controlee"

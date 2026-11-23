@@ -26,7 +26,9 @@ CATALOGUE = [
         ch("nom", "nom", "Nom", colonne="Nom"), ch("code", "code", "ID", colonne="ID")],
      "fixe": [{"nom": n, "code": c} for n, c in (("NORMAL", "CNO"), ("BDG", "CBD"), ("DECOUVERT", "CDL"), ("EMPLOYE", "TOP"), ("TONTINE CREDIT SPECIAL", "TOS"))]},
     {"page": "cycles", "table": "credit_cycle", "menu": "Cycle Credit", "champs": [
-        ch("code", "code", "Code", colonne="Code"), ch("libelle", "libelle", "Libellé", colonne="Libellé")]},
+        ch("code", "code", "Code", colonne="Code"), ch("libelle", "libelle", "Libellé", colonne="Libellé"),
+        # Plafond facultatif, selon la politique de chaque institution (plan d'allègement, point 2.13 ; registre T141)
+        ch("montantMax", "montant_max", "Montant maximum (CDF)", "entier", False, colonne="Montant maximum (CDF)")]},
     {"page": "zones", "table": "zone", "menu": "Zone Credit", "etiquette": "nom", "champs": [
         ch("code", "code", "Code Zone :", colonne="Code Zone", grille=False), ch("nom", "nom", "Nom Zone :", colonne="Nom zone"),
         ch("description", "description", "Description :", "texteLong", colonne="Description"),

@@ -153,9 +153,13 @@ def demander(u, d) -> dict:
         raise ErreurMetier(f"Montant demandé : entre {int(p['montant_min']):,} et {int(p['montant_max']):,} {p['devise'].strip()} pour ce produit.".replace(",", " "))
     if duree < p["duree_min"] or duree > p["duree_max"]:
         raise ErreurMetier(f"Durée : entre {p['duree_min']} et {p['duree_max']} mois pour ce produit.")
-    cid = d.get("cycleId")
-    if cid is not None and not une("select 1 from credit_cycle where id = %s and institution_id = %s and actif", (cid, u["institution_id"])):
-        raise ErreurMetier("Cycle inconnu.")
+    # Cycle calculé : le n-ième crédit du membre prend le n-ième cycle, le dernier au-delà (plan d'allègement, point 2.13)
+    n = 1 + (valeur("select count(*) from credit where tiers_id = %s and statut in ('debloque', 'solde', 'passe_en_perte')", (t["id"],)) or 0)
+    cycles = lignes("select id, libelle, montant_max from credit_cycle where institution_id = %s and actif order by code", (u["institution_id"],))
+    cy = cycles[min(n, len(cycles)) - 1] if cycles else None
+    cid = cy["id"] if cy else None
+    if cy and cy["montant_max"] and round(montant * cours(p["devise"].strip())) > cy["montant_max"] * 100:
+        raise ErreurMetier(f"Montant demandé : au plus {int(cy['montant_max']):,} CDF pour le cycle « {cy['libelle']} ».".replace(",", " "))   # T141
     pr = une("select id from localite where id = %s and niveau = 'province' and actif", (d.get("provinceId"),)) if isinstance(d.get("provinceId"), int) else None
     vi = une("select id from localite where id = %s and niveau = 'ville' and parent_id = %s and actif", (d.get("villeId"), pr["id"] if pr else None)) \
         if pr and isinstance(d.get("villeId"), int) else None

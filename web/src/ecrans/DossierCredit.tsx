@@ -43,7 +43,7 @@ export function DemandeCredit() {
   function enregistrer() {
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try {
-        const x = await api.dossiers.demander({ produitId: Number(f.produit), tiersId: t?.id, cycleId: f.cycle ? Number(f.cycle) : null, analyseId: f.analyse ? Number(f.analyse) : null,
+        const x = await api.dossiers.demander({ produitId: Number(f.produit), tiersId: t?.id, analyseId: f.analyse ? Number(f.analyse) : null,
           ...valeurs(e), duree: entier(f.duree), provinceId: Number(f.province) || null, villeId: Number(f.ville) || null, communeId: Number(f.commune) || null, ressaisie: valeurs(r), consentementLe: f.consentementLe, consentementRef: f.consentementRef.trim(),
           parts: t?.type === "groupe" ? parts.map((m) => ({ montant: somme(m) })) : [] });
         effacer(); setBoite({ type: "succes", message: `Enregistré avec succès ! Demande N° ${x.numero}.` });
@@ -64,8 +64,6 @@ export function DemandeCredit() {
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
             <Champ libelle="Intitulé">{(pp) => <Lecture {...pp} value={t ? nomComplet(t) : ""} />}</Champ>
-            <Champ libelle="Cycle">{(pp) => <select {...pp} className="saisie" value={f.cycle} onChange={(ev) => maj({ cycle: ev.target.value })}>
-              <option value=""></option>{ctx.cycles.map((c) => <option key={c.id} value={c.id}>{c.libelle}</option>)}</select>}</Champ>
             <Champ libelle="N° analyse">{(pp) => <select {...pp} className="saisie" value={f.analyse} onChange={(ev) => maj({ analyse: ev.target.value })}>
               <option value=""></option>{analyses.map((a) => <option key={a.id} value={a.id}>{`${a.numero} du ${fr(a.date)}`}</option>)}</select>}</Champ>
             <Champ libelle="Durée (mois) *">{(pp) => <input {...pp} className="saisie code" inputMode="numeric" autoComplete="off" value={f.duree} onChange={(ev) => maj({ duree: ev.target.value })} />}</Champ>
