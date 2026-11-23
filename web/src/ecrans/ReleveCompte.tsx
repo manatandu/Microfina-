@@ -80,17 +80,8 @@ export function ReleveCompte() {
           </fieldset>
         </div>
         {erreur && compte && <p role="alert" className="erreur-champ">{erreur}</p>}
-        <fieldset className="pile cadre-champs">
-          <legend>Informations générales du client</legend>
-          <div className="formulaire">
-            {lu("Nom :", t ? (t.type === "physique" ? t.nom : nomComplet(t)) : "")}{lu("Prénoms :", t ? [t.postnom, t.prenom].filter(Boolean).join(" ") : "")}
-            {lu("Sexe :", t ? SEXE[t.sexe] ?? "" : "")}{lu("Date de naissance :", t?.naissance ? fr(t.naissance) : "")}
-            {lu("Lieu de naissance :", t?.lieuNaissance ?? "")}{lu("Profession :", t?.profession ?? "")}
-            {lu("Nationalité :", t?.nationalite ?? "")}{lu("Situation géographique :", t ? [t.zone, t.quartier].filter(Boolean).join(", ") : "")}
-            {lu("BP :", t?.bp ?? "")}{lu("Adresse :", t?.adresse ?? "")}
-            {lu("Téléphone :", t?.telephone ?? "")}{lu("Email :", t?.email ?? "")}
-          </div>
-        </fieldset>
+        {/* Plan d'allègement, point 5.10 : une ligne d'identité ; l'identité complète reste dans la fiche du membre */}
+        {t && <p className="ligne-identite"><span className="chiffres">{t.numero}</span> · {nomComplet(t)}{t.telephone ? ` · ${t.telephone}` : ""}</p>}
         <div className="actions-onglets">
           <button className="bouton" type="button" onClick={relever}>Relever Compte</button>
           <button className="bouton secondaire" type="button" onClick={voirSituation}>Situation du client</button>
