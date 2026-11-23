@@ -121,7 +121,9 @@ export default function ProduitCredit() {
     </div>,
     <div key="remboursement" className="grille-deux">
       {cadre("Pénalités", <>{texte("penaliteRetard", "Pénalité de retard (%)", "saisie code")}{texte("penaliteAnticipation", "Pénalité de remboursement anticipé (% des intérêts restant dus)", "saisie code")}</>)}
-      {cadre("Remboursement", <>{choix("ordreId", "Ordre de remboursement", o.ordres.map((t: { id: number; libelle: string }) => ({ v: String(t.id), l: t.libelle })))}</>)}
+      {cadre("Remboursement", <>{choix("ordreId", "Ordre de remboursement", o.ordres.map((t: { id: number; libelle: string }) => ({ v: String(t.id), l: t.libelle })))}
+        {/* Plan d'allègement, point 2.14 : la règle écrite en clair (registre CR-20, T133) */}
+        <p className="aide">Sans ordre choisi ici, c'est l'ordre de la classe du crédit qui s'applique (Règles du crédit) ; à défaut, les intérêts puis le capital.</p></>)}
       {cadre("Comptabilisation", <>{choix("modeleId", "Modèle", o.modeles.map((t: { id: number; libelle: string }) => ({ v: String(t.id), l: t.libelle })))}</>)}
     </div>,
   ];
