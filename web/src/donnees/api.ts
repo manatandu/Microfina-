@@ -3351,6 +3351,10 @@ const dossiers = {
   },
   apparentes() {
     lectureAdmin(["SC01"]);
+    return dossiers.listeApparentes();
+  },
+  /** La liste sans contrôle de lecture : rendue après un marquage depuis la fiche du membre (plan 3.3) */
+  listeApparentes() {
     return E.tiers.filter((t) => t.apparente).sort((a, b) => a.numero.localeCompare(b.numero)).map((t) => ({ tiersId: t.id, numero: t.numero, client: titulaire(t), lien: t.apparente! }));
   },
   /** Registre CR-3 : case « Personne apparentée » et lien (Instr. BCC 002, art. 27) */
@@ -3359,7 +3363,7 @@ const dossiers = {
     if (d.lien != null && !APPARENTES.includes(d.lien)) throw new ErreurMetier("Lien : actionnaire ou fondateur, administrateur, dirigeant, personnel, famille, société liée ou contrat.");
     const t = E.tiers.find((x) => x.id === tid);
     if (!t) throw new ErreurMetier("Client introuvable.");
-    t.apparente = d.lien ?? null; enregistrer(); return dossiers.apparentes();
+    t.apparente = d.lien ?? null; enregistrer(); return dossiers.listeApparentes();
   },
   lister(statut: DemandeCredit["statut"]) {
     lectureAdmin(["S86", "S87", "S88", "S89"]);

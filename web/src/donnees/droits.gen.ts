@@ -272,6 +272,8 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "SN01"
 ],
 "dossiers.marquerApparente": [
+"S37",
+"S46",
 "SC01"
 ],
 "droits.enregistrer": [

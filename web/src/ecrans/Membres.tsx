@@ -8,6 +8,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
 import { lireMontant } from "@design/montant.js";
 import { RechercheClient, useTiersDeLAdresse } from "./Visa";
+import { LIENS_APPARENTE } from "./PersonnesApparentees";
 
 type Ctx = Awaited<ReturnType<typeof api.referentiel.contexte>>;
 const nomComplet = (t: { nom: string; postnom: string; prenom: string }) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
@@ -234,6 +235,29 @@ export function ChampsRepresentant({ r, maj, ctx, qualite, exposee }: { r: Repre
 const REPRESENTANT_VIDE: RepresentantSaisi = { nom: "", postnom: "", prenom: "", pieceType: "", pieceNumero: "", pieceExpire: "" };
 
 /** Liste avec fiche ouverte par un bouton : signataires d'une entreprise (p. 49), membres d'un groupe (p. 50) ; Retirer comme pour les personnes liées (registre S38-2) */
+/** Chercher d'abord la personne parmi les fiches existantes, sinon la saisir (plan d'allègement, points 3.3 et 3.12 ; Instr. BCC 15, art. 16) :
+ *  l'identité et la pièce d'un membre existant se reprennent telles quelles */
+function RepriseFiche({ reprendre }: { reprendre: (r: Partial<RepresentantSaisi>) => void }) {
+  const [q, setQ] = useState("");
+  const [trouves, setTrouves] = useState<Tiers[] | null>(null);
+  const chercher = async () => setTrouves(q.trim() ? (await api.tiers.rechercher(q.trim().toLowerCase())).filter((x) => x.type === "physique" && x.statut === "actif").slice(0, 5) : []);
+  return (
+    <fieldset className="pile cadre-champs">
+      <legend>Reprendre une fiche existante</legend>
+      <div className="ligne-champ">
+        <Champ libelle="Membre :">{(p) => <input {...p} className="saisie" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void chercher(); }} />}</Champ>
+        <div className="champ"><span className="libelle-vide" aria-hidden="true">&nbsp;</span><button className="bouton secondaire" type="button" onClick={() => void chercher()}>Rechercher</button></div>
+      </div>
+      {trouves && (trouves.length === 0 ? <p className="muet">Aucun membre trouvé : saisir la personne ci-dessous.</p> : (
+        <ul className="liste-simple">{trouves.map((x) => <li key={x.id}><button className="bouton secondaire" type="button" onClick={() => { reprendre({
+          nom: x.nom, postnom: x.postnom, prenom: x.prenom, pieceType: x.pieceType, pieceNumero: x.pieceNumero, pieceExpire: x.pieceExpire, naissance: x.naissance,
+          lieuNaissance: x.lieuNaissance, pieceDelivreeLe: x.pieceDelivreeLe, pieceLieu: x.pieceLieu, pieceAutorite: x.pieceAutorite, piecePays: x.piecePays,
+          pays: x.pays, province: x.province, ville: x.ville, commune: x.commune, quartier: x.quartier, rue: x.rue, numeroRue: x.numeroRue, personneExposee: x.personneExposee });
+          setTrouves(null); setQ(""); }}>Reprendre : {x.numero} {nomComplet(x)}</button></li>)}</ul>))}
+    </fieldset>
+  );
+}
+
 function ListeRepresentants({ fiche: titre, ajouter, liste, onChange, ctx, qualite, erreur }: {
   fiche: string; ajouter: string; liste: RepresentantSaisi[]; onChange: (l: RepresentantSaisi[]) => void; ctx: Ctx; qualite?: boolean; erreur: (m: string) => void;
 }) {
@@ -254,6 +278,7 @@ function ListeRepresentants({ fiche: titre, ajouter, liste, onChange, ctx, quali
       <Fiche titre={titre} ouverte={!!fiche} fermer={() => setFiche(null)}>
         {fiche && (
           <div className="pile">
+            <RepriseFiche reprendre={(p) => setFiche({ ...fiche, ...p })} />
             <ChampsRepresentant r={fiche} maj={(p) => setFiche({ ...fiche, ...p })} ctx={ctx} qualite={qualite} />
             <ChargementImages key={liste.length} images={{ photo: fiche.photo, signature: fiche.signature }} onChange={(i) => setFiche({ ...fiche, ...i })} erreur={erreur} />
             <div className="actions-onglets">
@@ -504,6 +529,20 @@ export function NouveauMembre() {
   );
 }
 
+/** Rubrique « Apparenté à l'institution » : le lien qui fait de la personne un apparenté, lu par le crédit pour ses plafonds
+ *  (Instr. BCC 002, art. 25 à 27 ; registre CR-3 ; plan d'allègement, points 3.3 et 3.16) */
+function Apparente({ valeur, onChange }: { valeur: string; onChange: (v: string) => void }) {
+  return (
+    <Rubrique titre="Apparenté à l'institution">
+      <Champ libelle="Lien :">{(p) => <select {...p} className="saisie" value={valeur} onChange={(e) => onChange(e.target.value)}>
+        <option value="">Aucun</option>{LIENS_APPARENTE.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ>
+    </Rubrique>
+  );
+}
+const marquer = async (t: Tiers, lien: string, avant?: string | null) => {
+  if ((lien || null) !== (avant ?? null)) await api.dossiers.marquerApparente(t.id, { lien: (lien || null) as Tiers["apparente"] });
+};
+
 /** Une rubrique de l'onglet Personnes : un rôle (plan d'allègement, point 3.3) */
 function Rubrique({ titre, children }: { titre: string; children: ReactNode }) {
   return <section className="pile" aria-label={titre}><h3>{titre}</h3>{children}</section>;
@@ -539,6 +578,7 @@ function PhotosEtPieces({ nature, images, onChange, erreur }: { nature: Nature; 
 
 
 export function EnrolementPhysique() {
+  const [apparente, setApparente] = useState("");
   const c = useCommun();
   const [images, setImages] = useState<Images>({});
   const [prospect, setProspect] = useState<Tiers | null>(null);
@@ -549,7 +589,8 @@ export function EnrolementPhysique() {
   return (
     <Enrolement titre="Nouveau membre : personne physique" onglets={ONGLETS_MEMBRE} numero={c.cree?.numero} onglet={c.onglet} setOnglet={c.setOnglet}
       boite={c.boite} setBoite={c.setBoite}
-      enregistrer={() => c.confirmer((m) => api.tiers.creer({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id) }, images, prospect?.id), () => { setImages({}); setProspect(null); })}
+      enregistrer={() => c.confirmer(async (m) => { const t = await api.tiers.creer({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id) }, images, prospect?.id); await marquer(t, apparente); return t; },
+        () => { setImages({}); setProspect(null); setApparente(""); })}
       prospect={() => c.setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ce prospect ?", oui: async () => {
         const d = { nom: f.nom, prenom: f.prenom, naissance: f.naissance, lieuNaissance: f.lieuNaissance, sexe: f.sexe, profession: f.profession, pays: f.pays, province: f.province ?? "",
           ville: f.ville, commune: f.commune ?? "", quartier: f.quartier, rue: f.rue, numeroRue: f.numeroRue ?? "", email: f.email, bp: f.bp, telephoneFixe: f.telephoneFixe, telephone: f.telephone,
@@ -585,6 +626,7 @@ export function EnrolementPhysique() {
       {c.onglet === 3 && <>
         <Rubrique titre="Personnes liées"><PersonnesLiees key={c.generation} liees={c.liees} onChange={c.setLiees} /></Rubrique>
         <Rubrique titre="Héritiers désignés"><Beneficiaires liste={f.beneficiaires ?? []} onChange={(l) => maj({ beneficiaires: l })} filiations={ctx.listesFiche.filiation ?? []} /></Rubrique>
+        <Apparente valeur={apparente} onChange={setApparente} />
       </>}
 
       {c.onglet === 4 && <PhotosEtPieces key={c.generation} nature="physique" images={images} onChange={setImages} erreur={c.erreur} />}
@@ -597,6 +639,7 @@ export function EnrolementPhysique() {
 
 
 export function EnrolementEntreprise() {
+  const [apparente, setApparente] = useState("");
   const c = useCommun();
   const [avecDirigeant, setAvecDirigeant] = useState(true);   // « par défaut, le champ [Renseigner Dirigeant] est coché » (p. 50)
   const [dirigeant, setDirigeant] = useState<RepresentantSaisi>(REPRESENTANT_VIDE);
@@ -607,13 +650,14 @@ export function EnrolementEntreprise() {
   if (!c.donnees) return <Chargement />;
   const { ctx } = c.donnees;
   const { f, maj } = c;
-  function vider() { setAvecDirigeant(true); setDirigeant(REPRESENTANT_VIDE); setSignataires([]); setEffectifs([]); setControles({}); setImages({}); }
+  function vider() { setAvecDirigeant(true); setDirigeant(REPRESENTANT_VIDE); setSignataires([]); setEffectifs([]); setControles({}); setImages({}); setApparente(""); }
   return (
     <Enrolement titre="Nouveau membre : entreprise" onglets={ONGLETS_MEMBRE} numero={c.cree?.numero} onglet={c.onglet} setOnglet={c.setOnglet}
       boite={c.boite} setBoite={c.setBoite}
       enregistrer={() => c.confirmer(async (m) => {
         const t = await api.tiers.creerEntreprise({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id), beneficiairesEffectifs: effectifs.map((t) => t.id), controleEffectifs: versControles(effectifs, controles) }, avecDirigeant ? dirigeant : null, signataires);
         if (images.copiePiece || images.justificatifAdresse) await api.tiers.changerSpecimen(t.id, images);   // statuts et registre déposés dès l'enrôlement (plan 3.4)
+        await marquer(t, apparente);
         return t;
       }, vider)}
       textes={["Manuel Microfina++, p. 49 : onglets, champs de l'onglet Informations de base, Renseigner Dirigeant coché par défaut, personnes liées (+Ajouter, Retirer), fiche des signataires",
@@ -635,12 +679,13 @@ export function EnrolementEntreprise() {
       {c.onglet === 3 && <>
         <Rubrique titre="Dirigeant">
           <label className="case"><input type="checkbox" checked={avecDirigeant} onChange={(e) => setAvecDirigeant(e.target.checked)} /><span>Renseigner Dirigeant</span></label>
-          {avecDirigeant && <ChampsRepresentant r={dirigeant} maj={(p) => setDirigeant({ ...dirigeant, ...p })} ctx={ctx} qualite exposee />}
+          {avecDirigeant && <><RepriseFiche reprendre={(p) => setDirigeant({ ...dirigeant, ...p })} /><ChampsRepresentant r={dirigeant} maj={(p) => setDirigeant({ ...dirigeant, ...p })} ctx={ctx} qualite exposee /></>}
         </Rubrique>
         <Rubrique titre="Signataires"><ListeRepresentants fiche="Signataire" ajouter="+Ajouter" liste={signataires} onChange={setSignataires} ctx={ctx} qualite erreur={c.erreur} /></Rubrique>
         <Rubrique titre="Personnes liées et bénéficiaires effectifs">
           <PersonnesLiees key={c.generation} liees={c.liees} onChange={c.setLiees} effectifs={effectifs} onEffectifs={setEffectifs} controles={controles} onControles={setControles} />
         </Rubrique>
+        <Apparente valeur={apparente} onChange={setApparente} />
       </>}
 
       {c.onglet === 4 && <PhotosEtPieces key={c.generation} nature="entreprise" images={images} onChange={setImages} erreur={c.erreur} />}
@@ -653,6 +698,7 @@ export function EnrolementEntreprise() {
 
 
 export function EnrolementGroupe() {
+  const [apparente, setApparente] = useState("");
   const c = useCommun();
   const [membres, setMembres] = useState<RepresentantSaisi[]>([]);
   const [images, setImages] = useState<Images>({});
@@ -662,8 +708,8 @@ export function EnrolementGroupe() {
   return (
     <Enrolement titre="Nouveau membre : groupe" onglets={ONGLETS_MEMBRE} numero={c.cree?.numero} onglet={c.onglet} setOnglet={c.setOnglet}
       boite={c.boite} setBoite={c.setBoite}
-      enregistrer={() => c.confirmer((m) => api.tiers.creerGroupe({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id) }, membres, images),
-        () => { setMembres([]); setImages({}); })}
+      enregistrer={() => c.confirmer(async (m) => { const t = await api.tiers.creerGroupe({ ...f, premierDepot: m, liees: c.liees.map((t) => t.id) }, membres, images); await marquer(t, apparente); return t; },
+        () => { setMembres([]); setImages({}); setApparente(""); })}
       textes={["Manuel Microfina++, p. 47 : groupements, associations, ONG ; p. 50 : onglets, champs de l'onglet Informations de base, membres du groupe (Ajouter, Enregistrer), personnes liées, photo",
         "Onglet Autres renseignements et listes : comme le client physique (S37) ; Type de groupe (S14f), Catégorie de groupe (S14j), Forme juridique du groupe (S14o ; loi 004/2001, art. 2) : Paramétrage > Info de base > Client > Général ; Sensibilisateur, Gestionnaire, Commercial : Agence > Paramètre (S33)",
         "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
@@ -682,6 +728,7 @@ export function EnrolementGroupe() {
       {c.onglet === 3 && <>
         <Rubrique titre="Membres du groupe"><ListeRepresentants fiche="Membre du groupe" ajouter="Ajouter" liste={membres} onChange={setMembres} ctx={ctx} erreur={c.erreur} /></Rubrique>
         <Rubrique titre="Personnes liées"><PersonnesLiees key={c.generation} liees={c.liees} onChange={c.setLiees} /></Rubrique>
+        <Apparente valeur={apparente} onChange={setApparente} />
       </>}
 
       {c.onglet === 4 && <PhotosEtPieces key={c.generation} nature="groupe" images={images} onChange={setImages} erreur={c.erreur} />}
@@ -710,6 +757,7 @@ export function MiseAJourClient() {
   const [dirigeant, setDirigeant] = useState<RepresentantSaisi>(REPRESENTANT_VIDE);
   const [liste, setListe] = useState<RepresentantSaisi[]>([]);   // signataires ou membres
   const [images, setImages] = useState<Images>({});
+  const [apparente, setApparente] = useState("");
   const [onglet, setOnglet] = useState(0);
   const [recherche, setRecherche] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
@@ -725,7 +773,7 @@ export function MiseAJourClient() {
   const lire = async (ids: number[]) => (await Promise.all(ids.map((id) => api.tiers.lire(id)))).filter((y): y is Tiers => !!y);
 
   async function choisir(x: Tiers) {
-    setT(x); setF({ ...x }); setImages({}); setOnglet(0); setRecherche(false);
+    setT(x); setF({ ...x }); setImages({}); setApparente(x.apparente ?? ""); setOnglet(0); setRecherche(false);
     setAvecDirigeant(!!x.dirigeant);
     setDirigeant(x.dirigeant ? (({ photo: _p, specimen: _s, ...r }) => r)(x.dirigeant) : REPRESENTANT_VIDE);
     setListe((x.type === "groupe" ? x.membres : x.signataires).map(gardeRepresentant));
@@ -741,6 +789,7 @@ export function MiseAJourClient() {
       try {
         await api.tiers.modifier(t.id, d, r);
         if (Object.values(images).some(Boolean)) await api.tiers.changerSpecimen(t.id, images);   // photos et pièces de la même fiche (plan 3.2, 3.4)
+        await marquer(t, apparente, t.apparente);
         vider(); setBoite({ type: "succes", message: "Enregistré avec succès !" });
       }
       catch (x) { setBoite({ type: "erreur", message: message(x) }); }
@@ -795,7 +844,7 @@ export function MiseAJourClient() {
               {genre === "morale" && <>
                 <Rubrique titre="Dirigeant">
                   <label className="case"><input type="checkbox" checked={avecDirigeant} onChange={(e) => setAvecDirigeant(e.target.checked)} /><span>Renseigner Dirigeant</span></label>
-                  {avecDirigeant && <ChampsRepresentant r={dirigeant} maj={(p) => setDirigeant({ ...dirigeant, ...p })} ctx={ctx} qualite exposee />}
+                  {avecDirigeant && <><RepriseFiche reprendre={(p) => setDirigeant({ ...dirigeant, ...p })} /><ChampsRepresentant r={dirigeant} maj={(p) => setDirigeant({ ...dirigeant, ...p })} ctx={ctx} qualite exposee /></>}
                 </Rubrique>
                 <Rubrique titre="Signataires"><ListeRepresentants fiche="Signataire" ajouter="+Ajouter" liste={liste} onChange={setListe} ctx={ctx} qualite erreur={erreur} /></Rubrique>
               </>}
@@ -804,6 +853,7 @@ export function MiseAJourClient() {
                 <PersonnesLiees liees={liees} onChange={setLiees} {...(genre === "morale" ? { effectifs, onEffectifs: setEffectifs, controles, onControles: setControles } : {})} />
               </Rubrique>
               {genre === "physique" && <Rubrique titre="Héritiers désignés"><Beneficiaires liste={f.beneficiaires ?? []} onChange={(l) => maj({ beneficiaires: l })} filiations={ctx.listesFiche.filiation ?? []} /></Rubrique>}
+              <Apparente valeur={apparente} onChange={setApparente} />
             </>}
             {nom === "Photos et pièces" && <PhotosEtPieces nature={genre === "morale" ? "entreprise" : genre} images={images} onChange={setImages} erreur={erreur} />}
           </fieldset>

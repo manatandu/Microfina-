@@ -561,6 +561,8 @@ export function InformationsClient() {
           {liste("Héritiers désignés", (t.beneficiaires ?? []).map((b) => `${personne(b)}${b.filiation ? ` (${b.filiation})` : ""}`))}
           {liste("Personnes liées", (t.liees ?? []).map((x) => detail?.noms[x] ?? ""))}
           {liste("Bénéficiaires effectifs", (t.beneficiairesEffectifs ?? []).map((x) => detail?.noms[x] ?? ""))}
+          {t.apparente && liste("Apparenté à l'institution", [({ actionnaire: "Actionnaire ou membre fondateur", administrateur: "Administrateur", dirigeant: "Dirigeant", personnel: "Personnel",
+            famille: "Famille au premier degré", societe_liee: "Société liée", contrat: "Lié par un contrat" } as Record<string, string>)[t.apparente] ?? t.apparente])}
         </>}
         {t && onglet === 3 && <div className="formulaire">
           {t.type === "morale" ? <>{image("Copie des statuts", detail?.images.copiePiece)}{image("Copie du registre", detail?.images.justificatifAdresse)}</> : <>

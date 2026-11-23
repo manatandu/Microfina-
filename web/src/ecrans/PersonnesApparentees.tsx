@@ -7,10 +7,10 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, Chargement, Dialogue, Fiche, Lecture, Paginee, Textes, type Boite } from "../composants";
 import { RechercheClient } from "./Visa";
 
-const LIENS = [["actionnaire", "Actionnaire ou membre fondateur"], ["administrateur", "Administrateur"], ["dirigeant", "Dirigeant"], ["personnel", "Personnel"],
+export const LIENS_APPARENTE = [["actionnaire", "Actionnaire ou membre fondateur"], ["administrateur", "Administrateur"], ["dirigeant", "Dirigeant"], ["personnel", "Personnel"],
   ["famille", "Famille au premier degré d'une de ces personnes"], ["societe_liee", "Société liée à l'institution ou à une de ces personnes"],
   ["contrat", "Lié par un contrat de garantie croisée ou d'affaires"]] as const;
-const libelle = (k: string) => LIENS.find(([x]) => x === k)?.[1] ?? k;
+const libelle = (k: string) => LIENS_APPARENTE.find(([x]) => x === k)?.[1] ?? k;
 const nomComplet = (t: Tiers) => t.intitule || [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
 
 export default function PersonnesApparentees() {
@@ -34,7 +34,7 @@ export default function PersonnesApparentees() {
           <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
           <Champ libelle="Client">{(p) => <Lecture {...p} value={t ? nomComplet(t) : ""} />}</Champ>
           <Champ libelle="Lien *">{(p) => <select {...p} className="saisie" value={lien} onChange={(e) => setLien(e.target.value)}><option value=""></option>
-            {LIENS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ>
+            {LIENS_APPARENTE.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ>
         </div>
         <div className="actions-onglets"><button className="bouton" type="button" disabled={!t || !lien} onClick={() => t && marquer(t.id, lien, "Voulez-vous vraiment enregistrer ?")}>Enregistrer</button></div>
       </fieldset>

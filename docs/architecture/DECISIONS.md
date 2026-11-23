@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1014 décisions.** Solidité : 467 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1005 déjà en place, 9 à appliquer.
+**1015 décisions.** Solidité : 468 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1006 déjà en place, 9 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -431,6 +431,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S37-10 | Un seul enrôlement, cinq onglets communs | « Nouveau membre » remplace les trois enrôlements : la première question est la nature (personne physique, entreprise, groupe). Mêmes onglets, même ordre : Informations de base, Identité, Adresse et activité, Personnes, Photos et pièces ; seuls Identité et Personnes changent selon la nature. L'onglet Personnes réunit une rubrique par rôle (personnes liées, héritiers désignés ; dirigeant, signataires, bénéficiaires effectifs ; membres du groupe). Photos et pièces : un cadre par document dans les trois natures, statuts et registre déposés dès l'enrôlement pour l'entreprise. S38 et S39 sortent du menu. | Choix du porteur : Plan d'allègement, points 3.1, 3.3 et 3.4 (accord du porteur, 22/11/2026) ; Instr. BCC 15, art. 12 à 18 (toutes les mentions restent) ; art. 17 a (copies dès l'entrée en relation) | forte | en place |
+
+## S37, S46 Onglet Personnes
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S37-11 | Fiche existante d'abord ; apparenté dans la fiche | Un dirigeant, un signataire ou un membre du groupe se cherche d'abord parmi les fiches existantes (« Reprendre une fiche existante » : identité, pièce et adresse reprises), sinon se saisit avec la même fiche d'identité. L'onglet Personnes porte aussi la rubrique « Apparenté à l'institution » (actionnaire ou fondateur, administrateur, dirigeant, personnel, famille, société liée, contrat), lue par le crédit pour ses plafonds ; la fiche du membre l'affiche. | Texte réglementaire : Instr. BCC 15, art. 16 (représentants identifiés comme des clients), 17 b et 18 ; Instr. BCC 002, art. 25 à 27 ; plan d'allègement, points 3.3, 3.12 et 3.16 ; registre CR-3 | forte | en place |
 
 ## S49 Photo et signature
 

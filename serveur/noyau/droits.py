@@ -158,7 +158,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/conformite/incidents(/\d+/traitement)?", ["SC06"]),
     (r"/credit/engagements(/\d+/fin)?", ["S100"]),
     (r"/credit/litigieux/\d+/(prorogation|contentieux|cloture)", ["SL01"]),
-    (r"/conformite/apparentes/\d+", ["SC01"]),
+    (r"/conformite/apparentes/\d+", ["SC01", "S37", "S46"]),   # marqué dans la fiche (plan 3.3)
     (r"/guichet/adhesions", ["S73"]),
     (r"/operations/\d+/(visa|refus)", ["S82", "S74", "S73", "S77", "S113"]),
     (r"/parametrage/frais.*", ["S16"]),
