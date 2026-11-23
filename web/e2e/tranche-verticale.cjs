@@ -756,7 +756,6 @@ const OUT = process.argv[2];
   const cherche = async (bouton, nom) => { await p.getByRole('button', { name: bouton }).click(); const r = p.getByRole('dialog', { name: "Recherche d'un client" });
     await r.getByLabel('Nom:', { exact: true }).fill(nom); await r.getByRole('row').filter({ hasText: nom }).click(); };
   await cherche('Rechercher le client du crédit', 'Kalala');
-  await p.getByRole('cell', { name: 'Épargne obligatoire' }).waitFor();   // bloquée au déblocage, elle se lit dans le tableau
   await p.getByRole('button', { name: 'Ajouter une caution' }).click(); const fCaution = p.getByRole('dialog', { name: /Ajouter une caution/ });
   await cherche('Rechercher la caution', 'Mwamba');
   await fCaution.getByLabel('Compte: *').selectOption({ label: '0412-000319-02' }); await fCaution.getByLabel('Montant caution *').fill('10 000');
@@ -789,12 +788,9 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: 'Chèque sans provision' }).waitFor(); await etape('11j-liste-rouge');
   await p.getByLabel('Motif: *').fill('Régularisé'); await p.getByRole('button', { name: 'Retirer' }).click(); await oui();
   await p.getByRole('cell', { name: 'Aucune ligne.' }).waitFor();
-  // Génération de balance âgée (S98, p. 120) : Date lancement (la journée), Lancer la balance âgée, confirmation
-  await aller('/credit/s98'); await p.getByRole('button', { name: 'Lancer la balance âgée' }).click();
-  await succes(/Opération effectuée avec succès en \d+ seconde/); await etape('11k-balance-agee');
-  // Déclassement et provisions (S99, p. 121) : Charger crédits (balance âgée du jour), cocher, Provisionner (crédit sain : rien à passer)
-  await aller('/credit/s99'); await p.getByRole('button', { name: 'Charger crédits' }).click();
-  await p.getByRole('cell', { name: '0412/L001/00001', exact: true }).waitFor(); await p.getByLabel('Cocher 0412/L001/00001').check(); await etape('11l-provisions');
+  // Balance âgée et provisions (S98 et S99, p. 120 et 121 ; plan 6.13) : calculer la balance au jour, la liste, l'état des provisions, Provisionner (crédit sain : rien à passer)
+  await aller('/credit/s99'); await p.getByRole('button', { name: 'Calculer' }).click();
+  await p.getByRole('cell', { name: '0412/L001/00001', exact: true }).waitFor(); await p.getByText(/État des provisions au/).waitFor(); await etape('11l-provisions');
   await p.getByRole('button', { name: 'Provisionner', exact: true }).click(); await ok();
   // Engagement par signature (S100, p. 121) : caution de Mwamba, frais 1 % plus forfait, garantie bloquée ; Imprimer l'acte
   await aller('/credit/s100'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
@@ -1301,8 +1297,7 @@ const OUT = process.argv[2];
   await aller('/epargne/s68'); await p.getByRole('button', { name: 'Intérêts courus' }).click(); const dic = p.getByRole('dialog', { name: 'Intérêts courus sur dépôts à terme' });
   await dic.getByRole('button', { name: 'Calculer' }).click(); await dic.getByText('Intérêts courus au').waitFor(); await dic.getByRole('button', { name: 'Valider' }).waitFor(); await etape('30b-interets-dat');
   await dic.getByRole('button', { name: 'Fermer' }).click();
-  await aller('/budget/s127'); await p.getByRole('heading', { name: 'État des provisions de crédits' }).waitFor(); await etape('30c-cloture-credit');
-  await p.getByRole('tab', { name: 'Comptabilité' }).click(); await p.getByRole('heading', { name: 'Clôture comptable' }).waitFor();
+  await aller('/budget/s127'); await p.getByRole('heading', { name: 'Clôture comptable' }).waitFor();   // l'état des provisions est au Crédit (plan 6.13)
   await p.getByRole('region', { name: 'Clôture comptable' }).getByRole('button', { name: 'Afficher' }).click(); await p.getByText('Soldes de gestion de l\'exercice').waitFor(); await etape('30d-cloture-comptable');
   // Affectation du résultat (A1 ; loi 002/2002, art. 59, 1° ; Instr. BCC 002, art. 19 à 21) : l'exercice 2026 n'est pas encore clôturé
   await p.getByRole('region', { name: 'Affectation du résultat' }).getByRole('button', { name: 'Afficher' }).click();

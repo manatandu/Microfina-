@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1072 décisions.** Solidité : 505 fortes (le manuel ou un texte répond), 485 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1060 déjà en place, 12 à appliquer.
+**1073 décisions.** Solidité : 505 fortes (le manuel ou un texte répond), 486 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1061 déjà en place, 12 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1742,6 +1742,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S99-5 | Date et écritures | Date pas après la journée ouverte, ni avant le dernier provisionnement du crédit ; refus si le crédit a été remboursé après la date (relancer la balance) ; écritures au journal OD de la journée ouverte | Règle générale du manuel : Règle générale du manuel, p. 7 à 12 ; S98-4 | moyenne | en place |
 | S99-6 | Radier par anticipation | Seulement au 31 décembre et seulement un crédit irrécupérable ; provision portée à 100 % d'abord ; perte 6910 (6911 pour la part non provisionnée) contre le compte 390 ; reprise de la provision en 7902 ; suivi en hors bilan, 0612 contre 096 ; statut passé en perte | Texte réglementaire : Instr. BCC 003, art. 9 et 10 ; PCCI, comptes 691, 790 et hors bilan 06, 096 ; CR-18 | forte | en place |
 | S99-7 | Remboursement après déclassement | Le capital remboursé sort du compte qui le porte : le compte sain, ou le compte 390 après déclassement (change S76-7) | Texte réglementaire : PCCI, compte 39 (crédité du montant remboursé) | forte | en place |
+
+## S98 et S99 Balance âgée et provisions
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| S99-8 | Un écran | « Génération de balance âgée » (S98) et « Déclassement et provisions » (S99) deviennent « Balance âgée et provisions » : « Calculer la balance âgée au … » et Calculer lance la balance de la date puis montre la liste des crédits et l'état des provisions (capture p. 163, avec Imprimer) ; un seul Provisionner, pour tous les crédits (la seconde façon, crédits cochés, disparaît) ; « Radier par anticipation » devient « Passer en perte (31 décembre, crédits irrécupérables) », qui prend tous les irrécupérables de la balance. L'état des provisions quitte Clôture (S127) et Calculs (S128) ; qui lançait la balance ou lisait cet état reçoit le droit S99. | Écran voisin : Plan d'allègement, point 6.13 ; Instr. BCC 003, art. 9, 10, 12 et 14 | moyenne | en place |
 
 ## D02 Refonte visuelle v1.0
 

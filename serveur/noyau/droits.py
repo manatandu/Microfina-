@@ -24,7 +24,7 @@ def codes() -> set[str]:
 
 
 # Droits des quatre profils de départ (registre S04-2) : les écrans que chaque rôle tenait déjà
-DROITS_DEPART = {"chef_agence": ["S08", "S09", "S10", "S11", "S11b", "S11c", "S12", "S121", "S13", "S14", "S15", "S16", "S19", "S20", "S21", "S22", "S23", "S26", "S27", "S30", "S31", "S32", "S33", "S34", "S35", "S36", "S37", "S40", "S43", "S44", "S46", "S47", "S48", "S49", "S51", "S57", "S58", "S59", "S66", "S67", "S68", "S69", "S70", "S71", "S72", "S80", "S87", "S88", "S90", "S91", "S92", "S93", "S95", "SC01", "SC02", "SC03", "SE01", "SC04", "SC06", "SL01", "SP01", "S82", "S83", "S111", "S113", "S114", "S142", "S143", "S135"], "caissier": ["SC03", "S09", "S43", "S64", "S73", "S74", "S75", "S76", "S77", "S78", "S79", "S81", "S82", "S83"], "agent_credit": ["SC02", "SC03", "SC04", "SL01", "S100", "S101", "S37", "S43", "S44", "S46", "S47", "S49", "S51", "S63", "S64", "S65", "S68", "S69", "S72", "S84", "S85", "S86", "S87", "S88", "S89", "S90", "S91", "S92", "S93", "S94", "S95", "S96", "S97", "S98", "S99"], "comptable": ["SF01", "S68", "SE02", "SE03", "S90", "S91", "S92", "S93", "S95", "S102", "S103", "S104", "S105", "S106", "S142", "S107", "S108", "S109", "S110", "S111", "S112", "S113", "S114", "S115", "S116", "S117", "S118", "S119", "S120", "S121", "S122", "S123", "S124", "S125", "S126", "S127", "S143", "S128", "SN01", "S52", "S53", "S54", "S55", "S56", "S57", "S58", "S59", "S60", "S61", "S62", "S131", "S132", "S133", "S134", "S135", "S136", "S137", "S138", "S139", "S140"], "administrateur": ["S03", "S04", "S05", "S06", "S07", "SA01"]}
+DROITS_DEPART = {"chef_agence": ["S08", "S09", "S10", "S11", "S11b", "S11c", "S12", "S121", "S13", "S14", "S15", "S16", "S19", "S20", "S21", "S22", "S23", "S26", "S27", "S30", "S31", "S32", "S33", "S34", "S35", "S36", "S37", "S40", "S43", "S44", "S46", "S47", "S48", "S49", "S51", "S57", "S58", "S59", "S66", "S67", "S68", "S69", "S70", "S71", "S72", "S80", "S87", "S88", "S90", "S91", "S92", "S93", "S95", "SC01", "SC02", "SC03", "SE01", "SC04", "SC06", "SL01", "SP01", "S82", "S83", "S111", "S113", "S114", "S142", "S143", "S135"], "caissier": ["SC03", "S09", "S43", "S64", "S73", "S74", "S75", "S76", "S77", "S78", "S79", "S81", "S82", "S83"], "agent_credit": ["SC02", "SC03", "SC04", "SL01", "S100", "S101", "S37", "S43", "S44", "S46", "S47", "S49", "S51", "S63", "S64", "S65", "S68", "S69", "S72", "S84", "S85", "S86", "S87", "S88", "S89", "S90", "S91", "S92", "S93", "S94", "S95", "S96", "S97", "S98", "S99"], "comptable": ["SF01", "S68", "SE02", "SE03", "S90", "S91", "S92", "S93", "S95", "S99", "S102", "S103", "S104", "S105", "S106", "S142", "S107", "S108", "S109", "S110", "S111", "S112", "S113", "S114", "S115", "S116", "S117", "S118", "S119", "S120", "S121", "S122", "S123", "S124", "S125", "S126", "S127", "S143", "S128", "SN01", "S52", "S53", "S54", "S55", "S56", "S57", "S58", "S59", "S60", "S61", "S62", "S131", "S132", "S133", "S134", "S135", "S136", "S137", "S138", "S139", "S140"], "administrateur": ["S03", "S04", "S05", "S06", "S07", "SA01"]}
 # Instr. BCC 008, art. 16 : la gestion des accès revient au responsable de la sécurité informatique, fonction indépendante de l'exploitation.
 # Un profil qui gère les accès (profils, droits, utilisateurs, connexions) ne porte aucun droit d'opération, et inversement. Registre T29.
 GESTION_ACCES = {"S03", "S04", "S05", "S06", "S07"}
@@ -154,7 +154,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/paie/maquette(/\d+/suppression)?", ["S134"]),
     (r"/paie/retenues", ["S135"]),
     (r"/paie/retenues/\d+/visa", ["S135"]),
-    (r"/credit/balance-agee", ["S98"]),
+    (r"/credit/balance-agee", ["S98", "S99"]),   # plan d'allègement, point 6.13 : la balance se calcule dans S99
     (r"/credit/provisions/(provisionner|tout|radiation)", ["S99"]),
     (r"/credit/provisions/decouverts/(classement|\d+/recouvrement)", ["S99"]),
     (r"/credit/provisions/radies/\d+/rentree", ["S99"]),
@@ -279,7 +279,7 @@ LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
     (r"/budget/(contexte|comptes|valeurs)", ["S124", "S125"]),
     (r"/budget/(suivi|consommation)", ["S125"]),
     (r"/autres/calculs/interets-dat", ["S68", "S128"]),   # plan d'allègement, point 5.3 : calculés et imprimés dans Dépôts à terme
-    (r"/autres/calculs/provisions", ["S127", "S128"]),
+    (r"/autres/calculs/provisions", ["S99", "S127", "S128"]),   # plan d'allègement, point 6.13 : l'état des provisions est dans S99
     (r"/autres/calculs/(tenue|interets-dav)", ["SE02"]),
     (r"/autres/calculs/.*", ["S128"]),
     (r"/autres/cloture/.*", ["S127"]),

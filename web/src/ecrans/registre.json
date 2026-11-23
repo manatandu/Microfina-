@@ -889,13 +889,14 @@
     "but": "Lancer la balance âgée à une date",
     "module": "credit",
     "priorite": "must",
-    "chemin": "/credit/s98"
+    "chemin": "/credit/s98",
+    "menu": false
   },
   {
     "id": "S99",
-    "nom": "Déclassement et provisions",
-    "acces": "Crédit > Déclassement provision/crédit",
-    "but": "Charger les crédits, provisionner, radier par anticipation",
+    "nom": "Balance âgée et provisions",
+    "acces": "Crédit > Balance âgée et provisions",
+    "but": "Calculer la balance âgée à une date, la liste et l'état des provisions, provisionner, passer en perte au 31 décembre (plan d'allègement, point 6.13)",
     "module": "credit",
     "priorite": "must",
     "chemin": "/credit/s99"
@@ -1192,7 +1193,7 @@
     "id": "S127",
     "nom": "Clôtures",
     "acces": "Autres > Clôture",
-    "but": "Crédit (état des provisions), dépôt, comptabilité",
+    "but": "Comptabilité : clôture du mois et de l'exercice, affectation du résultat (l'état des provisions est au Crédit, plan d'allègement, point 6.13)",
     "module": "budget",
     "priorite": "must",
     "chemin": "/budget/s127"
@@ -1210,7 +1211,7 @@
     "id": "S128",
     "nom": "Calculs",
     "acces": "Autres > Calculs",
-    "but": "Intérêts courus sur crédits, état des provisions",
+    "but": "Intérêts courus sur crédits (l'état des provisions est au Crédit, plan d'allègement, point 6.13)",
     "module": "budget",
     "priorite": "must",
     "chemin": "/budget/s128"

@@ -57,7 +57,6 @@ const FICHIERS: (() => Promise<unknown>)[] = [
   () => import("./RemboursementCredit"),
   () => import("./Garanties"),
   () => import("./ListeRouge"),
-  () => import("./BalanceAgee"),
   () => import("./Provisions"),
   () => import("./EngagementSignature"),
   () => import("./RapportsCredit"),
@@ -194,7 +193,6 @@ const RemboursementGuichet = paresseux(() => import("./RemboursementCredit"), "R
 const RemboursementPrelevement = paresseux(() => import("./RemboursementCredit"), "RemboursementPrelevement");
 const Garanties = paresseux(() => import("./Garanties"), "default");
 const ListeRouge = paresseux(() => import("./ListeRouge"), "default");
-const BalanceAgee = paresseux(() => import("./BalanceAgee"), "default");
 const Provisions = paresseux(() => import("./Provisions"), "default");
 const EngagementSignature = paresseux(() => import("./EngagementSignature"), "default");
 const RapportsCredit = paresseux(() => import("./RapportsCredit"), "default");
@@ -346,7 +344,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S95: ConsulterPret,
   S96: AffectationDossier,
   S97: ListeRouge,
-  S98: BalanceAgee,
+  S98: Provisions,
   S99: Provisions,
   S100: EngagementSignature,
   S101: RapportsCredit,

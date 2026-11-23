@@ -8484,7 +8484,7 @@ const finPeriode = {
     return { interets: i, frais: f };
   },
   etatProvisions(p: { date?: string }) {
-    lectureAdmin(["S127", "S128"]);
+    lectureAdmin(["S99", "S127", "S128"]);   // plan d'allègement, point 6.13
     const d = p.date ?? "";
     if (!DATE_ISO.test(d)) throw new ErreurMetier("À remplir : Balance âgée des crédits au.");
     const b = E.balancesAgees.find((x) => x.date === d);

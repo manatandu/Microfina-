@@ -3,7 +3,6 @@
 // des crédits au, Afficher, Imprimer), dépôt, comptabilité. Les fenêtres que le manuel ne montre pas suivent la famille des traitements : critères,
 // Calculer pour voir, Valider avec confirmation Oui/Non (manuel p. 11). Registre S127-1 à S127-12, S128-1 à S128-9.
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
@@ -19,13 +18,6 @@ type Dat = Awaited<ReturnType<typeof api.finPeriode.apercuInteretsDat>>;
 type Provisions = Awaited<ReturnType<typeof api.finPeriode.etatProvisions>>;
 type Cloture = Awaited<ReturnType<typeof api.finPeriode.apercuCloture>>;
 type Affectation = Awaited<ReturnType<typeof api.finPeriode.apercuAffectation>>;
-
-function Onglets({ pages, titre, defaut }: { pages: readonly (readonly [string, string])[]; titre: string; defaut: string }) {
-  const [params, setParams] = useSearchParams();
-  const page = pages.find(([k]) => k === params.get("page"))?.[0] ?? defaut;
-  return { page, barre: <div className="onglets" role="tablist" aria-label={titre}>{pages.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k}
-    onClick={() => setParams(k === defaut ? {} : { page: k })}>{l}</button>)}</div> };
-}
 
 /** Mois proposé : le dernier mois terminé à la journée ouverte, le seul qu'on puisse calculer ou clôturer (plan d'allègement, point 0.19 ; registre S127-14) */
 const moisTermine = (jour: string) => { const a = Number(jour.slice(0, 4)), m = Number(jour.slice(5, 7)); return m === 1 ? { exercice: String(a - 1), mois: "12" } : { exercice: String(a), mois: String(m - 1) }; };
@@ -131,24 +123,15 @@ function InteretsCredits({ jour }: { jour: string }) {
     {t.dialogue}</section>;
 }
 
-/** Capture p. 163 : « Balance âgée des crédits au », Afficher, Imprimer ; Dégré, Terme, Encours, Retard, Provisions, Compte capital, Compte provision débit, crédit */
-function EtatProvisions({ jour, cloture }: { jour: string; cloture: boolean }) {
-  const [d, setD] = useState(jour);
-  const [r, setR] = useState<Provisions | null>(null);
-  const t = useTraitement();
-  const afficher = async () => { try { setR(await (cloture ? api.finPeriode.provisionsCloture : api.finPeriode.etatProvisions)({ date: d })); } catch (x) { t.erreur(x); } };
-  return <section className="bloc pile" aria-label="État des provisions de crédits"><h2>État des provisions de crédits</h2>
-    <fieldset className="cadre-champs formulaire"><legend className="sr-only">Date</legend>
-      <ChampDate libelle="Balance âgée des crédits au :" valeur={d} onChange={(v) => { setD(v); setR(null); }} /></fieldset>
-    <div className="actions-onglets"><button className="bouton" type="button" onClick={afficher}>Afficher</button>
-      <button className="bouton secondaire" type="button" disabled={!r} onClick={() => window.print()}>Imprimer</button></div>
-    {r && <table className="grille"><caption>Provisions au {fr(r.date)}</caption>
-      <thead><tr><th scope="col">Degré</th><th scope="col">Terme</th><th scope="col">Devise</th><th scope="col" className="num">Encours</th><th scope="col" className="num">Retard</th>
-        <th scope="col" className="num">Taux</th><th scope="col" className="num">Provisions</th><th scope="col">Compte capital</th><th scope="col">Compte provision débit</th><th scope="col">Compte provision crédit</th></tr></thead>
-      <tbody>{r.lignes.map((x, i) => <tr key={i}><td>{x.degre}</td><td>{x.terme}</td><td>{x.devise}</td><td className="num chiffres">{n(x.encours)}</td><td className="num chiffres">{n(x.retard)}</td>
-        <td className="num chiffres">{x.taux} %</td><td className="num chiffres">{n(x.provisions)}</td><td className="code">{x.compteCapital}</td><td className="code">{x.compteProvisionDebit}</td>
-        <td className="code">{x.compteProvisionCredit}</td></tr>)}</tbody></table>}
-    {t.dialogue}</section>;
+/** Capture p. 163 : l'état des provisions de crédits (Dégré, Terme, Encours, Retard, Provisions, Compte capital, Compte provision débit, crédit) ; il se lit
+ *  dans Crédit > Balance âgée et provisions (plan d'allègement, point 6.13) */
+export function TableProvisions({ r }: { r: Provisions }) {
+  return <table className="grille"><caption>État des provisions au {fr(r.date)}</caption>
+    <thead><tr><th scope="col">Degré</th><th scope="col">Terme</th><th scope="col">Devise</th><th scope="col" className="num">Encours</th><th scope="col" className="num">Retard</th>
+      <th scope="col" className="num">Taux</th><th scope="col" className="num">Provisions</th><th scope="col">Compte capital</th><th scope="col">Compte provision débit</th><th scope="col">Compte provision crédit</th></tr></thead>
+    <tbody>{r.lignes.map((x, i) => <tr key={i}><td>{x.degre}</td><td>{x.terme}</td><td>{x.devise}</td><td className="num chiffres">{n(x.encours)}</td><td className="num chiffres">{n(x.retard)}</td>
+      <td className="num chiffres">{x.taux} %</td><td className="num chiffres">{n(x.provisions)}</td><td className="code">{x.compteCapital}</td><td className="code">{x.compteProvisionDebit}</td>
+      <td className="code">{x.compteProvisionCredit}</td></tr>)}</tbody></table>;
 }
 
 function Controles({ titre, liste }: { titre: string; liste: Cloture["controles"] }) {
@@ -247,23 +230,17 @@ function useCadreCloture() {
 }
 
 // Frais de tenue, intérêts sur DAV et leur passage groupé : Épargne > Fin de mois (point 5.6) ; intérêts courus des DAT : Dépôts à terme (point 5.3)
-const PAGES_CALCULS = [["provisions", "État des provisions de crédits"], ["credits", "Intérêts courus sur crédits"]] as const;
+// L'état des provisions de crédits : Crédit > Balance âgée et provisions (point 6.13)
 export function Calculs() {
-  const o = Onglets({ pages: PAGES_CALCULS, titre: "Calculs", defaut: "provisions" });
   const cadre = useCadre();
   if (!cadre) return <Chargement />;
-  const jour = cadre.j?.date ?? new Date().toISOString().slice(0, 10);
-  return <>{o.barre}
-    {o.page === "provisions" && <EtatProvisions jour={jour} cloture={false} />}{o.page === "credits" && <InteretsCredits jour={jour} />}</>;
+  return <InteretsCredits jour={cadre.j?.date ?? new Date().toISOString().slice(0, 10)} />;
 }
 
-const PAGES_CLOTURE = [["credit", "Crédit"], ["comptabilite", "Comptabilité"]] as const;   // « Dépôt » : intérêts courus des DAT, dans Dépôts à terme (point 5.3)
+// « Dépôt » : intérêts courus des DAT, dans Dépôts à terme (point 5.3) ; « Crédit » : l'état des provisions, dans Crédit > Balance âgée et provisions (point 6.13)
 export function Clotures() {
-  const o = Onglets({ pages: PAGES_CLOTURE, titre: "Clôture", defaut: "credit" });
   const cadre = useCadreCloture();
   if (!cadre) return <Chargement />;
   const jour = cadre.j?.date ?? new Date().toISOString().slice(0, 10);
-  return <><h2>Clôture</h2>{o.barre}
-    {o.page === "credit" && <EtatProvisions jour={jour} cloture />}
-    {o.page === "comptabilite" && <><ClotureComptable ctx={cadre.ctx} jour={jour} /><AffectationResultat jour={jour} /></>}</>;
+  return <><ClotureComptable ctx={cadre.ctx} jour={jour} /><AffectationResultat jour={jour} /></>;
 }

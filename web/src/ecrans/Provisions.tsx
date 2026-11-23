@@ -1,5 +1,4 @@
-// S99 : Crédit > Déclassement provision et crédit (manuel Microfina++, p. 121, capture « Déclassement et provisionnement de crédit ») : Provisionner tous
-// les crédits ; Date Opération * ; Charger crédits, Radier par anticipation, Provisionner ; grille à cocher. Registre S99-1 à S99-6, CR-17, CR-18 ;
+// S98 et S99 : Crédit > Balance âgée et provisions (manuel Microfina++, p. 120 et 121 ; plan d'allègement, point 6.13). Registre S98-1 à S99-7, CR-16 à CR-18 ;
 // Instr. BCC 003, art. 6, 9, 10, 12 et 13 ; PCCI, comptes 38, 39, 690, 691, 790 et hors bilan 06.
 import { useState } from "react";
 import { api } from "../donnees/api";
@@ -7,65 +6,67 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, LigneFiltres, Paginee, Textes, type Boite } from "../composants";
+import { TableProvisions } from "./FinPeriode";
 
 type Ligne = Awaited<ReturnType<typeof api.provisions.charger>>[number];
+type Etat = Awaited<ReturnType<typeof api.finPeriode.etatProvisions>>;
 
+/** S99 : Balance âgée et provisions (plan d'allègement, point 6.13) : calculer la balance âgée à une date (S98), la liste des crédits et l'état des provisions,
+ *  un seul Provisionner pour tous ; passage en perte des irrécupérables au 31 décembre seulement (Instr. BCC 003, art. 9, 10, 12 et 14) */
 export default function Provisions() {
   const { donnees: j } = useDonnees(() => api.journees.courante());
   const [date, setDate] = useState<string | null>(null);
   const [l, setL] = useState<Ligne[] | null>(null);
-  const [coches, setCoches] = useState<number[]>([]);
+  const [etat, setEtat] = useState<Etat | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   if (j === undefined) return <Chargement />;
   const d = date ?? j?.date ?? "";
   const erreur = (x: unknown) => setBoite({ type: "erreur", message: message(x) });
-  async function charger() {
-    try { setL(await api.provisions.charger(d)); setCoches([]); } catch (x) { erreur(x); }
+  const relire = async () => { setL(await api.provisions.charger(d)); setEtat(await api.finPeriode.etatProvisions({ date: d })); };
+  async function calculer() {
+    try { await api.balanceAgee.lancer({ date: d }); await relire(); } catch (x) { erreur(x); }
   }
-  function agir(question: string, f: () => Promise<{ lignes: Ligne[] }>) {
+  function agir(question: string, f: () => Promise<unknown>) {
     setBoite({ type: "confirmation", message: question, oui: async () => {
-      try { setL((await f()).lignes); setCoches([]); setBoite({ type: "succes", message: "Opération effectuée avec succès !" }); } catch (x) { erreur(x); }
+      try { await f(); await relire(); setBoite({ type: "succes", message: "Opération effectuée avec succès !" }); } catch (x) { erreur(x); }
     } });
   }
   const lignes = l ?? [];
-  const tous = lignes.length > 0 && lignes.every((x) => coches.includes(x.id));
+  const perte = lignes.filter((x) => x.irrecuperable).map((x) => x.id);
   return (
     <>
-      <h2>Déclassement et provisionnement de crédit</h2>
-      <section className="bloc pile" aria-label="Déclassement et provisionnement de crédit">
-        <div className="actions-onglets">
-          <button className="bouton secondaire" type="button" onClick={() => agir("Voulez-vous vraiment provisionner tous les crédits ?", () => api.provisions.tout({ date: d }))}>Provisionner tous les crédits</button>
+      <section className="bloc pile" aria-label="Balance âgée et provisions">
+        <div className="ligne-champ">
+          <ChampDate libelle="Calculer la balance âgée au : *" valeur={d} onChange={(x) => { setDate(x); setL(null); setEtat(null); }} requis />
+          <button className="bouton" type="button" onClick={calculer}>Calculer</button>
         </div>
-        <fieldset className="cadre-champs formulaire"><legend className="sr-only">Date</legend>
-          <ChampDate libelle="Date Opération : *" valeur={d} onChange={(x) => { setDate(x); setL(null); setCoches([]); }} requis />
-        </fieldset>
-        <div className="actions-onglets">
-          <button className="bouton secondaire" type="button" onClick={charger}>Charger crédits</button>
-          <button className="bouton secondaire" type="button" onClick={() => agir("Voulez-vous vraiment passer en perte les crédits cochés ?", () => api.provisions.radier({ date: d, credits: coches }))}>Radier par anticipation</button>
-          <button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment provisionner les crédits cochés ?", () => api.provisions.provisionner({ date: d, credits: coches }))}>Provisionner</button>
-        </div>
-        <Paginee lignes={lignes} colonnes={(x) => [null, x.numero, x.client, montant(x.montant, x.devise as Devise), fr(x.dateDeblocage), montant(x.capitalRestant, x.devise as Devise), String(x.joursRetard), x.degre, `${x.taux} %`, montant(x.provisionRequise, x.devise as Devise), montant(x.provision, x.devise as Devise)]}>{(v) => (<div className="defile-x"><table className="grille">
-          <thead><tr><th scope="col"><input type="checkbox" aria-label="Tout cocher" checked={tous} onChange={(e) => setCoches(e.target.checked ? lignes.map((x) => x.id) : [])} /></th>
-            <th scope="col">N° crédit</th><th scope="col">Client</th><th scope="col" className="num">Montant prêt</th><th scope="col">Date déblocage</th>
-            <th scope="col" className="num">Capital Restant</th><th scope="col" className="num">Jours de retard</th><th scope="col">Degré</th><th scope="col" className="num">Taux</th>
-            <th scope="col" className="num">Provision requise</th><th scope="col" className="num">Provision constituée</th></tr>
-            <LigneFiltres titres={[null, "N° crédit", "Client", null, null, null, null, null, null, null, null]} /></thead>
-          <tbody>{v.length === 0 && <tr><td colSpan={11}>Aucune ligne.</td></tr>}
-            {v.map((x) => <tr key={x.id}><td><input type="checkbox" aria-label={`Cocher ${x.numero}`} checked={coches.includes(x.id)}
-              onChange={(e) => setCoches(e.target.checked ? [...coches, x.id] : coches.filter((y) => y !== x.id))} /></td>
-              <td className="code">{x.numero}</td><td>{x.client}</td><td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td className="chiffres">{fr(x.dateDeblocage)}</td>
-              <td className="num chiffres">{montant(x.capitalRestant, x.devise as Devise)}</td><td className="num chiffres">{x.joursRetard}</td><td>{x.degre}</td>
-              <td className="num chiffres">{x.taux} %</td><td className="num chiffres">{montant(x.provisionRequise, x.devise as Devise)}</td>
-              <td className="num chiffres">{montant(x.provision, x.devise as Devise)}</td></tr>)}</tbody>
-        </table></div>)}</Paginee>
+        {l && <>
+          <Paginee lignes={lignes} colonnes={(x) => [x.numero, x.client, montant(x.montant, x.devise as Devise), fr(x.dateDeblocage), montant(x.capitalRestant, x.devise as Devise), String(x.joursRetard), x.degre, `${x.taux} %`, montant(x.provisionRequise, x.devise as Devise), montant(x.provision, x.devise as Devise)]}>{(v) => (<div className="defile-x"><table className="grille">
+            <thead><tr><th scope="col">N° crédit</th><th scope="col">Client</th><th scope="col" className="num">Montant prêt</th><th scope="col">Date déblocage</th>
+              <th scope="col" className="num">Capital Restant</th><th scope="col" className="num">Jours de retard</th><th scope="col">Degré</th><th scope="col" className="num">Taux</th>
+              <th scope="col" className="num">Provision requise</th><th scope="col" className="num">Provision constituée</th></tr>
+              <LigneFiltres titres={["N° crédit", "Client", null, null, null, null, null, null, null, null]} /></thead>
+            <tbody>{v.length === 0 && <tr><td colSpan={10}>Aucune ligne.</td></tr>}
+              {v.map((x) => <tr key={x.id}><td className="code">{x.numero}</td><td>{x.client}</td><td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td className="chiffres">{fr(x.dateDeblocage)}</td>
+                <td className="num chiffres">{montant(x.capitalRestant, x.devise as Devise)}</td><td className="num chiffres">{x.joursRetard}</td><td>{x.degre}</td>
+                <td className="num chiffres">{x.taux} %</td><td className="num chiffres">{montant(x.provisionRequise, x.devise as Devise)}</td>
+                <td className="num chiffres">{montant(x.provision, x.devise as Devise)}</td></tr>)}</tbody>
+          </table></div>)}</Paginee>
+          {etat && <TableProvisions r={etat} />}
+          <div className="actions-onglets">
+            <button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment provisionner tous les crédits ?", () => api.provisions.tout({ date: d }))}>Provisionner</button>
+            <button className="bouton secondaire" type="button" disabled={perte.length === 0}
+              onClick={() => agir("Voulez-vous vraiment passer en perte les crédits irrécupérables ?", () => api.provisions.radier({ date: d, credits: perte }))}>Passer en perte (31 décembre, crédits irrécupérables)</button>
+            <button className="bouton secondaire" type="button" onClick={() => window.print()}>Imprimer</button>
+          </div>
+        </>}
         <ComptesCourantsDebiteurs />
         <CreancesRadiees />
-        <Textes sources={["Manuel Microfina++, p. 121 : 10-Déclassement Provision/Crédit, capture sans texte (Provisionner tout les crédits, Date Opération, Charger crédits, Radier par anticipation, Provisionner)",
-          "Registre CR-21b, CR-19 : avant de provisionner un crédit en retard, son dépôt nanti (épargne obligatoire, dépôt de garantie) paie l'échu par compensation, la pénalité d'abord (loi 11/020, art. 48) ; les intérêts non réglés d'un crédit litigieux sont suivis en hors bilan, 0630 contre 096 (Instr. BCC 003, art. 11)",
-          "Registre S99-1 à S99-6 : crédits de la balance âgée de la date (S98) ; capital déclassé au compte 390 de la tranche ; provision au taux de la tranche au compte 380, dotation 6902, reprise 7902 ; radiation d'un irrécupérable au 31 décembre seulement, perte 6910 (6911 au-delà de la provision), suivi en hors bilan 0612 contre 096",
-          "Instr. BCC 003, art. 6, 9, 10 et 12 : sain assimilé impayé ; irrécupérable au-delà de 12 mois, passé en perte à la clôture du bilan au 31 décembre et suivi en hors bilan ; provisions mensuelles 5, 25, 50, 75 et 100 % du capital restant dû",
-          "PCCI : comptes 38 (provisions sur crédits en retard), 39 (créances en retard), 690, 691, 790 ; hors bilan 06 et 096 (créances annulées à recouvrer)",
-          "Instr. BCC 003, art. 7, al. 2 ; PCCI, fiche du compte 33 : le compte courant débiteur sans versement depuis plus de 30 jours est un crédit douteux ; son solde est viré au compte 39 et provisionné (registre T84, T86)"]} />
+        <Textes sources={["Manuel Microfina++, p. 120 (génération de balance âgée) et p. 121 (déclassement et provisionnement) ; plan d'allègement, point 6.13 : un écran",
+          "Registre CR-21b, CR-19 : avant de provisionner un crédit en retard, son dépôt nanti paie l'échu par compensation (loi 11/020, art. 48) ; intérêts non réglés d'un crédit litigieux en hors bilan, 0630 contre 096 (Instr. BCC 003, art. 11)",
+          "Registre S99-1 à S99-6 : capital déclassé au compte 390 de la tranche ; provision au compte 380, dotation 6902, reprise 7902 ; passage en perte d'un irrécupérable au 31 décembre seulement, perte 6910 (6911 au-delà de la provision), hors bilan 0612 contre 096",
+          "Instr. BCC 003, art. 2 à 10, 12 et 14 : classement des crédits ; irrécupérable au-delà de 12 mois, passé en perte à la clôture du bilan au 31 décembre ; provisions mensuelles 5, 25, 50, 75 et 100 % du capital restant dû",
+          "Instr. BCC 003, art. 7, al. 2 ; PCCI, fiche du compte 33 : le compte courant débiteur sans versement depuis plus de 30 jours est un crédit douteux (registre T84, T86)"]} />
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
