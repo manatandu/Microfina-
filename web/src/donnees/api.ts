@@ -2299,14 +2299,14 @@ const depotsTerme = {
   produits() {
     exiger();
     return E.produits.filter((p) => p.actif && !p.supprime && p.categorie === "DAT").sort((a, b) => a.code.localeCompare(b.code))
-      .map((p) => ({ id: p.id, code: p.code, libelle: p.libelle, devise: p.devise, compteLie: p.compteLie ?? "" }));
+      .map((p) => ({ id: p.id, code: p.code, libelle: p.libelle, devise: p.devise, compteLie: p.compteLie ?? "", tauxInteret: p.tauxInteret || "0", tauxNegociable: !!p.tauxNegociable }));   // point 5.2
   },
   liste(statut: "" | DepotTerme["statut"] = "") {
     exiger();
     return E.depotsTerme.filter((x) => !statut || x.statut === statut).sort((a, b) => a.certificat - b.certificat).map(vueDat);
   },
   mettreEnPlace(d: { cle: string; produitId?: number; tiersId?: number; compteEmetteurId?: number; compteDatId?: number; montant: number; duree: number;
-    tauxInteret: string; tauxPenalite: string; aEcheance: boolean; dateDepot: string; observation: string; reconduction: boolean }) {
+    tauxInteret?: string; tauxPenalite: string; aEcheance: boolean; dateDepot: string; observation: string; reconduction: boolean }) {
     const u = exiger();
     const prec = E.depotsTerme.find((x) => x.cle === d.cle);
     if (prec) return vueDat(prec);
@@ -2320,13 +2320,18 @@ const depotsTerme = {
     controlerStatutActif(t.statut);
     controlerGel(t.id);   // écart E10
     const compte = (id: number | undefined, nom: string) => { const c = E.comptes.find((x) => x.id === id && x.tiersId === t.id); if (!c) throw new ErreurMetier(`À remplir : ${nom}.`); return c; };
-    const em = compte(d.compteEmetteurId, "N° Compte (compte émetteur)"), dat = compte(d.compteDatId, "Compte DAT");
+    const em = compte(d.compteEmetteurId, "N° Compte (compte émetteur)");
+    // Plan d'allègement, point 5.2 : le compte DAT du client sur ce produit se prend d'office, ou s'ouvre dans le même geste (mêmes contrôles qu'en S63)
+    const datId = d.compteDatId ?? E.comptes.find((c) => c.tiersId === t.id && !c.closLe && duProduit(c, p))?.id ?? comptesEpargne.ouvrir({ cle: `${d.cle}-dat`, tiersId: t.id, produitId: p.id }).id;
+    const dat = compte(datId, "Compte DAT");
     if (!duProduit(dat, p)) throw new ErreurMetier("Compte DAT : un compte du produit choisi (Épargne > Nouveau compte).");
     if (duProduit(em, p) || em.id === dat.id) throw new ErreurMetier("N° Compte : le compte émetteur est un autre compte que le compte DAT.");
     if (em.devise !== p.devise) throw new ErreurMetier(`N° Compte : le compte émetteur doit être en ${p.devise}, comme le produit.`);
     if (!Number.isInteger(d.montant) || d.montant <= 0) throw new ErreurMetier("Montant : un montant supérieur à zéro.");
     if (!Number.isInteger(d.duree) || d.duree < 1) throw new ErreurMetier("Durée (Mois) : au moins 1 mois.");   // aucune durée maximale dans les textes (S65-8)
-    const ti = lireTaux(d.tauxInteret, "Taux intérêt", 100), tp = lireTaux(d.tauxPenalite, "Taux pénalité", 101);
+    const tp = lireTaux(d.tauxPenalite, "Taux pénalité", 101), tauxProduit = (p.tauxInteret || "0").replace(",", ".");   // le taux vient du produit (point 5.2)
+    const ti = d.tauxInteret?.trim() ? lireTaux(d.tauxInteret, "Taux intérêt", 100) : tauxProduit;
+    if (!p.tauxNegociable && Number(ti) !== Number(tauxProduit)) throw new ErreurMetier(`Taux intérêt : ${String(Number(tauxProduit)).replace(".", ",")} %, le taux du produit (taux non négociable).`);   // registre T142
     const depot = d.dateDepot?.trim() || j.date;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(depot)) throw new ErreurMetier("À remplir : Date de dépôt.");
     if (depot > j.date) throw new ErreurMetier("La date de dépôt ne peut pas dépasser la journée ouverte.");
@@ -9795,6 +9800,7 @@ const CHAMPS_EPARGNE: Record<string, [string, "texte" | "entier" | "montant" | "
   tenueCompte: ["Tenu de compte", "ouiNon"], calculerInteret: ["Calculer interêt", "ouiNon"], soldeNegatif: ["Solde négatif", "ouiNon"],
   repartitionGroupe: ["Repartition groupe obligatoire", "ouiNon"],
   tauxInteret: ["Taux intérêt", "taux"],   // registre S27-5 (décision du porteur, 19/11/2026)
+  tauxNegociable: ["Taux négociable", "oui"],   // registre T142 (plan d'allègement, point 5.2)
 };
 const OBLIGATOIRES_EPARGNE = ["numero", "code", "famille", "libelle", "devise", "soldeMinimum", "nbMaxComptes", "operer", "depotCheque", "caution", "nantissement",
   "calculerInteret", "soldeNegatif", "repartitionGroupe"];

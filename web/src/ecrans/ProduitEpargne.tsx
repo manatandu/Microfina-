@@ -9,7 +9,7 @@ type Saisie = Record<string, string | boolean | null>;
 const VIDE: Saisie = {
   numero: "", code: "", famille: "", libelle: "", devise: "", soldeMinimum: "", retraitMaxJour: "", nbMaxComptes: "",
   afficherAdhesion: false, actif: false, virementPrelevement: false,
-  operer: true, depotCheque: false, caution: false, nantissement: false, tenueCompte: false, soldeNegatif: false, repartitionGroupe: false, tauxInteret: "",
+  operer: true, depotCheque: false, caution: false, nantissement: false, tenueCompte: false, soldeNegatif: false, repartitionGroupe: false, tauxInteret: "", tauxNegociable: false,
   nature: "", compteLie: "",
 };
 // Nature du produit : elle donne le compte du PCCI d'office, modifiable vers un sous-compte (plan d'allègement, point 2.17)
@@ -67,6 +67,7 @@ export default function GestionProduitsEpargne() {
             {texte("retraitMaxJour", "Max retrait/jour:", "saisie code")}
             {texte("nbMaxComptes", "Max compte à créer *", "saisie code")}
             {texte("tauxInteret", "Taux intérêt (%) :", "saisie code")}
+            {f.nature === "DAT" && <div className="ligne-champ">{case_("tauxNegociable", "Taux négociable")}</div>}
             <div className="ligne-champ">{case_("afficherAdhesion", "Afficher à l'adhésion")}{case_("actif", "Actif")}{case_("virementPrelevement", "Virement prélèvement")}</div>
           </div>
           <div className="pile">

@@ -541,6 +541,7 @@ export interface ProduitEpargne extends Produit {
   afficherAdhesion: boolean; actif: boolean; virementPrelevement: boolean; operer: boolean; depotCheque: boolean; caution: boolean; nantissement: boolean;
   tenueCompte: boolean | null; calculerInteret: boolean; soldeNegatif: boolean; repartitionGroupe: boolean; supprime: boolean;
   tauxInteret?: string;   // registre S27-5 : taux du produit, affiché au plan d'épargne (S69)
+  tauxNegociable?: boolean;   // registre T142 : taux du DAT négociable selon la politique de l'institution
   categorie?: "Epargne" | "Courant" | "DAT" | "Bloqué" | null; compteLie?: string | null; typesClient?: number[];   // S28
 }
 

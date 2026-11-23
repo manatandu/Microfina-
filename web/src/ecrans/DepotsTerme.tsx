@@ -15,7 +15,7 @@ import { valeur as valeurCritere } from "../lib/rapports";
 type Dat = Awaited<ReturnType<typeof api.depotsTerme.liste>>[number];
 type Contrat = Awaited<ReturnType<typeof api.depotsTerme.contrat>>;
 const nomComplet = (t: Tiers) => t.intitule || [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
-const VIDE = { produit: "", compte: "", dat: "", montant: "", duree: "", ti: "", tp: "", aEcheance: false, depot: "", observation: "", reconduction: false };
+const VIDE = { produit: "", compte: "", montant: "", duree: "", ti: "", tp: "", aEcheance: false, depot: "", observation: "", reconduction: false };
 
 export function MiseEnPlaceDat() {
   const { donnees } = useDonnees(async () => ({ produits: await api.depotsTerme.produits(), j: await api.journees.courante() }));
@@ -29,13 +29,15 @@ export function MiseEnPlaceDat() {
   const [benef, setBenef] = useState<Beneficiaire[] | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees: comptes } = useDonnees(() => (t ? api.tiers.comptes(t.id) : Promise.resolve([])), [t?.id]);
+  // Plan d'allègement, point 5.2 : le compte DAT se prend d'office ; s'il n'existe pas, son numéro est celui qu'ouvrira l'enregistrement
+  const { donnees: nouveauDat } = useDonnees(() => (t && f.produit ? api.comptesEpargne.apercu(t.id, Number(f.produit)).then((a) => a.numero, () => "") : Promise.resolve("")), [t?.id, f.produit]);
   if (!donnees) return <Chargement />;
   const maj = (p: Partial<typeof VIDE>) => { setF((x) => ({ ...x, ...p })); setFait(null); };
   const jour = donnees.j && donnees.j.statut === "ouverte" ? donnees.j.date : "";
   const p = donnees.produits.find((x) => String(x.id) === f.produit);
   const duProduit = (c: { intitule: string; devise: string }) => !!p && c.intitule === p.libelle && c.devise === p.devise;
   const emetteurs = (comptes ?? []).filter((c) => p && !duProduit(c) && c.devise === p.devise);
-  const comptesDat = (comptes ?? []).filter((c) => duProduit(c));
+  const compteDat = (comptes ?? []).find((c) => duProduit(c))?.numero ?? nouveauDat ?? "";
   const em = emetteurs.find((c) => String(c.id) === f.compte);
   const dev = (p?.devise ?? "CDF") as Devise;
   const m = f.montant.trim() ? lireMontant(f.montant) : null, mois = /^\d{1,3}$/.test(f.duree) ? Number(f.duree) : 0;
@@ -54,7 +56,7 @@ export function MiseEnPlaceDat() {
     } });
   }
   function enregistrer() {
-    const d = { cle, produitId: p?.id, tiersId: t?.id, compteEmetteurId: f.compte ? Number(f.compte) : undefined, compteDatId: f.dat ? Number(f.dat) : undefined,
+    const d = { cle, produitId: p?.id, tiersId: t?.id, compteEmetteurId: f.compte ? Number(f.compte) : undefined,
       montant: m ?? 0, duree: mois, tauxInteret: f.ti, tauxPenalite: f.tp, aEcheance: f.aEcheance, dateDepot: depot, observation: f.observation, reconduction: f.reconduction };
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try { setFait(await api.depotsTerme.mettreEnPlace(d)); setCle(nouvelleCle()); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
@@ -73,13 +75,14 @@ export function MiseEnPlaceDat() {
         <div className="grille-deux">
           <fieldset className="pile cadre-champs">
             <legend>Infos de base</legend>
-            <Champ libelle="Produit : *">{(pp) => <select {...pp} className="saisie" value={f.produit} onChange={(e) => maj({ produit: e.target.value, compte: "", dat: "" })}>
-              <option value=""></option>{donnees.produits.map((x) => <option key={x.id} value={x.id}>{x.libelle} ({x.code})</option>)}</select>}</Champ>
             <div className="ligne-champ">
               <Champ libelle="N° du Client :">{(pp) => <input {...pp} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
               <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
             </div>
             <Champ libelle="Intitulé du compte :">{(pp) => <Lecture {...pp} value={t ? nomComplet(t) : ""} />}</Champ>
+            <Champ libelle="Produit : *">{(pp) => <select {...pp} className="saisie" value={f.produit} onChange={(e) => maj({ produit: e.target.value, compte: "",
+              ti: donnees.produits.find((x) => String(x.id) === e.target.value)?.tauxInteret ?? "" })}>
+              <option value=""></option>{donnees.produits.map((x) => <option key={x.id} value={x.id}>{x.libelle} ({x.code})</option>)}</select>}</Champ>
             <Champ libelle="N° Compte :">{(pp) => <select {...pp} className="saisie" value={f.compte} disabled={!t || !p} onChange={(e) => maj({ compte: e.target.value })}>
               <option value="">{!t ? "Choisir d'abord le client" : !p ? "Choisir d'abord le produit" : ""}</option>{emetteurs.map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
             <p>Solde : <strong className="chiffres">{em && em.solde !== null && em.solde !== undefined ? montant(em.disponible ?? em.solde, dev) : "0"}</strong></p>
@@ -89,13 +92,12 @@ export function MiseEnPlaceDat() {
             {fait ? <p>Certificat N° : <strong className="chiffres">{String(fait.certificat).padStart(6, "0")}</strong></p> : null}
             <Champ libelle="Montant : *">{(pp) => <input {...pp} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.montant} onChange={(e) => maj({ montant: e.target.value })} />}</Champ>
             <Champ libelle="Durée (Mois) : *">{(pp) => <input {...pp} className="saisie code" inputMode="numeric" autoComplete="off" value={f.duree} onChange={(e) => { if (/^\d{0,3}$/.test(e.target.value)) maj({ duree: e.target.value }); }} />}</Champ>
-            <Champ libelle="Taux intérêt (%) :">{(pp) => <input {...pp} className="saisie code" inputMode="decimal" autoComplete="off" value={f.ti} onChange={(e) => maj({ ti: e.target.value })} />}</Champ>
+            <Champ libelle="Taux intérêt (%) :">{(pp) => <input {...pp} className="saisie code" inputMode="decimal" autoComplete="off" readOnly={!p?.tauxNegociable} value={f.ti} onChange={(e) => maj({ ti: e.target.value })} />}</Champ>
             <Champ libelle="Taux pénalité (%) :">{(pp) => <input {...pp} className="saisie code" inputMode="decimal" autoComplete="off" value={f.tp} onChange={(e) => maj({ tp: e.target.value })} />}</Champ>
           </fieldset>
           <fieldset className="pile cadre-champs">
             <legend>Intérêt</legend>
-            <Champ libelle="Compte DAT :">{(pp) => <select {...pp} className="saisie" value={f.dat} onChange={(e) => maj({ dat: e.target.value })}>
-              <option value=""></option>{comptesDat.map((c) => <option key={c.id} value={c.id}>{c.numero}</option>)}</select>}</Champ>
+            <Champ libelle="Compte DAT :">{(pp) => <Lecture {...pp} value={compteDat} />}</Champ>
             <p>Montant intérêt : <strong className="chiffres">{montant(interet, dev)}</strong></p>
             <p>Montant à verser : <strong className="chiffres">{montant((m ?? 0) + interet, dev)}</strong></p>
             <Champ libelle="Date de dépôt">{(p) => <input {...p} className="saisie date" readOnly value={fr(depot)} />}</Champ>
@@ -119,7 +121,7 @@ export function MiseEnPlaceDat() {
       </section>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif") : [])}
-          choisir={(x) => { setT(x); maj({ compte: "", dat: "" }); setRecherche(false); }} fermer={() => setRecherche(false)} />
+          choisir={(x) => { setT(x); maj({ compte: "" }); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>
       <FicheBeneficiaires lignes={benef} fermer={() => setBenef(null)} />
       <Fiche titre="Liste DAT" ouverte={!!liste} fermer={() => setListe(null)}>

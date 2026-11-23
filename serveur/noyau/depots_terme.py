@@ -46,8 +46,9 @@ def compte_interet(mois: int) -> str:
 def produits(u) -> list[dict]:
     """Liste Produit : les produits d'épargne actifs rangés dans l'onglet DAT (S28)"""
     exiger(u)
-    return lignes("""select id, code, libelle, trim(devise) as devise, coalesce(compte_lie, '') as "compteLie" from produit_epargne
-                     where institution_id = %s and actif and not supprime and categorie_compte = 'DAT' order by code""", (u["institution_id"],))
+    rows = lignes("""select id, code, libelle, trim(devise) as devise, coalesce(compte_lie, '') as "compteLie", taux_interet, taux_negociable as "tauxNegociable"
+                     from produit_epargne where institution_id = %s and actif and not supprime and categorie_compte = 'DAT' order by code""", (u["institution_id"],))
+    return [{**{k: v for k, v in r.items() if k != "taux_interet"}, "tauxInteret": pct(r["taux_interet"] or Decimal(0))} for r in rows]   # plan d'allègement, point 5.2
 
 
 def disponible(compte_id: int, devise: str) -> int:
@@ -94,6 +95,13 @@ def mettre_en_place(u, d) -> dict:
             raise ErreurMetier(f"À remplir : {nom}.")
         return c
     em = compte("compteEmetteurId", "N° Compte (compte émetteur)")
+    if d.get("compteDatId") is None:
+        # Plan d'allègement, point 5.2 : le compte DAT du client sur ce produit se prend d'office, ou s'ouvre dans le même geste (mêmes contrôles qu'en S63)
+        cid = valeur("select id from compte_depot where tiers_id = %s and produit_id = %s and statut = 'ouvert' order by id limit 1", (t["id"], p["id"]))
+        if cid is None:
+            from .comptes_epargne import ouvrir
+            cid = ouvrir(u, {"cle": str(uuid.uuid5(uuid.UUID(cle), "compte-dat")), "tiersId": t["id"], "produitId": p["id"]})["id"]
+        d = {**d, "compteDatId": cid}
     dat = compte("compteDatId", "Compte DAT")
     if dat["produit_id"] != p["id"]:
         raise ErreurMetier("Compte DAT : un compte du produit choisi (Épargne > Nouveau compte).")
@@ -107,7 +115,11 @@ def mettre_en_place(u, d) -> dict:
     mois = d.get("duree")
     if not isinstance(mois, int) or isinstance(mois, bool) or mois < 1:
         raise ErreurMetier("Durée (Mois) : au moins 1 mois.")      # aucune durée maximale dans les textes (registre S65-8)
-    ti, tp = taux(d, "tauxInteret", "Taux intérêt", 100), taux(d, "tauxPenalite", "Taux pénalité", 101)
+    tp = taux(d, "tauxPenalite", "Taux pénalité", 101)
+    taux_produit = p["taux_interet"] or Decimal(0)    # le taux vient du produit (plan d'allègement, point 5.2)
+    ti = taux(d, "tauxInteret", "Taux intérêt", 100) if texte(d, "tauxInteret") else taux_produit
+    if not p["taux_negociable"] and ti != taux_produit:   # registre T142 : négociable seulement si le produit le permet
+        raise ErreurMetier(f"Taux intérêt : {pct(taux_produit)} %, le taux du produit (taux non négociable).")
     depot = texte(d, "dateDepot") or j["date"]
     if not re.match(r"^\d{4}-\d{2}-\d{2}$", depot):
         raise ErreurMetier("À remplir : Date de dépôt.")

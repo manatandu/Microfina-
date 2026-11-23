@@ -20,6 +20,7 @@ CHAMPS = {
     "soldeNegatif": ("solde_negatif", "Solde négatif", "ouiNon"), "repartitionGroupe": ("repartition_groupe", "Repartition groupe obligatoire", "ouiNon"),
     # Registre S27-5 (décision du porteur, 19/11/2026) : le taux du produit, affiché au plan d'épargne (S69, capture p. 79)
     "tauxInteret": ("taux_interet", "Taux intérêt", "taux"),
+    "tauxNegociable": ("taux_negociable", "Taux négociable", "oui"),   # registre T142 : politique de l'institution, produit par produit (plan d'allègement, point 5.2)
 }
 OBLIGATOIRES = ["numero", "code", "famille", "libelle", "devise", "soldeMinimum", "nbMaxComptes", "operer", "depotCheque", "caution", "nantissement",
                 "calculerInteret", "soldeNegatif", "repartitionGroupe"]

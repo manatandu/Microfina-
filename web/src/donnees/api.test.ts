@@ -442,7 +442,7 @@ describe("journée de guichet", () => {
   it("retenues à reverser (écart E16) : état du mois, échéance du 15 du mois suivant, reversement noté", async () => {
     await journeeOuverte(); await connecter("jpmukendi");
     await api.produitsEpargne.enregistrer({ numero: 6, code: "DAT", famille: "EPARGNE", libelle: "Dépôt à terme", devise: "CDF", soldeMinimum: 0, nbMaxComptes: 1,
-      operer: true, depotCheque: false, caution: false, nantissement: false, calculerInteret: true, soldeNegatif: false, repartitionGroupe: false, actif: true });
+      operer: true, depotCheque: false, caution: false, nantissement: false, calculerInteret: true, soldeNegatif: false, repartitionGroupe: false, actif: true, tauxNegociable: true });
     const pdat = (await api.produitsEpargne.lire()).produits.find((x) => x.code === "DAT")!;
     await api.parametrageEpargne.enregistrer({ onglet: "DAT", produitId: pdat.id, compteLie: "340" });
     await connecter("bkasongo");
@@ -1537,7 +1537,7 @@ describe("journée de guichet", () => {
     await connecter("jpmukendi");
     await api.journees.ouvrir("2026-11-05");
     await api.produitsEpargne.enregistrer({ numero: 6, code: "DAT", famille: "EPARGNE", libelle: "Dépôt à terme", devise: "CDF", soldeMinimum: 0, nbMaxComptes: 1,
-      operer: true, depotCheque: false, caution: false, nantissement: false, calculerInteret: true, soldeNegatif: false, repartitionGroupe: false, actif: true });
+      operer: true, depotCheque: false, caution: false, nantissement: false, calculerInteret: true, soldeNegatif: false, repartitionGroupe: false, actif: true, tauxNegociable: true });
     const pdat = (await api.produitsEpargne.lire()).produits.find((x) => x.code === "DAT")!;
     await api.parametrageEpargne.enregistrer({ onglet: "DAT", produitId: pdat.id, compteLie: "340" });
     await connecter("bkasongo");
@@ -1567,7 +1567,7 @@ describe("journée de guichet", () => {
     await journeeOuverte();
     await connecter("jpmukendi");
     await api.produitsEpargne.enregistrer({ numero: 6, code: "DAT", famille: "EPARGNE", libelle: "Dépôt à terme", devise: "CDF", soldeMinimum: 0, nbMaxComptes: 1,
-      operer: true, depotCheque: false, caution: false, nantissement: false, calculerInteret: true, soldeNegatif: false, repartitionGroupe: false, actif: true });
+      operer: true, depotCheque: false, caution: false, nantissement: false, calculerInteret: true, soldeNegatif: false, repartitionGroupe: false, actif: true, tauxInteret: "7,5" });
     const pdat = (await api.produitsEpargne.lire()).produits.find((x) => x.code === "DAT")!;
     await connecter("bkasongo");
     await expect(api.depotsTerme.produits()).resolves.toEqual([]);   // pas encore rangé dans l'onglet DAT
@@ -1582,6 +1582,7 @@ describe("journée de guichet", () => {
     await expect(api.depotsTerme.mettreEnPlace({ ...base, cle: cle(), compteDatId: em.id })).rejects.toThrow("Compte DAT");
     await expect(api.depotsTerme.mettreEnPlace({ ...base, cle: cle(), duree: 0 })).rejects.toThrow("Durée");
     await expect(api.depotsTerme.mettreEnPlace({ ...base, cle: cle(), tauxInteret: "abc" })).rejects.toThrow("Taux intérêt");
+    await expect(api.depotsTerme.mettreEnPlace({ ...base, cle: cle(), tauxInteret: "8" })).rejects.toThrow("non négociable");   // registre T142
     await expect(api.depotsTerme.mettreEnPlace({ ...base, cle: cle(), montant: em.solde + 1 })).rejects.toThrow("disponible insuffisant");
     const k = cle(), x = await api.depotsTerme.mettreEnPlace({ ...base, cle: k });
     expect([x.certificat, x.statut, x.montantInteret, x.montantAVerser, x.dateEcheance, x.compteInteret]).toEqual([1, "saisie", 75000, 1075000, "2027-11-05", "6122"]);
@@ -3572,7 +3573,7 @@ describe("journée de guichet", () => {
     // DAT : 1 000 000 à 7,5 %, 92 jours = 18 904 d'intérêts courus, repris à la rupture
     await connecter("jpmukendi");
     await api.produitsEpargne.enregistrer({ numero: 6, code: "DAT", famille: "EPARGNE", libelle: "Dépôt à terme", devise: "CDF", soldeMinimum: 0, nbMaxComptes: 1,
-      operer: true, depotCheque: false, caution: false, nantissement: false, calculerInteret: true, soldeNegatif: false, repartitionGroupe: false, actif: true });
+      operer: true, depotCheque: false, caution: false, nantissement: false, calculerInteret: true, soldeNegatif: false, repartitionGroupe: false, actif: true, tauxNegociable: true });
     const pdat = (await api.produitsEpargne.lire()).produits.find((x) => x.code === "DAT")!;
     await api.parametrageEpargne.enregistrer({ onglet: "DAT", produitId: pdat.id, compteLie: "340" });
     await connecter("bkasongo");

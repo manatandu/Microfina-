@@ -2896,7 +2896,8 @@ def test_depot_terme(clients, journee):
     """S65, S66 (manuel p. 75 et 76) : mise en place, calculs, validation par une autre personne, écriture du compte émetteur au compte DAT (PCCI 340)"""
     chef, agent = clients["chef"], clients["agent"]
     P = {"numero": 6, "code": "DAT", "famille": "EPARGNE", "libelle": "Dépôt à terme", "devise": "CDF", "soldeMinimum": 0, "nbMaxComptes": 1,
-         "operer": True, "depotCheque": False, "caution": False, "nantissement": False, "calculerInteret": True, "soldeNegatif": False, "repartitionGroupe": False, "actif": True}
+         "operer": True, "depotCheque": False, "caution": False, "nantissement": False, "calculerInteret": True, "soldeNegatif": False, "repartitionGroupe": False, "actif": True,
+         "tauxInteret": "7,5"}
     assert chef.post("/api/produits-epargne", P, **H).status_code == 200
     pid = next(x["id"] for x in chef.get("/api/produits-epargne").json()["produits"] if x["code"] == "DAT")
     assert agent.get("/api/epargne/dat/produits").json() == []
@@ -2911,6 +2912,8 @@ def test_depot_terme(clients, journee):
     assert r.status_code == 422 and "au moins 1 mois" in r.json()["message"]
     r = agent.post("/api/epargne/dat", {"cle": cle(), **base, "compteDatId": em}, **H)
     assert r.status_code == 422 and "Compte DAT" in r.json()["message"]
+    r = agent.post("/api/epargne/dat", {"cle": cle(), **base, "tauxInteret": "8"}, **H)         # registre T142 : taux du produit, non négociable ici
+    assert r.status_code == 422 and "non négociable" in r.json()["message"]
     x = agent.post("/api/epargne/dat", {"cle": cle(), **base}, **H).json()
     assert (x["certificat"], x["statut"], x["montantInteret"], x["montantAVerser"], x["dateEcheance"], x["compteInteret"]) == (1, "saisie", 75000, 1075000, "2027-11-05", "6122")
     assert agent.post(f"/api/epargne/dat/{x['id']}/validation", **H).status_code == 403
@@ -2923,7 +2926,9 @@ def test_depot_terme(clients, journee):
     assert avant - apres == 1000000
     assert ident("select sum(montant_devise) from ligne_ecriture l join compte c on c.id = l.compte_id where c.numero = '340' and l.contrat_ref = %s", (f"depot:{cdat}",)) == 1000000
     assert chef.get(f"/api/epargne/dat/{x['id']}/contrat").json()["dat"]["certificat"] == 1
-    y = agent.post("/api/epargne/dat", {"cle": cle(), **base, "montant": 50000}, **H).json()        # Annuler (S65-6)
+    sans = {k: v for k, v in base.items() if k not in ("compteDatId", "tauxInteret")}              # point 5.2 : compte DAT d'office, taux du produit
+    y = agent.post("/api/epargne/dat", {"cle": cle(), **sans, "montant": 50000}, **H).json()        # Annuler (S65-6)
+    assert (y["compteDat"], y["tauxInteret"]) == (x["compteDat"], "7,5")
     ri = agent.get(f"/api/epargne/releve?compteId={em}&du=2026-01-01&au=2026-11-05").json()
     assert ri["soldeIndicatif"] == ri["soldeComptable"] - 50000                                      # S64-2 : DAT en attente compris
     assert agent.post(f"/api/epargne/dat/{y['id']}/annulation", **H).json()["statut"] == "annule"
@@ -2961,7 +2966,7 @@ def test_dat_echeance(clients, journee):
     j, _ = journee
     chef, agent = clients["chef"], clients["agent"]
     P = {"numero": 6, "code": "DAT", "famille": "EPARGNE", "libelle": "Dépôt à terme", "devise": "CDF", "soldeMinimum": 0, "nbMaxComptes": 2,
-         "operer": True, "depotCheque": False, "caution": False, "nantissement": False, "calculerInteret": True, "soldeNegatif": False, "repartitionGroupe": False, "actif": True}
+         "operer": True, "depotCheque": False, "caution": False, "nantissement": False, "calculerInteret": True, "soldeNegatif": False, "repartitionGroupe": False, "actif": True, "tauxNegociable": True}
     assert chef.post("/api/produits-epargne", P, **H).status_code == 200
     pid = next(x["id"] for x in chef.get("/api/produits-epargne").json()["produits"] if x["code"] == "DAT")
     assert chef.post("/api/parametrage-epargne", {"onglet": "DAT", "produitId": pid, "compteLie": "340"}, **H).status_code == 200
@@ -3493,7 +3498,7 @@ def test_rapports_epargne(clients, journee):
     assert agent.get("/api/epargne/rapports/virements?du=2026-01-01&au=2026-11-05", **H).json() == []
     # Un DAT constitué : le compte émetteur et le compte DAT bougent dans la même écriture (registre S72-1)
     P = {"numero": 6, "code": "DAT", "famille": "EPARGNE", "libelle": "Dépôt à terme", "devise": "CDF", "soldeMinimum": 0, "nbMaxComptes": 1,
-         "operer": True, "depotCheque": False, "caution": False, "nantissement": False, "calculerInteret": True, "soldeNegatif": False, "repartitionGroupe": False, "actif": True}
+         "operer": True, "depotCheque": False, "caution": False, "nantissement": False, "calculerInteret": True, "soldeNegatif": False, "repartitionGroupe": False, "actif": True, "tauxNegociable": True}
     assert chef.post("/api/produits-epargne", P, **H).status_code == 200
     pid = next(x["id"] for x in chef.get("/api/produits-epargne").json()["produits"] if x["code"] == "DAT")
     assert chef.post("/api/parametrage-epargne", {"onglet": "DAT", "produitId": pid, "compteLie": "340"}, **H).status_code == 200
@@ -3548,7 +3553,7 @@ def test_retenues_a_reverser(clients, journee):
     from noyau.bd import executer
     chef, agent, compta = clients["chef"], clients["agent"], clients["compta"]
     P = {"numero": 6, "code": "DAT", "famille": "EPARGNE", "libelle": "Dépôt à terme", "devise": "CDF", "soldeMinimum": 0, "nbMaxComptes": 1,
-         "operer": True, "depotCheque": False, "caution": False, "nantissement": False, "calculerInteret": True, "soldeNegatif": False, "repartitionGroupe": False, "actif": True}
+         "operer": True, "depotCheque": False, "caution": False, "nantissement": False, "calculerInteret": True, "soldeNegatif": False, "repartitionGroupe": False, "actif": True, "tauxNegociable": True}
     chef.post("/api/produits-epargne", P, **H)
     pid = next(x["id"] for x in chef.get("/api/produits-epargne").json()["produits"] if x["code"] == "DAT")
     chef.post("/api/parametrage-epargne", {"onglet": "DAT", "produitId": pid, "compteLie": "340"}, **H)
@@ -4847,7 +4852,7 @@ def test_calculs_et_clotures(clients, journee):
     assert clients["caisse"].post(f"{A}/calculs/tenue", q, **H).status_code == 403
     # Intérêts courus d'un DAT : 1 000 000 à 7,5 %, 92 jours sur 365 = 18 904
     P = {"numero": 6, "code": "DAT", "famille": "EPARGNE", "libelle": "Dépôt à terme", "devise": "CDF", "soldeMinimum": 0, "nbMaxComptes": 1,
-         "operer": True, "depotCheque": False, "caution": False, "nantissement": False, "calculerInteret": True, "soldeNegatif": False, "repartitionGroupe": False, "actif": True}
+         "operer": True, "depotCheque": False, "caution": False, "nantissement": False, "calculerInteret": True, "soldeNegatif": False, "repartitionGroupe": False, "actif": True, "tauxNegociable": True}
     assert chef.post("/api/produits-epargne", P, **H).status_code == 200
     pid = next(x["id"] for x in chef.get("/api/produits-epargne").json()["produits"] if x["code"] == "DAT")
     chef.post("/api/parametrage-epargne", {"onglet": "DAT", "produitId": pid, "compteLie": "340"}, **H)
