@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1015 décisions.** Solidité : 468 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1006 déjà en place, 9 à appliquer.
+**1019 décisions.** Solidité : 472 fortes (le manuel ou un texte répond), 465 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1010 déjà en place, 9 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -2251,6 +2251,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S43-5 | La porte d'entrée | On cherche le membre une fois ; la fiche montre ses onglets (identité, adresse et activité, personnes, photos et pièces, comptes, crédits, parts, procurations, historique) ; on agit par Modifier, Procurations, Résilier, qui ouvrent l'écran voulu sur le même membre (« ?tiers= »). La mise à jour (S46), les procurations (S47), la résiliation (S48), les photos (S49) et l'adhésion au guichet (S73) reçoivent ainsi le membre sans leur propre recherche ; la recherche reste pour qui y entre directement. | Choix du porteur : Plan d'allègement, point 3.8 (accord du porteur, 22/11/2026) ; manuel p. 54 (informations initiales et actuelles, gardées dans Historique) | forte | en place |
+| S43-6 | Menu Membre à cinq entrées | Le menu Membre passe à : Nouveau membre, Membres à viser, Fiche du membre, Groupes, Rapports (rapports clients, registre des membres). Mise à jour, Procurations, Résilier et Photos et signatures sortent du menu et s'ouvrent depuis la fiche du membre ; ils restent dans l'arbre des droits. La conformité a son propre menu. | Choix du porteur : Plan d'allègement, points 3.8, 3.15 et 3.17 | forte | en place |
 
 ## S45 Prospect
 
@@ -2312,6 +2313,25 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | S23-10 | Une entrée et TEG indicatif | La liste (S24), l'activation (S25) et la fiche (S23) deviennent une entrée « Produits de crédit » : la liste d'abord, une case Actif par produit (activer ou désactiver après confirmation), un clic qui ouvre la fiche, « Nouveau produit », « Liste des produits » pour revenir. La fiche affiche le TEG indicatif du produit : celui du prêt minimum et celui du prêt maximum (montant, durée, différé minimum), calculés par la simulation S84, frais, assurance et épargne obligatoire compris ; aucun pour un taux réglementé ou bonifié. | Choix du porteur : Plan d'allègement, point 2.16 (accord du porteur, 22/11/2026) ; Instr. BCC 38, art. 5, 6 et 9 ; manuel p. 37 à 39 | forte | en place |
+
+## SC01 Lutte anti-blanchiment
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| SC01-10 | Cinq onglets, filtres | L'examen renforcé devient « Lutte anti-blanchiment », cinq onglets : Examens renforcés (filtre Statut : à examiner, autorisés, refusés) ; Déclarations à la CENAREF (filtre Nature : déclarations systématiques, déclarations de soupçon, examens à déclarer) ; Vigilance (filtre Liste : personnes exposées, profils de risque, opérations atypiques) ; Gel des avoirs ; Reporting. Chaque nature de déclaration garde sa liste et sa fiche, la nature se choisit en tête plutôt qu'en colonne : la déclaration systématique se lit par mois, la déclaration de soupçon par registre. L'onglet Personnes apparentées disparaît : l'apparenté se marque dans la fiche du membre (3.3) et le crédit le lit pour ses plafonds. | Choix du porteur : Plan d'allègement, point 3.16 ; loi 22/068, art. 23 et 92 à 94 ; loi 25/048, art. 92 bis ; Instr. BCC 15, art. 28, 60 et 61 (lus) | forte | en place |
+
+## SC02 Centrales de la BCC
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| SC02-5 | Deux centrales, un écran ; ICU dans la fiche | La Centrale des incidents de paiement et la Centrale des risques (SC05) deviennent « Centrales de la BCC », un onglet chacune ; les onglets À déclarer, Déclarés, Tous deviennent un filtre État. L'identifiant client unique se note une fois, dans la fiche du membre (Mise à jour, Informations de base), se lit dans la fiche et dans la liste de la Centrale des incidents : le bouton « Noter » de la liste disparaît. | Choix du porteur : Plan d'allègement, point 3.16 ; Instr. BCC 52, art. 13 (lu : la BCC attribue ou confirme l'ICU, qui rattache tous les comptes d'une personne) | forte | en place |
+
+## SC06 Incidents et dépassements
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| T102 | Registre des incidents, alerte et traitement des dépassements (SC06 Incidents et dépassements) | Écran Client > Conformité > Incidents et dépassements (chef d'agence). Le logiciel y note lui-même les dépassements de limites qu'il constate : plafond par emprunteur ou par signature (refusé, ou couvert par une référence de la BCC) et encaisse d'un guichet au-dessus de son maximum ; la note reste même quand l'opération est refusée, et un même dépassement encore ouvert ne se note qu'une fois. Les incidents opérationnels et les déficits de trésorerie se déclarent. Chaque ligne reçoit son traitement, son auteur et sa date de régularisation. Un contrôle de clôture signale les lignes non régularisées | Texte réglementaire : Instr. BCC 008, art. 43 et 49 ; Instr. BCC 007, art. 39 ; confrontation du 21/11/2026, B17 | moyenne | en place |
+| SC06-3 | Dans l'Administration | La base des incidents de toute l'institution quitte le menu Client et rejoint l'Administration. | Choix du porteur : Plan d'allègement, point 3.16 ; Instr. BCC 008, art. 43 (lu : les incidents de toutes natures sont conservés dans une base de données prévue à cet effet) | forte | en place |
 
 ## Les décisions faibles, à regarder en premier
 

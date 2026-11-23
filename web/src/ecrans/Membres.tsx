@@ -758,6 +758,7 @@ export function MiseAJourClient() {
   const [liste, setListe] = useState<RepresentantSaisi[]>([]);   // signataires ou membres
   const [images, setImages] = useState<Images>({});
   const [apparente, setApparente] = useState("");
+  const [icu, setIcu] = useState("");   // identifiant client unique donné par la BCC (Instr. BCC 52, art. 13 ; plan 3.16)
   const [onglet, setOnglet] = useState(0);
   const [recherche, setRecherche] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
@@ -773,7 +774,7 @@ export function MiseAJourClient() {
   const lire = async (ids: number[]) => (await Promise.all(ids.map((id) => api.tiers.lire(id)))).filter((y): y is Tiers => !!y);
 
   async function choisir(x: Tiers) {
-    setT(x); setF({ ...x }); setImages({}); setApparente(x.apparente ?? ""); setOnglet(0); setRecherche(false);
+    setT(x); setF({ ...x }); setImages({}); setApparente(x.apparente ?? ""); setIcu(x.icu ?? ""); setOnglet(0); setRecherche(false);
     setAvecDirigeant(!!x.dirigeant);
     setDirigeant(x.dirigeant ? (({ photo: _p, specimen: _s, ...r }) => r)(x.dirigeant) : REPRESENTANT_VIDE);
     setListe((x.type === "groupe" ? x.membres : x.signataires).map(gardeRepresentant));
@@ -790,6 +791,7 @@ export function MiseAJourClient() {
         await api.tiers.modifier(t.id, d, r);
         if (Object.values(images).some(Boolean)) await api.tiers.changerSpecimen(t.id, images);   // photos et pièces de la même fiche (plan 3.2, 3.4)
         await marquer(t, apparente, t.apparente);
+        if (icu.trim() && icu.trim() !== (t.icu ?? "")) await api.conformite.noterIcu(t.id, { icu });
         vider(); setBoite({ type: "succes", message: "Enregistré avec succès !" });
       }
       catch (x) { setBoite({ type: "erreur", message: message(x) }); }
@@ -831,6 +833,7 @@ export function MiseAJourClient() {
                   <ChampsRelation f={f} maj={maj} morale={genre === "morale"} />
                 </div>
                 <div className="pile">
+                  <Champ libelle="ICU (BCC) :">{(p) => <input {...p} className="saisie code" autoComplete="off" value={icu} onChange={(e) => setIcu(e.target.value)} />}</Champ>
                   <SuiviCommercial f={f} maj={maj} ctx={ctx} zoneRequise={genre === "morale"} />
                   <label className="case"><input type="checkbox" checked={f.preleverAgios} onChange={(e) => maj({ preleverAgios: e.target.checked })} /><span>Prelever Agios</span></label>
                   <label className="case"><input type="checkbox" checked={f.calculerInteret} onChange={(e) => maj({ calculerInteret: e.target.checked })} /><span>Calculer intéret</span></label>

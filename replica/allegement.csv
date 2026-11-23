@@ -81,9 +81,9 @@ id,lot,titre,ecrans,statut,question,reste
 3.12,3,Groupe solidaire,S39 S44,partiel,,"Fait : les membres du groupe se reprennent des fiches existantes. Reste : un seul objet (les groupes solidaires de S44 rattachés aux fiches de groupe, forme « Groupement sans personnalité juridique »), S44 hors du menu"
 3.13,3,Résiliation,S48,fait,,
 3.14,3,Consentement à la Centrale des risques,S50,fait,,
-3.15,3,Registre des membres,SC04,partiel,,"Fait : une seule colonne « Parts libérées » (loi 002/2002, art. 21 : parts intégralement libérées). Reste : le registre rejoint les rapports (menu, 3.17)"
-3.16,3,Conformité : un menu à part,SC01 SC02 SC05 SC06,à faire,,
-3.17,3,Menu Membre,,à faire,,
+3.15,3,Registre des membres,SC04,fait,,
+3.16,3,Conformité : un menu à part,SC01 SC02 SC05 SC06,fait,,
+3.17,3,Menu Membre,S43 S46 S47 S48 S49 S51 SC04,fait,,
 4.1,4,Une seule entrée « Guichet »,,à faire,,
 4.2,4,Billetage sous le montant,,à faire,,
 4.3,4,Confirmation et reçu,,à faire,,

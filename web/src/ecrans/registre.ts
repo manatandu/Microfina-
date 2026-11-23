@@ -1,7 +1,7 @@
 import liste from "./registre.json";
 
 export type Module = "administration" | "parametrage" | "clients" | "banque" | "epargne" | "caisse" | "credit" | "comptabilite" | "budget" | "paie" | "immobilisations";
-export interface Ecran { id: string; nom: string; acces: string; but: string; module: Module; priorite: "must" | "should" | "could" | "skip"; chemin: string }
+export interface Ecran { id: string; nom: string; acces: string; but: string; module: Module; priorite: "must" | "should" | "could" | "skip"; chemin: string; menu?: false }
 
 export const ECRANS = liste as Ecran[];
 export const ecran = (id: string) => ECRANS.find((e) => e.id === id);
@@ -18,7 +18,8 @@ export interface Menu { id: string; libelle: string; groupes: { titre: string; e
 
 /** Barre de menus du module principal, dans l'ordre du manuel (figure 10 et p. 13) */
 const BARRE_PRINCIPALE: { id: string; libelle: string; ecrans: (e: Ecran) => boolean }[] = [
-  { id: "clients", libelle: "Client", ecrans: (e) => e.module === "clients" },
+  { id: "clients", libelle: "Client", ecrans: (e) => e.module === "clients" && !e.acces.startsWith("Conformité") },
+  { id: "conformite", libelle: "Conformité", ecrans: (e) => e.acces.startsWith("Conformité") },   // plan d'allègement, point 3.16
   { id: "parts", libelle: "Part sociale", ecrans: (e) => e.id === "S77" },
   { id: "banque", libelle: "Banque", ecrans: (e) => e.module === "banque" },
   { id: "epargne", libelle: "Épargne", ecrans: (e) => e.module === "epargne" },
@@ -38,25 +39,26 @@ function sousMenu(e: Ecran, libelleMenu: string): string {
   return parties.length > i + 1 ? parties[i]! : "";
 }
 
-function construire(id: string, libelle: string, ecrans: Ecran[]): Menu {
+function construire(id: string, libelle: string, ecrans: Ecran[], tous: boolean): Menu {
   const groupes = new Map<string, Ecran[]>();
-  // Un écran non repris n'apparaît ni dans les menus ni dans l'arbre des droits (plan d'allègement, point 0.24)
-  for (const e of ecrans.filter((x) => x.priorite !== "skip")) {
+  // Un écran non repris n'apparaît ni dans les menus ni dans l'arbre des droits (plan d'allègement, point 0.24) ;
+  // un écran ouvert depuis un autre (menu: false, plan 3.17) reste dans l'arbre des droits
+  for (const e of ecrans.filter((x) => x.priorite !== "skip" && (tous || x.menu !== false))) {
     const g = sousMenu(e, libelle);
     groupes.set(g, [...(groupes.get(g) ?? []), e]);
   }
   return { id, libelle, groupes: [...groupes.entries()].map(([titre, ecrans]) => ({ titre, ecrans })) };
 }
 
-export function menus(application: IdApplication): Menu[] {
-  if (application === "principal") return BARRE_PRINCIPALE.map((m) => construire(m.id, m.libelle, ECRANS.filter(m.ecrans)));
+export function menus(application: IdApplication, tous = false): Menu[] {
+  if (application === "principal") return BARRE_PRINCIPALE.map((m) => construire(m.id, m.libelle, ECRANS.filter(m.ecrans), tous));
   // Paie et Immobilisations : un menu par entrée du manuel (« Structure de base », « Personnel »…)
   const parEntree = new Map<string, Ecran[]>();
   for (const e of ECRANS.filter((x) => x.module === application)) {
     const entree = e.acces.split(">")[0]!.trim();
     parEntree.set(entree, [...(parEntree.get(entree) ?? []), e]);
   }
-  return [...parEntree.entries()].map(([libelle, ecrans]) => construire(libelle, libelle, ecrans));
+  return [...parEntree.entries()].map(([libelle, ecrans]) => construire(libelle, libelle, ecrans, tous));
 }
 
 export function applicationDe(chemin: string): IdApplication {

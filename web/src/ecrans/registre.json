@@ -316,8 +316,8 @@
   },
   {
     "id": "S43",
-    "nom": "Consulter un client",
-    "acces": "Client > Consulter client",
+    "nom": "Fiche du membre",
+    "acces": "Client > Fiche du membre",
     "but": "Voir l'état initial et l'état actuel",
     "module": "clients",
     "priorite": "must",
@@ -325,8 +325,8 @@
   },
   {
     "id": "S44",
-    "nom": "Groupe solidaire",
-    "acces": "Client > Groupe solidaire",
+    "nom": "Groupes",
+    "acces": "Client > Groupes",
     "but": "Créer un groupe solidaire et y affecter des clients",
     "module": "clients",
     "priorite": "must",
@@ -339,7 +339,8 @@
     "but": "Modifier un client",
     "module": "clients",
     "priorite": "must",
-    "chemin": "/clients/s46"
+    "chemin": "/clients/s46",
+    "menu": false
   },
   {
     "id": "S47",
@@ -348,7 +349,8 @@
     "but": "Enregistrer une procuration",
     "module": "clients",
     "priorite": "must",
-    "chemin": "/clients/s47"
+    "chemin": "/clients/s47",
+    "menu": false
   },
   {
     "id": "S48",
@@ -357,7 +359,8 @@
     "but": "Clôturer la relation",
     "module": "clients",
     "priorite": "must",
-    "chemin": "/clients/s48"
+    "chemin": "/clients/s48",
+    "menu": false
   },
   {
     "id": "S49",
@@ -366,12 +369,13 @@
     "but": "Mettre à jour photo et specimen",
     "module": "clients",
     "priorite": "must",
-    "chemin": "/clients/s49"
+    "chemin": "/clients/s49",
+    "menu": false
   },
   {
     "id": "S51",
     "nom": "Rapports clients",
-    "acces": "Client > Rapport",
+    "acces": "Client > Rapports > Rapports clients",
     "but": "Multicritère, prospects, clients modifiés",
     "module": "clients",
     "priorite": "must",
@@ -379,8 +383,8 @@
   },
   {
     "id": "SC01",
-    "nom": "Examen renforcé",
-    "acces": "Client > Conformité > Examen renforcé",
+    "nom": "Lutte anti-blanchiment",
+    "acces": "Conformité > Lutte anti-blanchiment",
     "but": "Examiner les opérations en espèces de 10 000 USD ou plus, les autoriser ou les refuser, noter la déclaration à la CENAREF (écart E01 ; loi 22/068, art. 23 ; Instr. BCC 15, art. 61 et 62)",
     "module": "clients",
     "priorite": "must",
@@ -388,8 +392,8 @@
   },
   {
     "id": "SC02",
-    "nom": "Centrale des incidents de paiement",
-    "acces": "Client > Conformité > Centrale des incidents",
+    "nom": "Centrales de la BCC",
+    "acces": "Conformité > Centrales de la BCC",
     "but": "Lister ce qui se déclare à la Centrale des incidents de paiement dans les deux jours ouvrables, noter la déclaration et l'identifiant client unique (écart E06 ; Instr. BCC 52, art. 10 à 15)",
     "module": "clients",
     "priorite": "must",
@@ -398,7 +402,7 @@
   {
     "id": "SC03",
     "nom": "Plaintes",
-    "acces": "Client > Conformité > Plaintes",
+    "acces": "Conformité > Plaintes",
     "but": "Enregistrer les plaintes avec un numéro de référence unique, y répondre dans 45 jours, rapport trimestriel (écart E07 ; Instr. BCC 39)",
     "module": "clients",
     "priorite": "must",
@@ -407,29 +411,20 @@
   {
     "id": "SC04",
     "nom": "Registre des membres",
-    "acces": "Client > Registre des membres",
+    "acces": "Client > Rapports > Registre des membres",
     "but": "Registre des membres par ordre chronologique : numéro d'adhésion, nom, pièce, adresse, profession, parts souscrites et libérées (écart E12 ; loi 002/2002, art. 67)",
     "module": "clients",
     "priorite": "must",
     "chemin": "/clients/sc04"
   },
   {
-    "id": "SC05",
-    "nom": "Centrale des risques",
-    "acces": "Client > Conformité > Centrale des risques",
-    "but": "Lister ce qui se déclare en temps réel à la Centrale des risques (octroi, remboursements, engagements par signature, modifications du client, passages en perte, radiations après trois ans d'encours nul), noter la déclaration (écart E26 ; Instr. BCC 05, annexe I, art. 1, 4 à 7 et 10)",
-    "module": "clients",
-    "priorite": "must",
-    "chemin": "/clients/sc05"
-  },
-  {
     "id": "SC06",
     "nom": "Incidents et dépassements",
-    "acces": "Client > Conformité > Incidents et dépassements",
+    "acces": "Administration > Incidents et dépassements",
     "but": "Garder les incidents (dépassements de limites notés par le logiciel, incidents opérationnels et déficits de trésorerie déclarés), alerter et tracer leur traitement (confrontation du 21/11/2026, B17 ; Instr. BCC 008, art. 43 et 49)",
-    "module": "clients",
+    "module": "administration",
     "priorite": "must",
-    "chemin": "/clients/sc06"
+    "chemin": "/administration/sc06"
   },
   {
     "id": "S52",

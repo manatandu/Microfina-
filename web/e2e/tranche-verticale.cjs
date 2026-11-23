@@ -669,7 +669,7 @@ const OUT = process.argv[2];
   };
   await depotRenforce(); await p.getByRole('dialog', { name: 'Confirmation' }).getByText(/Transmettre l'opération à la conformité/).waitFor(); await etape('10b-examen-requis');
   await p.getByRole('button', { name: 'Oui' }).click(); await succes(/Examen renforcé n° 1 demandé/);
-  await login('J.-P. Mukendi'); await aller('/clients/sc01'); await p.getByRole('heading', { name: 'Examen renforcé' }).waitFor();
+  await login('J.-P. Mukendi'); await aller('/clients/sc01'); await p.getByRole('heading', { name: 'Lutte anti-blanchiment' }).waitFor();   // plan 3.16
   await p.getByRole('row').filter({ hasText: 'Kalala' }).first().click();
   const fx = p.getByRole('dialog', { name: 'Examen renforcé n° 1' });
   await fx.getByLabel('Origine des fonds : *').fill('Recette du commerce de pagnes, semaine du 2 novembre');
@@ -679,17 +679,17 @@ const OUT = process.argv[2];
   await fx.getByRole('button', { name: 'Rapport' }).click(); await p.getByRole('article', { name: "Rapport d'examen renforcé" }).waitFor(); await etape('10d-rapport-examen');
   await p.getByRole('dialog', { name: "Rapport d'examen renforcé" }).getByRole('button', { name: 'Fermer' }).click(); await fx.getByRole('button', { name: 'Fermer' }).click();
   // Profil de risque (écart E08 ; Instr. BCC 15, art. 28) : le client visé sans évaluation est dans les revues échues ; le chef l'évalue
-  await p.getByRole('tab', { name: 'Profils de risque' }).click(); await p.getByRole('row').filter({ hasText: '0412-000318' }).first().click();
+  await p.getByRole('tab', { name: 'Vigilance' }).click(); await p.getByLabel('Liste :').selectOption('profils'); await p.getByRole('row').filter({ hasText: '0412-000318' }).first().click();
   const fr2 = p.getByRole('dialog', { name: /^Profil de risque : / });
   await fr2.getByLabel('Niveau de risque : *').selectOption('moyen'); await fr2.getByLabel('Motif : *').fill('Commerçante, dépôts réguliers, un examen renforcé autorisé');
   await fr2.getByLabel("Données d'identification revues").check(); await etape('10i-profil-risque');
   await fr2.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await fr2.getByText(/Niveau en cours : Moyen/).waitFor();
   await fr2.getByRole('button', { name: 'Fermer' }).click();
   // Déclarations systématiques (loi 22/068, art. 92 bis, al. 3 ; registre T38) : l'état du mois s'ouvre, sans erreur
-  await p.getByRole('tab', { name: 'Déclarations systématiques' }).click();
+  await p.getByRole('tab', { name: 'Déclarations à la CENAREF' }).click();
   await p.getByRole('region', { name: 'Déclarations systématiques' }).getByText(/Entrées et sorties de fonds de/).waitFor(); await etape('15z-declarations-systematiques');
   // Registre des déclarations de soupçon (loi 22/068, art. 92 à 94) : une tentative est déclarée, puis son accusé de réception est noté
-  await p.getByRole('tab', { name: 'Déclarations de soupçon' }).click(); const rs = p.getByRole('region', { name: 'Déclarations de soupçon' });
+  await p.getByLabel('Nature :', { exact: true }).selectOption('soupcons'); const rs = p.getByRole('region', { name: 'Déclarations de soupçon' });
   await rs.getByRole('button', { name: 'Nouvelle déclaration' }).click(); const fs = p.getByRole('dialog', { name: 'Nouvelle déclaration de soupçon' });
   await fs.getByLabel('Nature : *').selectOption('tentative'); await fs.getByLabel("Description de l'opération : *").fill('Retrait de 9 500 USD demandé trois jours de suite');
   await fs.getByLabel('Personnes qui y participent : *').fill('Le titulaire, seul'); await fs.getByLabel('Raisons : *').fill('Montants juste sous le seuil');
@@ -700,7 +700,7 @@ const OUT = process.argv[2];
   await ds.getByText('AR-2026-17').first().waitFor(); await etape('15y2-soupcon-accuse'); await ds.getByRole('button', { name: 'Fermer' }).click();
   await rs.getByRole('cell', { name: 'Accusé AR-2026-17' }).waitFor();
   // Opérations atypiques (écart E09 ; Instr. BCC 15, art. 31 et 36) : le chef fixe les critères, analyse une alerte, ouvre le rapport
-  await p.getByRole('tab', { name: 'Opérations atypiques' }).click(); const ra = p.getByRole('region', { name: 'Opérations atypiques' });
+  await p.getByRole('tab', { name: 'Vigilance' }).click(); await p.getByLabel('Liste :').selectOption('atypiques'); const ra = p.getByRole('region', { name: 'Opérations atypiques' });
   await ra.getByText('Aucun critère fixé.').waitFor(); await ra.getByRole('button', { name: 'Critères' }).click();
   const fc = p.getByRole('dialog', { name: 'Critères des opérations atypiques' });
   await fc.getByLabel("Montant d'un mouvement égal ou supérieur à (USD) :").fill('10'); await fc.getByLabel("Nombre de mouvements d'un compte dans la journée, au moins :").fill('3');
@@ -738,7 +738,7 @@ const OUT = process.argv[2];
   await login('Patrick Lumbala'); await aller('/comptabilite/sf01'); await p.getByRole('article', { name: 'État des retenues du mois' }).waitFor(); await etape('10r-retenues');
   await login('J.-P. Mukendi');
   // Centrale des incidents de paiement (écart E06) : les ouvertures et nouveaux clients du jour à déclarer, avec leur échéance
-  await aller('/clients/sc02'); await p.getByRole('heading', { name: 'Centrale des incidents de paiement' }).waitFor(); await p.getByRole('cell', { name: 'Nouveau client' }).first().waitFor();
+  await aller('/clients/sc02'); await p.getByRole('heading', { name: 'Centrales de la BCC' }).waitFor(); await p.getByRole('cell', { name: 'Nouveau client' }).first().waitFor();
   await etape('10f-centrale-incidents');
   // Plainte (écart E07 ; Instr. BCC 39) : enregistrée avec sa référence unique, accusé de réception remis au client
   await aller('/clients/sc03'); await p.getByRole('heading', { name: 'Plaintes' }).waitFor();
@@ -832,7 +832,7 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: 'Indicateur de Gestion' }).click(); await p.getByLabel('Du', { exact: true }).fill('01/11/2026'); await p.getByLabel('Au', { exact: true }).fill('05/11/2026');
   await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('cell', { name: 'Portefeuille à Risque' }).waitFor(); await etape('11p-indicateur-gestion');
   // Centrale des risques (écart E26, Instr. BCC 05, annexe I) : octroi, engagement à déclarer ; Tout choisir, Noter la déclaration
-  await aller('/clients/sc05'); await p.getByRole('cell', { name: 'Octroi de crédit' }).first().waitFor(); await etape('11q-centrale-risques');
+  await aller('/clients/sc02'); await p.getByRole('tab', { name: 'Centrale des risques' }).click(); await p.getByRole('cell', { name: 'Octroi de crédit' }).first().waitFor(); await etape('11q-centrale-risques');
   await p.getByRole('button', { name: 'Tout choisir' }).click(); await p.getByRole('button', { name: 'Noter la déclaration' }).click();
   await p.getByLabel('Référence : *').fill('CR-2026-0001'); await p.getByRole('dialog', { name: 'Déclaration à la Centrale des risques' }).getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('cell', { name: 'Aucune ligne.' }).waitFor();
@@ -925,7 +925,7 @@ const OUT = process.argv[2];
   await p.getByText('Solde au début').waitFor();
   await p.getByRole('table', { name: 'Opérations pas encore comptabilisées' }).getByRole('cell', { name: 'Encaissement divers' }).first().waitFor(); await etape('06c17-rapport-banque');
   // Incidents et dépassements (SC06 ; Instr. BCC 008, art. 43 et 49) : le chef déclare un incident, puis le traite et le régularise
-  await login('J.-P. Mukendi'); await aller('/clients/sc06'); await p.getByRole('heading', { name: 'Incidents et dépassements' }).waitFor();
+  await login('J.-P. Mukendi'); await aller('/administration/sc06'); await p.getByRole('heading', { name: 'Incidents et dépassements' }).waitFor();
   await p.getByLabel('Type : *').selectOption({ label: 'Incident opérationnel' }); await p.getByLabel('Description : *').fill("Coupure du réseau de l'agence");
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: "Coupure du réseau de l'agence" }).waitFor(); await etape('11q2-incidents');

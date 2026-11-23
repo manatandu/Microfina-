@@ -5715,7 +5715,7 @@ function evenementsCr(au: string) {
 }
 const centraleRisques = {
   evenements(du: string, au: string, statut = "") {
-    lectureAdmin(["SC05"]);
+    lectureAdmin(["SC02"]);
     for (const [v, nom] of [[du, "Du"], [au, "Au"]] as const) if (!/^\d{4}-\d{2}-\d{2}$/.test(v ?? "")) throw new ErreurMetier(`À remplir : ${nom}.`);
     if (!["", "a_declarer", "declare"].includes(statut)) throw new ErreurMetier("Statut inconnu.");
     const jour = journees.courante()?.date ?? new Date().toISOString().slice(0, 10);

@@ -29,8 +29,7 @@ const FICHIERS: (() => Promise<unknown>)[] = [
   () => import("./NouveauCompte"),
   () => import("./ReleveCompte"),
   () => import("./ExamenRenforce"),
-  () => import("./CentraleIncidents"),
-  () => import("./CentraleRisques"),
+  () => import("./CentralesBcc"),
   () => import("./Incidents"),
   () => import("./Litigieux"),
   () => import("./Comptabilisation"),
@@ -159,8 +158,7 @@ const RapportsBanque = paresseux(() => import("./RapportsBanque"), "RapportsBanq
 const NouveauCompte = paresseux(() => import("./NouveauCompte"), "NouveauCompte");
 const ReleveCompte = paresseux(() => import("./ReleveCompte"), "ReleveCompte");
 const ExamenRenforce = paresseux(() => import("./ExamenRenforce"), "default");
-const CentraleIncidents = paresseux(() => import("./CentraleIncidents"), "default");
-const CentraleRisques = paresseux(() => import("./CentraleRisques"), "default");
+const CentralesBcc = paresseux(() => import("./CentralesBcc"), "default");
 const Incidents = paresseux(() => import("./Incidents"), "default");
 const Litigieux = paresseux(() => import("./Litigieux"), "default");
 const Comptabilisation = paresseux(() => import("./Comptabilisation"), "default");
@@ -324,10 +322,9 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S71: BlocageCompte,
   S72: RapportsEpargne,
   SC01: ExamenRenforce,
-  SC02: CentraleIncidents,
+  SC02: CentralesBcc,
   SC03: Plaintes,
   SC04: RegistreMembres,
-  SC05: CentraleRisques,
   SC06: Incidents,
   SL01: Litigieux,
   SP01: ConditionsBanque,

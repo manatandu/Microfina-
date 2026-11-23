@@ -17,33 +17,33 @@ S13,Rapport des transactions,22,A,rapport,définition d'une opération et d'une 
 S14,Général : secteur d'activité,23,A,liste,Modifier et Supprimer,G:p.12,2 Paramétrage,oui
 S14a,Général : Type d'activité,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S14 (secteur parent), S37 à S39",2 Paramétrage,oui
 S14b,Général : Profession,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37",2 Paramétrage,oui
-S14c,Général : Catégorie,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37 à S39, S15 (élément Categorie)",2 Paramétrage,oui
-S14d,Général : Type de pièce,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37 à S39, S59 (pièce du déposant)",2 Paramétrage,oui
-S14e,Général : Civilité,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37",2 Paramétrage,oui
-S14f,Général : Type de groupe,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S39",2 Paramétrage,oui
-S14g,Général : Type client,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S16, S23, S37 à S39",2 Paramétrage,oui
-S14h,Général : Sous type de client,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S16 (frais par sous type)",2 Paramétrage,oui
+S14c,Général : Catégorie,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37 à S39, S15 (élément Categorie)",2 Paramétrage,non
+S14d,Général : Type de pièce,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37 à S39, S59 (pièce du déposant)",2 Paramétrage,non
+S14e,Général : Civilité,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37",2 Paramétrage,non
+S14f,Général : Type de groupe,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S39",2 Paramétrage,non
+S14g,Général : Type client,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S16, S23, S37 à S39",2 Paramétrage,non
+S14h,Général : Sous type de client,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S16 (frais par sous type)",2 Paramétrage,non
 S14i,Général : Forme juridique,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S38",2 Paramétrage,oui
-S14j,Général : Catégorie de groupe,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S39",2 Paramétrage,oui
+S14j,Général : Catégorie de groupe,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S39",2 Paramétrage,non
 S14k,Général : Filiation,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37 (personnes liées, bénéficiaires)",2 Paramétrage,oui
 S14l,Général : Situation matrimoniale,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37",2 Paramétrage,oui
 S14m,Général : Motif de départ,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S48 ; page propre S18 (p. 26)",2 Paramétrage,oui
-S14n,Général : Type Guichet,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S08",2 Paramétrage,oui
+S14n,Général : Type Guichet,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S08",2 Paramétrage,non
 S15,Numérotation : paramétrages liés aux clients,"23 (texte), 24",B,composition,sens des Positions et du Compteur ; « Défintion des compteurs » ; Aperçu,"A:S17 (même mécanisme, mieux montré) ; D:S37 (numéro du client)",2 Paramétrage,oui
 S16,Opération : frais (cinq onglets),24 à 26 (cinq captures),A,liste,,,2 Paramétrage,oui
-S17,Numéro de compte client,26,A,composition,,A:S15,2 Paramétrage,oui
+S17,Numéro de compte client,26,A,composition,,A:S15,2 Paramétrage,non
 S18,Motif de départ d'un client,26,A,liste,,G:p.12,2 Paramétrage,oui
 S19,Budget : huit référentiels,27 à 30 (huit captures),A,liste,,G:p.12,2 Paramétrage,oui
 S20,"Localisation : pays, département, commune, arrondissement, quartier",30 à 32 (cinq captures),A,liste,découpage de la RDC à la place de celui du manuel,R:découpage administratif de la RDC ; P,2 Paramétrage,oui
 S21,"Crédit, général : onze listes",32 à 36 (onze captures),A,liste,,G:p.12,2 Paramétrage,oui
 S22,Ordre de remboursement,37,A,composition,,,2 Paramétrage,oui
 S23,Produit crédit : création (cinq pages),37 à 39 (trois captures),B,onglets,deux pages sur cinq (à repérer à l'ouverture),"M:texte p. 37 ; D:S89, S75 ; R:Instr. BCC sur le crédit et le TEG",2 Paramétrage,oui
-S24,Produits crédit : liste,39,B,liste,,,2 Paramétrage,oui
-S25,Produits crédit : activation,39,A,traitement,,,2 Paramétrage,oui
+S24,Produits crédit : liste,39,B,liste,,,2 Paramétrage,non
+S25,Produits crédit : activation,39,A,traitement,,,2 Paramétrage,non
 S26,Modèle de produit crédit,40,A,liste,,R:Instr. BCC sur le classement et les provisions,2 Paramétrage,oui
 S27,Produit épargne,40,A,liste,,,2 Paramétrage,oui
-S28,Paramétrage des produits épargne (comptes),41,A,liste,,R:PCCI (comptes de dépôts),2 Paramétrage,oui
-S29,Numéro de pièce,41,A,composition,,"A:S15, S17",2 Paramétrage,oui
+S28,Paramétrage des produits épargne (comptes),41,A,liste,,R:PCCI (comptes de dépôts),2 Paramétrage,non
+S29,Numéro de pièce,41,A,composition,,"A:S15, S17",2 Paramétrage,non
 S30,Journal,"41 (texte), 42",A,liste,,,2 Paramétrage,oui
 S31,ED divers : référentiel,42,A,liste,,R:PCCI (comptes),2 Paramétrage,oui
 S32,Information société,42,B,liste,pages agences et zones (« afficher les pages »),"D:S05, S08, S21 zone ; A:S33",2 Paramétrage,oui
@@ -52,19 +52,19 @@ S34,"Agence : journée de travail, jours fériés",44 (deux captures),A,composit
 S35,"Préférences : devise, type sous, sous",45 et 46 (trois captures),A,liste,,,2 Paramétrage,oui
 S36,"Facture : élément, référence commande",46 et 47,A,liste,,,2 Paramétrage,oui
 S37,Enrôlement physique (six onglets),48,B,onglets,cinq onglets sur six ; fiches Personne liée et Bénéficiaire,M:texte p. 48 ; D:S14a à S14n ; R:identification du client (Instr. BCC LBC),3 Client,oui
-S38,Enrôlement entreprise (six onglets),49,B,onglets,cinq onglets sur six ; fiche Signataire,M:texte p. 49 ; A:S37 ; R:idem,3 Client,oui
-S39,Enrôlement groupe (six onglets),50,B,onglets,cinq onglets sur six ; fiche Membre,M:texte p. 50 ; A:S37,3 Client,oui
+S38,Enrôlement entreprise (six onglets),49,B,onglets,cinq onglets sur six ; fiche Signataire,M:texte p. 49 ; A:S37 ; R:idem,3 Client,non
+S39,Enrôlement groupe (six onglets),50,B,onglets,cinq onglets sur six ; fiche Membre,M:texte p. 50 ; A:S37,3 Client,non
 S40,Viser un client,51 et 52,A,visa,contrat d'adhésion imprimé,document,3 Client,oui
-S41,Modifier frais,"52, 53 (texte)",A,consultation,,,3 Client,oui
-S42,Valider client modifié,53,A,visa,,,3 Client,oui
+S41,Modifier frais,"52, 53 (texte)",A,consultation,,,3 Client,non
+S42,Valider client modifié,53,A,visa,,,3 Client,non
 S43,Consulter client,53,B,consultation,affichage des informations initiales et actuelles,A:S64 situation du client (p. 74),3 Client,oui
 S44,Groupe solidaire (deux onglets),54 (trois captures),A,onglets,,,3 Client,oui
-S45,Nouveau prospect,55,A,liste,,,3 Client,oui
+S45,Nouveau prospect,55,A,liste,,,3 Client,non
 S46,Mise à jour d'un client,"55, 56 (texte)",B,onglets,onglets suivants,A:S37,3 Client,oui
 S47,Gestion des procurations,56,A,liste,,,3 Client,oui
 S48,Résilier contrat,56,A,traitement,,,3 Client,oui
 S49,Gestion photo et signature,57,A,consultation,,,3 Client,oui
-S50,Consentement BIC,57,A,liste,non repris tel quel (BIC de l'UEMOA),R:centrale des risques de la BCC ; P,3 Client,oui
+S50,Consentement BIC,57,A,liste,non repris tel quel (BIC de l'UEMOA),R:centrale des risques de la BCC ; P,3 Client,non
 S51,Rapports client (trois),58 et 59 (trois captures),B,rapport,forme des résultats,"A:S13 ; G:p.9 (grille, export)",3 Client,oui
 S52,"Opération : encaissement et décaissement, banque vers caisse, banque vers banque",60 et 61 (trois captures),A,guichet,,R:PCCI (comptes de banque et de caisse),4 Banque,oui
 S53,Virement prélèvement,61,A,guichet,,,4 Banque,oui

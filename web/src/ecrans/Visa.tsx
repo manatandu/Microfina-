@@ -534,7 +534,7 @@ export function InformationsClient() {
           </> : <>
             {lu("Dénomination :", t.nom)}{lu("Forme juridique :", t.formeJuridique)}{lu("N° du registre :", t.registre)}
           </>}
-          {lu("Date demande :", fr(t.dateDemande))}{lu("Date Visa :", fr(t.dateVisa))}
+          {lu("Date demande :", fr(t.dateDemande))}{lu("Date Visa :", fr(t.dateVisa))}{lu("ICU (BCC) :", t.icu ?? "")}
         </div>}
         {t && onglet === 1 && <>
           <div className="formulaire">

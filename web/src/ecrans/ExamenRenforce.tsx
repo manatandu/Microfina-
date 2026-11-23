@@ -10,22 +10,36 @@ import { montant, montantEnLettres, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee, LigneFiltres } from "../composants";
 import OperationsAtypiques from "./OperationsAtypiques";
 import GelAvoirs from "./GelAvoirs";
-import PersonnesApparentees from "./PersonnesApparentees";
 import DeclarationsSystematiques from "./DeclarationsSystematiques";
 import DeclarationsSoupcon from "./DeclarationsSoupcon";
 import ReportingLcb from "./ReportingLcb";
 
 type Examen = Awaited<ReturnType<typeof api.conformite.lister>>[number];
 type Rapport = Awaited<ReturnType<typeof api.conformite.rapport>>;
-const ONGLETS = [["a_examiner", "À examiner"], ["autorise", "Autorisés"], ["refuse", "Refusés"], ["a_declarer", "À déclarer"], ["systematiques", "Déclarations systématiques"], ["soupcons", "Déclarations de soupçon"], ["ppe", "Personnes exposées"], ["profils", "Profils de risque"], ["atypiques", "Opérations atypiques"], ["gels", "Gel des avoirs"], ["apparentes", "Personnes apparentées"], ["reporting", "Reporting mensuel BCC"]] as const;
+// Plan d'allègement, point 3.16 : cinq onglets ; dans trois d'entre eux, un filtre choisit la liste
+const ONGLETS = [["examens", "Examens renforcés"], ["declarations", "Déclarations à la CENAREF"], ["vigilance", "Vigilance"], ["gels", "Gel des avoirs"], ["reporting", "Reporting"]] as const;
+const FILTRE_STATUT = [["a_examiner", "À examiner"], ["autorise", "Autorisés"], ["refuse", "Refusés"]] as const;
+const NATURES_DECL = [["systematiques", "Déclarations systématiques"], ["soupcons", "Déclarations de soupçon"], ["a_declarer", "Examens à déclarer"]] as const;
+const OBJETS_VIGILANCE = [["ppe", "Personnes exposées"], ["profils", "Profils de risque"], ["atypiques", "Opérations atypiques"]] as const;
 const STATUTS: Record<string, string> = { a_examiner: "À examiner", autorise: "Autorisé", refuse: "Refusé" };
 const usd = (v: number) => `${v.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`;
 const VIDE = { origineFonds: "", destinationFonds: "", objet: "", acteurs: "", observations: "" };
 
+function Filtre<K extends string>({ libelle, valeur, choix, changer }: { libelle: string; valeur: K; choix: readonly (readonly [K, string])[]; changer: (v: K) => void }) {
+  return <div className="barre-filtres"><Champ libelle={libelle}>{(p) => <select {...p} className="saisie" value={valeur} onChange={(e) => changer(e.target.value as K)}>
+    {choix.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ></div>;
+}
+
+/** SC01 : Conformité > Lutte anti-blanchiment (plan d'allègement, point 3.16) */
 export default function ExamenRenforce() {
-  const [onglet, setOnglet] = useState<(typeof ONGLETS)[number][0]>("a_examiner");
+  const [onglet, setOnglet] = useState<(typeof ONGLETS)[number][0]>("examens");
+  const [statut, setStatut] = useState<(typeof FILTRE_STATUT)[number][0]>("a_examiner");
+  const [nature, setNature] = useState<(typeof NATURES_DECL)[number][0]>("systematiques");
+  const [objet, setObjet] = useState<(typeof OBJETS_VIGILANCE)[number][0]>("ppe");
   const [relu, setRelu] = useState(0);
-  const { donnees, erreur } = useDonnees(() => (onglet === "ppe" || onglet === "profils" || onglet === "atypiques" || onglet === "gels" || onglet === "apparentes" || onglet === "systematiques" || onglet === "soupcons" || onglet === "reporting" ? Promise.resolve([]) : api.conformite.lister(onglet)), [onglet, relu]);
+  // liste des examens : onglet Examens renforcés (filtre Statut) ou examens autorisés pas encore déclarés (onglet Déclarations)
+  const liste = onglet === "examens" ? statut : onglet === "declarations" && nature === "a_declarer" ? "a_declarer" : null;
+  const { donnees, erreur } = useDonnees(() => (liste ? api.conformite.lister(liste) : Promise.resolve([])), [liste, relu]);
   const { donnees: j } = useDonnees(() => api.journees.courante());
   const [choisi, setChoisi] = useState<Examen | null>(null);
   const [f, setF] = useState(VIDE);
@@ -56,18 +70,20 @@ export default function ExamenRenforce() {
   return (
     <>
       
-      <div className="onglets" role="tablist" aria-label="Examen renforcé">
+      <div className="onglets" role="tablist" aria-label="Lutte anti-blanchiment">
         {ONGLETS.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={k === onglet} onClick={() => { setOnglet(k); setChoisi(null); }}>{l}</button>)}
       </div>
-      {onglet === "ppe" && <PersonnesExposees jour={j?.date ?? ""} />}
-      {onglet === "profils" && <ProfilsRisque />}
-      {onglet === "atypiques" && <OperationsAtypiques jour={j?.date ?? ""} />}
+      {onglet === "examens" && <Filtre libelle="Statut :" valeur={statut} choix={FILTRE_STATUT} changer={(v) => { setStatut(v); setChoisi(null); }} />}
+      {onglet === "declarations" && <Filtre libelle="Nature :" valeur={nature} choix={NATURES_DECL} changer={(v) => { setNature(v); setChoisi(null); }} />}
+      {onglet === "vigilance" && <Filtre libelle="Liste :" valeur={objet} choix={OBJETS_VIGILANCE} changer={setObjet} />}
+      {onglet === "vigilance" && objet === "ppe" && <PersonnesExposees jour={j?.date ?? ""} />}
+      {onglet === "vigilance" && objet === "profils" && <ProfilsRisque />}
+      {onglet === "vigilance" && objet === "atypiques" && <OperationsAtypiques jour={j?.date ?? ""} />}
       {onglet === "gels" && <GelAvoirs jour={j?.date ?? ""} />}
-      {onglet === "apparentes" && <PersonnesApparentees />}
-      {onglet === "systematiques" && <DeclarationsSystematiques jour={j?.date ?? ""} />}
-      {onglet === "soupcons" && <DeclarationsSoupcon jour={j?.date ?? ""} />}
+      {onglet === "declarations" && nature === "systematiques" && <DeclarationsSystematiques jour={j?.date ?? ""} />}
+      {onglet === "declarations" && nature === "soupcons" && <DeclarationsSoupcon jour={j?.date ?? ""} />}
       {onglet === "reporting" && <ReportingLcb jour={j?.date ?? ""} />}
-      {onglet !== "ppe" && onglet !== "profils" && onglet !== "atypiques" && onglet !== "gels" && onglet !== "apparentes" && onglet !== "systematiques" && onglet !== "soupcons" && onglet !== "reporting" && <section className="bloc pile" aria-label="Liste des examens">
+      {liste && <section className="bloc pile" aria-label="Liste des examens">
         <Paginee lignes={donnees} colonnes={(x) => [x.numero, fr(x.date), x.membre, x.client, x.typeLibelle, montant(x.montant, x.devise as Devise), usd(x.cumulUsd), x.demandePar, STATUTS[x.statut]]}>{(visibles) => (<div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">N°</th><th scope="col">Date</th><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Opération</th>
             <th scope="col" className="montant">Montant</th><th scope="col" className="montant">Cumul du jour</th><th scope="col">Demandé par</th><th scope="col">Statut</th></tr><LigneFiltres titres={["N°", "Date", "N° client", "Client", "Opération", "Montant", "Cumul du jour", "Demandé par", "Statut"]} /></thead>

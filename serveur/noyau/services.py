@@ -595,7 +595,7 @@ def vue_tiers(t: dict) -> dict:
             "type": t["type"], "formeJuridique": t["forme"] or "", "registre": t["rccm"] or "", "centreActivite": t["centre_activite"] or "", "activite": t["activite"] or "",
             "dirigeant": dirigeant, "signataires": signataires, "membres": membres, "nbHommes": t["nb_hommes"] or 0, "nbFemmes": t["nb_femmes"] or 0,
             "photo": bool(sp and sp["photo"]), "specimen": bool(sp and sp["signature"]) or any(x["specimen"] for x in signataires),
-            "creePar": t["cree_par"], "visePar": t["vise_par"],
+            "creePar": t["cree_par"], "visePar": t["vise_par"], "icu": t.get("icu") or "",   # Instr. BCC 52, art. 13 (plan 3.16)
             # S37 : fiche du client (registre S37-1 à S37-3)
             "civilite": t["civilite"] or "", "nationalite": t["nationalite"] or "", "situationMatrimoniale": t["situation_matrimoniale"] or "",
             "pere": t["pere"] or "", "mere": t["mere"] or "", "commune": t["commune"] or "", "secteurActivite": t["secteur_activite"] or "",

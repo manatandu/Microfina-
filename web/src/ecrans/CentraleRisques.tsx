@@ -43,11 +43,10 @@ export default function CentraleRisques() {
   return (
     <>
       
-      <div className="onglets" role="tablist" aria-label="Déclarations">
-        {STATUTS.map(([k, l]) => <button key={k || "tous"} type="button" role="tab" aria-selected={k === statut} onClick={() => { setStatut(k); setChoisis(new Set()); }}>{l}</button>)}
-      </div>
       <section className="bloc pile" aria-label="Déclarations à la Centrale des risques">
         <div className="ligne-champ">
+          <Champ libelle="État :">{(p) => <select {...p} className="saisie" value={statut} onChange={(e) => { setStatut(e.target.value as typeof statut); setChoisis(new Set()); }}>
+            {STATUTS.map(([k, l]) => <option key={k || "tous"} value={k}>{l}</option>)}</select>}</Champ>
           <ChampDate libelle="Du" valeur={debut} onChange={setDu} />
           <ChampDate libelle="Au" valeur={fin} onChange={setAu} />
         </div>

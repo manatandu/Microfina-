@@ -7,7 +7,7 @@ import { APPLICATIONS, menus, type IdApplication } from "./registre";
 
 const PAGES = [["assigner", "Assigner droit", "Octroyer des droits à un profils"], ["modifier", "Modifier droit d'un profil", "Modification des droits octroyés à un profil"]] as const;
 /** Groupes de l'arbre : les applications de la page des modules (GRH et Stocks hors périmètre) */
-const GROUPES = (["principal", "paie", "immobilisations"] as IdApplication[]).map((id) => ({ id, libelle: APPLICATIONS.find((a) => a.id === id)?.libelle ?? id, menus: menus(id) }));
+const GROUPES = (["principal", "paie", "immobilisations"] as IdApplication[]).map((id) => ({ id, libelle: APPLICATIONS.find((a) => a.id === id)?.libelle ?? id, menus: menus(id, true) }));
 
 /** S04 : Administration > Profil > Assigner droit ; Modifier droit d'un profil (manuel Microfina++, p. 15 et 16) */
 export default function DroitsProfil() {

@@ -1,4 +1,4 @@
-// Écart E06 (docs/reglementaire/ECARTS-2026-11-15.md) : Client > Conformité > Centrale des incidents. Écran imposé par les textes, absent de Microfina++.
+// Écart E06 (docs/reglementaire/ECARTS-2026-11-15.md) : Conformité > Centrales de la BCC, onglet Centrale des incidents de paiement (plan 3.16). L'ICU se note dans la fiche du membre. Écran imposé par les textes, absent de Microfina++.
 // Instr. BCC 52, art. 10 et 15 (déclarations dans les deux jours ouvrables), 13 (identifiant client unique), 14 (contenu de la déclaration d'un compte).
 import { useState } from "react";
 import { api } from "../donnees/api";
@@ -21,7 +21,6 @@ export default function CentraleIncidents() {
   const { donnees, erreur } = useDonnees(() => (debut && fin ? api.conformite.cip(debut, fin, statut) : Promise.resolve([])), [debut, fin, statut, relu]);
   const [choisis, setChoisis] = useState<Set<string>>(new Set());
   const [decl, setDecl] = useState<{ date: string; reference: string } | null>(null);
-  const [icu, setIcu] = useState<{ e: Evenement; valeur: string } | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   if (j === undefined) return <Chargement />;
   if (erreur) return <><p role="alert" className="erreur-champ">{erreur}</p></>;
@@ -36,23 +35,15 @@ export default function CentraleIncidents() {
       catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
   }
-  function noterIcu() {
-    if (!icu) return;
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
-      try { await api.conformite.noterIcu(icu.e.tiersId, { icu: icu.valeur }); setIcu(null); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
-      catch (x) { setBoite({ type: "erreur", message: message(x) }); }
-    } });
-  }
   const exporter = () => exporterExcel("declarations-cip", ["Événement", "Date", "Échéance", "N° client", "Client", "Catégorie", "ICU", "Compte", "Produit", "Devise", "Déclaré le", "Référence"],
     lignes.map((e) => [e.typeLibelle, fr(e.date), fr(e.echeance), e.membre, e.client, e.categorie, e.icu, e.compte, e.produit, e.devise, fr(e.declareLe), e.reference]));
   return (
     <>
       
-      <div className="onglets" role="tablist" aria-label="Déclarations">
-        {STATUTS.map(([k, l]) => <button key={k || "tous"} type="button" role="tab" aria-selected={k === statut} onClick={() => { setStatut(k); setChoisis(new Set()); }}>{l}</button>)}
-      </div>
       <section className="bloc pile" aria-label="Déclarations à la Centrale des incidents de paiement">
         <div className="ligne-champ">
+          <Champ libelle="État :">{(p) => <select {...p} className="saisie" value={statut} onChange={(e) => { setStatut(e.target.value as typeof statut); setChoisis(new Set()); }}>
+            {STATUTS.map(([k, l]) => <option key={k || "tous"} value={k}>{l}</option>)}</select>}</Champ>
           <ChampDate libelle="Du" valeur={debut} onChange={setDu} />
           <ChampDate libelle="Au" valeur={fin} onChange={setAu} />
         </div>
@@ -67,7 +58,7 @@ export default function CentraleIncidents() {
                 <td>{e.typeLibelle}</td><td className="chiffres">{fr(e.date)}</td>
                 <td className="chiffres">{fr(e.echeance)}{e.enRetard ? <strong> · en retard</strong> : ""}</td>
                 <td className="chiffres">{e.membre}</td><td>{e.client}</td>
-                <td className="chiffres">{e.icu || <button className="bouton secondaire" type="button" aria-label={`Noter l'ICU de ${e.client}`} onClick={() => setIcu({ e, valeur: "" })}>Noter</button>}</td>
+                <td className="chiffres">{e.icu}</td>
                 <td className="chiffres">{e.compte}</td><td>{e.devise}</td><td className="chiffres">{fr(e.declareLe)}</td><td className="chiffres">{e.reference}</td>
               </tr>))}
           </tbody>
@@ -89,13 +80,6 @@ export default function CentraleIncidents() {
             <Champ libelle="Référence : *">{(p) => <input {...p} className="saisie code" value={decl.reference} onChange={(e) => setDecl({ ...decl, reference: e.target.value })} />}</Champ>
           </div>
           <div className="actions-onglets"><button className="bouton" type="button" onClick={declarer}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={() => setDecl(null)}>Fermer</button></div>
-        </div>}
-      </Fiche>
-      <Fiche titre="Identifiant client unique" ouverte={!!icu} fermer={() => setIcu(null)}>
-        {icu && <div className="pile">
-          <p>{icu.e.client} ({icu.e.membre})</p>
-          <Champ libelle="ICU donné par la BCC : *">{(p) => <input {...p} className="saisie code" value={icu.valeur} onChange={(e) => setIcu({ ...icu, valeur: e.target.value })} />}</Champ>
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={noterIcu}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={() => setIcu(null)}>Fermer</button></div>
         </div>}
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
