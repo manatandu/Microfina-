@@ -92,7 +92,6 @@ function InformationsDeBase({ genre, f, maj, ctx, numero, depot, setDepot, chois
           {ctx.produits.map((x) => <option key={x.code} value={x.code}>{x.libelle} {x.devise}</option>)}</select>}</Champ>
         <Champ libelle={`Premier dépôt :${produit ? ` (${produit.devise})` : ""}`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={depot} onChange={(e) => setDepot(e.target.value)} />}</Champ>
         <ChampsRelation f={f} maj={maj} morale={genre === "entreprise"} />
-        <label className="case"><input type="checkbox" checked={f.resident} onChange={(e) => maj({ resident: e.target.checked })} /><span>Résident</span></label>
         <label className="case"><input type="checkbox" checked={f.preleverAgios} onChange={(e) => maj({ preleverAgios: e.target.checked })} /><span>Prelever Agios</span></label>
         <label className="case"><input type="checkbox" checked={f.calculerInteret} onChange={(e) => maj({ calculerInteret: e.target.checked })} /><span>Calculer intéret</span></label>
       </div>
@@ -358,14 +357,10 @@ function IdentitePhysique({ f, maj, ctx }: { f: NouveauTiers; maj: (p: Partial<N
         <ChoixListe libelle="Nationalité :" k="nationalite" valeurs={pays} f={f} maj={maj} />
         <Champ libelle="Sexe :">{(p) => <select {...p} className="saisie" {...texte("sexe")}><option value=""></option><option value="F">Féminin</option><option value="M">Masculin</option></select>}</Champ>
         <ChoixListe libelle="Situation matrimoniale :" k="situationMatrimoniale" valeurs={ctx.listesFiche.situationMatrimoniale ?? []} f={f} maj={maj} />
-        <Champ libelle="Numéro de téléphone :">{(p) => <input {...p} className="saisie code" type="tel" inputMode="tel" autoComplete="off" {...texte("telephone")} />}</Champ>
-        <Champ libelle="Adresse électronique :">{(p) => <input {...p} className="saisie" type="email" autoComplete="off" {...texte("email")} />}</Champ>
         <ChampDate libelle="Date de naissance : *" valeur={f.naissance} onChange={(v) => maj({ naissance: v })} requis />
         <Champ libelle="Lieu de naissance : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...texte("lieuNaissance")} />}</Champ>
         <Champ libelle="Noms du père :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("pere")} />}</Champ>
         <Champ libelle="Noms de la mère :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("mere")} />}</Champ>
-        {/* profession : champ libre (décision du porteur du 21/11/2026, registre T42) */}
-        <Champ libelle="Profession :">{(p) => <input {...p} className="saisie" autoComplete="off" {...texte("profession")} />}</Champ>
       </div>
     </div>
   );
@@ -382,9 +377,13 @@ function AutresRenseignements({ f, maj, ctx, physique }: { f: NouveauTiers; maj:
       <div className="pile">
         {/* Adresse géographique, la même que partout (registre T41) */}
         <BlocAdresse valeur={f} maj={maj} arbre={ctx.arbreLieux} requis ajouterQuartier={api.adresse.ajouterQuartier} />
-        {texte("bp", "BP :", "saisie code")}
+        {/* Adresse, téléphones, adresse électronique, BP et « Résident » ensemble (plan d'allègement, point 3.1) */}
+        {physique && <Champ libelle="Numéro de téléphone :">{(p) => <input {...p} className="saisie code" type="tel" inputMode="tel" autoComplete="off" value={f.telephone ?? ""} onChange={(e) => maj({ telephone: e.target.value })} />}</Champ>}
         {texte("telephoneFixe", "Téléphone fixe :", "saisie code")}
-        {!physique && texte("email", "Email :")}
+        {physique ? <Champ libelle="Adresse électronique :">{(p) => <input {...p} className="saisie" type="email" autoComplete="off" value={f.email ?? ""} onChange={(e) => maj({ email: e.target.value })} />}</Champ>
+          : texte("email", "Email :")}
+        {texte("bp", "BP :", "saisie code")}
+        <label className="case"><input type="checkbox" checked={f.resident} onChange={(e) => maj({ resident: e.target.checked })} /><span>Résident</span></label>
       </div>
       <div className="pile">
         {/* Une seule liste « Activité » ; le secteur s'en déduit (plan d'allègement, point 2.1 ; Instr. BCC 15, art. 13) */}
@@ -392,6 +391,8 @@ function AutresRenseignements({ f, maj, ctx, physique }: { f: NouveauTiers; maj:
           onChange={(e) => maj({ typeActivite: e.target.value, secteurActivite: ctx.typesActivite.find((t) => t.libelle === e.target.value)?.secteur ?? "" })}>
           <option value=""></option>{ctx.typesActivite.map((t) => <option key={`${t.secteur}-${t.libelle}`} value={t.libelle}>{t.libelle}</option>)}</select>}</Champ>
         <Champ libelle="Secteur :">{(p) => <Lecture {...p} value={enClair(f.secteurActivite ?? "")} />}</Champ>
+        {/* Activité, profession et pièce d'habilitation ensemble (plan d'allègement, point 3.1) ; profession : champ libre (registre T42) */}
+        {physique && <Champ libelle="Profession :">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.profession ?? ""} onChange={(e) => maj({ profession: e.target.value })} />}</Champ>}
         {/* A7 : activité déclarée, pièce qui habilite à l'exercer (loi 22/068, art. 33, al. 4 ; Instr. BCC 15, art. 13, al. 2) ; sa copie se dépose dans Photos et signatures */}
         {physique && <Champ libelle={f.secteurActivite ? "Pièce d'habilitation professionnelle : *" : "Pièce d'habilitation professionnelle :"}>{(p) =>
           <input {...p} className="saisie" required={!!f.secteurActivite} autoComplete="off" value={f.habilitationReference ?? ""} onChange={(e) => maj({ habilitationReference: e.target.value })} />}</Champ>}

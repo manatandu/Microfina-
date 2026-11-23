@@ -242,7 +242,7 @@ const OUT = process.argv[2];
   await p.getByLabel('Objet et nature de la relation : *').fill('Épargne et crédit');   // A8 : loi 22/068, art. 47
   await etape('04-enrolement');
   await p.getByRole('button', { name: 'Suivant' }).click();
-  await p.getByLabel('Nom : *', { exact: true }).fill('Tshala'); await p.getByLabel('Post-nom :').fill('Muana'); await p.getByLabel('Prénom : *').fill('Marie-Thérèse'); await p.getByLabel('Sexe :').selectOption('F'); await p.getByLabel('Numéro de téléphone :').fill('+243 810 000 000');
+  await p.getByLabel('Nom : *', { exact: true }).fill('Tshala'); await p.getByLabel('Post-nom :').fill('Muana'); await p.getByLabel('Prénom : *').fill('Marie-Thérèse'); await p.getByLabel('Sexe :').selectOption('F');
   // mentions de l'identité et de la pièce (Instr. BCC 15, art. 12 et 13 ; registre S37-1)
   await p.getByLabel('Date de naissance : *').fill('12031992'); await p.getByLabel('Lieu de naissance : *').fill('Kinshasa');
   await p.getByLabel('Nationalité :').selectOption('République démocratique du Congo'); await p.getByLabel('Noms du père :').fill('Tshala Jean'); await p.getByLabel('Noms de la mère :').fill('Muana Rose');
@@ -252,6 +252,7 @@ const OUT = process.argv[2];
   await p.getByLabel("Date d'expiration : *").fill('01012031');
   await etape('04b-renseignements');
   await p.getByRole('tab', { name: 'Adresse et activité' }).click(); await adresseKinsaku('Kinsaku', '12');   // cinq onglets communs (plan 3.1)
+  await p.getByLabel('Numéro de téléphone :').fill('+243 810 000 000');   // téléphones avec l'adresse (plan 3.1)
   await p.getByLabel('Activité :').selectOption('Commerce, vente et grande distribution');
   await p.getByLabel("Pièce d'habilitation professionnelle : *").fill('Patente 0412/2026');   // A7 : loi 22/068, art. 33, al. 4
   await etape('04b2-autres-renseignements');
