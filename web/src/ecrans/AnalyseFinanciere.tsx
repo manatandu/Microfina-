@@ -1,8 +1,8 @@
-// S85 : Crédit > Analyse financière (manuel Microfina++, p. 112 : deux captures). Allégée : Identification, Crédit, Element ; développée : Identification,
-// Bilan, Garanties, Crédit, Indicateurs, Ratios, Recommandations. Contenu des onglets proposé par nous (registre CR-11, S85-1 à S85-6). Indicative.
+// S85 : Crédit > Analyse financière (manuel Microfina++, p. 112 : deux captures). Plan d'allègement, point 6.11 : « allégée » et « développée » deviennent une analyse
+// en quatre parties : client et crédit sollicité ; compte d'exploitation mensuel ; bilan et garanties proposées (facultatif) ; résultats et avis. Contenu proposé par
+// nous (registre CR-11, S85-1 à S85-7). Indicative.
 import { enClair } from "../lib/enclair";
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { api, calculerAnalyse } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -12,11 +12,8 @@ import { Champ, Chargement, Dialogue, Fiche, Paginee, Textes, type Boite } from 
 import { RechercheClient } from "./Visa";
 
 type Type = "allegee" | "developpee";
-const ONGLETS: Record<Type, [string, string][]> = {
-  allegee: [["identification", "Identification"], ["credit", "Crédit"], ["element", "Element"]],
-  developpee: [["identification", "Identification"], ["bilan", "Bilan"], ["garanties", "Garanties"], ["credit", "Crédit"], ["indicateurs", "Indicateurs"],
-    ["ratios", "Ratios"], ["recommandations", "Recommandations"]],
-};
+const PARTIES = [["client", "Client et crédit sollicité"], ["exploitation", "Compte d'exploitation mensuel"], ["bilan", "Bilan et garanties proposées (facultatif)"],
+  ["resultats", "Résultats et avis"]] as const;
 const FLUX = [["revenus", "Revenus mensuels (chiffre d'affaires)"], ["achats", "Achats et coût des ventes"], ["chargesExploitation", "Charges d'exploitation"],
   ["chargesFamiliales", "Charges familiales"], ["autresEcheances", "Échéances d'autres dettes"]] as const;
 const ACTIF = [["tresorerie", "Trésorerie"], ["stocks", "Stocks"], ["creances", "Créances clients"], ["immobilisations", "Immobilisations"]] as const;
@@ -29,21 +26,10 @@ const VIDE = () => ({ produit: "", montant: "", duree: "", objet: "", champs: {}
   dureeRecommandee: "", commentaire: "" });
 
 export default function AnalyseFinanciere() {
-  const [params, setParams] = useSearchParams();
-  const type = (params.get("page") === "developpee" ? "developpee" : "allegee") as Type;
-  return (
-    <>
-      
-      <div className="onglets" role="tablist" aria-label="Analyse financière">
-        <button type="button" role="tab" aria-selected={type === "allegee"} onClick={() => setParams({ page: "allegee" })}>Analyse financière allégée</button>
-        <button type="button" role="tab" aria-selected={type === "developpee"} onClick={() => setParams({ page: "developpee" })}>Analyse financière développée</button>
-      </div>
-      <Analyse key={type} type={type} />
-    </>
-  );
+  return <Analyse />;
 }
 
-function Analyse({ type }: { type: Type }) {
+function Analyse() {
   const { donnees: p } = useDonnees(() => api.produitsCredit.lire());
   const [f, setF] = useState(VIDE);
   const [t, setT] = useState<Tiers | null>(null);
@@ -53,7 +39,9 @@ function Analyse({ type }: { type: Type }) {
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees: h } = useDonnees(() => (t ? api.analyses.historique(t.id) : Promise.resolve(null)), [t?.id]);
   if (!p) return <Chargement />;
-  const onglets = ONGLETS[type], cle = onglets[onglet]![0];
+  const cle = PARTIES[onglet]![0];
+  // la partie Bilan et garanties est facultative : remplie, l'analyse calcule aussi les ratios du bilan (S85-2 à S85-4)
+  const type: Type = ACTIF.some(([k]) => (f.champs[k] ?? "").trim()) || PASSIF.some(([k]) => (f.champs[k] ?? "").trim()) || f.garanties.length > 0 ? "developpee" : "allegee";
   const produits = p.produits.filter((x) => x.actif);
   const devise = (echeance?.devise ?? "CDF") as Devise;
   const lu = (v: string) => (v.trim() ? lireMontant(v) : 0);
@@ -68,8 +56,8 @@ function Analyse({ type }: { type: Type }) {
     value={f.champs[k] ?? ""} onChange={(e) => maj({ champs: { ...f.champs, [k]: e.target.value } })} />}</Champ>;
   async function suivant() {
     try {
-      if (cle === "identification" && (!t || !f.produit)) throw new Error("À remplir : Numéro client, Produit crédit.");
-      if (cle === "credit") {
+      if (cle === "client") {
+        if (!t || !f.produit) throw new Error("À remplir : Numéro client, Produit crédit.");
         const s = await api.simulationCredit.simuler({ produitId: Number(f.produit), montant: lu(f.montant) ?? NaN, duree: entier(f.duree) });
         setEcheance({ mensuelle: s.echeanceMensuelle, devise: s.devise });
       }
@@ -107,11 +95,11 @@ function Analyse({ type }: { type: Type }) {
     </dl>
   );
   return (
-    <section className="bloc pile" aria-label={type === "allegee" ? "Analyse financière allégée" : "Analyse financière développée"}>
-      <div className="onglets" role="tablist" aria-label="Pages de l'analyse">
-        {onglets.map(([k, l], i) => <button key={k} type="button" role="tab" aria-selected={i === onglet} disabled={i > onglet} onClick={() => setOnglet(i)}>{l}</button>)}
+    <section className="bloc pile" aria-label="Analyse financière">
+      <div className="onglets" role="tablist" aria-label="Parties de l'analyse">
+        {PARTIES.map(([k, l], i) => <button key={k} type="button" role="tab" aria-selected={i === onglet} disabled={i > onglet} onClick={() => setOnglet(i)}>{l}</button>)}
       </div>
-      {cle === "identification" && <>
+      {cle === "client" && <>
         <div className="ligne-champ">
           <Champ libelle="Numéro client :">{(pp) => <input {...pp} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
           <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button>
@@ -126,36 +114,36 @@ function Analyse({ type }: { type: Type }) {
               <td className="num chiffres">{montant(c.montant, "CDF")}</td><td>{c.observation}</td></tr>)}</tbody>
         </table></div>)}</Paginee>
         {(h?.analyses.length ?? 0) > 0 && <p>Analyses précédentes : {h!.analyses.map((a) => `${a.numero} du ${fr(a.date)}`).join(", ")}</p>}
+        <fieldset className="cadre-champs formulaire"><legend>Crédit sollicité</legend>
+          <Champ libelle="Montant sollicité *">{(pp) => <input {...pp} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.montant} onChange={(e) => maj({ montant: e.target.value })} />}</Champ>
+          <Champ libelle="Durée (mois) *">{(pp) => <input {...pp} className="saisie code" inputMode="numeric" autoComplete="off" value={f.duree} onChange={(e) => maj({ duree: e.target.value })} />}</Champ>
+          <Champ libelle="Objet du crédit">{(pp) => <input {...pp} className="saisie" autoComplete="off" value={f.objet} onChange={(e) => maj({ objet: e.target.value })} />}</Champ>
+        </fieldset>
       </>}
-      {cle === "credit" && <fieldset className="cadre-champs formulaire"><legend>Crédit sollicité</legend>
-        <Champ libelle="Montant sollicité *">{(pp) => <input {...pp} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.montant} onChange={(e) => maj({ montant: e.target.value })} />}</Champ>
-        <Champ libelle="Durée (mois) *">{(pp) => <input {...pp} className="saisie code" inputMode="numeric" autoComplete="off" value={f.duree} onChange={(e) => maj({ duree: e.target.value })} />}</Champ>
-        <Champ libelle="Objet du crédit">{(pp) => <input {...pp} className="saisie" autoComplete="off" value={f.objet} onChange={(e) => maj({ objet: e.target.value })} />}</Champ>
-      </fieldset>}
-      {cle === "bilan" && <div className="grille-deux">
-        <fieldset className="cadre-champs formulaire"><legend>Actif</legend>{ACTIF.map(([k, l]) => champ(k, l))}</fieldset>
-        <fieldset className="cadre-champs formulaire"><legend>Passif</legend>{PASSIF.map(([k, l]) => champ(k, l))}</fieldset>
-      </div>}
-      {cle === "garanties" && <fieldset className="cadre-champs pile"><legend>Garanties proposées</legend>
-        {f.garanties.map((g, i) => <div key={i} className="ligne-champ">
-          <Champ libelle={`Type ${i + 1}`}>{(pp) => <select {...pp} className="saisie" value={g.type} onChange={(e) => maj({ garanties: f.garanties.map((x, j) => (j === i ? { ...x, type: e.target.value } : x)) })}>
-            <option value=""></option>{["Caution", "Dépôt de garantie", "Nantissement de matériel", "Gage", "Hypothèque", "Autre"].map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
-          <Champ libelle={`Description ${i + 1}`}>{(pp) => <input {...pp} className="saisie" autoComplete="off" value={g.description} onChange={(e) => maj({ garanties: f.garanties.map((x, j) => (j === i ? { ...x, description: e.target.value } : x)) })} />}</Champ>
-          <Champ libelle={`Valeur ${i + 1}`}>{(pp) => <input {...pp} className="saisie montant" inputMode="decimal" autoComplete="off" value={g.valeur} onChange={(e) => maj({ garanties: f.garanties.map((x, j) => (j === i ? { ...x, valeur: e.target.value } : x)) })} />}</Champ>
-          <button className="bouton secondaire" type="button" onClick={() => maj({ garanties: f.garanties.filter((_, j) => j !== i) })}>Retirer</button>
-        </div>)}
-        <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => maj({ garanties: [...f.garanties, { type: "", description: "", valeur: "" }] })}>Ajouter une garantie</button></div>
-      </fieldset>}
-      {(cle === "element" || cle === "indicateurs") && <fieldset className="cadre-champs formulaire"><legend>Compte d'exploitation mensuel</legend>{FLUX.map(([k, l]) => champ(k, l))}</fieldset>}
-      {cle === "element" && <>{ratios}{avis}</>}
-      {cle === "ratios" && ratios}
-      {cle === "recommandations" && avis}
+      {cle === "exploitation" && <fieldset className="cadre-champs formulaire"><legend>Compte d'exploitation mensuel</legend>{FLUX.map(([k, l]) => champ(k, l))}</fieldset>}
+      {cle === "bilan" && <>
+        <div className="grille-deux">
+          <fieldset className="cadre-champs formulaire"><legend>Actif</legend>{ACTIF.map(([k, l]) => champ(k, l))}</fieldset>
+          <fieldset className="cadre-champs formulaire"><legend>Passif</legend>{PASSIF.map(([k, l]) => champ(k, l))}</fieldset>
+        </div>
+        <fieldset className="cadre-champs pile"><legend>Garanties proposées</legend>
+          {f.garanties.map((g, i) => <div key={i} className="ligne-champ">
+            <Champ libelle={`Type ${i + 1}`}>{(pp) => <select {...pp} className="saisie" value={g.type} onChange={(e) => maj({ garanties: f.garanties.map((x, j) => (j === i ? { ...x, type: e.target.value } : x)) })}>
+              <option value=""></option>{["Caution", "Dépôt de garantie", "Nantissement de matériel", "Gage", "Hypothèque", "Autre"].map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
+            <Champ libelle={`Description ${i + 1}`}>{(pp) => <input {...pp} className="saisie" autoComplete="off" value={g.description} onChange={(e) => maj({ garanties: f.garanties.map((x, j) => (j === i ? { ...x, description: e.target.value } : x)) })} />}</Champ>
+            <Champ libelle={`Valeur ${i + 1}`}>{(pp) => <input {...pp} className="saisie montant" inputMode="decimal" autoComplete="off" value={g.valeur} onChange={(e) => maj({ garanties: f.garanties.map((x, j) => (j === i ? { ...x, valeur: e.target.value } : x)) })} />}</Champ>
+            <button className="bouton secondaire" type="button" onClick={() => maj({ garanties: f.garanties.filter((_, j) => j !== i) })}>Retirer</button>
+          </div>)}
+          <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => maj({ garanties: [...f.garanties, { type: "", description: "", valeur: "" }] })}>Ajouter une garantie</button></div>
+        </fieldset>
+      </>}
+      {cle === "resultats" && <>{ratios}{avis}</>}
       <div className="actions-onglets">
-        {onglet < onglets.length - 1 ? <button className="bouton" type="button" onClick={suivant}>Suivant</button>
+        {onglet < PARTIES.length - 1 ? <button className="bouton" type="button" onClick={suivant}>Suivant</button>
           : <button className="bouton" type="button" disabled={!f.avis} onClick={enregistrer}>Enregistrer</button>}
       </div>
-      <Textes sources={["Manuel Microfina++, p. 112 : Analyse financière allégée (Identification, Crédit, Element) et développée (Identification, Bilan, Garanties, Crédit, Indicateurs, Ratios, Recommandations) ; Suivant",
-        "Registre CR-11, S85-1 à S85-6 : contenu des onglets proposé par nous ; revenu net, capacité de remboursement (échéance mensuelle de la simulation S84 / revenu net), ratios ; indicative"]} />
+      <Textes sources={["Manuel Microfina++, p. 112 : analyse financière allégée et développée ; plan d'allègement, point 6.11 : une analyse en quatre parties ; Suivant",
+        "Registre CR-11, S85-1 à S85-7 : revenu net, capacité de remboursement (échéance mensuelle de la simulation S84 / revenu net), ratios du bilan quand il est rempli ; garanties proposées reprises dans les garanties du crédit (S94) ; indicative"]} />
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? await api.tiers.rechercher(q) : [])} choisir={(x) => { setT(x); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>

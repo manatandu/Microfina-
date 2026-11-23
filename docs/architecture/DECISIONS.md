@@ -2,7 +2,7 @@
 
 Les réponses retenues aux questions laissées « à confirmer », et les règles qui valent pour tout le logiciel. Méthode : [`COMPLEMENTS.md`](COMPLEMENTS.md) § 3. Cette page est écrite par `replica/decisions.py` à partir de `replica/decisions.csv`.
 
-**1076 décisions.** Solidité : 505 fortes (le manuel ou un texte répond), 489 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1064 déjà en place, 12 à appliquer.
+**1078 décisions.** Solidité : 505 fortes (le manuel ou un texte répond), 491 moyennes (déduites d'un écran voisin ou d'une donnée), 82 faibles (notre choix, faute de mieux). Dans le code : 1066 déjà en place, 12 à appliquer.
 
 Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regarder en premier : elles sont listées à la fin.
 
@@ -1495,6 +1495,7 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | S85-4 | Ratios | Capacité de remboursement = échéance mensuelle / revenu net ; endettement = dettes / fonds propres ; liquidité = (trésorerie + stocks + créances) / dettes à court terme ; couverture = valeur des garanties / montant. Deux décimales. L'échéance mensuelle est la première échéance de la simulation (S84) ramenée au mois | Choix du porteur : Décision du porteur, 19/11/2026 (CR-11) ; S84 | faible | en place |
 | S85-5 | Avis | Avis de l'agent obligatoire (favorable, réservé, défavorable), montant et durée recommandés, commentaire. L'analyse est indicative : elle ne bloque pas la demande | Choix du porteur : Décision du porteur, 19/11/2026 (CR-11) | moyenne | en place |
 | S85-6 | Bornes et droits | Montant et durée dans les bornes du produit (S84-7). Saisie : profil qui a S85 (agent de crédit au départ) ; lecture aussi pour S86 | Donnée exigée ailleurs : S84-7 ; DROITS_DEPART | moyenne | en place |
+| S85-7 | Quatre parties | « Analyse financière allégée » et « développée » deviennent une analyse en quatre parties, avec Suivant : Client et crédit sollicité (client, produit, crédits et analyses précédents, montant, durée, objet) ; Compte d'exploitation mensuel ; Bilan et garanties proposées (facultatif) ; Résultats et avis. Rempli, le bilan ou une garantie fait calculer aussi les ratios du bilan (l'analyse est enregistrée « développée »), sinon « allégée ». Les garanties proposées de l'analyse choisie à la demande s'affichent dans les garanties du crédit (S94), « Garanties à constituer ». | Écran voisin : Plan d'allègement, point 6.11 | moyenne | en place |
 
 ## S54, S75 Contrat de prêt
 
@@ -2522,6 +2523,12 @@ Le porteur valide en fin de lot. Les décisions **faibles** sont celles à regar
 | N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
 |---|---|---|---|---|---|
 | CR-29 | Parcours en cinq étapes | 1. Demande complète : en plus de la demande du manuel, le différé, l'objet et son usage, les comptes de l'épargne obligatoire et du fonds de solidarité, l'assureur et la ligne de financement, avec un bouton Echéancier ; la zone est celle du membre, l'agent celui qui saisit. 2. Vérification (S87, contrôle et visa du responsable crédit réunis) : montant ressaisi sans le voir, consultation de la Centrale des risques, avis Accepté ou Refusé avec motif. 3. Décision (S88, approbation et visa du comité réunis) : montant approuvé, commission de crédit d'une COOPEC (trois membres, unanimité), procès-verbal, plafonds et apparentés ; accordé, le crédit naît à la décision et les deux premiers visas sont ceux de la vérification et de la décision ; refusé, la demande s'arrête, l'appel au Conseil se fait sur cet écran. 4. Visa du service financier (S90). 5. Déblocage. La mise en place (S89) sort du menu. Chaque étape par une personne différente. | Écran voisin : Plan d'allègement, point 6.1 ; Instr. BCC 008, art. 66 ; loi 002/2002, art. 41 à 43 ; Instr. BCC 007, art. 18 et 32 ; Instr. BCC 05, art. 4 et 13 ; Instr. BCC 002, art. 25 à 29 | forte | en place |
+
+## Menu Crédit
+
+| N° | Question | Réponse retenue | D'où vient la réponse | Solidité | Code |
+|---|---|---|---|---|---|
+| CR-30 | Ordre | Le menu Crédit suit la vie du crédit : Simulation d'échéancier, Analyse financière, Demande de crédit, Portefeuille de crédits, Déblocage, Remboursement, Garanties du crédit, Prorogation et contentieux, Liste rouge, Affectation de portefeuille, Balance âgée et provisions, Engagement par signature, Rapports crédit. « Consulter un prêt » (S95) s'ouvre d'un clic sur le portefeuille, « Historique des visas » (S91) n'est plus au menu (l'historique est dans la fiche du crédit) ; les deux restent dans l'arbre des droits. | Écran voisin : Plan d'allègement, point 6.16 | moyenne | en place |
 
 ## S54 et S105 Déblocage de crédit
 

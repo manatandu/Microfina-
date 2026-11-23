@@ -85,6 +85,11 @@ function GarantiesCredit() {
           </div>
         </fieldset>
         {e && <TableauGaranties e={e} choisie={choisie ? `${choisie.nature}-${choisie.id}` : undefined} choisir={setChoisie} />}
+        {e && e.proposees.garanties.length > 0 && <div className="defile-x"><table className="grille">
+          <caption>Garanties à constituer (analyse {e.proposees.analyse})</caption>
+          <thead><tr><th scope="col">Type</th><th scope="col">Description</th><th scope="col" className="num">Valeur</th></tr></thead>
+          <tbody>{e.proposees.garanties.map((x, i) => <tr key={i}><td>{x.type}</td><td>{x.description}</td><td className="num chiffres">{montant(x.valeur, dv)}</td></tr>)}</tbody>
+        </table></div>}
         <div className="actions-onglets">
           <button className="bouton" type="button" disabled={!e} onClick={() => setFiche("caution")}>Ajouter une caution</button>
           <button className="bouton" type="button" disabled={!e} onClick={() => setFiche("nantissement")}>Ajouter un nantissement</button>

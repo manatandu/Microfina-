@@ -39,12 +39,17 @@ function sousMenu(e: Ecran, libelleMenu: string): string {
   return parties.length > i + 1 ? parties[i]! : "";
 }
 
+/** Menu Crédit dans l'ordre de la vie du crédit (plan d'allègement, point 6.16) : Simulation, Analyse, Demande, Portefeuille, Déblocage, Remboursement, Garanties,
+ *  Prorogation et contentieux, Liste rouge, Affectation, Balance âgée et provisions, Engagements par signature, Rapports ; les écrans hors menu ensuite */
+const ORDRE_CREDIT = ["S84", "S85", "S86", "S93", "S105", "S106", "S94", "SL01", "S97", "S96", "S99", "S100", "S101"];
+const ordreCredit = (l: Ecran[]) => [...l].sort((a, b) => (ORDRE_CREDIT.indexOf(a.id) + 1 || 99) - (ORDRE_CREDIT.indexOf(b.id) + 1 || 99));
+
 function construire(id: string, libelle: string, ecrans: Ecran[], tous: boolean): Menu {
   const groupes: { titre: string; ecrans: Ecran[] }[] = [];
   // Un écran non repris n'apparaît ni dans les menus ni dans l'arbre des droits (plan d'allègement, point 0.24) ;
   // un écran ouvert depuis un autre (menu: false, plan 3.17) reste dans l'arbre des droits.
-  // Un sous-menu réunit ses écrans. Menu Épargne : les écrans de premier niveau gardent leur place dans l'ordre du registre (plan d'allègement, point 5.13)
-  const enOrdre = id === "epargne";
+  // Un sous-menu réunit ses écrans. Menus Épargne et Crédit : les écrans de premier niveau gardent leur place dans l'ordre donné (plan d'allègement, points 5.13 et 6.16)
+  const enOrdre = id === "epargne" || id === "credit";
   for (const e of ecrans.filter((x) => x.priorite !== "skip" && (tous || x.menu !== false))) {
     const g = sousMenu(e, libelle), dernier = groupes[groupes.length - 1];
     const cible = g === "" && enOrdre ? (dernier?.titre === "" ? dernier : undefined) : groupes.find((x) => x.titre === g);
@@ -54,7 +59,7 @@ function construire(id: string, libelle: string, ecrans: Ecran[], tous: boolean)
 }
 
 export function menus(application: IdApplication, tous = false): Menu[] {
-  if (application === "principal") return BARRE_PRINCIPALE.map((m) => construire(m.id, m.libelle, ECRANS.filter(m.ecrans), tous));
+  if (application === "principal") return BARRE_PRINCIPALE.map((m) => construire(m.id, m.libelle, m.id === "credit" ? ordreCredit(ECRANS.filter(m.ecrans)) : ECRANS.filter(m.ecrans), tous));
   // Paie et Immobilisations : un menu par entrée du manuel (« Structure de base », « Personnel »…)
   const parEntree = new Map<string, Ecran[]>();
   for (const e of ECRANS.filter((x) => x.module === application)) {

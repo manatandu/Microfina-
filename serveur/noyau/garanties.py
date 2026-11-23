@@ -302,4 +302,13 @@ def ensemble(u, cid: int) -> dict:
                     "inscriptionNumero": v["inscriptionNumero"], "echeance": v["echeance"], "perimee": v["perimee"]})
     return {"credit": {"id": c["id"], "numero": c["numero"], "montant": c["montant"], "devise": c["devise"].strip(), "client": titulaire(c["tiers_id"]), "tiersId": c["tiers_id"],
                        "membre": valeur("select numero from tiers where id = %s", (c["tiers_id"],))},
-            "garanties": out, "total": sum(x["reste"] for x in out)}
+            "garanties": out, "total": sum(x["reste"] for x in out), "proposees": proposees(c)}
+
+
+def proposees(c: dict) -> dict:
+    """Plan d'allègement, point 6.11 : les garanties proposées à l'analyse financière de la demande sont les garanties à constituer"""
+    from .services import json_lu
+    a = une("""select a.numero, a.donnees from analyse_financiere a join demande_credit d on d.analyse_id = a.id where d.id = %s""", (c["demande_id"],))
+    g = ((json_lu(a["donnees"]) or {}).get("garanties") or []) if a else []
+    return {"analyse": a["numero"] if a else "", "garanties": [{"type": x.get("type") or "", "description": x.get("description") or "", "valeur": x.get("valeur") or 0}
+                                                             for x in g if isinstance(x, dict)]}

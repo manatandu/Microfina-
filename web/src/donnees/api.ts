@@ -3811,6 +3811,12 @@ function horsBilanGarantie(c: CreditPret, montant: number, sens: "ajout" | "libe
     { compte: a!, contrat: `credit:${c.id}`, sens: "D", devise: c.devise, montant, montantCdf: cdf(montant, c.devise) },
     { compte: b!, contrat: `credit:${c.id}`, sens: "C", devise: c.devise, montant, montantCdf: cdf(montant, c.devise) }] });
 }
+/** Plan d'allègement, point 6.11 : les garanties proposées à l'analyse de la demande sont les garanties à constituer (comme garanties.proposees) */
+function garantiesProposees(c: CreditPret) {
+  const a = E.analyses.find((x) => x.id === E.demandes.find((d) => d.id === c.demandeId)?.analyseId);
+  const g = ((a?.donnees as { garanties?: unknown } | undefined)?.garanties ?? []) as { type?: string; description?: string; valeur?: number }[];
+  return { analyse: a?.numero ?? "", garanties: (Array.isArray(g) ? g : []).map((x) => ({ type: x.type ?? "", description: x.description ?? "", valeur: x.valeur ?? 0 })) };
+}
 const pieceDe = (eid: number | null) => (eid ? E.ecritures.find((e) => e.id === eid)?.piece ?? "" : "");
 /** Loi 11/020, art. 51 : l'inscription conserve les droits du créancier cinq années à compter de sa date (comme garanties.cinq_ans) */
 const cinqAns = (d: string) => { const [a, m, j] = d.split("-"); return `${Number(a) + 5}-${m}-${m === "02" && j === "29" ? "28" : j}`; };
@@ -3858,7 +3864,7 @@ const garanties = {
       out.push({ id: n.id, nature: "materiel", libelle: "Matériel professionnel", garant: titulaire(t), compte: v.description, date: v.date, ajoute: v.montant,
         libere: v.libereLe ? v.montant : 0, reste: v.libereLe ? 0 : v.montant, inscriptionNumero: v.inscriptionNumero, echeance: v.echeance, perimee: v.perimee }); }
     return { credit: { id: c.id, numero: c.numero, montant: c.montant, devise: c.devise as string, client: titulaire(t), tiersId: c.tiersId, membre: t.numero },
-      garanties: out, total: out.reduce((s, x) => s + x.reste, 0) };
+      garanties: out, total: out.reduce((s, x) => s + x.reste, 0), proposees: garantiesProposees(c) };
   },
   ajouter(id: number, p: { type: string; cautionId?: number | null; compteId?: number | null; montant?: number | null; dateOperation?: string }) {
     const u = exiger();

@@ -2085,7 +2085,7 @@ def test_garanties(clients, journee):
     # plan 6.12 : un tableau de toutes les garanties ; l'épargne obligatoire bloquée au déblocage s'y lit une fois (registre S94-8)
     e = agent.get(f"/api/credit/garanties/{cid}/ensemble", **H).json()
     assert [(x["libelle"], x["ajoute"], x["reste"]) for x in e["garanties"]] == [("Épargne obligatoire", 10000000, 10000000), ("Caution", 1000000, 0), ("Dépôt complémentaire", 500000, 500000)]
-    assert e["total"] == 10500000
+    assert e["total"] == 10500000 and e["proposees"] == {"analyse": "", "garanties": []}   # pas d'analyse à la demande (plan 6.11)
     l = agent.get("/api/credit/garanties-rapport", {"type": "caution", "du": "2026-11-01", "au": "2026-11-05"}, **H).json()
     assert (l[0]["numeroMembre"], l[0]["numeroCredit"], l[0]["ajoute"], l[0]["libere"], l[0]["reste"]) == ("0412-000319", "0412/L001/00001", 1000000, 1000000, 0)
     assert balance_equilibree(agent)

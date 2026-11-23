@@ -444,14 +444,15 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Echéancier' }).click();
   await p.getByRole('dialog', { name: 'Echéancier' }).getByRole('cell', { name: '97 487,13 CDF' }).first().waitFor(); await etape('06c38-simulation-echeancier');
   await p.getByRole('dialog', { name: 'Echéancier' }).getByRole('button', { name: 'Fermer' }).click();
-  // Analyse financière allégée (S85, p. 112 ; registre CR-11, S85-1 à S85-6) : Kalala, 1 000 000 CDF sur 12 mois, capacité de remboursement
-  await aller('/credit/s85?page=allegee'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  // Analyse financière (S85, p. 112 ; plan 6.11 : quatre parties) : Kalala, 1 000 000 CDF sur 12 mois, capacité de remboursement ; le bilan, facultatif, reste vide
+  await aller('/credit/s85'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const raf = p.getByRole('dialog', { name: "Recherche d'un client" });
   await raf.getByLabel('Nom:', { exact: true }).fill('Kalala'); await raf.getByRole('row').filter({ hasText: 'Kalala' }).first().click();
-  await p.getByLabel('Produit crédit :').selectOption({ label: 'Crédit commerce' }); await p.getByRole('button', { name: 'Suivant', exact: true }).click();
+  await p.getByLabel('Produit crédit :').selectOption({ label: 'Crédit commerce' });
   await p.getByLabel('Montant sollicité *').fill('1 000 000'); await p.getByLabel('Durée (mois) *').fill('12'); await p.getByRole('button', { name: 'Suivant', exact: true }).click();
   await p.getByLabel("Revenus mensuels (chiffre d'affaires)").fill('3 000 000'); await p.getByLabel('Achats et coût des ventes').fill('1 500 000');
   await p.getByLabel("Charges d'exploitation").fill('500 000'); await p.getByLabel('Charges familiales').fill('300 000');
+  await p.getByRole('button', { name: 'Suivant', exact: true }).click(); await p.getByRole('button', { name: 'Suivant', exact: true }).click();
   await p.getByText('13,93 %').waitFor(); await p.getByLabel('Avis *').selectOption('favorable'); await etape('06c39-analyse-financiere');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByText('Analyse N° AF000001').waitFor();
