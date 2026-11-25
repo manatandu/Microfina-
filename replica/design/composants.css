@@ -90,7 +90,11 @@ h1, h2, h3 { letter-spacing: -0.01em; }
   padding: 6px var(--espace-4); margin-bottom: -1px; cursor: pointer; position: relative;
 }
 .onglets [role="tab"][aria-selected="true"], .onglets > [aria-current="page"] {
-  background: var(--cadre); color: var(--encre); box-shadow: inset 0 2px 0 var(--tampon); border-bottom: 1px solid var(--cadre);
+  background: var(--cadre); color: var(--encre); border-bottom: 1px solid var(--cadre);
+}
+/* Le trait de l'onglet choisi : une bordure sur un pseudo-élément, qui reste en couleurs forcées (guide tabs : « DO NOT use box-shadow or a background ») */
+.onglets [role="tab"][aria-selected="true"]::after, .onglets > [aria-current="page"]::after {
+  content: ""; position: absolute; inset: -1px -1px auto; border-top: 2px solid var(--tampon); border-radius: inherit; pointer-events: none;
 }
 .onglets [role="tab"] .touche { margin-left: var(--espace-1); }
 @media (hover: hover) and (pointer: fine) { .onglets [role="tab"]:not([aria-selected="true"]):hover, .onglets > a:not([aria-current="page"]):hover { color: var(--encre); background: var(--papier); } }
@@ -126,6 +130,7 @@ h1, h2, h3 { letter-spacing: -0.01em; }
 /* ---------- Champs ---------- */
 .champ { display: grid; gap: 3px; min-width: 0; }
 .champ > label, .champ > .libelle { font-size: var(--taille-dense); font-weight: 600; color: var(--encre-2); }
+.requis { color: var(--alerte); }   /* l'astérisque rouge de la saisie obligatoire (manuel p. 10) */
 .saisie {
   font: inherit; color: var(--encre); background: var(--feuille);
   border: 1px solid var(--trait-saisie); border-radius: var(--rayon-champ);

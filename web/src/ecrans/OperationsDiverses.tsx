@@ -2,7 +2,7 @@ import { useState } from "react";
 import { enClair } from "../lib/enclair";
 import { api, type OperationDiverse } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Formulaire } from "../composants";
 
 const VIDE = { sens: "", compte: "", statut: "", libelle: "" };
 
@@ -25,7 +25,7 @@ export default function ParametrageAutresOperations() {
       <option value=""></option>{valeurs.map((v) => <option key={v} value={v}>{enClair(v)}</option>)}</select>}</Champ>);
   return (
     <>
-      <section className="bloc pile" aria-label="Paramétrage autres opérations">
+      <Formulaire className="bloc pile" label="Paramétrage autres opérations" envoyer={enregistrer}>
         <div className="grille-deux">
           {/* Nature de l'opération : encaissement (compte de produit) ou décaissement (charge) (plan d'allègement, point 2.25) */}
           <Champ libelle="Nature : *">{(p) => <select {...p} className="saisie" value={f.sens} onChange={(e) => setF({ ...f, sens: e.target.value })}>
@@ -35,7 +35,7 @@ export default function ParametrageAutresOperations() {
           <Champ libelle="Libellé opération *">{(p) => <input {...p} className="saisie" value={f.libelle} onChange={(e) => setF({ ...f, libelle: e.target.value })} />}</Champ>
         </div>
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton" type="submit">Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
         </div>
         <table className="grille">
@@ -52,7 +52,7 @@ export default function ParametrageAutresOperations() {
         <Textes sources={["Manuel Microfina++, p. 42 : « renseigner le type opération, compte, Statut, libelle opération et [Enregistrer] » ; capture : Type Opération*, Compte*, Statut*, Libellé opération*, Enregistrer, Annuler, grille Sens, Compte, Libelle, Statut",
           "Manuel Microfina++, p. 89 et 90 : encaissement et décaissement divers au guichet (S78)",
           "PCCI, plan de comptes : le compte saisi existe au plan (T16) ; un compte fermé ou non saisissable ne reçoit pas d'écriture (S102-10)"]} />
-      </section>
+      </Formulaire>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );

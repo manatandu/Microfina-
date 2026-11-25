@@ -8,7 +8,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { montant, type Devise } from "@design/montant.js";
-import { Champ, Chargement, Dialogue, Fiche, Lecture, Paginee, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Lecture, Paginee, Textes, type Boite, Formulaire } from "../composants";
 
 type Apercu = Awaited<ReturnType<typeof api.miseEnPlace.apercu>>;
 type Demande = Awaited<ReturnType<typeof api.dossiers.lister>>[number];
@@ -55,11 +55,11 @@ export default function MiseEnPlace() {
   return (
     <>
       <h2>Information de base sur le prêt</h2>
-      <section className="bloc pile" aria-label="Mise en place">
+      <Formulaire className="bloc pile" label="Mise en place" envoyer={() => (page < 3 ? setPage(page + 1) : enregistrer())}>
         <div className="ligne-champ">
           <button className="bouton secondaire" type="button" onClick={voirDemandes}>Demande</button>
           <Champ libelle="Code de la demande">{(p) => <input {...p} className="saisie code" autoComplete="off" value={code} onChange={(e) => setCode(e.target.value)}
-            onKeyDown={async (e) => { if (e.key === "Enter") { const l = await api.dossiers.lister("approuvee"); const x = l.find((y) => y.numero === code.trim()); if (x) charger(x.id); else erreur(new Error("Aucune demande approuvée sous ce code.")); } }} />}</Champ>
+            onKeyDown={async (e) => { if (e.key === "Enter") { e.preventDefault(); const l = await api.dossiers.lister("approuvee"); const x = l.find((y) => y.numero === code.trim()); if (x) charger(x.id); else erreur(new Error("Aucune demande approuvée sous ce code.")); } }} />}</Champ>
         </div>
         {a && s && <>
           <div className="grille-deux">
@@ -116,13 +116,13 @@ export default function MiseEnPlace() {
           </fieldset>}
           <div className="actions-onglets">
             {page === 3 && <button className="bouton secondaire" type="button" onClick={() => setEcheancier(true)}>Echéancier</button>}
-            {page < 3 ? <button className="bouton" type="button" onClick={() => setPage(page + 1)}>Suivant</button>
-              : <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>}
+            {page < 3 ? <button className="bouton" type="submit">Suivant</button>
+              : <button className="bouton" type="submit">Enregistrer</button>}
           </div>
         </>}
         <Textes sources={["Manuel Microfina++, p. 113 (capture « Information de base sur le prêt ») et p. 114, 2.16 à 2.23 : demandes en attente, montant et durée, ligne de financement et bailleur, comptes d'épargne obligatoire et de fonds de solidarité, assureur, objet et zone, échéancier, agent, Enregistrer",
           "Instr. BCC 38, art. 3 et 5 : TEG au dossier ; registre S89-1 à S89-9, CR-6, CR-8, CR-24"]} />
-      </section>
+      </Formulaire>
       <Fiche titre="Demandes en attente de mise en place" ouverte={!!liste} fermer={() => setListe(null)}>
         <Paginee lignes={liste ?? []}>{(v) => (<div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">N° demande</th><th scope="col">N° client</th><th scope="col">Intitulé</th><th scope="col">Produit</th><th scope="col" className="num">Montant approuvé</th><th scope="col">Approuvé par</th></tr></thead>

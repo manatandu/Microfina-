@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
-import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture, Formulaire } from "../composants";
 
 type Utilisateur = { id: number; nom: string; login: string; agence: string };
 type Profil = { id: number; nom: string; description: string; modules: string[] };
@@ -31,7 +31,7 @@ export default function GestionProfilsUtilisateur() {
   return (
     <>
       <h2>Gestion des profils utilisateur</h2>
-      <section className="bloc pile" aria-label="Gestion des profils utilisateur">
+      <Formulaire className="bloc pile" label="Gestion des profils utilisateur" envoyer={enregistrer}>
         <fieldset className="cadre-champs pile">
           <legend>Informations</legend>
           <div className="ligne-champ">
@@ -56,13 +56,13 @@ export default function GestionProfilsUtilisateur() {
           </table>
         </fieldset>
         <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={!uid || !pid} onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton" type="submit" disabled={!uid || !pid}>Enregistrer</button>
           <button className="bouton secondaire" type="button" disabled={!uid && !pid} onClick={effacer}>Effacer</button>
           <button className="bouton secondaire" type="button" disabled={!uid} onClick={() => setFenetre("historique")}>Historique profil</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 17 : « Cliquer sur le symbole de recherche « Agence » pour associer le nom et prénom de l'utilisateur et sur [Description] pour la description du choix du profil » ; capture Gestion des profils utilisateur : Nom et prénom(s)*, Agence, Choix du profil*, Description, Liste des modules liés (Nom Module), Enregistrer, Effacer, Historique profil",
           "Instr. BCC 008, art. 66 : séparation des tâches incompatibles ; art. 16 : gestion des accès maîtrisée"]} />
-      </section>
+      </Formulaire>
       <Fiche titre="Recherche d'un utilisateur" ouverte={fenetre === "utilisateur"} fermer={fermer}>
         <Champ libelle="Nom">{(p) => <input {...p} className="saisie" type="search" value={filtre} onChange={(e) => setFiltre(e.target.value)} />}</Champ>
         <table className="grille">

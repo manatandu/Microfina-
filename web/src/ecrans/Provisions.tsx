@@ -5,7 +5,7 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, LigneFiltres, Paginee, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, LigneFiltres, Paginee, Textes, type Boite, Formulaire } from "../composants";
 import { TableProvisions } from "./FinPeriode";
 
 type Ligne = Awaited<ReturnType<typeof api.provisions.charger>>[number];
@@ -142,13 +142,13 @@ function CreancesRadiees() {
           onKeyDown={(e) => { if (e.key === "Enter") setChoisi(x.id); }}><td className="code">{x.numero}</td><td>{x.client}</td><td className="chiffres">{x.radieLe ? fr(x.radieLe) : ""}</td>
           <td className="num chiffres">{montant(x.reste, x.devise as Devise)}</td></tr>)}</tbody>
       </table></div>
-      {c && <fieldset className="pile cadre-champs champs-a-gauche"><legend>Rentrée sur le crédit {c.numero}</legend>
+      {c && <Formulaire envoyer={encaisser}><fieldset className="pile cadre-champs champs-a-gauche"><legend>Rentrée sur le crédit {c.numero}</legend>
         <Champ libelle="Compte Client : *">{(p) => <select {...p} className="saisie code" value={f.compte} disabled={!c} onChange={(e) => setF({ ...f, compte: e.target.value })}><option value="">{c ? "" : "Choisir d'abord le crédit"}</option>
           {(comptes ?? []).filter((k) => k.devise === c.devise).map((k) => <option key={k.id} value={k.id}>{k.numero}</option>)}</select>}</Champ>
         <Champ libelle="Ordre du client : *">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.ordre} onChange={(e) => setF({ ...f, ordre: e.target.value })} />}</Champ>
         <Champ libelle="Montant de la rentrée : *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.montant} onChange={(e) => setF({ ...f, montant: e.target.value })} />}</Champ>
-        <div className="actions-onglets"><button className="bouton" type="button" onClick={encaisser}>Enregistrer</button></div>
-      </fieldset>}
+        <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button></div>
+      </fieldset></Formulaire>}
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );

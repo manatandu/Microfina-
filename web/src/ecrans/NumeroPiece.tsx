@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api, composerPiece, type ReglePiece } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Formulaire } from "../composants";
 
 type Elt = "INSTITUTION" | "AGENCE" | "JOURNAL" | "COMPTEUR";
 const NOMS: Record<Elt, string> = { INSTITUTION: "Institution", AGENCE: "Agence", JOURNAL: "Journal", COMPTEUR: "Compteur" };
@@ -44,7 +44,7 @@ export default function NumeroPiece() {
       <section className="bloc pile" aria-label="Paramétrage du numéro de piece">
         {!unique && <Champ libelle="Institution *">{(p) => <select {...p} className="saisie" value={institutionId} onChange={(e) => setInstitutionId(e.target.value)}>
           <option value=""></option>{donnees.institutions.map((i: { id: number; nom: string }) => <option key={i.id} value={i.id}>{i.nom}</option>)}</select>}</Champ>}
-        <div className="numerotation">
+        <Formulaire className="numerotation" envoyer={enregistrer}>
           <div className="pile">
             <div className="ligne-numerotation entete"><span /><span>Elément</span></div>
             <div className="ligne-numerotation"><input type="checkbox" checked disabled aria-label="Choisir : Exercice" /><span>Exercice {donnees.exercice ?? ""}, en tête</span></div>
@@ -68,9 +68,9 @@ export default function NumeroPiece() {
           </table>
           <div className="pile">
             <output aria-label="Aperçu du numéro" className="apercu-numero">{apercu}</output>
-            <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
+            <button className="bouton" type="submit">Enregistrer</button>
           </div>
-        </div>
+        </Formulaire>
         <Textes sources={["Manuel Microfina++, p. 41 : « renseigner la raison sociale de l'institution puis cocher les cases relatives et [Enregistrer] » ; capture : Institution*, Exercice, Position Institution, Position Agence, Position Journal, Position compteur, Enregistrer, Aperçu numéro, Générer",
           "PCCI § 3.3 et 3.4 : pièces portant les références de leur enregistrement ; chronologie sans insertion intercalaire ; livres tenus sans blanc",
           "Manuel Microfina++, p. 21 : Compléter journal détail, Compteur (S11c)"]} />

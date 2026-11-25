@@ -11,7 +11,7 @@ import { fr, texteEdition } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { liasseXml, telecharger } from "../lib/liasse";
 import { decimal } from "@design/montant.js";
-import { Attention, Champ, ChampDate, Chargement, Dialogue, Lecture, Textes, type Boite } from "../composants";
+import { Attention, Champ, ChampDate, Chargement, Dialogue, Lecture, Textes, type Boite, Recherche } from "../composants";
 
 const n = (v: number | null) => (v === null ? "" : decimal.format(v / 100));
 type Ctx = Awaited<ReturnType<typeof api.etatsFinanciers.contexte>>;
@@ -72,9 +72,10 @@ function EnteteEtat({ date }: { date: string }) {
   );
 }
 
-function Actions({ rechercher, vider, exporter }: { rechercher: () => void; vider: () => void; exporter: (() => void) | null }) {
+/** Boutons des critères : Rechercher envoie la recherche qui les entoure */
+function Actions({ vider, exporter }: { vider: () => void; exporter: (() => void) | null }) {
   return <div className="actions-onglets">
-    <button className="bouton" type="button" onClick={rechercher}>Rechercher</button>
+    <button className="bouton" type="submit">Rechercher</button>
     <button className="bouton secondaire" type="button" onClick={vider}>Effacer les critères</button>
     <button className="bouton secondaire" type="button" disabled={!exporter} onClick={() => exporter?.()}>Exporter</button>
   </div>;
@@ -101,8 +102,8 @@ function EditionBilan({ ctx, jour }: { ctx: Ctx; jour: string }) {
   return (
     <section className="bloc pile" aria-label="Edition du bilan">
       <h2>Edition du bilan</h2>
-      <Edition ctx={ctx} f={f} setF={setF} libelleType="Type de bilan :" types={ctx.typesBilan} libelleVidage="Bilan sans VIDAGE" />
-      <Actions rechercher={rechercher} vider={() => { setF(vide); setR(null); }} exporter={r ? exporter : null} />
+      <Recherche className="pile" label="Critères" envoyer={rechercher}><Edition ctx={ctx} f={f} setF={setF} libelleType="Type de bilan :" types={ctx.typesBilan} libelleVidage="Bilan sans VIDAGE" />
+      <Actions vider={() => { setF(vide); setR(null); }} exporter={r ? exporter : null} /></Recherche>
       {r && <div className="pile">
         <EnteteEtat date={r.au} />
         <p>BILAN au <strong className="chiffres">{fr(r.au)}</strong> (N), comparé au <span className="chiffres">{fr(r.precedent)}</span> (N - 1), en CDF{texteEdition(r.edition)}</p>
@@ -130,8 +131,8 @@ function EditionHorsBilan({ ctx, jour }: { ctx: Ctx; jour: string }) {
   return (
     <section className="bloc pile" aria-label="Edition de l'état hors bilan">
       <h2>Edition de l'état hors bilan</h2>
-      <Edition ctx={ctx} f={f} setF={setF} libelleType="Hors bilan :" types={ctx.typesHorsBilan} libelleVidage="Bilan sans VIDAGE" />
-      <Actions rechercher={rechercher} vider={() => { setF(vide); setR(null); }} exporter={r ? exporter : null} />
+      <Recherche className="pile" label="Critères" envoyer={rechercher}><Edition ctx={ctx} f={f} setF={setF} libelleType="Hors bilan :" types={ctx.typesHorsBilan} libelleVidage="Bilan sans VIDAGE" />
+      <Actions vider={() => { setF(vide); setR(null); }} exporter={r ? exporter : null} /></Recherche>
       {r && <EnteteEtat date={r.au} />}
       {r && <div className="defile-x"><table className="grille"><caption>HORS-BILAN au {fr(r.au)} (N), comparé au {fr(r.precedent)} (N - 1), en CDF{texteEdition(r.edition)}</caption>
         <thead><tr><th scope="col">Code Poste</th><th scope="col">HORS-BILAN</th><th scope="col" className="num">N</th><th scope="col" className="num">N - 1</th></tr></thead>
@@ -158,8 +159,8 @@ function EditionResultat({ ctx, jour }: { ctx: Ctx; jour: string }) {
   return (
     <section className="bloc pile" aria-label="Compte de résultat">
       <h2>Compte de résultat</h2>
-      <Edition ctx={ctx} f={f} setF={setF} libelleType="Type de résultat :" types={ctx.typesResultat} libelleVidage="Resultat sans VIDAGE" />
-      <Actions rechercher={rechercher} vider={() => { setF(vide); setR(null); }} exporter={r ? exporter : null} />
+      <Recherche className="pile" label="Critères" envoyer={rechercher}><Edition ctx={ctx} f={f} setF={setF} libelleType="Type de résultat :" types={ctx.typesResultat} libelleVidage="Resultat sans VIDAGE" />
+      <Actions vider={() => { setF(vide); setR(null); }} exporter={r ? exporter : null} /></Recherche>
       {r && <div className="pile"><EnteteEtat date={r.au} /><div className="defile-x"><table className="grille">
         <caption>COMPTE DE RESULTAT du {fr(r.du)} au {fr(r.au)} (Exercice), comparé à la période du {fr(r.precedentDu)} au {fr(r.precedentAu)} (Ex. préc.), en CDF{texteEdition(r.edition)}</caption>
         <thead><tr><th scope="col"><span className="sr-only">Signe</span></th><th scope="col">RUBRIQUES</th><th scope="col" className="num">Exercice</th><th scope="col" className="num">Ex. préc.</th></tr></thead>
@@ -202,7 +203,7 @@ function EditionAnnexes({ ctx, jour }: { ctx: Ctx; jour: string }) {
   return (
     <section className="bloc pile" aria-label="Edition des états annexes">
       <h2>Edition des états annexes</h2>
-      <div className="deux-colonnes">
+      <Recherche className="pile" label="Critères" envoyer={rechercher}><div className="deux-colonnes">
         <fieldset className="cadre-champs formulaire"><legend className="sr-only">Période</legend>
           {ctx.agences.length > 1 && <Champ libelle="Agence :">{(p) => <select {...p} className="saisie" value={f.agence} onChange={(e) => setF({ ...f, agence: e.target.value })}><option value="">Toutes les agences</option>
             {ctx.agences.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>}
@@ -216,7 +217,7 @@ function EditionAnnexes({ ctx, jour }: { ctx: Ctx; jour: string }) {
         </fieldset>
       </div>
       <p><strong>{titre}</strong></p>
-      <Actions rechercher={rechercher} vider={() => { setF(vide); setR(null); }} exporter={r ? exporter : null} />
+      <Actions vider={() => { setF(vide); setR(null); }} exporter={r ? exporter : null} /></Recherche>
       {r?.forme === "flux" && <div className="pile">
         <EnteteEtat date={r.au} />
         {!r.controle && <Attention>Les flux ne retombent pas sur la variation des liquidités : une écriture mêle des comptes que le tableau ne sait pas classer.</Attention>}
@@ -341,7 +342,7 @@ export function IndicateursFinanciers() {
       <h2>Indicateurs financiers</h2>
       <section className="bloc pile" aria-label="Edition des indicateurs financiers">
         <h2>Edition des indicateurs financiers</h2>
-        <div className="deux-colonnes">
+        <Recherche className="pile" label="Critères" envoyer={rechercher}><div className="deux-colonnes">
           <fieldset className="cadre-champs formulaire"><legend className="sr-only">Période</legend>
             <Champ libelle="Exercice :">{(p) => <select {...p} className="saisie court" value={c.exercice} onChange={(e) => setF({ ...c, exercice: e.target.value })}>{ctx.exercices.map((a) => <option key={a} value={a}>{enClair(a)}</option>)}</select>}</Champ>
             <Champ libelle="Date début période :">{(p) => <Lecture {...p} value={fr(du)} />}</Champ>
@@ -354,8 +355,8 @@ export function IndicateursFinanciers() {
               {ctx.mois.map((m, i) => <option key={m} value={String(i + 1)}>{m}</option>)}</select>}</Champ>
           </fieldset>
         </div>
-        <Actions rechercher={rechercher} vider={() => { setF(null); setR(null); }}
-          exporter={r ? () => exporterExcel("Indicateurs financiers", r.colonnes.map((x) => x.titre), r.lignes.map((l) => l.v.map((v, i) => (typeof v === "number" ? (r.colonnes[i]!.type === "montant" && !l.nombres ? v / 100 : v) : v ?? "")))) : null} />
+        <Actions vider={() => { setF(null); setR(null); }}
+          exporter={r ? () => exporterExcel("Indicateurs financiers", r.colonnes.map((x) => x.titre), r.lignes.map((l) => l.v.map((v, i) => (typeof v === "number" ? (r.colonnes[i]!.type === "montant" && !l.nombres ? v / 100 : v) : v ?? "")))) : null} /></Recherche>
         {r && <div className="defile-x"><table className="grille"><caption>Indicateurs de performance du {fr(r.du)} au {fr(r.au)}, montants en CDF{texteEdition(r.edition)}</caption>
           <thead><tr>{r.colonnes.map((x) => <th key={x.titre} scope="col" className={["montant", "nombre", "taux"].includes(x.type) ? "num" : undefined}>{x.titre}</th>)}</tr></thead>
           <tbody>{r.lignes.map((l, i) => <tr key={i}>{l.v.map((v, k) => { const t = r.colonnes[k]!.type;

@@ -8,7 +8,7 @@ import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
 
 const nomComplet = (t: Tiers) => t.intitule || [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
@@ -87,7 +87,7 @@ export function DemandeCredit() {
   }
   return (
     <>
-      <section className="bloc pile" aria-label="Demande de crédit">
+      <Formulaire className="bloc pile" label="Demande de crédit" envoyer={() => { if (g.produit && client) enregistrer(); }}>
         <div className="grille-deux">
           <fieldset className="cadre-champs formulaire">
             <legend>Demande</legend>
@@ -148,13 +148,13 @@ export function DemandeCredit() {
         </fieldset>
         <div className="actions-onglets">
           <button className="bouton secondaire" type="button" disabled={!g.produit} onClick={voirEcheancier}>Echéancier</button>
-          <button className="bouton" type="button" disabled={!g.produit || !client} onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton" type="submit" disabled={!g.produit || !client}>Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 113, 2.1 à 2.8 : produit, client, cycle, effectifs et montants hommes et femmes, groupes solidaires, région, préfecture ; Enregistrer",
           "Plan d'allègement, points 6.1 à 6.3 : une page, un montant demandé, effectifs de la fiche pour une personne, lieu d'après l'adresse du membre ; différé, objet, comptes, assureur et ligne de financement",
           "Registre S86-1 à S86-7 : région et préfecture lues comme province et ville ou territoire (S20-1) ; groupe : part de chaque membre (CR-8, loi 11/020, art. 44)"]} />
-      </section>
+      </Formulaire>
       <Fiche titre="Echéancier" ouverte={!!echeancier} fermer={() => setEcheancier(null)}>
         {echeancier && <div className="pile">
           <p>{echeancier.produit} · {montant(echeancier.montant, echeancier.devise as Devise)} · {echeancier.nombreTraites} traites · TEG annuel {echeancier.tauxRegle ? "sans objet" : `${String(echeancier.tegR?.toFixed(2) ?? "").replace(".", ",")} %`}</p>
@@ -205,16 +205,16 @@ export function FormulaireVerification({ id, fini }: { id: number; fini: (msg?: 
     } });
   }
   return (
-    <div className="pile">
+    <Formulaire className="pile" envoyer={enregistrer}>
       <p>{d.client} · {d.produit} · {d.duree} mois{d.differe ? `, différé ${d.differe} mois` : ""} · {d.objet}{d.usagePrecis ? ` (${d.usagePrecis})` : ""}</p>
       <Champ libelle="Montant (ressaisi) *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.montant} onChange={(e) => setF({ ...f, montant: e.target.value })} />}</Champ>
       <ChampDate libelle="Consultation de la Centrale des risques le *" valeur={crLe} onChange={(v) => setF({ ...f, crLe: v })} />
       <Champ libelle="Référence du rapport de la Centrale *">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.crRef} onChange={(e) => setF({ ...f, crRef: e.target.value })} />}</Champ>
       <ChoixAvis avis={f.avis} motif={f.motif} maj={(x) => setF({ ...f, ...x })} />
-      <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
+      <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button>
         <button className="bouton secondaire" type="button" onClick={() => fini()}>Fermer</button></div>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </div>
+    </Formulaire>
   );
 }
 
@@ -239,7 +239,7 @@ export function FormulaireDecision({ id, fini }: { id: number; fini: (msg?: stri
     } });
   }
   return (
-    <div className="pile">
+    <Formulaire className="pile" envoyer={decider}>
       <p>{d.client} · {d.produit} · demandé {montant(d.montant, d.devise as Devise)} sur {d.duree} mois · Centrale des risques {d.consultationCrRef} du {fr(d.consultationCrLe)}</p>
       <p>Fonds propres prudentiels : <strong className="chiffres">{ctx.fondsPropres ? `${montant(ctx.fondsPropres.montant, "CDF")} au ${fr(ctx.fondsPropres.dateArrete)}` : "non saisis (Paramétrage > Info société)"}</strong></p>
       <Champ libelle="Montant approuvé *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.montant} onChange={(e) => setF({ ...f, montant: e.target.value })} />}</Champ>
@@ -253,10 +253,10 @@ export function FormulaireDecision({ id, fini }: { id: number; fini: (msg?: stri
       <Champ libelle="N° du procès-verbal">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.pv} onChange={(e) => setF({ ...f, pv: e.target.value })} />}</Champ>
       <Champ libelle="Accord du Conseil d'administration (personne apparentée)">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.conseil} onChange={(e) => setF({ ...f, conseil: e.target.value })} />}</Champ>
       <Champ libelle="Accord ou dérogation de la BCC (au-delà du plafond)">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.bcc} onChange={(e) => setF({ ...f, bcc: e.target.value })} />}</Champ>
-      <div className="actions-onglets"><button className="bouton" type="button" onClick={decider}>Enregistrer</button>
+      <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button>
         <button className="bouton secondaire" type="button" onClick={() => fini()}>Fermer</button></div>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </div>
+    </Formulaire>
   );
 }
 
@@ -269,13 +269,13 @@ export function FormulaireAppel({ id, fini }: { id: number; fini: (msg?: string)
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   } });
   return (
-    <div className="pile">
+    <Formulaire className="pile" envoyer={enregistrer}>
       <Champ libelle="Décision du Conseil : *">{(p) => <select {...p} className="saisie" value={a.decision} onChange={(e) => setA({ ...a, decision: e.target.value })}>
         <option value=""></option><option value="accorde">Accordé</option><option value="confirme">Refus confirmé</option></select>}</Champ>
       <Champ libelle="Référence : *">{(p) => <input {...p} className="saisie" autoComplete="off" value={a.reference} onChange={(e) => setA({ ...a, reference: e.target.value })} />}</Champ>
-      <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
+      <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button>
         <button className="bouton secondaire" type="button" onClick={() => fini()}>Fermer</button></div>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </div>
+    </Formulaire>
   );
 }

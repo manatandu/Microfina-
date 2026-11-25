@@ -4,7 +4,7 @@ import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { exporterExcel } from "../lib/excel";
-import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Formulaire } from "../composants";
 
 const MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 
@@ -23,7 +23,7 @@ export default function ReportingLcb({ jour }: { jour: string }) {
   const exporter = () => exporterExcel(`Reporting LCB-FT ${MOIS[periode.mois - 1]} ${periode.annee}`, ["Tableau", "Code", "Libellé", "Valeur"],
     donnees.tableaux.flatMap((t) => t.lignes.map((l) => [t.titre, l.code, l.libelle, valeur(t.cle, l.code, l.valeur)])));
   return (
-    <section className="bloc pile" aria-label="Reporting mensuel BCC">
+    <Formulaire className="bloc pile" label="Reporting mensuel BCC" envoyer={enregistrer}>
       <div className="formulaire">
         <Champ libelle="Mois :">{(p) => <select {...p} className="saisie" value={periode.mois} onChange={(e) => { setPeriode({ ...periode, mois: Number(e.target.value) }); setSaisies({}); }}>
           {MOIS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select>}</Champ>
@@ -47,13 +47,13 @@ export default function ReportingLcb({ jour }: { jour: string }) {
           </table>
         </div>))}
       <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
+        <button className="bouton" type="submit">Enregistrer</button>
         <button className="bouton secondaire" type="button" onClick={exporter}>Exporter</button>
       </div>
       <Textes sources={["Instr. BCC 15, art. 95, b : déclaration mensuelle à la Direction de la surveillance des intermédiaires financiers ; annexe DSIF, codes LAB",
         "Cellules calculées par le logiciel : opérations de caisse de la clientèle du mois, profils de risque, personnes exposées, déclarations de soupçon, comptes, clients ; montants en CDF",
         "Les autres cellules se saisissent et restent gardées pour le mois"]} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </section>
+    </Formulaire>
   );
 }

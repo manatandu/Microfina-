@@ -1,5 +1,5 @@
 import { vers } from "./registre";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useId } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { boiteOperation } from "../lib/examen";
@@ -9,7 +9,7 @@ import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
-import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Paginee, Silhouette, Specimen, Textes, Touche, type Boite, Lecture, LigneFiltres } from "../composants";
+import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Formulaire, Paginee, Silhouette, Specimen, Textes, Touche, type Boite, Lecture, LigneFiltres } from "../composants";
 import { RechercheClient } from "./Visa";
 
 export const titulaireDe = (t: Tiers) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
@@ -49,6 +49,9 @@ const nomComplet = (t: Tiers) => t.intitule || titulaireDe(t);
 export function ChampClient({ client, choisir, desactive, libelle = "N° client" }: { client: Tiers | null; choisir: (t: Tiers) => void; desactive?: boolean; libelle?: string }) {
   const [q, setQ] = useState<string | null>(null);
   const [proposes, setProposes] = useState<Tiers[]>([]);
+  const [actif, setActif] = useState(0);
+  const liste = useId();
+  useEffect(() => { setActif(0); }, [proposes]);
   useEffect(() => {
     const t = q?.trim() ?? "";
     if (t.length < 2) { setProposes([]); return; }
@@ -60,10 +63,17 @@ export function ChampClient({ client, choisir, desactive, libelle = "N° client"
   return (
     <div className="champ-client">
       <Champ libelle={libelle}>{(p) => <input {...p} className="saisie code" role="combobox" aria-expanded={proposes.length > 0} aria-autocomplete="list" autoComplete="off"
+        aria-controls={liste} aria-activedescendant={proposes[actif] ? `${liste}-${actif}` : undefined}
         disabled={desactive} value={q ?? client?.numero ?? ""} onChange={(e) => setQ(e.target.value)} onBlur={() => setTimeout(() => setProposes([]), 150)}
-        onKeyDown={(e) => { if (e.key === "Enter" && proposes[0]) { e.preventDefault(); prendre(proposes[0]); } else if (e.key === "Escape") { setQ(null); setProposes([]); } }} />}</Champ>
-      {proposes.length > 0 && <ul className="propositions" role="listbox" aria-label="Clients proposés">
-        {proposes.map((t) => <li key={t.id} role="option" aria-selected={false} onMouseDown={(e) => { e.preventDefault(); prendre(t); }}>
+        onKeyDown={(e) => {
+          const n = proposes.length;
+          if (n && (e.key === "ArrowDown" || e.key === "ArrowUp")) { e.preventDefault(); setActif((a) => (a + (e.key === "ArrowDown" ? 1 : n - 1)) % n); }
+          else if (e.key === "Enter" && proposes[actif]) { e.preventDefault(); prendre(proposes[actif]!); }
+          // Échap ferme la liste seule, pas la fiche qui contient la case
+          else if (e.key === "Escape" && (n || q !== null)) { e.preventDefault(); e.stopPropagation(); setQ(null); setProposes([]); }
+        }} />}</Champ>
+      {proposes.length > 0 && <ul className="propositions" role="listbox" id={liste} aria-label="Clients proposés">
+        {proposes.map((t, i) => <li key={t.id} id={`${liste}-${i}`} role="option" aria-selected={i === actif} onMouseDown={(e) => { e.preventDefault(); prendre(t); }}>
           <span className="chiffres">{t.numero}</span> {nomComplet(t)}</li>)}</ul>}
     </div>
   );
@@ -138,8 +148,10 @@ export default function GuichetDepotRetrait() {
   const cadre = op === "depot" ? "Dépôt espèce" : "Retrait en espèces";   // registre S74-3 : texte p. 86
 
   function enregistrer() {
+    if (!t || fait) return;
     const manque = !t ? "N° client" : !c ? "N° compte" : !m ? "Montant" : "";
     if (manque) { setBoite({ type: "erreur", message: `À remplir : ${manque}.` }); return; }
+    if (!billetageBon(coupures, m)) return;   // le bouton dit l'écart du billetage (aria-describedby)
     const personne: [string, string] = op === "depot" ? ["Versé par", mandataire.trim() || "Le titulaire"] : ["Remis à", procurationId ? (() => { const x = procurations.find((y) => y.id === procurationId); return x ? [x.nom, x.postnom, x.prenom].filter(Boolean).join(" ") : ""; })() : "Le titulaire"];
     setBoite({ type: "confirmation", message: recapitulatif(cadre, [["Client", `${nomComplet(t!)} (${t!.numero})`], ["Compte", c!.numero], ["Montant", montant(m!, devise)], ["En lettres", montantEnLettres(m!, devise)], personne, ["Motif", motif.trim()]]), oui: async () => {
       try {
@@ -147,11 +159,11 @@ export default function GuichetDepotRetrait() {
         const o = op === "depot" ? await api.guichet.depot(corps) : await api.guichet.retrait({ ...corps, mandataire: "", procurationId });
         if (o.statut === "visa_requis") {   // registre S08-5 : le retrait est enregistré en attente, pas payé ; le refaire après le visa
           setCle(nouvelleCle());
-          setBoite({ type: "succes", message: "Enregistré avec succès ! Retrait au-delà du plafond du guichet : il attend le visa « Retrait plafond » (Visa > Retrait plafond). Après le visa, enregistrer de nouveau ce retrait pour le payer." });
+          setBoite({ type: "succes", message: "Enregistré avec succès ! Retrait au-delà du plafond du guichet : il attend le visa « Retrait plafond » (Visa > Retrait plafond). Après le visa, enregistrer de nouveau ce retrait pour le payer.", garder: true });
           return;
         }
         setFait(o); setRecu(true);   // le reçu s'ouvre d'office (plan 4.3 ; Instr. BCC 40, art. 13)
-        if (o.avertissement) setBoite({ type: "succes", message: o.avertissement });
+        if (o.avertissement) setBoite({ type: "succes", message: o.avertissement, garder: true });
       } catch (x) { setBoite(boiteOperation(x, { type: op === "depot" ? "depot" : "retrait", tiersId: t!.id, compteId: c!.id, montant: m!, devise: c!.devise, motif }, setBoite)); }
     } });
   }
@@ -159,7 +171,7 @@ export default function GuichetDepotRetrait() {
   return (
     <>
       <OngletsGuichet version={fait?.id} />
-      <section className="bloc pile" aria-label={op === "depot" ? "Dépôt" : "Retrait"}>
+      <Formulaire className="bloc pile" label={op === "depot" ? "Dépôt" : "Retrait"} envoyer={enregistrer}>
         <div className="entete-ecran">
           {(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}
           <p>Date Opération : <strong className="chiffres">{j ? fr(j.date) : ""}</strong></p>
@@ -209,7 +221,9 @@ export default function GuichetDepotRetrait() {
                 cible={m} sens={op === "retrait" ? "remise" : "recue"} /></fieldset> : null}
           </div>
           <div className="actions-onglets">
-            <button className="bouton" type="button" disabled={!t || !!fait || !billetageBon(coupures, m)} onClick={enregistrer}>Enregistrer</button>
+            {/* Billetage pas juste : le bouton reste inactif (DESIGN § 2.2) mais atteignable, et dit pourquoi (guide accessibility, aria-disabled) */}
+            <button className="bouton" type="submit" disabled={!t || !!fait} aria-disabled={!billetageBon(coupures, m) || undefined}
+              aria-describedby={c && m && !billetageBon(coupures, m) ? `ecart-${devise}` : undefined}>Enregistrer</button>
             <button className="bouton secondaire" type="button" disabled={!fait} onClick={() => setRecu(true)}>Imprimer</button>
             <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
             <button className="bouton secondaire" type="button" disabled={!c} onClick={async () => {
@@ -224,7 +238,7 @@ export default function GuichetDepotRetrait() {
           "Instr. BCC 37, art. 2 et 3, annexe : dépôt et retrait sans frais", "PCCI, comptes 570 (caisse), 330 et 334 (épargnes)",
           "Instr. BCC 15 bis, art. 1 : examen renforcé dès 10 000 USD en espèces",
           "Manuel Microfina++, p. 20 : case « Voir solde client » de l'affectation du guichet (S10) ; loi 22/069, titre III, chapitre II : secret professionnel"]} />
-      </section>
+      </Formulaire>
       <Fiche titre="Reçu" ouverte={recu} fermer={nouvelleOperation}>
         {fait && <Recu id={fait.id} onNouveau={nouvelleOperation} echap />}
       </Fiche>

@@ -10,7 +10,7 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Paginee, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Paginee, Textes, type Boite, Recherche, Formulaire } from "../composants";
 import { Referentiels, type FacadeReferentiel } from "./Referentiels";
 
 const entier = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
@@ -113,7 +113,7 @@ export function NouvelEmploye() {
   const date = (k: string, l: string, requis = false) => <ChampDate libelle={`${l}${requis ? " *" : ""}`} valeur={v(k)} onChange={(x) => maj(k, x)} />;
   const nombre = (k: string, l: string, suffixe = "") => <Champ libelle={l}>{(pp) => <span className="avec-unite"><input {...pp} className="saisie montant" inputMode="numeric" value={v(k)} onChange={(e) => maj(k, e.target.value.replace(/\D/g, ""))} />{suffixe && <span>{suffixe}</span>}</span>}</Champ>;
   const suivant = <div className="actions-onglets">{onglet > 0 && <button className="bouton secondaire" type="button" onClick={() => setOnglet(onglet - 1)}>Précédent</button>}
-    {(onglet === 0 || onglet === ONGLETS.length - 1) && <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>}
+    {(onglet === 0 || onglet === ONGLETS.length - 1) && <button className="bouton" type="submit">Enregistrer</button>}
     {onglet < ONGLETS.length - 1 && <button className="bouton secondaire" type="button" onClick={() => setOnglet(onglet + 1)}>Suivant</button>}</div>;
   const grillesVues = ctx.grilles.filter((g) => grilles.includes(g.id));
   const ajouterPersonne = () => {
@@ -124,7 +124,7 @@ export function NouvelEmploye() {
   const ouiNon = (k: string, l: string) => <fieldset className="choix-radio"><legend>{l} *</legend>{["oui", "non"].map((x) =>
     <label key={x} className="case"><input type="radio" name={k} checked={p[k] === x} onChange={() => setP({ ...p, [k]: x })} /><span>{x === "oui" ? "Oui" : "Non"}</span></label>)}</fieldset>;
   return (
-    <section className="bloc pile" aria-label="Enregistrement d'un employé">
+    <Formulaire className="bloc pile" label="Enregistrement d'un employé" envoyer={enregistrer}>
       <h2>Enregistrement d'un employé</h2>
       <div className="actions-onglets">
         <button className="bouton secondaire" type="button" disabled={!v("typeContrat")} onClick={() => setFenetre("contrat")}>Visualiser le contrat</button>
@@ -186,14 +186,14 @@ export function NouvelEmploye() {
         "Code du travail, art. 39 à 41 : contrat à durée déterminée ou indéterminée ; durée déterminée : deux ans au plus"]} />
       <RechercheEmploye ouverte={fenetre === "recherche"} fermer={() => setFenetre("")} choisir={charger} />
       <Fiche titre="Enregistrement de personne à charge" ouverte={fenetre === "personnes"} fermer={() => setFenetre("")}>
-        <fieldset className="cadre-champs formulaire"><legend className="sr-only">Personne à charge</legend>
+        <Formulaire className="pile" envoyer={ajouterPersonne}><fieldset className="cadre-champs formulaire"><legend className="sr-only">Personne à charge</legend>
           <Champ libelle="Nom *">{(pp) => <input {...pp} className="saisie" value={p.nom ?? ""} onChange={(e) => setP({ ...p, nom: e.target.value })} />}</Champ>
           <Champ libelle="Prénom(s) *">{(pp) => <input {...pp} className="saisie" value={p.prenoms ?? ""} onChange={(e) => setP({ ...p, prenoms: e.target.value })} />}</Champ>
           <ChampDate libelle="Date de naissance" valeur={p.dateNaissance ?? ""} onChange={(x) => setP({ ...p, dateNaissance: x })} />
           {ouiNon("conjoint", "Conjoint")}{ouiNon("employe", "Employé")}{ouiNon("enfantPropre", "Enfant propre")}
         </fieldset>
-        <div className="actions-onglets"><button className="bouton" type="button" onClick={ajouterPersonne}>Enregistrer</button>
-          <button className="bouton secondaire" type="button" onClick={() => setP({})}>Effacer</button></div>
+        <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button>
+          <button className="bouton secondaire" type="button" onClick={() => setP({})}>Effacer</button></div></Formulaire>
         <table className="grille"><caption>Liste des personnes en charge</caption>
           <thead><tr><th scope="col">Nom</th><th scope="col">Prénoms</th><th scope="col">Date de naissance</th><th scope="col">Conjoint</th><th scope="col">Employé</th><th scope="col">Enfant propre</th><th scope="col"><span className="sr-only">Supprimer</span></th></tr></thead>
           <tbody>{personnes.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
@@ -211,7 +211,7 @@ export function NouvelEmploye() {
         <div className="actions-onglets"><button className="bouton" type="button" onClick={() => window.print()}>Imprimer</button></div>
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </section>
+    </Formulaire>
   );
 }
 
@@ -260,12 +260,12 @@ function ListeEmployes({ ctx }: { ctx: Ctx }) {
   const executer = async () => { try { setR(await api.paie.liste(f)); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } };
   const lignes = (r ?? []).filter((l) => !filtre || l.nomPrenoms.toLowerCase().includes(filtre.toLowerCase()));
   return <section className="bloc pile" aria-label="Liste du Personnel"><h2>Liste du Personnel</h2>
-    <fieldset className="cadre-champs formulaire"><legend>Critère de recherche</legend>
+    <Recherche className="pile" label="Critères" envoyer={executer}><fieldset className="cadre-champs formulaire"><legend>Critère de recherche</legend>
       <Champ libelle="Sexe">{(pp) => <select {...pp} className="saisie" value={f.sexe} onChange={(e) => setF({ ...f, sexe: e.target.value })}><option value=""></option>{ctx.sexes.map((s) => <option key={s} value={s}>{enClair(s)}</option>)}</select>}</Champ>
       <Champ libelle="Type de contrat">{(pp) => <select {...pp} className="saisie" value={f.typeContrat} onChange={(e) => setF({ ...f, typeContrat: e.target.value })}><option value=""></option>{ctx.typesContrat.map((s) => <option key={s} value={s}>{enClair(s)}</option>)}</select>}</Champ>
       <ChampDate libelle="Embauche du :" valeur={f.du} onChange={(x) => setF({ ...f, du: x })} /><ChampDate libelle="au :" valeur={f.au} onChange={(x) => setF({ ...f, au: x })} />
     </fieldset>
-    <div className="actions-onglets"><button className="bouton" type="button" onClick={executer}>Exécuter</button></div>
+    <div className="actions-onglets"><button className="bouton" type="submit">Exécuter</button></div></Recherche>
     {r && <>
       <Paginee lignes={lignes}>{(vis) => <div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">Matricule</th><th scope="col">Nom et Prénoms</th><th scope="col">Catégorie salariale</th><th scope="col">Date d'embauche</th><th scope="col">Poste</th><th scope="col">Fonction</th></tr>

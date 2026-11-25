@@ -632,8 +632,10 @@ const OUT = process.argv[2];
   await aller('/caisse/s74?op=depot'); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-02' });
   await p.getByLabel('Montant *').fill('150 000'); await p.getByLabel('Versé par').fill('Le titulaire'); await p.getByLabel('Motif:').fill('ECOLAGE');
   await p.getByLabel('Nombre de coupures de 10 000 CDF').fill('15'); await etape('09-depot');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
-  await succes(/au-dessus du maximum autorisé/); await etape('09b-depot-avertissement-maximum');   // registre S08-4
+  await p.getByLabel('Nombre de coupures de 10 000 CDF').press('Enter'); await p.getByRole('button', { name: 'Oui' }).click();   // Entrée enregistre (plan 11.3)
+  // l'avertissement reste dans sa boîte jusqu'à « Ok » (plan 11.3) ; registre S08-4
+  const avert = p.getByRole('dialog', { name: 'Succès' }); await avert.getByText(/au-dessus du maximum autorisé/).waitFor(); await etape('09b-depot-avertissement-maximum');
+  await avert.getByRole('button', { name: 'Ok' }).click();
   await p.getByRole('dialog', { name: 'Reçu' }).getByText('Dépôt enregistré').waitFor(); await etape('10-depot-recu');
   await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
   // Examen renforcé (écart E01) : 28 500 000 CDF en espèces, soit 10 000 USD ; la caissière transmet à la conformité, le chef autorise, la caissière refait le dépôt
@@ -835,7 +837,8 @@ const OUT = process.argv[2];
   await p.getByLabel('Nombre de coupures de 100 USD').fill('15'); await etape('11-retrait');
   // 1 500 USD dépasse le retrait plafonné : en attente du visa « Retrait plafond » (registre S08-5)
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
-  await succes(/attend le visa/); await etape('11a-retrait-en-attente');
+  const visa = p.getByRole('dialog', { name: 'Succès' }); await visa.getByText(/attend le visa/).waitFor(); await etape('11a-retrait-en-attente');   // reste jusqu'à « Ok » (plan 11.3)
+  await visa.getByRole('button', { name: 'Ok' }).click();
   await login('Patrick Lumbala'); await aller('/comptabilite/s113'); await p.getByRole('tab', { name: 'Retrait plafond' }).click();
   await p.getByRole('cell', { name: '0412-000318-01', exact: true }).waitFor(); await etape('11b-viser-retrait-plafonne');
   await p.getByRole('button', { name: /^Viser Retrait espèces/ }).click(); await ok();
@@ -1369,13 +1372,13 @@ const OUT = process.argv[2];
   await p.getByText('Plus-value (774)').waitFor(); await etape('32f-cession'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   // Langue des libellés (manuel p. 14, article XX ; registre T118) : en anglais, les menus, l'écran, les données et l'aide ; puis retour au français
   await login('Patrick Lumbala'); await aller('/comptabilite/s115'); await p.getByRole('heading', { name: 'Journal comptables' }).waitFor();
-  await p.locator('summary[title="Langue"]').click(); await p.getByRole('menuitemradio', { name: 'English' }).click();
+  await p.locator('button[aria-controls="menu-langue"]').click(); await p.locator('#menu-langue').getByRole('button', { name: 'English' }).click();
   await p.getByRole('heading', { name: 'Accounting Journals' }).waitFor(); await p.getByText('Accounting', { exact: true }).first().waitFor();
   await p.getByRole('button', { name: 'Display' }).click(); await p.getByRole('cell', { name: /^CA / }).first().waitFor();   // les données restent telles quelles
   await p.getByRole('button', { name: 'Online Help' }).click(); await p.getByRole('heading', { name: 'Online Help: Journals' }).waitFor();
   await p.getByRole('heading', { name: 'Rules applied by this screen' }).waitFor(); await etape('40-anglais');
   await p.getByRole('button', { name: 'Close Help' }).click();
-  await p.locator('summary[title="Langue"]').click(); await p.getByRole('menuitemradio', { name: 'Français' }).click();   // le menu des langues ne se traduit pas
+  await p.locator('button[aria-controls="menu-langue"]').click(); await p.locator('#menu-langue').getByRole('button', { name: 'Français' }).click();   // le menu des langues ne se traduit pas
   await p.getByRole('heading', { name: 'Journal comptables' }).waitFor();
   console.log(errs.length ? 'ERREURS\n' + errs.join('\n') : 'aucune erreur console');
   await b.close();

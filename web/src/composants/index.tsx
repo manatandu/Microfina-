@@ -1,5 +1,6 @@
 // Primitives de replica/design/components.md, en React. Les classes viennent de composants.css.
 import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { coupuresDe, entier, lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 
 export function Puce({ etat, children }: { etat?: "ouverte" | "en_cloture" | "fermee"; children: ReactNode }) {
@@ -35,18 +36,46 @@ export function Touche({ children }: { children: ReactNode }) {
   return <kbd className="touche">{children}</kbd>;
 }
 
-export function Champ({ libelle, aide, erreur, children, id }: { libelle: string; aide?: string; erreur?: string; children: (props: { id: string; "aria-describedby"?: string; "aria-invalid"?: boolean }) => ReactNode; id?: string }) {
+/** L'astérisque rouge du manuel (p. 10) marque une saisie obligatoire : le champ reçoit `required`, et l'astérisque est caché au lecteur d'écran,
+ *  qui annonce déjà « obligatoire » (guide required-field-feedback ; plan d'allègement, point 11.3) */
+const etoile = (libelle: string) => { const i = libelle.indexOf("*"); return i >= 0 && (i === 0 || /[\s:]/.test(libelle[i - 1]!)) ? i : -1; };
+export function Libelle({ texte }: { texte: string }) {
+  const i = etoile(texte);
+  return i < 0 ? <>{texte}</> : <>{texte.slice(0, i)}<span className="requis" aria-hidden="true">*</span>{texte.slice(i + 1)}</>;
+}
+export function Champ({ libelle, aide, erreur, children, id }: { libelle: string; aide?: string; erreur?: string; children: (props: { id: string; "aria-describedby"?: string; "aria-invalid"?: boolean; required?: boolean }) => ReactNode; id?: string }) {
   const auto = useId();
   const cid = id ?? auto;
   const desc = [aide && `${cid}-aide`, erreur && `${cid}-err`].filter(Boolean).join(" ") || undefined;
+  const requis = etoile(libelle) >= 0;
   return (
     <div className="champ">
-      <label htmlFor={cid}>{libelle}</label>
-      {children({ id: cid, "aria-describedby": desc, "aria-invalid": erreur ? true : undefined })}
+      <label htmlFor={cid}><Libelle texte={libelle} /></label>
+      {/* aria-invalid à faux tant qu'il n'y a pas d'erreur : un champ obligatoire vide n'est pas annoncé « invalide » dès l'ouverture (guide required-field-feedback) */}
+      {children({ id: cid, "aria-describedby": desc, "aria-invalid": erreur ? true : requis ? false : undefined, ...(requis ? { required: true } : {}) })}
       {aide && <p className="aide" id={`${cid}-aide`}>{aide}</p>}
       {erreur && <p className="erreur" id={`${cid}-err`}>{erreur}</p>}
     </div>
   );
+}
+
+/** Formulaire de saisie : Entrée valide, par la soumission implicite du navigateur (guide forms : « use the <form> element » ; plan d'allègement,
+ *  point 11.3). `noValidate` : les contrôles et la boîte « À remplir » restent ceux du manuel (p. 10 et 11) ; `required` marque seulement l'obligation. */
+export function Formulaire({ envoyer, className, label, children }: { envoyer: () => void; className?: string; label?: string; children: ReactNode }) {
+  return <form className={className} aria-label={label} noValidate onSubmit={(e) => {
+    e.preventDefault(); e.stopPropagation();   // l'envoi d'une fiche ne remonte pas au formulaire de l'écran (React suit l'arbre des composants)
+    // un bouton principal inactif (aria-disabled : billetage pas juste) n'envoie rien, ni au clic ni par Entrée
+    const b = e.currentTarget.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if (b && (b.disabled || b.getAttribute("aria-disabled") === "true")) return;
+    // Entrée dans un filtre de tableau (champ de recherche) ne vaut pas enregistrement
+    const a = document.activeElement;
+    if (a instanceof HTMLInputElement && a.type === "search" && a.form === e.currentTarget) return;
+    envoyer();
+  }}>{children}</form>;
+}
+/** Critères de recherche ou de filtre : `<search>` puis un formulaire, Entrée lance la recherche (guide forms : « wrap search forms and filtering controls in a <search> element ») */
+export function Recherche({ envoyer, className, label, children }: { envoyer: () => void; className?: string; label?: string; children: ReactNode }) {
+  return <search aria-label={label}><form className={className} noValidate onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); envoyer(); }}>{children}</form></search>;
 }
 
 /** Montant en grand, devise, toutes lettres (DESIGN § 2.2) */
@@ -150,7 +179,7 @@ export function Chargement() {
 export function ChampDate({ libelle, valeur, onChange, aide, requis }: { libelle: string; valeur: string; onChange: (iso: string) => void; aide?: string; requis?: boolean }) {
   const versTexte = (iso: string) => (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");
   const [texte, setTexte] = useState(versTexte(valeur));
-  const [ouvert, setOuvert] = useState(false);
+  const [ouvert, setOuvert] = useState<false | "souris" | "clavier">(false);
   const entree = useRef<HTMLInputElement>(null);
   useEffect(() => { if (lireDate(texte) !== valeur) setTexte(versTexte(valeur)); }, [valeur]);   // valeur changée de l'extérieur
   const complet = texte.length === 10, iso = lireDate(texte);
@@ -159,12 +188,12 @@ export function ChampDate({ libelle, valeur, onChange, aide, requis }: { libelle
   return (
     <Champ libelle={libelle} aide={aide} erreur={erreur}>
       {(p) => <>
-        <input {...p} ref={entree} className="saisie date" inputMode={tactile ? "none" : "numeric"} autoComplete="off" placeholder="jj/mm/aaaa" maxLength={10} required={requis} value={texte}
-          aria-haspopup="dialog" aria-expanded={ouvert}
-          onClick={() => setOuvert(true)}
-          onKeyDown={(e) => { if (e.key === "ArrowDown" && e.altKey) { e.preventDefault(); setOuvert(true); } else if (e.key === "Escape" && ouvert) { e.preventDefault(); setOuvert(false); } else if (e.key === "Tab") setOuvert(false); }}
+        <input {...p} ref={entree} className="saisie date" inputMode={tactile ? "none" : "numeric"} autoComplete="off" placeholder="jj/mm/aaaa" maxLength={10} required={requis || p.required} value={texte}
+          aria-haspopup="dialog" aria-expanded={!!ouvert}
+          onClick={() => setOuvert((o) => o || "souris")}
+          onKeyDown={(e) => { if (e.key === "ArrowDown" && e.altKey) { e.preventDefault(); setOuvert("clavier"); } else if (e.key === "Escape" && ouvert) { e.preventDefault(); setOuvert(false); } else if (e.key === "Tab") setOuvert(false); }}
           onChange={(e) => { const t = masque(e.target.value); setOuvert(false); setTexte(t); onChange(lireDate(t) ?? ""); }} />
-        {ouvert && entree.current && <Calendrier valeur={iso ?? ""} ancre={entree.current} fermer={() => setOuvert(false)}
+        {ouvert && entree.current && <Calendrier valeur={iso ?? ""} ancre={entree.current} clavier={ouvert === "clavier"} fermer={() => setOuvert(false)}
           choisir={(d) => { setTexte(versTexte(d)); onChange(d); setOuvert(false); entree.current?.dispatchEvent(new Event("saisie", { bubbles: true })); entree.current?.focus(); }} />}
       </>}
     </Champ>
@@ -176,14 +205,33 @@ const JOURS_CALENDRIER = ["lu", "ma", "me", "je", "ve", "sa", "di"];
 const deuxChiffres = (n: number) => String(n).padStart(2, "0");
 
 /** Calendrier d'une case de date : un mois, la semaine commence le lundi, le mois et l'année se choisissent dans deux listes (une date de
- * naissance se trouve sans feuilleter). Placé sous la case, ou au-dessus s'il n'y a pas la place ; fermé par un clic ailleurs ou Échap. */
-function Calendrier({ valeur, ancre, choisir, fermer }: { valeur: string; ancre: HTMLInputElement; choisir: (iso: string) => void; fermer: () => void }) {
+ * naissance se trouve sans feuilleter). Placé sous la case, ou au-dessus s'il n'y a pas la place ; fermé par un clic ailleurs ou Échap.
+ * Ouvert au clavier (Alt + flèche bas), le focus va sur le jour : flèches (jour, semaine), Début et Fin (semaine), Page préc. et suiv. (mois),
+ * Entrée choisit, Tab sort. */
+function Calendrier({ valeur, ancre, clavier, choisir, fermer }: { valeur: string; ancre: HTMLInputElement; clavier: boolean; choisir: (iso: string) => void; fermer: () => void }) {
   const jour = new Date(), aujourdhui = `${jour.getFullYear()}-${deuxChiffres(jour.getMonth() + 1)}-${deuxChiffres(jour.getDate())}`;
   const depart = valeur || aujourdhui;
   const [an, setAn] = useState(Number(depart.slice(0, 4)));
   const [mois, setMois] = useState(Number(depart.slice(5, 7)) - 1);
+  const [vise, setVise] = useState(Number(depart.slice(8, 10)));
   const ref = useRef<HTMLDivElement>(null);
+  const auClavier = useRef(clavier);
+  const deplacer = (e: React.KeyboardEvent, j: number) => {
+    const d = new Date(an, mois, j);
+    const pas: Record<string, () => void> = {
+      ArrowLeft: () => d.setDate(j - 1), ArrowRight: () => d.setDate(j + 1), ArrowUp: () => d.setDate(j - 7), ArrowDown: () => d.setDate(j + 7),
+      Home: () => d.setDate(j - ((d.getDay() + 6) % 7)), End: () => d.setDate(j + 6 - ((d.getDay() + 6) % 7)),
+      PageUp: () => d.setFullYear(an, mois - 1, Math.min(j, new Date(an, mois, 0).getDate())),
+      PageDown: () => d.setFullYear(an, mois + 1, Math.min(j, new Date(an, mois + 2, 0).getDate())),
+    };
+    if (e.key === "Tab") { fermer(); return; }
+    if (!pas[e.key]) return;
+    e.preventDefault(); pas[e.key]!(); auClavier.current = true;
+    setAn(d.getFullYear()); setMois(d.getMonth()); setVise(d.getDate());
+  };
   const [place, setPlace] = useState<{ top: number; left: number } | null>(null);
+  const pose = place !== null;   // caché tant qu'il n'est pas placé : le focus n'y va qu'ensuite
+  useEffect(() => { if (auClavier.current && pose) ref.current?.querySelector<HTMLButtonElement>(".calendrier-grille button[tabindex='0']")?.focus(); }, [an, mois, vise, pose]);
   useLayoutEffect(() => {
     const placer = () => {
       const r = ancre.getBoundingClientRect(), h = ref.current?.offsetHeight ?? 300, l = ref.current?.offsetWidth ?? 264, marge = 8;
@@ -221,7 +269,7 @@ function Calendrier({ valeur, ancre, choisir, fermer }: { valeur: string; ancre:
       <div className="calendrier-grille">
         {Array.from({ length: decalage }, (_, i) => <span key={`v${i}`} />)}
         {Array.from({ length: jours }, (_, i) => i + 1).map((j) => (
-          <button key={j} type="button" tabIndex={-1} aria-pressed={isoDe(j) === valeur} aria-current={isoDe(j) === aujourdhui ? "date" : undefined}
+          <button key={j} type="button" tabIndex={j === Math.min(vise, jours) ? 0 : -1} aria-pressed={isoDe(j) === valeur} onKeyDown={(e) => deplacer(e, j)} aria-current={isoDe(j) === aujourdhui ? "date" : undefined}
             aria-label={`${j} ${MOIS_CALENDRIER[mois]} ${an}`} onClick={() => choisir(isoDe(j))}>{j}</button>
         ))}
       </div>
@@ -243,7 +291,9 @@ export function lireDate(t: string): string | null {
 }
 
 /** Boîtes de dialogue du manuel Microfina++ (p. 10 et 11) : confirmation Oui/Non, succès, erreur. */
-export type Boite = { type: "confirmation"; message: string; oui: () => void; prudent?: boolean } | { type: "succes" | "erreur"; message: string };
+/** « garder » : un succès qui porte une information à lire (consigne, avertissement, montant) reste dans sa boîte jusqu'à « Ok », comme la boîte
+ *  de succès du manuel (p. 10) ; les autres disparaissent seuls (registre T121 ; plan d'allègement, point 11.3) */
+export type Boite = { type: "confirmation"; message: string; oui: () => void; prudent?: boolean } | { type: "succes" | "erreur"; message: string; garder?: boolean };
 /** Une confirmation qui détruit met le focus sur « Non » (décision du porteur, registre T152 ; guide dialog : « put autofocus on the safe action ») */
 const DETRUIT = /\b(supprimer|annuler|rompre|passer en perte|retirer|radier|résilier)\b/i;
 const TITRES = { confirmation: "Confirmation", succes: "Succès", erreur: "Erreur" };
@@ -259,15 +309,33 @@ export function MessageSucces() {
   return m ? <p key={m.n} className="message-succes" role="status">{m.texte}</p> : null;
 }
 
+/** Le focus va au champ qu'une erreur « À remplir : … » désigne, dans la fiche ouverte ou à défaut dans l'écran (guide required-field-feedback :
+ *  « move focus to the first invalid field » ; plan d'allègement, point 11.3). Le nom est comparé au libellé sans astérisque ni deux-points. */
+// « prénoms » dans le message, « Prénom : * » sur l'écran : marques, casse et pluriel ignorés
+const sansMarques = (t: string) => t.replace(/[*:]/g, " ").replace(/\s+/g, " ").trim().toLowerCase().split(" ").map((m) => m.replace(/(?<=\p{L}{3})[sx]$/u, "")).join(" ");
+function allerAuChamp(nom: string) {
+  const fiches = [...document.querySelectorAll<HTMLDialogElement>("dialog.fiche[open]")];
+  const zone: ParentNode = document.activeElement?.closest("dialog.fiche[open]") ?? fiches[fiches.length - 1] ?? document.getElementById("contenu") ?? document;
+  const cherche = [nom, nom.split(/,| et /)[0] ?? nom].map(sansMarques);
+  for (const c of cherche) {
+    for (const l of zone.querySelectorAll("label")) {
+      const ctl = l.control;
+      if (ctl && sansMarques(l.textContent ?? "") === c && !(ctl as HTMLInputElement).disabled) { ctl.focus(); return; }
+    }
+  }
+}
+
 export function Dialogue({ boite, fermer }: { boite: Boite | null; fermer: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   const idTitre = useId();
   // Succès : un message qui disparaît seul, sans bouton à cliquer (plan d'allègement, point 1.12 ; registre T121). La boîte se ferme aussitôt,
   // comme après un clic sur Ok ; le message est montré par la coquille, qui reste en place quand l'écran se recharge.
   const [local, setLocal] = useState<{ texte: string; n: number } | null>(null);
-  useEffect(() => { if (boite?.type === "succes") { if (!annoncer(boite.message)) setLocal((x) => ({ texte: boite.message, n: (x?.n ?? 0) + 1 })); fermer(); } }, [boite]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (boite?.type === "succes" && !boite.garder) { if (!annoncer(boite.message)) setLocal((x) => ({ texte: boite.message, n: (x?.n ?? 0) + 1 })); fermer(); } }, [boite]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (!local) return; const t = setTimeout(() => setLocal(null), 5000); return () => clearTimeout(t); }, [local]);
-  const ouverte = boite && boite.type !== "succes" ? boite : null;
+  const ouverte = boite && (boite.type !== "succes" || boite.garder) ? boite : null;
+  const manquant = ouverte?.type === "erreur" ? /^À remplir\s*:\s*(.+?)\.?$/s.exec(ouverte.message)?.[1] : undefined;
+  const fermerErreur = () => { fermer(); if (manquant) requestAnimationFrame(() => allerAuChamp(manquant)); };
   const prudent = ouverte?.type === "confirmation" && (ouverte.prudent ?? DETRUIT.test(ouverte.message));
   // La boîte reste dans la page et se ferme par close() : le navigateur rend alors le focus au bouton qui l'a ouverte (plan d'allègement, point 11.1)
   useEffect(() => {
@@ -279,7 +347,7 @@ export function Dialogue({ boite, fermer }: { boite: Boite | null; fermer: () =>
   return (
     <>{message}
     <dialog ref={ref} className="boite" data-type={ouverte?.type} aria-labelledby={idTitre}
-      onCancel={(e) => { if (e.target !== e.currentTarget) return; e.preventDefault(); fermer(); }} onClose={(e) => { if (e.target === e.currentTarget && !e.currentTarget.open && ouverte) fermer(); }}>
+      onCancel={(e) => { if (e.target !== e.currentTarget) return; e.preventDefault(); fermerErreur(); }} onClose={(e) => { if (e.target === e.currentTarget && !e.currentTarget.open && ouverte) fermer(); }}>
       {ouverte && <>
         <h1 id={idTitre}>{TITRES[ouverte.type]}</h1>
         <p>{ouverte.message}</p>
@@ -287,15 +355,15 @@ export function Dialogue({ boite, fermer }: { boite: Boite | null; fermer: () =>
           {ouverte.type === "confirmation"
             ? <><button className="bouton" type="button" data-focus={prudent ? undefined : ""} onClick={() => { fermer(); ouverte.oui(); }}>Oui</button>
                 <button className="bouton secondaire" type="button" data-focus={prudent ? "" : undefined} onClick={fermer}>Non</button></>
-            : <button className="bouton" type="button" data-focus="" onClick={fermer}>Ok</button>}
+            : <button className="bouton" type="button" data-focus="" onClick={fermerErreur}>Ok</button>}
         </div>
       </>}
     </dialog></>
   );
 }
 
-/** Fiche ouverte par-dessus l'écran (ex. fiche d'un signataire, manuel Microfina++ p. 50). Elle reste dans la page et se ferme par close() : le focus
- *  revient au bouton qui l'a ouverte. Une fiche où l'on a saisi ne se ferme pas par Échap sans confirmation (décision du porteur, registre T151) ;
+/** Fiche ouverte par-dessus l'écran (ex. fiche d'un signataire, manuel Microfina++ p. 50). Elle est posée à la racine du document, hors du formulaire
+ *  de l'écran (Entrée dans la fiche n'envoie pas la saisie de dessous), et se ferme par close() : le focus revient au bouton qui l'a ouverte. Une fiche où l'on a saisi ne se ferme pas par Échap sans confirmation (décision du porteur, registre T151) ;
  *  une recherche (champ type="search" ou zone data-sans-garde) ne compte pas comme saisie. Plan d'allègement, point 11.1 ; guide dialog. */
 export function Fiche({ titre, ouverte, fermer, children }: { titre: string; ouverte: boolean; fermer: () => void; children: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -321,7 +389,7 @@ export function Fiche({ titre, ouverte, fermer, children }: { titre: string; ouv
     if (!modifiee.current) { fermer(); return; }
     garde.current?.showModal(); garde.current?.querySelector<HTMLElement>("[data-focus]")?.focus();
   }
-  return (
+  return createPortal(
     <dialog ref={ref} className="fiche" aria-labelledby={idTitre} onCancel={echap} onClose={(e) => { if (e.target === e.currentTarget && !e.currentTarget.open && ouverte) fermer(); }}>
       {ouverte && <><h1 id={idTitre}>{titre}</h1>{children}</>}
       <dialog ref={garde} className="boite" data-type="confirmation" aria-labelledby={idGarde}>
@@ -332,12 +400,13 @@ export function Fiche({ titre, ouverte, fermer, children }: { titre: string; ouv
           <button className="bouton secondaire" type="button" data-focus="" onClick={() => garde.current?.close()}>Non</button>
         </div>
       </dialog>
-    </dialog>
+    </dialog>,
+    document.body,
   );
 }
 
 /** Valeur en lecture seule : le texte passe à la ligne au lieu d'être coupé (une adresse longue reste lisible en entier) */
-export function Lecture({ value, ...p }: { value: string; id: string; "aria-describedby"?: string; "aria-invalid"?: boolean }) {
+export function Lecture({ value, required: _requis, ...p }: { value: string; id: string; "aria-describedby"?: string; "aria-invalid"?: boolean; required?: boolean }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   useLayoutEffect(() => {
     const el = ref.current; if (!el) return;

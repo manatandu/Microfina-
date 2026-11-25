@@ -6,7 +6,7 @@ import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { montant, type Devise } from "@design/montant.js";
-import { Champ, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Formulaire } from "../composants";
 import { fr } from "../lib/dates";
 import { RechercheClient } from "./Visa";
 import { ConventionCompte, type DonneesConvention } from "./Convention";
@@ -40,7 +40,7 @@ export function NouveauCompte() {
 
   return (
     <>
-      <section className="bloc pile" aria-label="Ouverture d'un compte d'épargne">
+      <Formulaire className="bloc pile" label="Ouverture d'un compte d'épargne" envoyer={enregistrer}>
         <div className="grille-cadres">
           <fieldset className="pile cadre-champs">
             <legend>Informations sur le client</legend>
@@ -65,7 +65,7 @@ export function NouveauCompte() {
         </div>
         {erreur && t && produit && <p role="alert" className="erreur-champ">{erreur}</p>}
         <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={!t || !produit || !ap} onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton" type="submit" disabled={!t || !produit || !ap}>Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
         </div>
         <fieldset className="pile cadre-champs">
@@ -85,7 +85,7 @@ export function NouveauCompte() {
           "Loi 002/2002, art. 1er : la COOPEC collecte l'épargne de ses membres ; l'adhésion ouvre le premier compte",
           "Instr. BCC 37, annexe : ouverture de compte gratuite ; Paramétrage > Produit épargne : Max compte à créer ; Paramétrage > Numéro de compte client : N° du compte",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
-      </section>
+      </Formulaire>
       <Fiche titre="Convention de compte" ouverte={!!convention} fermer={() => setConvention(null)}>
         {convention && <ConventionCompte c={convention} />}
         <div className="actions-onglets sans-impression">

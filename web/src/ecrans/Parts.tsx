@@ -7,7 +7,7 @@ import type { Operation, Tiers } from "../donnees/types";
 import { useDonnees } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { montant, montantEnLettres, type Comptage } from "@design/montant.js";
-import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
+import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture, Formulaire } from "../composants";
 import { billetageBon, ChampClient, OngletsGuichet, recapitulatif, Recu } from "./Guichet";
 import { RechercheClient } from "./Visa";
 
@@ -53,7 +53,7 @@ export function PartsSociales() {
     <>
       
       <OngletsGuichet version={fait?.id} />
-      <section className="bloc pile" aria-label="Part sociale (Achat/Retrait)">
+      <Formulaire className="bloc pile" label="Part sociale (Achat/Retrait)" envoyer={enregistrer}>
         <div className="entete-ecran">
           {(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}
           <p>Date Opération : <strong className="chiffres">{fr(j?.date ?? "")}</strong></p>
@@ -84,7 +84,7 @@ export function PartsSociales() {
         {t && n > 0 && !fait && <fieldset className="pile cadre-champs"><legend>Billetage</legend>
           <Billetage devise="CDF" comptage={coupures} onChange={(x) => { setCoupures(x); setCle(nouvelleCle()); }} cible={aPayer} sens={achat ? "recue" : "remise"} stock={achat ? undefined : stock} /></fieldset>}
         <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={!t || n < 1 || !!fait || !billetageBon(coupures, aPayer)} onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton" type="submit" disabled={!t || n < 1 || !!fait} aria-disabled={!billetageBon(coupures, aPayer) || undefined} aria-describedby={!billetageBon(coupures, aPayer) ? "ecart-CDF" : undefined}>Enregistrer</button>
           <button className="bouton secondaire" type="button" disabled={!fait} onClick={() => setRecu(true)}>Imprimer</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         </div>
@@ -92,7 +92,7 @@ export function PartsSociales() {
           "Loi 002/2002, art. 20 et 21 : valeur fixée par les statuts, parts intégralement libérées ; art. 22 : au moins une part ; art. 27 : apurement au départ",
           "PCCI, compte 103 : 1030 personnes physiques, 1031 groupements solidaires, 1032 personnes morales ; débité au retrait ou à la démission",
           "Instr. BCC 15 bis : examen renforcé à 10 000 USD en espèces dans la journée"]} />
-      </section>
+      </Formulaire>
       <Fiche titre="Reçu" ouverte={recu} fermer={() => setRecu(false)}>
         {fait && <Recu id={fait.id} onNouveau={() => { setRecu(false); effacer(); }} />}
       </Fiche>

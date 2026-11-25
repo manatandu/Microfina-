@@ -5,7 +5,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { montant, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Lecture, LigneFiltres, Paginee, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Lecture, LigneFiltres, Paginee, Textes, type Boite, Recherche } from "../composants";
 
 type Ligne = Awaited<ReturnType<typeof api.journalCaisse.journal>>[number];
 const COLONNES = ["Date", "N° Client", "N° pièce", "Libellé", "Devise", "Débit", "Crédit"];
@@ -40,7 +40,7 @@ export default function JournalCaisse() {
   const m = (x: number, d: string) => (x ? montant(x, d as Devise) : "");
   return (
     <>
-      <section className="bloc pile" aria-label="Journal de caisse">
+      <section className="bloc pile" aria-label="Journal de caisse"><Recherche className="pile" label="Critères" envoyer={rechercher}>
         <div className="grille-deux">
           <fieldset className="cadre-champs formulaire">
             <legend>Element de Recherche</legend>
@@ -52,10 +52,10 @@ export default function JournalCaisse() {
           </fieldset>
         </div>
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={rechercher}>Rechercher</button>
+          <button className="bouton" type="submit">Rechercher</button>
           <button className="bouton secondaire" type="button" disabled={!l || l.length === 0}
             onClick={() => l && exporterExcel("Journal des opérations de caisse", COLONNES, l.map((x) => [fr(x.date), x.client, x.piece, x.libelle, x.devise, m(x.debit, x.devise), m(x.credit, x.devise)]))}>Exporter</button>
-        </div>
+        </div></Recherche>
         <Paginee lignes={l ?? []} colonnes={(x) => [fr(x.date), x.client, x.piece, x.libelle, x.devise, m(x.debit, x.devise), m(x.credit, x.devise)]}>{(vis) => (<div className="defile-x"><table className="grille">
           <thead><tr>{COLONNES.map((t, i) => <th key={t} scope="col" className={i > 4 ? "num" : undefined}>{t}</th>)}</tr><LigneFiltres titres={COLONNES} /></thead>
           <tbody>

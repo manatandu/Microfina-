@@ -8,7 +8,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { montant, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Recherche } from "../composants";
 
 type Releve = Awaited<ReturnType<typeof api.banqueOperations.releve>>;
 const COLONNES = ["Date", "Journal", "N° pièce", "Libellé", "Débit", "Crédit", "Solde"];
@@ -37,7 +37,7 @@ export function RapportsBanque() {
   return (
     <>
       <h2>Relevé d'un compte bancaire</h2>
-      <section className="bloc pile" aria-label="Critères">
+      <Recherche className="bloc pile" label="Critères" envoyer={afficher}>
         <div className="formulaire">
           <Champ libelle="Banque *">{(p) => <select {...p} className="saisie" value={f.banque} onChange={(e) => maj({ banque: e.target.value, compte: "" })}>
             <option value=""></option>{lu.banques.map((b) => <option key={b.id} value={b.id}>{b.libelle}</option>)}</select>}</Champ>
@@ -47,10 +47,10 @@ export function RapportsBanque() {
           <ChampDate libelle="Au :" valeur={au} onChange={(v) => maj({ au: v })} />
         </div>
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={afficher}>Afficher</button>
+          <button className="bouton" type="submit">Afficher</button>
           <button className="bouton secondaire" type="button" onClick={() => nav("/banque")}>Fermer</button>
         </div>
-      </section>
+      </Recherche>
       {r && (
         <section className="bloc pile" aria-label="Relevé du compte bancaire">
           <p>{r.banque}, compte {r.numeroBancaire} : compte comptable <span className="code">{r.compte}</span> {r.intitule}, en {r.devise}, du {fr(r.du)} au {fr(r.au)}.</p>

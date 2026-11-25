@@ -13,7 +13,7 @@ import { boiteOperation } from "../lib/examen";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { decimal, lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
-import { Attention, Billetage, Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
+import { Attention, Billetage, Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Formulaire } from "../composants";
 import { billetageBon, ChampClient, OngletsGuichet, recapitulatif, Recu } from "./Guichet";
 import { RechercheClient } from "./Visa";
 
@@ -78,13 +78,13 @@ export function FenetresCredit({ cid, devise, ouverte, fermer }: { cid: number |
       </table></div><div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button></div></div>}
     </Fiche>
     <Fiche titre="Memo" ouverte={ouverte === "memo"} fermer={fermer}>
-      {x && <div className="pile">
+      {x && <Formulaire className="pile" envoyer={ajouter}>
         <table className="grille"><thead><tr><th scope="col">Date</th><th scope="col">Memo</th><th scope="col">Saisi par</th></tr></thead>
           <tbody>{x.m.length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
             {x.m.map((m) => <tr key={m.id}><td className="chiffres">{fr(m.date)}</td><td>{m.texte}</td><td>{m.par}</td></tr>)}</tbody></table>
         <Champ libelle="Memo *">{(p) => <textarea {...p} className="saisie" rows={3} value={texte} onChange={(e) => setTexte(e.target.value)} />}</Champ>
-        <div className="actions-onglets"><button className="bouton" type="button" onClick={ajouter}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button></div>
-      </div>}
+        <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button><button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button></div>
+      </Formulaire>}
     </Fiche>
     <Dialogue boite={boite} fermer={() => setBoite(null)} />
   </>;
@@ -212,12 +212,12 @@ export function RemboursementGuichet() {
     <>
       
       <OngletsGuichet version={fait?.id} />
-      <section className="bloc pile" aria-label="Remboursement de crédit">
+      <Formulaire className="bloc pile" label="Remboursement de crédit" envoyer={enregistrer}>
         <div className="entete-ecran">{(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}<p>Date règlement : <strong className="chiffres">{fr(j?.date ?? "")}</strong></p></div>
         <div className="grille-cadres client-large">
           <InfosClient e={e} fige={fige} rechercher={() => setFiche("recherche")} choisir={(x) => { effacer(); e.setT(x); }} />
           <InfosCredit e={e} fige={fige} action={<div className="champ"><span className="libelle-vide" aria-hidden="true">&nbsp;</span>
-            <button className="bouton" type="button" disabled={!d || fige || !billetageBon(coupures, e.m)} onClick={enregistrer}>Enregistrer</button></div>} />
+            <button className="bouton" type="submit" disabled={!d || fige} aria-disabled={!billetageBon(coupures, e.m) || undefined} aria-describedby={d && e.m && !billetageBon(coupures, e.m) ? `ecart-${dv}` : undefined}>Enregistrer</button></div>} />
         </div>
         {d && e.m && !fige ? <fieldset className="pile cadre-champs"><legend>Billetage</legend>
           <Billetage devise={dv} comptage={coupures} onChange={(c) => { setCoupures(c); setCle(nouvelleCle()); }} cible={e.m} sens="recue" stock={stock} /></fieldset> : null}
@@ -227,7 +227,7 @@ export function RemboursementGuichet() {
           "Registre CR-20 : répartition dans l'ordre du produit, à défaut du degré (S22), à défaut intérêts puis capital (Code civil, livre III, art. 152) ; CR-7 : pénalité de retard au prorata des jours",
           "Instr. BCC 38, art. 11 et 14 : intérêts recalculés sur le capital restant dû après un remboursement anticipé ; pénalité d'anticipation au plus 50 % des intérêts restant dus",
           "Registre S76-8 : moins que la plus petite coupure versé en trop, l'appoint va au compte d'épargne du client"]} />
-      </section>
+      </Formulaire>
       <FenetresCredit cid={d?.id ?? null} devise={dv} ouverte={(["situation", "plan", "reel", "memo"] as const).find((x) => x === fiche) ?? ""} fermer={() => setFiche("")} />
       <Fiche titre="Reçu" ouverte={fiche === "recu"} fermer={() => setFiche("")}>{fait && <Recu id={fait.id} onNouveau={() => { setFiche(""); effacer(); }} />}</Fiche>
       <Fiche titre="Recherche d'un client" ouverte={fiche === "recherche"} fermer={() => setFiche("")}>
@@ -283,7 +283,7 @@ export function Remboursement() {
   }
   return (
     <>
-      <section className="bloc pile" aria-label="Remboursement">
+      <Formulaire className="bloc pile" label="Remboursement" envoyer={enregistrer}>
         <div className="entete-ecran">{fait?.piece ? <p>Numéro de pièce : <strong className="chiffres">{fait.piece}</strong></p> : <span />}
           {fige ? <Champ libelle="Date règlement :">{(p) => <Lecture {...p} value={fr(date || j?.date || "")} />}</Champ>
             : <ChampDate libelle="Date règlement : *" valeur={date || j?.date || ""} onChange={setDate} />}</div>
@@ -313,7 +313,7 @@ export function Remboursement() {
         <Textes sources={["Manuel Microfina++, p. 63 (banque), p. 124, 125 et 157 (prélèvement sur compte) ; plan d'allègement, point 6.6 : un écran dans le menu Crédit, le mode choisi dedans",
           "Registre S55-2 à S55-4, S106-1 à S106-4 : compte dans la devise du crédit ; date de règlement au plus la journée ouverte ; mêmes règles de répartition que S76 (CR-7, CR-20)",
           "Code civil, livre III, art. 185, 2° ; loi 11/020, art. 48 : pas de compensation contre un dépôt non nanti, le prélèvement se fait sur ordre du client (registre T71)"]} />
-      </section>
+      </Formulaire>
       <FenetresCredit cid={d?.id ?? null} devise={dv} ouverte={(["situation", "plan", "reel", "memo"] as const).find((x) => x === fiche) ?? ""} fermer={() => setFiche("")} />
       <Fiche titre="Avis de remboursement" ouverte={fiche === "avis"} fermer={() => setFiche("")}>
         {fait && d && <><div className="pile a-imprimer"><table className="grille"><tbody>
@@ -349,7 +349,7 @@ function BoutonsRemboursement({ d, fait, ouvrir, enregistrer, effacer, imprimer 
     <button className="bouton secondaire" type="button" disabled={!d} onClick={() => ouvrir("reel")}>Paiements reçus</button>
     <button className="bouton secondaire" type="button" disabled={!d} onClick={() => ouvrir("memo")}>Mémo</button>
     <button className="bouton secondaire" type="button" disabled={!fait} onClick={() => ouvrir(imprimer)}>Imprimer</button>
-    {enregistrer && <button className="bouton" type="button" disabled={!d || fait} onClick={enregistrer}>Enregistrer</button>}
+    {enregistrer && <button className="bouton" type="submit" disabled={!d || fait}>Enregistrer</button>}
     <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
   </div>;
 }
@@ -420,7 +420,7 @@ export function ConsulterPret() {
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("plan")}>Échéancier prévu</button>
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("reel")}>Paiements reçus</button>
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("memo")}>Mémo</button>
-          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => d && setBoite({ type: "succes", message: `Tout sur le crédit au ${fr(d.dateReglement)} : ${montant(d.toutSurLeCredit, dv)}.` })}>Tout sur le crédit</button>
+          <button className="bouton secondaire" type="button" disabled={!d} onClick={() => d && setBoite({ type: "succes", message: `Tout sur le crédit au ${fr(d.dateReglement)} : ${montant(d.toutSurLeCredit, dv)}.`, garder: true })}>Tout sur le crédit</button>
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("garanties")}>Garanties</button>
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("historique")}>Historique</button>
           <button className="bouton secondaire" type="button" onClick={() => { setT(null); setCid(null); setDate(""); setParams({}); }}>Effacer</button>

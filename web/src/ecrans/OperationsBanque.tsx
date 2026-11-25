@@ -4,7 +4,7 @@ import { useState } from "react";
 import { api, type SaisieOperationBanque } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
-import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Formulaire } from "../composants";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
 
 const ONGLETS = ["Encaissement / Décaissement", "V. Banque vers caisse", "V. Banque vers Banque"] as const;
@@ -69,7 +69,7 @@ export function OperationsBanque() {
       <div className="onglets" role="tablist" aria-label="Opérations de banque">
         {ONGLETS.map((o, i) => <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => changerOnglet(i)}>{o}</button>)}
       </div>
-      <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}>
+      <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}><Formulaire className="pile" envoyer={enregistrer}>
         <div className="entete-ecran">
           <ChampDate libelle={onglet === 0 ? "Date opération" : "Date Opération : *"} valeur={date} onChange={(v) => maj({ date: v })} requis={onglet !== 0} />
         </div>
@@ -134,14 +134,14 @@ export function OperationsBanque() {
         )}
 
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton" type="submit">Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 60 et 61 : onglets Encaissement / Décaissement, V. Banque vers caisse, V. Banque vers Banque (trois captures), Enregistrer, Annuler",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Chaîne de l'opération : saisie ici, visée puis validée (Banque > Visa, Validation, S57), comptabilisée (S111) ; numéro de pièce donné à la comptabilisation (PCCI § 3.3 et 3.4)",
           "PCCI, comptes 560 (NOSTRI) pour les comptes bancaires, 57 pour la caisse : ils ont leurs onglets de virement, ils ne sont pas une contrepartie"]} />
-      </section>
+      </Formulaire></section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );

@@ -8,7 +8,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { decimal, lireMontant } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, type Boite, Recherche } from "../composants";
 
 const n = (v: number) => decimal.format(v / 100);
 type Ctx = Awaited<ReturnType<typeof api.finPeriode.contexte>>;
@@ -187,11 +187,11 @@ function AffectationResultat({ jour }: { jour: string }) {
   const afficher = async () => { try { const x = await api.finPeriode.apercuAffectation({ exercice }); setA(x); setSaisie(x.resultat > 0 && x.reserveMinimum ? { reserveGenerale: n(x.reserveMinimum) } : {}); } catch (e) { t.erreur(e); } };
   const montants = Object.fromEntries(Object.entries(saisie).map(([k, v]) => [k, v.trim() ? lireMontant(v) ?? -1 : 0]));
   const reparti = Object.values(montants).reduce((s, v) => s + Math.max(0, v), 0);
-  return <section className="bloc pile" aria-label="Affectation du résultat"><h2>Affectation du résultat</h2>
+  return <section className="bloc pile" aria-label="Affectation du résultat"><h2>Affectation du résultat</h2><Recherche className="pile" label="Critères" envoyer={afficher}>
     <div className="formulaire">
       <Champ libelle="Exercice :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" value={exercice} onChange={(e) => { setExercice(e.target.value); setA(null); }} />}</Champ>
     </div>
-    <div className="actions-onglets"><button className="bouton" type="button" onClick={afficher}>Afficher</button></div>
+    <div className="actions-onglets"><button className="bouton" type="submit">Afficher</button></div></Recherche>
     {a && <>
       <dl className="info-ligne-liste">
         <div className="info-ligne"><dt>Résultat de l'exercice {a.exercice} (compte 13)</dt><dd className="chiffres">{n(a.resultat)} CDF {a.resultat >= 0 ? "(excédent)" : "(déficit)"}</dd></div>

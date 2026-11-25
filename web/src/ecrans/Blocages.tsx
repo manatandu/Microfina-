@@ -6,7 +6,7 @@ import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
-import { Champ, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee } from "../composants";
+import { Champ, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
 
 const nomComplet = (t: Tiers) => t.intitule || [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
@@ -45,7 +45,7 @@ export default function BlocageCompte() {
   return (
     <>
       <h2>Blocage et déblocage de compte</h2>
-      <section className="bloc pile" aria-label="Blocage et déblocage de compte">
+      <section className="bloc pile" aria-label="Blocage et déblocage de compte"><Formulaire className="pile" envoyer={enregistrer}>
         <div className="grille-deux">
           <fieldset className="pile cadre-champs">
             <legend>Infos client</legend>
@@ -80,10 +80,10 @@ export default function BlocageCompte() {
         </fieldset>
         <Champ libelle="Motif : *">{(pp) => <input {...pp} className="saisie" value={f.motif} onChange={(ev) => setF({ ...f, motif: ev.target.value })} />}</Champ>
         <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={!f.compte || (!f.tout && !f.montantCoche)} onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton" type="submit" disabled={!f.compte || (!f.tout && !f.montantCoche)}>Enregistrer</button>
           <button className="bouton secondaire" type="button" disabled={!e} onClick={() => setHistorique(true)}>Voir historique des actions</button>
           <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
-        </div>
+        </div></Formulaire>
         {e && <fieldset className="pile cadre-champs">
           <legend>Blocages en cours</legend>
           <div className="defile-x"><table className="grille" aria-label="Blocages en cours">
@@ -95,10 +95,10 @@ export default function BlocageCompte() {
                 <td>{!b.garantie && <button className="bouton secondaire" type="button" aria-label={`Débloquer : ${b.motif}`} onClick={() => setLevee({ id: b.id, motif: "" })}>Débloquer</button>}</td></tr>)}
             </tbody>
           </table></div>
-          {levee && <div className="pile">
+          {levee && <Formulaire className="pile" envoyer={debloquer}>
             <Champ libelle="Motif du déblocage : *">{(pp) => <input {...pp} className="saisie" value={levee.motif} onChange={(ev) => setLevee({ ...levee, motif: ev.target.value })} />}</Champ>
-            <div className="actions-onglets"><button className="bouton" type="button" onClick={debloquer}>Débloquer</button><button className="bouton secondaire" type="button" onClick={() => setLevee(null)}>Annuler</button></div>
-          </div>}
+            <div className="actions-onglets"><button className="bouton" type="submit">Débloquer</button><button className="bouton secondaire" type="button" onClick={() => setLevee(null)}>Annuler</button></div>
+          </Formulaire>}
         </fieldset>}
         <Textes sources={["Manuel Microfina++, p. 81 : « bloquer un compte et / ou bloquer un montant sur un compte » ; sélectionner le client, le compte et le produit, cocher Bloquer compte ou bloquer montant, le montant et le motif, Enregistrer ; capture Blocage et déblocage de compte",
           "Registre S71-1 à S71-5 : compte bloqué, aucun débit (les dépôts restent acceptés) ; déblocage depuis l'historique, avec motif, sur le modèle de la libération des garanties (S94)"]} />

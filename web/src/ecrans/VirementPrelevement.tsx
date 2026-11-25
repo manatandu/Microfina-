@@ -6,7 +6,7 @@ import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture, Formulaire } from "../composants";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
 import { PartiesVirement, PARTIES_VIDES, type Parties } from "../composants/PartiesVirement";
 import { RechercheClient } from "./Visa";
@@ -46,7 +46,7 @@ export function VirementPrelevement() {
   return (
     <>
       <h2>Virement prélèvement</h2>
-      <section className="bloc pile" aria-label="Virement prélèvement">
+      <Formulaire className="bloc pile" label="Virement prélèvement" envoyer={enregistrer}>
         <div className="grille-cadres">
           <fieldset className="pile cadre-champs">
             <legend>Agence</legend>
@@ -91,14 +91,14 @@ export function VirementPrelevement() {
         </fieldset>
         <PartiesVirement valeur={parties} maj={setParties} recu={f.type === "virement_client"} sortant={f.type === "prelevement_client"} />
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton" type="submit">Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={vider}>Annuler</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 61 : écran Virement prélèvement (Agence, Identifiant Client, Type operation, Compte Client, Banque), Enregistrer, Annuler",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Chaîne de l'opération : saisie ici, visée puis validée (Banque > Visa, Validation, S57), comptabilisée (S111)",
           "Prélèvement : sur le solde disponible du compte, comme un retrait (S74) ; prélèvements déjà saisis déduits"]} />
-      </section>
+      </Formulaire>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif") : [])}
           choisir={(x) => { setT(x); maj({ compteClient: "" }); setRecherche(false); }} fermer={() => setRecherche(false)} />

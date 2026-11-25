@@ -25,18 +25,19 @@ html { scroll-padding-block: calc(var(--mise-barre) + 2px + var(--espace-2)) cal
 .marque-connexion { margin: 0 0 var(--espace-2); }
 .menus { display: flex; align-items: stretch; flex: 1; min-width: 0; overflow-x: auto; }
 .deroulant { position: relative; display: flex; }
-.deroulant > summary {
-  list-style: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+.deroulant > button {
+  margin: 0; border: 0; border-radius: 0; background: none; font-family: inherit; line-height: inherit;
+  cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   padding: 5px var(--espace-3) 3px; font-size: var(--taille-dense); font-weight: 600; color: var(--nuit-texte); white-space: nowrap;
   border-bottom: 3px solid transparent;
 }
-.deroulant > summary svg { width: 18px; height: 18px; }
-.deroulant > summary::-webkit-details-marker { display: none; }
-@media (hover: hover) and (pointer: fine) { .deroulant > summary:hover { color: var(--nuit-fort); background: var(--nuit-2); } }
-.deroulant[open] > summary, .deroulant > summary.actif { color: var(--nuit-fort); background: var(--nuit-2); }
-.deroulant > summary.actif { border-bottom-color: var(--ciel); }
-.deroulant > summary.actif svg { color: var(--ciel); }
-.deroulant > summary:focus-visible { outline: 2px solid var(--ciel); outline-offset: -2px; }
+.deroulant > button svg { width: 18px; height: 18px; }
+@media (hover: hover) and (pointer: fine) { .deroulant > button:hover { color: var(--nuit-fort); background: var(--nuit-2); } }
+.deroulant.ouvert > button, .deroulant > button.actif { color: var(--nuit-fort); background: var(--nuit-2); }
+.deroulant > button.actif { border-bottom-color: var(--ciel); }
+.deroulant > button.actif svg { color: var(--ciel); }
+.deroulant > button:focus-visible { outline: 2px solid var(--ciel); outline-offset: -2px; }
+.liste-deroulante[hidden] { display: none; }
 .liste-deroulante {
   position: absolute; top: 100%; left: 0; z-index: 30; min-width: 260px; max-height: 70vh; overflow-y: auto;
   display: grid; gap: var(--espace-1); margin: 0; padding: var(--espace-2); list-style: none;
@@ -54,10 +55,10 @@ html { scroll-padding-block: calc(var(--mise-barre) + 2px + var(--espace-2)) cal
 .liste-deroulante .choix-langue { display: block; width: 100%; padding: 5px var(--espace-3); border: 0; border-radius: var(--rayon-petit); background: none; color: var(--encre);
   font: inherit; font-size: var(--taille-courant); text-align: left; cursor: pointer; }
 @media (hover: hover) and (pointer: fine) { .liste-deroulante .choix-langue:hover { background: var(--tampon-pale); } }
-.liste-deroulante .choix-langue[aria-checked="true"] { background: var(--tampon-pale); color: var(--tampon); font-weight: 600; }
+.liste-deroulante .choix-langue[aria-current="true"] { background: var(--tampon-pale); color: var(--tampon); font-weight: 600; }
 .liste-deroulante .choix-langue:focus-visible { outline: 2px solid var(--tampon); outline-offset: -2px; }
 .complementaires { display: flex; align-items: center; gap: var(--espace-1); margin-left: auto; padding-left: var(--espace-3); border-left: 1px solid var(--nuit-trait); }
-.complementaires .deroulant > summary { flex-direction: row; min-width: 36px; padding: var(--espace-2); }
+.complementaires .deroulant > button { flex-direction: row; min-width: 36px; padding: var(--espace-2); }
 .complementaires .liste-deroulante { left: auto; right: 0; min-width: 180px; }
 .icone-inactive { display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--rayon-rond); border: 1px solid var(--nuit-trait); color: var(--nuit-texte); font-weight: 700; font-size: var(--taille-dense); opacity: .6; }
 .sortir { flex-shrink: 0; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: var(--rayon-champ); background: none; color: var(--nuit-texte); cursor: pointer; }
@@ -677,7 +678,7 @@ select.saisie { max-width: 100%; }
     transition: opacity var(--mouvement-deroulant) var(--mouvement-courbe-sortie), transform var(--mouvement-deroulant) var(--mouvement-courbe-sortie); }
 
   /* Menus de la barre : ils sortent de leur titre */
-  :root:not([data-geste="clavier"]) .deroulant[open] > .liste-deroulante { transform-origin: top left;
+  :root:not([data-geste="clavier"]) .deroulant.ouvert > .liste-deroulante { transform-origin: top left;
     transition: opacity 160ms var(--mouvement-courbe-sortie), transform 160ms var(--mouvement-courbe-sortie); }
   :root:not([data-geste="clavier"]) .complementaires .deroulant[open] > .liste-deroulante { transform-origin: top right; }
   :root:not([data-geste="clavier"]) .menu-action > ul, :root:not([data-geste="clavier"]) .suggestions { transform-origin: top right;
@@ -703,7 +704,7 @@ select.saisie { max-width: 100%; }
   @starting-style {
     :root:not([data-geste="clavier"]) .onglets + .bloc, :root:not([data-geste="clavier"]) .grille-cadre, :root:not([data-geste="clavier"]) .page .grille { opacity: 0; }
     :root:not([data-geste="clavier"]) .bloquant, :root:not([data-geste="clavier"]) .attention, :root:not([data-geste="clavier"]) .resultat-ok { opacity: 0; transform: translateY(-3px); }
-    :root:not([data-geste="clavier"]) .deroulant[open] > .liste-deroulante { opacity: 0; transform: translateY(-4px) scale(.98); }
+    :root:not([data-geste="clavier"]) .deroulant.ouvert > .liste-deroulante { opacity: 0; transform: translateY(-4px) scale(.98); }
     :root:not([data-geste="clavier"]) .menu-action > ul, :root:not([data-geste="clavier"]) .suggestions { opacity: 0; transform: scale(.97); }
     :root:not([data-geste="clavier"]) .calendrier { opacity: 0; transform: translateY(-4px) scale(.98); }
     :root:not([data-geste="clavier"]) dialog.boite[open], :root:not([data-geste="clavier"]) dialog.fiche[open] { opacity: 0; transform: scale(.96); }
@@ -722,9 +723,15 @@ select.saisie { max-width: 100%; }
 .champ-client { position: relative; }
 .champ-client .propositions { position: absolute; z-index: 5; inset-inline: 0; top: 100%; margin: 0; padding: var(--espace-1) 0; list-style: none; background: var(--cadre); border: 1px solid var(--trait); border-radius: var(--rayon-champ); max-height: 16rem; overflow: auto; }
 .champ-client .propositions li { padding: var(--espace-1) var(--espace-3); cursor: pointer; }
-.champ-client .propositions li:hover { background: var(--ligne); }
+.champ-client .propositions li:hover, .champ-client .propositions li[aria-selected="true"] { background: var(--ligne); }
 
 /* Champ suivi de son unité (mois, %, jours) et liste de lignes d'information (plan d'allègement, point 11.2) */
 .avec-unite { display: flex; align-items: center; gap: var(--espace-2); }
 .avec-unite > .saisie { flex: 1 1 auto; }
 .info-ligne-liste { margin: 0; display: grid; }
+
+/* Lien « Aller au contenu » : caché jusqu'à ce que le clavier l'atteigne (guide accessibility, « Provide skip links » ; point 11.3) */
+.lien-evitement:not(:focus) { position: absolute; clip-path: inset(50%); width: 1px; height: 1px; overflow: hidden; white-space: nowrap; }
+.lien-evitement:focus { position: fixed; top: var(--espace-2); left: var(--espace-2); z-index: 100; padding: var(--espace-2) var(--espace-3);
+  background: var(--feuille); color: var(--tampon); border: 2px solid var(--tampon); border-radius: var(--rayon-champ); font-weight: 600; }
+#titre-ecran:focus, #contenu:focus { outline: none; }   /* cibles du focus après navigation, pas des contrôles */

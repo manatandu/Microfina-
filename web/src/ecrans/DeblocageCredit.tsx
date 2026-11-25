@@ -12,7 +12,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { montant, montantEnLettres, type Comptage, type Devise } from "@design/montant.js";
-import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
+import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Formulaire } from "../composants";
 import { billetageBon, OngletsGuichet, recapitulatif, Recu } from "./Guichet";
 import { ContratPret } from "./ContratPret";
 
@@ -110,7 +110,7 @@ export function DeblocageGuichet() {
     <>
       
       <OngletsGuichet version={fait?.id} />
-      <section className="bloc pile" aria-label="Déblocage crédit">
+      <Formulaire className="bloc pile" label="Déblocage crédit" envoyer={debloquer}>
         <div className="entete-ecran">{(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}<p>Date Opération : <strong className="chiffres">{fr(j?.date ?? "")}</strong></p></div>
         <div className="grille-deux">
           <fieldset className="cadre-champs formulaire"><legend>Info crédit</legend>
@@ -131,7 +131,7 @@ export function DeblocageGuichet() {
         </div>}
         <div className="actions-onglets">
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("echeancier")}>Echéancier</button>
-          <button className="bouton" type="button" disabled={!d || !!fait || !billetageBon(coupures, d.retenues.net)} onClick={debloquer}>Débloquer</button>
+          <button className="bouton" type="submit" disabled={!d || !!fait} aria-disabled={(!!d && !billetageBon(coupures, d.retenues.net)) || undefined} aria-describedby={d && !billetageBon(coupures, d.retenues.net) ? `ecart-${dv}` : undefined}>Débloquer</button>
           <button className="bouton secondaire" type="button" disabled={!cid} onClick={() => setFiche("reconnaissance")}>Reconnaissance de dette</button>
           <button className="bouton secondaire" type="button" disabled={!cid} onClick={() => setFiche("contrat")}>Contrat de prêt</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
@@ -139,7 +139,7 @@ export function DeblocageGuichet() {
         <Textes sources={["Manuel Microfina++, p. 86 : sélectionner le crédit à décaisser, Débloquer ; visualiser l'échéancier et le contrat de prêt ; capture p. 87. L'étape « Encaisser frais », qui n'écrivait rien, disparaît (plan d'allègement, point 4.7)",
           "Registre CR-6 : frais, assurance, épargne obligatoire et fonds de solidarité retenus sur le prêt ; l'épargne obligatoire est bloquée en garantie (Instr. BCC 38, art. 9)",
           "Registre S75-1 : échéance d'un jour non ouvré reportée au premier jour ouvré ; CR-10 : octroi à déclarer à la Centrale des risques (Instr. BCC 05, art. 10) ; billetage (S75-5)"]} />
-      </section>
+      </Formulaire>
       <Fiche titre="Reçu" ouverte={fiche === "recu"} fermer={() => setFiche("")}>{fait && <Recu id={fait.id} onNouveau={() => { setFiche(""); effacer(); }} />}</Fiche>
       <Fiche titre="Echéancier" ouverte={fiche === "echeancier"} fermer={() => setFiche("")}>{d && <Echeancier d={d} fermer={() => setFiche("")} />}</Fiche>
       <Fiche titre="Reconnaissance de dette" ouverte={fiche === "reconnaissance"} fermer={() => setFiche("")}>{cid && <ContratPret id={cid} titre="Reconnaissance de dette" fermer={() => setFiche("")} />}</Fiche>
@@ -186,7 +186,7 @@ export function Deblocage() {
   }
   return (
     <>
-      <section className="bloc pile" aria-label="Déblocage">
+      <Formulaire className="bloc pile" label="Déblocage" envoyer={debloquer}>
         <div className="entete-ecran">{fait?.piece ? <p>Numéro de pièce : <strong className="chiffres">{fait.piece}</strong></p> : <span />}
           <Champ libelle="Date Opération :">{(p) => <Lecture {...p} value={fr(j?.date ?? "")} />}</Champ></div>
         <fieldset className="cadre-champs"><legend>Mode *</legend><div className="ligne-champ">
@@ -223,13 +223,13 @@ export function Deblocage() {
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("echeancier")}>Echéancier</button>
           <button className="bouton secondaire" type="button" disabled={!cid} onClick={() => setFiche("contrat")}>Contrat de prêt</button>
           <button className="bouton secondaire" type="button" disabled={!cid} onClick={() => setFiche("reconnaissance")}>Reconnaissance de dette</button>
-          <button className="bouton" type="button" disabled={!pret} onClick={debloquer}>Débloquer</button>
+          <button className="bouton" type="submit" disabled={!pret}>Débloquer</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 62 (banque), p. 124, 156 et 157 (compte d'épargne) ; plan d'allègement, point 6.6 : un écran dans le menu Crédit, le mode choisi dedans",
           "Registre S54-2 à S54-5 : chèque d'un chéquier du compte bancaire (S60-5) ; S105-1 à S105-4 : le net est porté au compte d'épargne du client ; retenues (CR-6) ; contrat de prêt (CR-12)",
           "Instr. BCC 008, art. 66 : seul le caissier manie les espèces ; le déblocage en espèces se fait au guichet (S75)"]} />
-      </section>
+      </Formulaire>
       <Fiche titre="Echéancier" ouverte={fiche === "echeancier"} fermer={() => setFiche("")}>{d && <Echeancier d={d} fermer={() => setFiche("")} />}</Fiche>
       <Fiche titre="Contrat de prêt" ouverte={fiche === "contrat"} fermer={() => setFiche("")}>{cid && <ContratPret id={cid} titre="Contrat de prêt" fermer={() => setFiche("")} />}</Fiche>
       <Fiche titre="Reconnaissance de dette" ouverte={fiche === "reconnaissance"} fermer={() => setFiche("")}>{cid && <ContratPret id={cid} titre="Reconnaissance de dette" fermer={() => setFiche("")} />}</Fiche>

@@ -7,7 +7,7 @@ import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { lireMontant, montant, montantEnLettres, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
 import { ChoixBanque } from "./OperationsBanque";
 
@@ -47,7 +47,7 @@ export function AdhesionBanque() {
   return (
     <>
       <h2>Adhésion a la Banque</h2>
-      <section className="bloc pile" aria-label="Adhésion à la banque">
+      <Formulaire className="bloc pile" label="Adhésion à la banque" envoyer={enregistrer}>
         <div className="entete-ecran">
           <ChampDate libelle="Date Opération : *" valeur={date} onChange={(v) => setF({ ...f, date: v })} requis />
         </div>
@@ -91,7 +91,7 @@ export function AdhesionBanque() {
         </fieldset>
         {erreur && t && <p role="alert" className="erreur-champ">{erreur}</p>}
         <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={!t} onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton" type="submit" disabled={!t}>Enregistrer</button>
           <button className="bouton secondaire" type="button" disabled title="Le reçu vient avec la validation à la caisse (registre S56-1)">Imprimer</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         </div>
@@ -100,7 +100,7 @@ export function AdhesionBanque() {
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Même règles que l'adhésion au guichet (S73) : loi 002/2002, art. 21 et 22 (au moins une part, intégralement libérée) ; PCCI, comptes 103 (parts) et 330 (épargne) ; Instr. BCC 37 (ouverture de compte gratuite)",
           "Chaîne : saisie ici, visée puis validée (Banque > Visa, Validation, S57), validée à la caisse (p. 89 et 104), comptabilisée (S111) ; le compte épargne s'ouvre à la validation"]} />
-      </section>
+      </Formulaire>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif") : [])}
           choisir={(x) => { setT(x); setDepot(enSaisie(x.premierDepot)); setParts("1"); setCle(nouvelleCle()); setRecherche(false); }} fermer={() => setRecherche(false)} />

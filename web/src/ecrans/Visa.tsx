@@ -201,7 +201,7 @@ export function RechercheClient({ source, choisir, fermer }: { source: (q: strin
     && [t.postnom, t.prenom].join(" ").toLowerCase().includes(cherche.prenom.trim().toLowerCase());
   const liste = (donnees?.liste ?? []).filter(garde);
   const champ = (k: keyof typeof f, libelle: string) => <Champ libelle={libelle}>{(p) => <input {...p} className="saisie" type="search" autoComplete="off" value={f[k]}
-    onChange={(e) => { const n = { ...f, [k]: e.target.value }; setF(n); setCherche(n); }} onKeyDown={(e) => { if (e.key === "Enter") setCherche(f); }} />}</Champ>;
+    onChange={(e) => { const n = { ...f, [k]: e.target.value }; setF(n); setCherche(n); }} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); setCherche(f); } }} />}</Champ>;
   return (
     <div className="pile">
       <fieldset className="cadre-champs">

@@ -7,7 +7,7 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { exporterExcel } from "../lib/excel";
 import { lireMontant, montant } from "@design/montant.js";
-import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee, Recherche } from "../composants";
 
 type Resultat = Awaited<ReturnType<typeof api.etatsCompta.journaux>>;
 type Schemas = Awaited<ReturnType<typeof api.etatsCompta.schemas>>;
@@ -42,7 +42,7 @@ export default function JournauxComptables({ achats = false }: { achats?: boolea
   return (
     <>
       {achats ? <h2>Journal achat</h2> : <h2>Journal comptables</h2>}
-      <section className={achats ? "pile" : "bloc pile"} aria-label={achats ? "Journal achat" : "Journal comptables"}>
+      <section className={achats ? "pile" : "bloc pile"} aria-label={achats ? "Journal achat" : "Journal comptables"}><Recherche className="pile" label="Critères" envoyer={afficher}>
         <fieldset className="cadre-champs"><legend>Critères recherche</legend>
           <div className="deux-colonnes">
             <div className="formulaire">
@@ -63,7 +63,7 @@ export default function JournauxComptables({ achats = false }: { achats?: boolea
             </div>
           </div>
         </fieldset>
-        <div className="actions-onglets"><button className="bouton" type="button" onClick={afficher}>Afficher</button></div>
+        <div className="actions-onglets"><button className="bouton" type="submit">Afficher</button></div></Recherche>
         {r?.edition && <p className="aide">Journaux{texteEdition(r.edition)}</p>}
         <Paginee lignes={r?.lignes ?? []}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col">Journal</th><th scope="col">N° Compte</th><th scope="col">Intitulé compte</th><th scope="col" className="num">Débit</th><th scope="col" className="num">Crédit</th></tr></thead>

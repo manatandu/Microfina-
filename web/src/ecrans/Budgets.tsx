@@ -9,7 +9,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { decimal, lireMontant } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee, Recherche } from "../composants";
 
 const n = (v: number) => decimal.format(v / 100);
 const pct = (v: number | null) => (v === null ? "" : `${decimal.format(v)} %`);
@@ -221,6 +221,7 @@ function Consommation({ ctx }: { ctx: Ctx }) {
   return (
     <section className="bloc pile" aria-label="Consommation par centre de coût">
       <h2>Consommation par centre de coût</h2>
+      <Recherche className="pile" label="Critères" envoyer={afficher}>
       <div className="deux-colonnes">
         <fieldset className="cadre-champs formulaire"><legend className="sr-only">Critères</legend>
           <Champ libelle="Exercice">{(p) => <select {...p} className="saisie court" value={f.exercice} onChange={(e) => setF({ ...f, exercice: e.target.value, ligne: "" })}>{ctx.exercices.map((a) => <option key={a} value={a}>{enClair(a)}</option>)}</select>}</Champ>
@@ -235,9 +236,9 @@ function Consommation({ ctx }: { ctx: Ctx }) {
           <ChampDate libelle="Date fin :" valeur={f.dateFin} onChange={(v) => setF({ ...f, dateFin: v })} />
         </fieldset>
       </div>
-      <div className="actions-onglets"><button className="bouton" type="button" onClick={afficher}>Afficher</button>
+      <div className="actions-onglets"><button className="bouton" type="submit">Afficher</button>
         <button className="bouton secondaire" type="button" disabled={!r} onClick={() => r && exporterExcel("Consommation par centre de coût", ["Centre de cout", "N°", "Ligne budgétaire", "Prévu", "Consommé", "Disponible", "Taux %"],
-          r.lignes.map((x) => [x.centre, x.numero, x.ligne, x.prevu / 100, x.consomme / 100, x.disponible / 100, x.taux ?? ""]))}>Exporter</button></div>
+          r.lignes.map((x) => [x.centre, x.numero, x.ligne, x.prevu / 100, x.consomme / 100, x.disponible / 100, x.taux ?? ""]))}>Exporter</button></div></Recherche>
       {r && <div className="defile-x"><table className="grille"><caption>{`Exercice ${r.exercice}, ${r.periode}, du ${fr(r.du)} au ${fr(r.au)}, en CDF`}</caption>
         <thead><tr><th scope="col">Centre de cout</th><th scope="col">N°</th><th scope="col">Ligne budgétaire</th><th scope="col" className="num">Prévu</th><th scope="col" className="num">Consommé</th>
           <th scope="col" className="num">Disponible</th><th scope="col" className="num">Taux</th></tr></thead>

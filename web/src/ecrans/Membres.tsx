@@ -5,7 +5,7 @@ import { api, enrolementVide, IMAGE_MAX, NATURES_EFFECTIF, type Images, type Nou
 import type { Beneficiaire, ControleEffectif, Tiers } from "../donnees/types";
 import { BlocAdresse } from "../composants/Adresse";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture, Formulaire } from "../composants";
 import { lireMontant } from "@design/montant.js";
 import { RechercheClient, useTiersDeLAdresse } from "./Visa";
 import { LIENS_APPARENTE } from "./PersonnesApparentees";
@@ -32,18 +32,18 @@ function Enrolement({ titre, onglets, numero, onglet, setOnglet, enregistrer, pr
           <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{o}</button>
         ))}
       </div>
-      <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}>
+      <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}><Formulaire className="pile" envoyer={() => (onglet < dernier ? setOnglet(onglet + 1) : enregistrer())}>
         <h2>{onglets[onglet]}</h2>
         {children}
         <div className="actions-onglets">
           {onglet > 0 && <button className="bouton secondaire" type="button" onClick={() => setOnglet(onglet - 1)}>Précédent</button>}
-          {onglet < dernier && <button className="bouton" type="button" onClick={() => setOnglet(onglet + 1)}>Suivant</button>}
-          {onglet === dernier && <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>}
+          {onglet < dernier && <button className="bouton" type="submit">Suivant</button>}
+          {onglet === dernier && <button className="bouton" type="submit">Enregistrer</button>}
           {/* Prospect : la fiche physique enregistrée « comme prospect », les autres onglets facultatifs (plan d'allègement, point 3.11) */}
           {prospect && <button className="bouton secondaire" type="button" onClick={prospect}>Enregistrer comme prospect</button>}
         </div>
         <Textes sources={textes} />
-      </section>
+      </Formulaire></section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );
@@ -243,7 +243,7 @@ function RepriseFiche({ reprendre }: { reprendre: (r: Partial<RepresentantSaisi>
     <fieldset className="pile cadre-champs">
       <legend>Reprendre une fiche existante</legend>
       <div className="ligne-champ">
-        <Champ libelle="Membre :">{(p) => <input {...p} className="saisie" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void chercher(); }} />}</Champ>
+        <Champ libelle="Membre :">{(p) => <input {...p} className="saisie" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void chercher(); } }} />}</Champ>
         <div className="champ"><span className="libelle-vide" aria-hidden="true">&nbsp;</span><button className="bouton secondaire" type="button" onClick={() => void chercher()}>Rechercher</button></div>
       </div>
       {trouves && (trouves.length === 0 ? <p className="muet">Aucun membre trouvé : saisir la personne ci-dessous.</p> : (
@@ -825,7 +825,7 @@ export function MiseAJourClient() {
       <div className="onglets" role="tablist" aria-label={titre}>
         {onglets.map((o, i) => <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{o}</button>)}
       </div>
-      <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}>
+      <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}><Formulaire className="pile" envoyer={terminer}>
         <h2>{nom}</h2>
         {f && t && (
           <fieldset className="sans-cadre pile">
@@ -870,7 +870,7 @@ export function MiseAJourClient() {
           </fieldset>
         )}
         <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={!t} onClick={terminer}>Enregistrer</button>
+          <button className="bouton" type="submit" disabled={!t}>Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={vider}>Annuler</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 56 : écran Modification d'un client physique ; la même fiche que l'enrôlement, Enregistrer et Annuler (plan d'allègement, point 3.2)",
@@ -878,7 +878,7 @@ export function MiseAJourClient() {
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Instr. BCC 15, art. 10 : identification à refaire quand les éléments du client changent ; art. 12 et 13 : mentions de l'identité, exigées à la mise à jour ; art. 14, 16 à 18 et 60",
           "Instr. BCC 37, annexe : changement d'éléments du dossier du client, gratuit"]} />
-      </section>
+      </Formulaire></section>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif" || x.statut === "modifie_a_revalider") : [])}
           choisir={(x) => void choisir(x)} fermer={() => setRecherche(false)} />

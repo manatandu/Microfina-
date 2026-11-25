@@ -1,7 +1,8 @@
 // S90 à S93 : Crédit > Suivi dossier crédit (manuel Microfina++, p. 114 et 115, cinq captures). Plan d'allègement, point 6.4 : le portefeuille de crédits
 // (S93) porte la vérification, la décision et le visa sur la ligne ; il remplace la liste des crédits validés non débloqués (S92). Registre S90-1 à S93-7, CR-4, CR-5.
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { vers } from "./registre";
 import { FormulaireAppel, FormulaireDecision, FormulaireVerification } from "./DossierCredit";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -10,7 +11,7 @@ import { exporterExcel } from "../lib/excel";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
 import { ContratPret } from "./ContratPret";
 import { FenetresCredit } from "./RemboursementCredit";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, LigneFiltres, Paginee, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, LigneFiltres, Paginee, Textes, type Boite, Formulaire, Recherche } from "../composants";
 
 const NIVEAUX = [["responsable_credit", "Responsable crédit"], ["comite", "Comité de crédit"], ["service_financier", "Service financier"]] as const;
 const AVIS = [["accepte", "Accepté"], ["refuse", "Refusé"]] as const;
@@ -29,15 +30,15 @@ export function FormulaireVisa({ ligne, fini }: { ligne: { id: number; numero: s
     } });
   }
   return (
-    <div className="pile">
+    <Formulaire className="pile" envoyer={viser}>
       <p>{ligne.client} · {ligne.produit} · {montant(ligne.montant, ligne.devise as Devise)} sur {ligne.duree} mois</p>
       <Champ libelle="Avis *">{(p) => <select {...p} className="saisie" value={f.avis} onChange={(e) => setF({ ...f, avis: e.target.value })}><option value=""></option>
         {AVIS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ>
       <Champ libelle="Motif (refus)">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.motif} onChange={(e) => setF({ ...f, motif: e.target.value })} />}</Champ>
-      <div className="actions-onglets"><button className="bouton" type="button" onClick={viser}>Viser</button>
+      <div className="actions-onglets"><button className="bouton" type="submit">Viser</button>
         <button className="bouton secondaire" type="button" onClick={() => fini()}>Fermer</button></div>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </div>
+    </Formulaire>
   );
 }
 
@@ -58,7 +59,7 @@ export function HistoriqueVisas() {
   return (
     <>
       <h2>Historique</h2>
-      <section className="bloc pile" aria-label="Historique">
+      <section className="bloc pile" aria-label="Historique"><Recherche className="pile" label="Critères" envoyer={rechercher}>
         <fieldset className="cadre-champs"><legend>Recherche</legend><div className="barre-filtres">
           <Champ libelle="Niveau hiérarchique *">{(p) => <select {...p} className="saisie" value={f.niveau} onChange={(e) => setF({ ...f, niveau: e.target.value })}>
             {NIVEAUX.map(([k, x]) => <option key={k} value={k}>{x}</option>)}</select>}</Champ>
@@ -68,10 +69,10 @@ export function HistoriqueVisas() {
           <ChampDate libelle="A *" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} />
         </div></fieldset>
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={rechercher}>Rechercher</button>
+          <button className="bouton" type="submit">Rechercher</button>
           <button className="bouton secondaire" type="button" disabled={l.length === 0} onClick={() => exporterExcel("Historique des visas", COL,
             l.map((x) => [x.numero, fr(x.dateDemande), x.client, montant(x.montant, x.devise as Devise), x.duree, x.produit, x.agent, fr(x.visaLe), x.visePar, x.motif]))}>Exporter</button>
-        </div>
+        </div></Recherche>
         <Paginee lignes={l} colonnes={(x) => [x.numero, null, x.client, null, null, x.produit, x.agent, null, null, null]}>{(v) => (<div className="defile-x"><table className="grille">
           <thead><tr>{COL.map((t, i) => <th key={t} scope="col" className={i === 3 || i === 4 ? "num" : undefined}>{t}</th>)}{refusCommission && <th scope="col">Appel</th>}</tr>
             <LigneFiltres titres={["N° credit", null, "Intitulé", null, null, "Produit", "Agent de crédit", null, null, null, ...(refusCommission ? [null] : [])]} /></thead>
@@ -81,13 +82,13 @@ export function HistoriqueVisas() {
               <td className="chiffres">{fr(x.visaLe)}</td><td>{x.visePar}</td><td>{x.motif}</td>
               {refusCommission && <td>{x.appel || <button className="bouton secondaire" type="button" onClick={() => setAppel(x.demandeId ? { id: x.demandeId, numero: x.numero, decision: "", reference: "", demande: true } : { id: x.creditId, numero: x.numero, decision: "", reference: "" })}>Appel au Conseil</button>}</td>}</tr>)}</tbody>
         </table></div>)}</Paginee>
-        {appel && <fieldset className="pile cadre-champs champs-a-gauche"><legend>Appel devant le Conseil d'administration, crédit {appel.numero}</legend>
+        {appel && <Formulaire envoyer={enregistrerAppel}><fieldset className="pile cadre-champs champs-a-gauche"><legend>Appel devant le Conseil d'administration, crédit {appel.numero}</legend>
           <Champ libelle="Décision du Conseil : *">{(p) => <select {...p} className="saisie" value={appel.decision} onChange={(e) => setAppel({ ...appel, decision: e.target.value })}><option value=""></option>
             <option value="accorde">Accordé</option><option value="confirme">Refus confirmé</option></select>}</Champ>
           <Champ libelle="Référence : *">{(p) => <input {...p} className="saisie" autoComplete="off" value={appel.reference} onChange={(e) => setAppel({ ...appel, reference: e.target.value })} />}</Champ>
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrerAppel}>Enregistrer</button>
+          <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button>
             <button className="bouton secondaire" type="button" onClick={() => setAppel(null)}>Annuler</button></div>
-        </fieldset>}
+        </fieldset></Formulaire>}
         <Textes sources={["Manuel Microfina++, p. 115 : 4-4 Historique suivi : « Sélectionner le Niveau hiérarchique, l'avis » ; capture (Du, A, Exporter, grille)", "Registre S91-1",
           "Instr. BCC 007, art. 18 : le Conseil d'administration statue en appel sur les décisions de la Commission de crédit à l'endroit d'un membre (registre T107)"]} />
       </section>
@@ -123,6 +124,8 @@ export function Portefeuille() {
   }
   const fini = async (msg?: string) => { setAction(null); if (msg) { setBoite({ type: "succes", message: msg }); await executer(); } };
   const dv = (x: LignePf) => x.devise as Devise;
+  // La fiche du crédit (S95) consulte les crédits en cours de remboursement : leur numéro est un lien, joignable au clavier (point 11.3 ; registre S93-6)
+  const aFiche = (x: LignePf) => x.type === "credit" && ["debloque", "proroge", "contentieux"].includes(x.etat);
   const actions = (x: LignePf): [string, () => void][] => {
     const b: [string, () => void][] = [];
     if (x.type === "demande" && x.etat === "demande" && droits.has("S87")) b.push(["Vérifier", () => setAction({ quoi: "verifier", x })]);
@@ -135,6 +138,7 @@ export function Portefeuille() {
   return (
     <>
       <section className="bloc pile" aria-label="Portefeuille de crédits">
+        <Recherche label="Critères du portefeuille" className="pile" envoyer={executer}>
         <div className="barre-filtres">
           <fieldset className="cadre-champs double"><legend>Période</legend>
             <div className="ligne-champ"><ChampDate libelle="Du :" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} /><ChampDate libelle="Au :" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} /></div>
@@ -154,19 +158,21 @@ export function Portefeuille() {
             <option>Non</option><option>Oui</option></select>}</Champ>
         </div>
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={executer}>Exécuter</button>
+          <button className="bouton" type="submit">Exécuter</button>
           <button className="bouton secondaire" type="button" disabled={!l?.length} onClick={() => l && exporterExcel("Portefeuille de crédits", COL, l.map((x) => [x.numero, fr(x.dateDemande),
             x.dateApprobation ? fr(x.dateApprobation) : "", x.membre, x.client, x.contact, x.groupe, montant(x.montant, dv(x)), x.produit, x.agent, x.statut,
             x.capitalRestant === null ? "" : montant(x.capitalRestant, dv(x)), x.joursRetard ?? "", x.degre]))}>Export</button>
         </div>
+        </Recherche>
         {l && <Paginee lignes={l} colonnes={(x) => [null, null, null, null, null, null, x.client, null, x.groupe]}>{(v) => (<div className="defile-x"><table className="grille">
           <thead><tr>{["Echéancier", "Contrat prêt", ...COL, "Action"].map((t, i) => <th key={t} scope="col" className={[9, 13, 14].includes(i) ? "num" : undefined}>{t}</th>)}</tr>
             <LigneFiltres titres={[null, null, null, null, null, null, "Intitulé", null, "Groupe", null, null, null, null, null, null, null, null]} /></thead>
           <tbody>{v.length === 0 && <tr><td colSpan={17}>Aucune ligne.</td></tr>}
-            {v.map((x) => <tr key={`${x.type}-${x.id}`} className={x.type === "credit" ? "ligne-choix" : undefined} onClick={x.type === "credit" ? () => navigate(`/credit/s95?credit=${x.id}`) : undefined}>
+            {v.map((x) => <tr key={`${x.type}-${x.id}`} className={aFiche(x) ? "ligne-choix" : undefined} onClick={aFiche(x) ? () => navigate(vers("S95", `?credit=${x.id}`)) : undefined}>
               <td>{x.type === "credit" && <button className="bouton secondaire petit" type="button" aria-label={`Echéancier ${x.numero}`} onClick={(e) => { e.stopPropagation(); setFiche({ id: x.id, devise: dv(x), quoi: "plan" }); }}>Echéancier</button>}</td>
               <td>{x.type === "credit" && <button className="bouton secondaire petit" type="button" aria-label={`Contrat prêt ${x.numero}`} onClick={(e) => { e.stopPropagation(); setFiche({ id: x.id, devise: dv(x), quoi: "contrat" }); }}>Contrat</button>}</td>
-              <td className="code">{x.numero}</td><td className="chiffres">{fr(x.dateDemande)}</td><td className="chiffres">{x.dateApprobation ? fr(x.dateApprobation) : ""}</td>
+              <td className="code">{aFiche(x) ? <Link to={vers("S95", `?credit=${x.id}`)} onClick={(e) => e.stopPropagation()}>{x.numero}</Link> : x.numero}</td>
+              <td className="chiffres">{fr(x.dateDemande)}</td><td className="chiffres">{x.dateApprobation ? fr(x.dateApprobation) : ""}</td>
               <td className="code">{x.membre}</td><td>{x.client}</td><td className="chiffres">{x.contact}</td><td>{x.groupe}</td><td className="num chiffres">{montant(x.montant, dv(x))}</td>
               <td>{x.produit}</td><td>{x.agent}</td><td>{x.statut}</td><td className="num chiffres">{x.capitalRestant === null ? "" : montant(x.capitalRestant, dv(x))}</td>
               <td className="num chiffres">{x.joursRetard ?? ""}</td><td>{x.degre}</td>

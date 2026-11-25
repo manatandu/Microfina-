@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee, Formulaire } from "../composants";
 
 const SOURCES_P20 = ["Manuel Microfina++, p. 20 : Nouvel Exercice, Exercice (Année*), Enregistrer, Effacer, liste Annee, Actif ?, Ouvert ?, Validé ? ; « préciser obligatoirement l'Année puis cocher la case d'activation, d'ouverture et valider avant d'enregistrer »",
   "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
@@ -40,7 +40,7 @@ export function NouvelExercice() {
   return (
     <>
       <h2>Nouvel Exercice</h2>
-      <section className="bloc pile" aria-label="Nouvel Exercice">
+      <Formulaire className="bloc pile" label="Nouvel Exercice" envoyer={enregistrer}>
         <fieldset className="pile cadre-champs">
           <legend>Exercice</legend>
           <div className="ligne-champ">
@@ -48,7 +48,7 @@ export function NouvelExercice() {
           </div>
         </fieldset>
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton" type="submit">Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={() => { setAnnee(""); setCases({}); }}>Effacer</button>
         </div>
         <Paginee lignes={donnees.exercices}>{(visibles) => (<table className="grille">
@@ -68,7 +68,7 @@ export function NouvelExercice() {
           </tbody>
         </table>)}</Paginee>
         <Textes sources={SOURCES_P20} />
-      </section>
+      </Formulaire>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );
@@ -159,17 +159,17 @@ export function CompleterJournalDetail() {
   return (
     <>
       <h2>Completer journal detail de l'exercice encours</h2>
-      <section className="bloc pile" aria-label="Compléter journal détail">
+      <Formulaire className="bloc pile" label="Compléter journal détail" envoyer={enregistrer}>
         <div className="ligne-champ">
           <Champ libelle="Exercice encours">{(p) => <input {...p} className="saisie code" readOnly value={a ?? ""} />}</Champ>
         </div>
         <ListeDetails lignes={manquants} vide="Aucune ligne." coches={coches} cocher={(id, v) => setCoches(v ? [...coches, id] : coches.filter((x) => x !== id))} />
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton" type="submit">Enregistrer</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 21 : Completer journal detail de l'exercice encours, Exerice encours, liste (case, Libellé, ID, Exercice, Actif?, Ouvert?, Compteur, N° Journal, Type Journal), « Liste vide »",
           "Manuel Microfina++, p. 10 et 11 : enregistrer une information, boîtes de confirmation, de succès et d'erreur"]} />
-      </section>
+      </Formulaire>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );

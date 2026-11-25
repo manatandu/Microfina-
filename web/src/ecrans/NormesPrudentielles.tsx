@@ -7,7 +7,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr, texteEdition } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { decimal } from "@design/montant.js";
-import { ChampDate, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { ChampDate, Chargement, Dialogue, Textes, type Boite, Recherche } from "../composants";
 
 type Etat = Awaited<ReturnType<typeof api.normes.etat>>;
 const SENS = { min: "au moins", max: "au plus", bande: "entre -/+" } as const;
@@ -30,16 +30,17 @@ export default function NormesPrudentielles() {
       <FondsPropres />   {/* les fonds propres prudentiels, donnée mensuelle, sont saisis ici (plan d'allègement, point 2.21) */}
       <section className="bloc pile" aria-label="Edition des normes prudentielles">
         <h2>Edition des normes prudentielles</h2>
+        <Recherche className="pile" label="Critères" envoyer={rechercher}>
         <fieldset className="cadre-champs formulaire"><legend className="sr-only">Arrêté</legend>
           <ChampDate libelle="Date de l'arrêté :" valeur={d} onChange={setDate} />
         </fieldset>
         {r && <p>Trésorerie assurée : {r.assuranceTresorerie.couverte
           ? `oui, police ${r.assuranceTresorerie.police} (${r.assuranceTresorerie.assureur}), jusqu'au ${fr(r.assuranceTresorerie.echeance)}.` : "non."}</p>}
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={rechercher}>Rechercher</button>
+          <button className="bouton" type="submit">Rechercher</button>
           <button className="bouton secondaire" type="button" onClick={() => { setDate(""); setR(null); }}>Effacer les critères</button>
           <button className="bouton secondaire" type="button" disabled={!exporter} onClick={() => exporter?.()}>Exporter</button>
-        </div>
+        </div></Recherche>
         {r && <>
           <div className="defile-x"><table className="grille"><caption>Fonds propres au {fr(r.date)}, montants en CDF</caption>
             <tbody>

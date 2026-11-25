@@ -4,7 +4,7 @@ import NumeroPiece from "./NumeroPiece";
 import { api, composerNumero, composerNumeroCompte } from "../donnees/api";
 import type { RegleNumerotation } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Chargement, Dialogue, Textes, type Boite, Formulaire } from "../composants";
 
 const VIDE: RegleNumerotation = { prefixe: { actif: false, valeur: "" }, suffixe: { actif: false, valeur: "" }, institution: { actif: false, position: 1 },
   agence: { actif: false, position: 1 }, categorie: { actif: false, position: 1 }, position: 1, compteur: 1, ordre: ["COMPTEUR"] };
@@ -64,7 +64,7 @@ export default function ParametragesClients() {
             </select>
           </div>
         </div>}
-        <div className="numerotation">
+        <Formulaire className="numerotation" envoyer={enregistrerRegle}>
           <div className="pile">
             <div className="ligne-numerotation entete"><span /><span>Elément</span><span>Valeur</span></div>
             {ligneValeur("prefixe", "Préfixe")}
@@ -101,9 +101,9 @@ export default function ParametragesClients() {
           </div>
           <div className="pile">
             <output aria-label="Aperçu" className="apercu-numero">{composerNumero(r, donnees.exemple)}</output>
-            <button className="bouton" type="button" onClick={enregistrerRegle}>Enregistrer</button>
+            <button className="bouton" type="submit">Enregistrer</button>
           </div>
-        </div>
+        </Formulaire>
         <Textes sources={["Manuel Microfina++, p. 23 : « dans 1-2 [Numérotation], dans la liste des menus de la page ouverte, choisir [Paramétrages liés aux clients] puis remplir le champ institution qui est obligatoire »",
           "Manuel Microfina++, capture p. 24 : Paramétrages liés aux clients, Institution*, Elément / Valeur (Préfixe, Suffixe), Elément / Position (Institution, Agence, Categorie), Position, Compteur, flèches, Ordre des éléments (COMPTEUR), Générer, Aperçu, Enregistrer, Défintion des compteurs",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
@@ -135,7 +135,7 @@ export function ParametrageCompteClient() {
   return (
     <>
       <h2>Parametrage du Compte Client</h2>
-      <section className="bloc pile" aria-label="Parametrage du Compte Client">
+      <Formulaire className="bloc pile" label="Parametrage du Compte Client" envoyer={enregistrerRegle}>
         <fieldset className="pile cadre-champs">
           <legend>Configuration du N° des Compte Client</legend>
           <label className="case"><input type="checkbox" checked={v.prefixe} onChange={(e) => setF({ ...v, prefixe: e.target.checked })} /><span>Prefixe</span></label>
@@ -152,7 +152,7 @@ export function ParametrageCompteClient() {
           </div>
         </fieldset>
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={enregistrerRegle}>Enregistrer</button>
+          <button className="bouton" type="submit">Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={() => setF(null)}>Annuler</button>
         </div>
         <fieldset className="pile cadre-champs">
@@ -170,7 +170,7 @@ export function ParametrageCompteClient() {
         </fieldset>
         <Textes sources={["Manuel Microfina++, p. 26 : « cocher les cases utilitaires et la position correspondante puis Générer le Numéro de compte client et Enregistrer » ; capture : Parametrage du Compte Client, Configuration du N° des Compte Client (Prefixe, N° Client, Suffixe, Position, exemple « 25121200-INS000SA000001-E-05 »), Enregistrer, Annuler, Générer, Pamamétrage du N° des Compte Client (Position du N°, N° Client?, Préfixe ?, Suffixe?)",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
-      </section>
+      </Formulaire>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );

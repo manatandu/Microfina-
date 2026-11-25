@@ -7,7 +7,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { montant, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee, LigneFiltres } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee, LigneFiltres, Formulaire } from "../composants";
 
 type Evenement = Awaited<ReturnType<typeof api.centraleRisques.evenements>>[number];
 const cleDe = (e: Evenement) => `${e.type}:${e.objetId}`;
@@ -74,14 +74,14 @@ export default function CentraleRisques() {
           "Registre CR-10, E26-1 à E26-3 : événements lus dans les données, déclaration notée par le préposé (date et référence) ; « en retard » : pas encore déclaré le jour même"]} />
       </section>
       <Fiche titre="Déclaration à la Centrale des risques" ouverte={!!decl} fermer={() => setDecl(null)}>
-        {decl && <div className="pile">
+        {decl && <Formulaire className="pile" envoyer={declarer}>
           <p>{choisis.size} événement(s) choisi(s).</p>
           <div className="grille-deux">
             <ChampDate libelle="Date de la déclaration : *" valeur={decl.date || jour} onChange={(v) => setDecl({ ...decl, date: v })} />
             <Champ libelle="Référence : *">{(p) => <input {...p} className="saisie code" value={decl.reference} onChange={(e) => setDecl({ ...decl, reference: e.target.value })} />}</Champ>
           </div>
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={declarer}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={() => setDecl(null)}>Fermer</button></div>
-        </div>}
+          <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button><button className="bouton secondaire" type="button" onClick={() => setDecl(null)}>Fermer</button></div>
+        </Formulaire>}
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>

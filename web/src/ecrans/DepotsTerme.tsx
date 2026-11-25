@@ -9,7 +9,7 @@ import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { lireMontant, montant, montantEnLettres, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee, LigneFiltres } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee, LigneFiltres, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
 import { InteretsDat } from "./FinPeriode";
 
@@ -58,7 +58,7 @@ function FormulaireDat({ fini }: { fini: () => void }) {
 
   return (
     <>
-      <section className="pile" aria-label="Mise en place DAT">
+      <Formulaire className="pile" label="Mise en place DAT" envoyer={enregistrer}>
         <div className="grille-deux">
           <fieldset className="pile cadre-champs">
             <legend>Infos de base</legend>
@@ -98,12 +98,12 @@ function FormulaireDat({ fini }: { fini: () => void }) {
           </fieldset>
         </div>
         <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={!!fait} onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton" type="submit" disabled={!!fait}>Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
           <button className="bouton secondaire" type="button" onClick={fini}>Fermer</button>
         </div>
         <p className="montant-lettres">{m ? montantEnLettres(m, dev) : ""}</p>
-      </section>
+      </Formulaire>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif") : [])}
           choisir={(x) => { setT(x); maj({ compte: "" }); setRecherche(false); }} fermer={() => setRecherche(false)} />

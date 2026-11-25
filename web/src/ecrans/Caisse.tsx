@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { coupuresDe, DEVISES, libelleCoupure, montant, totalComptage, type Comptage, type Devise } from "@design/montant.js";
-import { Attention, Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Attention, Champ, Chargement, Dialogue, Textes, type Boite, Formulaire } from "../composants";
 import { imprimer } from "../lib/imprimer";
 
 
@@ -40,7 +40,7 @@ export function BilletageCaisse() {
   return (
     <>
       <h2>Arrêté de caisse : {ctx.guichets.find((g) => g.id === s.guichetId)?.nom}</h2>
-      <section className="bloc pile" aria-label="Billetage">
+      <Formulaire className="bloc pile" label="Billetage" envoyer={enregistrer}>
         {/* Registre S79-2 et T12 : un tableau par devise, chacun comme la capture p. 91 */}
         {DEVISES.map((d) => (
           <fieldset key={d} className="pile cadre-champs" aria-label={`Billetage ${d}`}>
@@ -68,7 +68,7 @@ export function BilletageCaisse() {
           </fieldset>
         ))}
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton" type="submit">Enregistrer</button>
           {/* Registre S79-1 : Terminer ferme la fenêtre sans rien enregistrer de plus */}
           <button className="bouton secondaire" type="button" onClick={() => navigate(-1)}>Terminer</button>
         </div>
@@ -76,7 +76,7 @@ export function BilletageCaisse() {
           "Registre T12 : une case par devise ; le tableau de la capture est repris pour chaque devise que tient le guichet",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Manuel Microfina++, p. 18 et 19 : ouverture du guichet sans comptage ; Solde Caisse : dernier arrêté validé et opérations de la journée"]} />
-      </section>
+      </Formulaire>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );
@@ -111,7 +111,7 @@ export function ValidationBilletage() {
   return (
     <>
       <h2>Validation de l'arrêté temporaire : {guichet?.nom ?? ""}</h2>
-      <section className="bloc pile" aria-label="Validation du billetage">
+      <Formulaire className="bloc pile" label="Validation du billetage" envoyer={valider}>
         <div className="grille-cadres quatre">
           {/* Plan d'allègement, point 4.11 : une phrase plutôt qu'une liste vide ; « Journées » n'existe plus */}
           {sessions.length === 0 ? <Attention>Aucun guichet ouvert aujourd'hui.</Attention> : <Champ libelle="Guichet">{(p) => (
@@ -152,7 +152,7 @@ export function ValidationBilletage() {
           })}
         </div>
         <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={!guichetId} onClick={valider}>Valider</button>
+          <button className="bouton" type="submit" disabled={!guichetId}>Valider</button>
           {/* Registre S80-4 : Imprimer sort l'arrêté (T11), Terminer ferme la fenêtre */}
           <button className="bouton secondaire" type="button" disabled={!billetages.length} onClick={() => imprimer(".bloc .a-imprimer")}>Imprimer</button>
           <button className="bouton secondaire" type="button" onClick={() => navigate(-1)}>Terminer</button>
@@ -160,7 +160,7 @@ export function ValidationBilletage() {
         <Textes sources={["Manuel Microfina++, p. 91 et 92 : Validation Arretée Temporaire, Solde Informatique, Solde Reel, Compte Comptable, Guichet, Journées, Libelle, Nombre, Montant, Total Billetage, Valider, Imprimer, Terminer",
           "Registre T12 : une case par devise ; la capture est reprise pour chaque devise que tient le guichet",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
-      </section>
+      </Formulaire>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );

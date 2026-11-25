@@ -8,7 +8,7 @@ import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { decimal, lireMontant, montant, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee, Formulaire, Recherche } from "../composants";
 
 const n = (v: number) => decimal.format(v / 100);
 const TEXTE_008 = "Instr. BCC 008, art. 10 et 11 : fiabilité et exhaustivité de l'enregistrement comptable, piste d'audit, justification des soldes comptables";
@@ -54,7 +54,7 @@ export function Rapprochement() {
     <>
       
       <section className="bloc pile" aria-label="Rapprochement Bancaire">
-        <fieldset className="cadre-champs pile"><legend>Info Relevé</legend>
+        <Recherche label="Info Relevé" envoyer={rechercher}><fieldset className="cadre-champs pile"><legend>Info Relevé</legend>
           <div className="ligne-champ">
             <Champ libelle="Banque *">{(p) => <select {...p} className="saisie" value={f.banque} onChange={(e) => setF({ ...f, banque: e.target.value, compte: "" })}><option value=""></option>
               {ctx.banques.map((b) => <option key={b.id} value={b.id}>{b.libelle}</option>)}</select>}</Champ>
@@ -69,8 +69,8 @@ export function Rapprochement() {
               <Champ libelle="Solde début">{(p) => <Lecture {...p} value={j ? montant(j.soldeDebut, dv) : ""} />}</Champ>
               <Champ libelle="Solde Fin">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.soldeFin} onChange={(e) => setF({ ...f, soldeFin: e.target.value })} />}</Champ></fieldset>
           </div>
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={rechercher}>Rechercher</button></div>
-        </fieldset>
+          <div className="actions-onglets"><button className="bouton" type="submit">Rechercher</button></div>
+        </fieldset></Recherche>
         <div className="actions-onglets">
           <button className="bouton secondaire" type="button" disabled={!f.compte} onClick={() => setNouveau({ type: "decaissement", compte: "", libelle: "", montant: "", date: "" })}>Nouveau</button>
           <button className="bouton secondaire" type="button" disabled={!j} onClick={exporter}>Exporter</button>
@@ -107,15 +107,15 @@ export function Rapprochement() {
         </div>}
       </Fiche>
       <Fiche titre="Nouveau" ouverte={!!nouveau} fermer={() => setNouveau(null)}>
-        {nouveau && <div className="pile formulaire">
+        {nouveau && <Formulaire className="pile formulaire" envoyer={enregistrerNouveau}>
           <Champ libelle="Type operation">{(p) => <select {...p} className="saisie" value={nouveau.type} onChange={(e) => setNouveau({ ...nouveau, type: e.target.value as "encaissement" | "decaissement" })}>
             <option value="encaissement">Encaissement divers</option><option value="decaissement">Décaissement divers</option></select>}</Champ>
           <ChampDate libelle="Date opération" valeur={nouveau.date || ctx.date} onChange={(v) => setNouveau({ ...nouveau, date: v })} />
           <Champ libelle="Compte *">{(p) => <input {...p} className="saisie code" inputMode="numeric" autoComplete="off" value={nouveau.compte} onChange={(e) => setNouveau({ ...nouveau, compte: e.target.value })} />}</Champ>
           <Champ libelle="Libellé">{(p) => <input {...p} className="saisie" autoComplete="off" value={nouveau.libelle} onChange={(e) => setNouveau({ ...nouveau, libelle: e.target.value })} />}</Champ>
           <Champ libelle="Montant *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={nouveau.montant} onChange={(e) => setNouveau({ ...nouveau, montant: e.target.value })} />}</Champ>
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrerNouveau}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={() => setNouveau(null)}>Annuler</button></div>
-        </div>}
+          <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button><button className="bouton secondaire" type="button" onClick={() => setNouveau(null)}>Annuler</button></div>
+        </Formulaire>}
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
@@ -137,7 +137,7 @@ export function HistoriqueRapprochement() {
   return (
     <>
       <h2>Historique rapprochement</h2>
-      <section className="bloc pile" aria-label="Historique rapprochement">
+      <section className="bloc pile" aria-label="Historique rapprochement"><Recherche className="pile" label="Critères" envoyer={rechercher}>
         <div className="deux-colonnes">
           <fieldset className="cadre-champs formulaire"><legend>Période</legend>
             <ChampDate libelle="Du :" valeur={f.du || ctx.date} onChange={(v) => setF({ ...f, du: v })} />
@@ -153,7 +153,7 @@ export function HistoriqueRapprochement() {
               {ctx.comptes.filter((c) => !f.banque || String(c.banqueId) === f.banque).map((c) => <option key={c.id} value={c.id}>{`${c.numero} (${c.devise})`}</option>)}</select>}</Champ>
           </div>
         </fieldset>
-        <div className="actions-onglets"><button className="bouton" type="button" onClick={rechercher}>Rechercher</button><button className="bouton secondaire" type="button" onClick={() => { setF(vide); setR(null); }}>Effacer</button></div>
+        <div className="actions-onglets"><button className="bouton" type="submit">Rechercher</button><button className="bouton secondaire" type="button" onClick={() => { setF(vide); setR(null); }}>Effacer</button></div></Recherche>
         <Paginee lignes={r ?? []}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col">Date</th><th scope="col">Banque</th><th scope="col">Compte</th><th scope="col">Date début</th><th scope="col">Date fin</th><th scope="col" className="num">Solde début</th>
             <th scope="col" className="num">Solde Fin</th><th scope="col" className="num">Solde comptable</th><th scope="col" className="num">Écart</th><th scope="col">Utilisateur</th></tr></thead>
@@ -193,14 +193,14 @@ export function Lettrage() {
       <h2>Lettrage des écritures comptables</h2>
       <section className="bloc pile" aria-label="Lettrage des écritures comptables">
         <div className="deux-colonnes">
-          <fieldset className="cadre-champs pile"><legend>Rechercher</legend>
+          <Recherche label="Rechercher" envoyer={afficher}><fieldset className="cadre-champs pile"><legend>Rechercher</legend>
             <div className="ligne-champ"><ChampDate libelle="Date début *" valeur={du} onChange={(v) => setF({ ...f, du: v })} requis /><ChampDate libelle="Date fin" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} /></div>
             <div className="ligne-champ"><Champ libelle="Compte *">{(p) => <input {...p} className="saisie code" inputMode="numeric" autoComplete="off" value={f.compte} onChange={(e) => setF({ ...f, compte: e.target.value })} />}</Champ>
               <Champ libelle="Intitulé">{(p) => <Lecture {...p} value={r?.intitule ?? ""} />}</Champ></div>
             <div className="ligne-champ" role="radiogroup">{radio("non", "Ecritures non lettrées")}{radio("lettrees", "Ecritures lettrées")}{radio("toutes", "Toutes les écritures")}</div>
-            <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={afficher}>Afficher</button>
+            <div className="actions-onglets"><button className="bouton secondaire" type="submit">Afficher</button>
               <button className="bouton secondaire" type="button" onClick={() => { setF(vide); setR(null); setCoches(new Set()); }}>Effacer</button></div>
-          </fieldset>
+          </fieldset></Recherche>
           <fieldset className="cadre-champs formulaire"><legend>Solde sélection</legend>
             <Champ libelle="Tot. débit">{(p) => <Lecture {...p} value={n(td)} />}</Champ><Champ libelle="Tot. crédit">{(p) => <Lecture {...p} value={n(tc)} />}</Champ>
             <Champ libelle="Solde débit.">{(p) => <Lecture {...p} value={td > tc ? n(td - tc) : ""} />}</Champ><Champ libelle="Solde crédit.">{(p) => <Lecture {...p} value={tc > td ? n(tc - td) : ""} />}</Champ>
@@ -236,8 +236,8 @@ function EtatTresorerie() {
       {l.map((x, i) => <tr key={i}><td className="code">{x.compte}</td><td>{x.designation}</td><td className="num chiffres">{montant(x.solde, x.devise as Devise)}</td></tr>)}</tbody>
     <tfoot>{Object.entries(tot).map(([dv, v]) => <tr key={dv}><td></td><td></td><td className="num chiffres"><strong>{montant(v, dv as Devise)}</strong></td></tr>)}</tfoot></table>;
   return <>
-    <div className="ligne-champ"><ChampDate libelle="Date : *" valeur={date || jour?.date || ""} onChange={setDate} requis />
-      <button className="bouton" type="button" onClick={afficher}>Afficher</button></div>
+    <Recherche className="ligne-champ" label="Critères" envoyer={afficher}><ChampDate libelle="Date : *" valeur={date || jour?.date || ""} onChange={setDate} requis />
+      <button className="bouton" type="submit">Afficher</button></Recherche>
     {r && <>{table(`Solde des caisses au ${fr(r.date)}`, r.caisses, r.totalCaisses)}{table(`Solde des banques au ${fr(r.date)}`, r.banques, r.totalBanques)}</>}
     <Dialogue boite={boite} fermer={() => setBoite(null)} />
   </>;
@@ -260,7 +260,7 @@ function RapportAnnulations() {
   }
   return <>
     <h2>Rapports des annulations</h2>
-    <div className="deux-colonnes">
+    <Recherche className="pile" label="Critères" envoyer={rechercher}><div className="deux-colonnes">
       <fieldset className="cadre-champs formulaire"><legend>Element de Recherche</legend>
         <Champ libelle="Guichet :">{(p) => <select {...p} className="saisie" value={f.guichet} onChange={(e) => setF({ ...f, guichet: e.target.value })}><option value=""></option>
           {ctx.c.guichets.map((g) => <option key={g.id} value={g.id}>{g.nom}</option>)}</select>}</Champ>
@@ -272,9 +272,9 @@ function RapportAnnulations() {
         <Champ libelle="Utilisateur :">{(p) => <select {...p} className="saisie" value={f.utilisateur} onChange={(e) => setF({ ...f, utilisateur: e.target.value })}><option value=""></option>
           {ctx.c.utilisateurs.map((u) => <option key={u.id} value={u.id}>{u.nom}</option>)}</select>}</Champ></fieldset>
     </div>
-    <div className="actions-onglets"><button className="bouton" type="button" onClick={rechercher}>Rechercher</button>
+    <div className="actions-onglets"><button className="bouton" type="submit">Rechercher</button>
       <button className="bouton secondaire" type="button" disabled={!r || r.length === 0} onClick={() => r && exporterExcel("annulations", ["N° Pièce ancien", "N° Pièce nouveau", "N° Client", "Nom Prénom", "Montant", "Date", "Type d'opération", "Utilisateur"],
-        r.map((x) => [x.ancienne, x.nouvelle, x.numeroClient, x.nom, x.montant / 100, fr(x.date), x.type, x.utilisateur]))}>Exporter</button></div>
+        r.map((x) => [x.ancienne, x.nouvelle, x.numeroClient, x.nom, x.montant / 100, fr(x.date), x.type, x.utilisateur]))}>Exporter</button></div></Recherche>
     <Paginee lignes={r ?? []}>{(visibles) => (<table className="grille">
       <thead><tr><th scope="col">N° Pièce ancien</th><th scope="col">N° Pièce nouveau</th><th scope="col">N° Client</th><th scope="col">Nom Prénom</th><th scope="col" className="num">Montant</th>
         <th scope="col">Date</th><th scope="col">Type d'opération</th><th scope="col">Utilisateur</th></tr></thead>
@@ -295,13 +295,13 @@ function EtatRevenus() {
   async function afficher() { try { setR(await api.controlesCompta.revenus({ du, au, resultat: f.resultat })); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }
   return <>
     <h2>État des revenus</h2>
-    <div className="deux-colonnes">
+    <Recherche className="pile" label="Critères" envoyer={afficher}><div className="deux-colonnes">
       <fieldset className="cadre-champs"><legend>Période</legend><div className="ligne-champ"><ChampDate libelle="Du :" valeur={du} onChange={(v) => setF({ ...f, du: v })} /><ChampDate libelle="Au :" valeur={au} onChange={(v) => setF({ ...f, au: v })} /></div></fieldset>
       <div className="ligne-champ" role="radiogroup">
         <label className="case"><input type="radio" name="rv" checked={f.resultat === "detaille"} onChange={() => setF({ ...f, resultat: "detaille" })} /><span>Détaillé</span></label>
         <label className="case"><input type="radio" name="rv" checked={f.resultat === "synthese"} onChange={() => setF({ ...f, resultat: "synthese" })} /><span>Synthèse</span></label></div>
     </div>
-    <div className="actions-onglets"><button className="bouton" type="button" onClick={afficher}>Afficher</button></div>
+    <div className="actions-onglets"><button className="bouton" type="submit">Afficher</button></div></Recherche>
     <Paginee lignes={r?.lignes ?? []}>{(visibles) => (<table className="grille">
       <thead><tr><th scope="col">Date Opération</th><th scope="col">AGENCE</th><th scope="col" className="num">DEPENSES</th><th scope="col" className="num">RECETTES</th><th scope="col" className="num">RESULTATS</th></tr></thead>
       <tbody>{(r?.lignes ?? []).length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}

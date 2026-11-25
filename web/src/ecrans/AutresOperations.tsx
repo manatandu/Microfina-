@@ -7,7 +7,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { decimal, lireMontant, montant, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
 import { PartiesVirement, PARTIES_VIDES, type Parties } from "../composants/PartiesVirement";
 
@@ -101,7 +101,7 @@ function VirementPrelevement({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
     } });
   }
   return <>
-    <div className="deux-colonnes">
+    <Formulaire className="pile" envoyer={enregistrer}><div className="deux-colonnes">
       <fieldset className="cadre-champs formulaire"><legend>Agence</legend>
         <ChampDate libelle="Date opération *" valeur={date || ctx.date} onChange={setDate} requis />
       </fieldset>
@@ -116,7 +116,7 @@ function VirementPrelevement({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
     </div>
     <fieldset className="cadre-champs pile"><legend>Comptabilite</legend><ChampsLignes g={g} ctx={ctx} devise={(k.c?.devise ?? "CDF") as Devise} /></fieldset>
     <PartiesVirement valeur={parties} maj={setParties} recu={bancaire && type === "virement"} sortant={bancaire && type === "prelevement"} />
-    <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button></div>
+    <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button><button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button></div></Formulaire>
     <Recherche ouverte={cherche} fermer={() => setCherche(false)} choisir={k.choisir} />
   </>;
 }
@@ -142,7 +142,7 @@ export function VirementEntreComptes() {
     } });
   }
   return <section className="bloc pile" aria-label="Virement entre comptes">
-    <div className="deux-colonnes">
+    <Formulaire className="pile" envoyer={enregistrer}><div className="deux-colonnes">
       <Identifiant titre="Identifiant Emetteur" agence={ctx.agence.nom} k={e} chercher={() => setCherche("e")} />
       <CadreCompte titre="Compte Emetteur" k={e} garde={(c) => c.famille === "EPARGNE" || c.famille === "TONTINE"} />
       <Identifiant titre="Identifiant Recepteur" agence={ctx.agence.nom} k={r} chercher={() => setCherche("r")} />
@@ -151,7 +151,7 @@ export function VirementEntreComptes() {
         <Champ libelle="Montant *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={saisie} onChange={(x) => setSaisie(x.target.value)} />}</Champ>
       </fieldset>
     </div>
-    <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button></div>
+    <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button><button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button></div></Formulaire>
     <Textes sources={["Manuel Microfina++, p. 134 : Virement compte à compte (Compte DAV vers un Autre Compte, Compte Tontine vers un Compte DAV ; Emetteur, Recepteur)",
       "Plan d'allègement, point 5.12 : un formulaire, rangé sous Épargne ; visé (Comptabilité > Visa) puis validé (Comptabilité > Validation)",
       "Instr. BCC 37, art. 2 et 3, annexe, point 2 : le virement de compte à compte dans le même établissement est gratuit"]} />
@@ -182,7 +182,7 @@ function OperationDiverse({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
   }
   const lignes = liste ?? [];
   return <>
-    <fieldset className="cadre-champs pile"><legend>Opérations diverses</legend>
+    <Formulaire className="pile" envoyer={enregistrer}><fieldset className="cadre-champs pile"><legend>Opérations diverses</legend>
       <label className="case"><input type="checkbox" checked={g.multi} onChange={(e) => g.setMulti(e.target.checked)} /><span>Opération multiligne</span></label>
       <div className="ligne-champ">
         <Champ libelle="Type opération">{(p) => <select {...p} className="saisie" value={f.sens} onChange={(e) => setF({ ...f, sens: e.target.value })}>
@@ -198,7 +198,7 @@ function OperationDiverse({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
         <p>Bailleur : <strong>{ligne?.bailleur ?? ""}</strong></p>
       </div>
     </fieldset>
-    <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button></div>
+    <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button><button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button></div></Formulaire>
     <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
       <thead><tr><th scope="col"><span className="sr-only">Sens</span></th><th scope="col">Date opération</th><th scope="col">Numéro de piece</th><th scope="col">Libellé de l'opération</th>
         <th scope="col" className="num">Montant</th><th scope="col">Date visa</th><th scope="col">Date validation</th></tr></thead>
@@ -230,7 +230,7 @@ function OperationsDeplacees({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
   const texte = (libelle: string, k: keyof typeof vide, classe = "saisie") => <Champ libelle={libelle}>{(p) => <input {...p} className={classe} autoComplete="off"
     inputMode={k === "montant" ? "decimal" : undefined} value={f[k]} onChange={(e) => maj({ [k]: e.target.value })} />}</Champ>;
   return <>
-    <fieldset className="cadre-champs pile"><legend>Opération</legend>
+    <Formulaire className="pile" envoyer={enregistrer}><fieldset className="cadre-champs pile"><legend>Opération</legend>
       <div className="ligne-champ">
         <Champ libelle="Agence">{(p) => <select {...p} className="saisie" value={f.agence} onChange={(e) => maj({ agence: e.target.value })}><option value=""></option>
           {ctx.agences.filter((a) => a.id !== ctx.agence.id).map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
@@ -242,7 +242,7 @@ function OperationsDeplacees({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
       <div className="ligne-champ">{texte("N° Client", "numeroClient", "saisie code")}{texte("Nom et Prénoms *", "nom")}</div>
       <div className="ligne-champ">{texte("N° Compte *", "numeroCompte", "saisie code")}{texte("Montant *", "montant", "saisie montant")}</div>
     </fieldset>
-    <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button></div>
+    <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button><button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button></div></Formulaire>
     <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
       <thead><tr><th scope="col"><span className="sr-only">Sens</span></th><th scope="col">Opération</th><th scope="col">N° Membre</th><th scope="col">N° Compte</th><th scope="col">Nom et Prénoms</th>
         <th scope="col" className="num">Montant</th><th scope="col">Numéro de piece</th><th scope="col">Visa</th></tr>

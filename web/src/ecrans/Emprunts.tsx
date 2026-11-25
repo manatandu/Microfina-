@@ -5,7 +5,7 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Lecture, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Lecture, Textes, type Boite, Formulaire } from "../composants";
 
 type Vue = Awaited<ReturnType<typeof api.emprunts.lire>>;
 const ONGLETS = ["Mise en place", "Remboursement"] as const;
@@ -65,7 +65,7 @@ export function Emprunts() {
       <div className="onglets" role="tablist" aria-label="Emprunts bancaires">
         {ONGLETS.map((o, i) => <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => changer(i)}>{o}</button>)}
       </div>
-      <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}>
+      <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}><Formulaire className="pile" envoyer={onglet === 0 ? enregistrer : rembourser}>
         {onglet === 0 && (
           <>
             <div className="formulaire">
@@ -95,7 +95,7 @@ export function Emprunts() {
             <p className="aide" id="duree-mois">Durée en mois. Intérêts au compte {Number(f.duree) > 12 ? "6020 (emprunt à plus d'un an)" : "6021 (emprunt à moins d'un an)"}, commissions au 60702.</p>
             <div className="actions-onglets">
               <button className="bouton secondaire" type="button" onClick={() => changer(0)}>Annuler</button>
-              <button className="bouton" type="button" disabled={!!fait} onClick={enregistrer}>Enregistrer</button>
+              <button className="bouton" type="submit" disabled={!!fait}>Enregistrer</button>
             </div>
           </>
         )}
@@ -103,7 +103,7 @@ export function Emprunts() {
           <>
             <div className="formulaire">
               <Champ libelle="N°Compte">{(p) => <input {...p} className="saisie code" inputMode="numeric" autoComplete="off" value={r.numero}
-                onChange={(e) => { majR({ numero: e.target.value }); setEmp(null); }} onBlur={chercher} onKeyDown={(e) => { if (e.key === "Enter") chercher(); }} />}</Champ>
+                onChange={(e) => { majR({ numero: e.target.value }); setEmp(null); }} onBlur={chercher} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); chercher(); } }} />}</Champ>
               <Champ libelle="Banque">{(p) => <Lecture {...p} value={emp ? `${emp.banque} · ${emp.reference}` : ""} />}</Champ>
               <Champ libelle="Capital Restant">{(p) => <input {...p} className="saisie montant" readOnly value={emp ? montant(emp.capitalRestant, emp.devise as Devise) : ""} />}</Champ>
               <ChampDate libelle="Date" valeur={r.date || lu.date} onChange={(v) => majR({ date: v })} />
@@ -116,7 +116,7 @@ export function Emprunts() {
               </div>
             </div>
             <div className="actions-onglets">
-              <button className="bouton" type="button" onClick={rembourser}>Enregistrer</button>
+              <button className="bouton" type="submit">Enregistrer</button>
               <button className="bouton secondaire" type="button" onClick={() => changer(1)}>Annuler</button>
             </div>
           </>
@@ -124,7 +124,7 @@ export function Emprunts() {
         <Textes sources={["Manuel Microfina++, p. 70 : captures « Mise en place d'emprunt » (Banque, Réf.Emprunt, Montant, Durée, Date Emprunt, Taux annuel, Total Intérêt, Total Commis., Total Frais, Date saisie, Commentaire, Compte Emprunt, N°Emprunt, N°Piece, Annuler, Enregistrer) et « Remboursement emprunt » (N°Compte, Banque, Capital Restant, Date, Amortissement, Intérêt, Commission, N°Pièce, Enregistrer, Annuler) ; aucun texte",
           "PCCI, compte 53 : emprunts contractés auprès des banques (533 Emprunts à terme) ; le compte 16 les exclut ; compte 602 : 6020 intérêts sur emprunts à plus d'un an, 6021 à moins d'un an ; 60702 commissions dues aux autres intermédiaires financiers",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur ; écritures et N° de pièce à la comptabilisation (S111, PCCI § 3.3 et 3.4)"]} />
-      </section>
+      </Formulaire></section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );

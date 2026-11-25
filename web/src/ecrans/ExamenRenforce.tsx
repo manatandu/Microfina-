@@ -7,7 +7,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { montant, montantEnLettres, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee, LigneFiltres } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee, LigneFiltres, Formulaire } from "../composants";
 import OperationsAtypiques from "./OperationsAtypiques";
 import GelAvoirs from "./GelAvoirs";
 import DeclarationsSystematiques from "./DeclarationsSystematiques";
@@ -290,7 +290,7 @@ function ProfilsRisque() {
       <Textes sources={["Instr. BCC 15, art. 28 : profil de risque de chaque client, au regard des informations de l'identification, évalué chaque semestre",
         "Instr. BCC 15, art. 27 et 51 : données d'identification revues et mises à jour pendant toute la relation", "Instr. BCC 15, art. 41 : vigilance renforcée pour la personne politiquement exposée"]} />
       <Fiche titre={choisi ? `Profil de risque : ${choisi.client}` : ""} ouverte={!!choisi} fermer={fermer}>
-        {choisi && <div className="pile">
+        {choisi && <Formulaire className="pile" envoyer={evaluer}>
           {choisi.evalueLe && <p>Niveau en cours : <strong>{choisi.niveauLibelle}</strong>, évalué le <span className="chiffres">{fr(choisi.evalueLe)}</span> par {choisi.evaluePar}. Motif : {choisi.motif}</p>}
           <fieldset className="pile cadre-champs">
             <legend>Évaluation</legend>
@@ -299,10 +299,10 @@ function ProfilsRisque() {
             <label className="case"><input type="checkbox" checked={f.donneesRevues} onChange={(e) => setF({ ...f, donneesRevues: e.target.checked })} /><span>Données d'identification revues</span></label>
           </fieldset>
           <div className="actions-onglets">
-            <button className="bouton" type="button" onClick={evaluer}>Enregistrer</button>
+            <button className="bouton" type="submit">Enregistrer</button>
             <button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button>
           </div>
-        </div>}
+        </Formulaire>}
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </section>

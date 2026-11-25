@@ -1,7 +1,7 @@
 // Cadre d'un module, sur le modèle de la « page du menu général » de Microfina++ (manuel, p. 13 et 14) :
 // barre de menus horizontale, menus d'accès rapide à gauche, zone de travail, bas de page
 // (serveur, base de données, journée ouverte, utilisateur), menus complémentaires langue, aide, déconnexion.
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { api, SUR_SERVEUR } from "../donnees/api";
 import { useDonnees } from "../lib/useDonnees";
@@ -23,6 +23,15 @@ export function Coquille() {
   const [menuOuvert, setMenuOuvert] = useState(false);
   const [aide, setAide] = useState(false);
   useEffect(() => { setMenuOuvert(false); setAide(false); }, [lieu.pathname]);
+  // Plan d'allègement, point 11.3 (guide accessibility) : chaque écran donne son titre à l'onglet du navigateur ; après une navigation, le focus va
+  // au titre de l'écran, sauf si l'écran a déjà placé le focus dans sa zone de travail
+  const premier = useRef(true);
+  useEffect(() => {
+    const e = ECRANS.find((x) => x.chemin === lieu.pathname);
+    document.title = e ? `${e.nom} | Exofina` : "Exofina";
+    if (premier.current) { premier.current = false; return; }
+    requestAnimationFrame(() => { if (!document.getElementById("contenu")?.contains(document.activeElement)) document.getElementById("titre-ecran")?.focus(); });
+  }, [lieu.pathname]);
   const { donnees } = useDonnees(async () => {
     const [u, ctx, j] = await Promise.all([api.session.courante(), api.referentiel.contexte(), api.journees.courante()]);
     if (u) definirMonnaies(ctx.devises, ctx.monnaies);   // devises et monnaies de S35 pour les guichets (registre S79-5)
@@ -48,6 +57,7 @@ export function Coquille() {
 
   return (
     <div className="cadre">
+      <a href="#contenu" className="lien-evitement" onClick={(e) => { e.preventDefault(); (document.getElementById("titre-ecran") ?? document.getElementById("contenu"))?.focus(); }}>Aller au contenu</a>
       <header className="barre-menus">
         <Link to="/" className="logo" title="Page des modules"><Marque sombre taille={26} />{nomApplication !== "Exofina" && <span className="logo-application">{nomApplication}</span>}</Link>
         <nav aria-label="Menus" className="menus">
@@ -55,14 +65,11 @@ export function Coquille() {
         </nav>
         <div className="complementaires">
           {/* Menu langue (manuel p. 14, article XX) : français et anglais ; le nom de chaque langue s'écrit dans cette langue */}
-          <details className="deroulant">
-            <summary title="Langue" translate="no">{langue() === "en" ? "EN" : "FR"}</summary>
-            <ul className="liste-deroulante" role="menu" translate="no">
-              {([["fr", "Français", "fr"], ["en", "English", "en"]] as const).map(([code, nom, lang]) => (
-                <li key={code}><button type="button" role="menuitemradio" lang={lang} aria-checked={langue() === code} className="choix-langue"
-                  onClick={() => { if (langue() !== code) choisirLangue(code); }}>{nom}</button></li>))}
-            </ul>
-          </details>
+          <Deroulant id="menu-langue" titre="Langue" bouton={<span translate="no">{langue() === "en" ? "EN" : "FR"}</span>}>
+            {([["fr", "Français", "fr"], ["en", "English", "en"]] as const).map(([code, nom, lang]) => (
+              <button key={code} type="button" lang={lang} translate="no" aria-current={langue() === code ? "true" : undefined} className="choix-langue"
+                onClick={() => { if (langue() !== code) choisirLangue(code); }}>{nom}</button>))}
+          </Deroulant>
           <button type="button" className="sortir" title="Aide en ligne" aria-label="Aide en ligne" aria-expanded={aide} onClick={() => setAide((v) => !v)}>?</button>
           <button type="button" className="sortir" title="Se déconnecter" aria-label="Se déconnecter"
             onClick={async () => { await api.session.fermer(); nav("/connexion"); }}>{ICONES.sortie}</button>
@@ -84,8 +91,8 @@ export function Coquille() {
             </details>
           ))}
         </aside>
-        <main className="page" id="contenu" key={lieu.pathname}>{aide && <AideEnLigne chemin={lieu.pathname} fermer={() => setAide(false)} />}
-          {vise && !refuse && <h1>{vise.nom}</h1>}{refuse ? <p className="attention">Droit manquant : {refuse.nom} (Administration &gt; Profil &gt; Assigner droit).</p> : <Suspense fallback={null}><Outlet /></Suspense>}</main><MessageSucces />
+        <main className="page" id="contenu" tabIndex={-1} key={lieu.pathname}>{aide && <AideEnLigne chemin={lieu.pathname} fermer={() => setAide(false)} />}
+          {vise && !refuse && <h1 id="titre-ecran" tabIndex={-1}>{vise.nom}</h1>}{refuse ? <p className="attention">Droit manquant : {refuse.nom} (Administration &gt; Profil &gt; Assigner droit).</p> : <Suspense fallback={null}><Outlet /></Suspense>}</main><MessageSucces />
       </div>
 
       <footer className="pied">
@@ -102,43 +109,54 @@ export function Coquille() {
 /** Un menu de la barre, avec ses sous-menus comme dans le manuel ; ouvert au clic ou au clavier */
 function MenuDeroulant({ menu, libelle }: { menu: Menu; libelle: string }) {
   const lieu = useLocation();
-  const ref = useRef<HTMLDetailsElement>(null);
+  const actif = menu.groupes.some((g) => g.ecrans.some((e) => lieu.pathname === e.chemin));
+  return (
+    <Deroulant id={`menu-${menu.id}`} actif={actif} fixe bouton={<>{ICONES[menu.id] ?? null}<span>{libelle}</span></>}>
+      {menu.groupes.map((g, i) => (
+        <div key={`${g.titre || "racine"}-${i}`} className="groupe-menu">
+          {g.titre && <p className="titre-groupe">{g.titre}</p>}
+          {g.ecrans.map((e) => (
+            <NavLink key={e.id} to={e.chemin} className={CONSTRUITS[e.id] ? "" : "a-construire"}>
+              {e.nom}{!CONSTRUITS[e.id] && <span className="muet"> · à construire</span>}
+            </NavLink>
+          ))}
+        </div>
+      ))}
+    </Deroulant>
+  );
+}
+
+/** Bouton qui montre ou cache sa liste (navigation, pas menu d'application : les liens restent dans l'ordre de tabulation) */
+function Deroulant({ id, bouton, titre, actif, fixe, children }: { id: string; bouton: ReactNode; titre?: string; actif?: boolean; fixe?: boolean; children: ReactNode }) {
+  const lieu = useLocation();
+  const ref = useRef<HTMLDivElement>(null);
   const [ouvert, setOuvert] = useState(false);
-  // La barre défile de côté sur un écran étroit : la liste est placée sous le menu, par rapport à la fenêtre, pour ne pas être coupée par la barre
+  // La barre défile de côté sur un écran étroit : la liste est placée sous le bouton, par rapport à la fenêtre, pour ne pas être coupée par la barre
   const [place, setPlace] = useState<{ top: number; left: number; maxHeight: number } | null>(null);
   const placer = () => {
-    const r = ref.current?.querySelector("summary")?.getBoundingClientRect();
+    const r = ref.current?.querySelector(":scope > button")?.getBoundingClientRect();
     if (!r) return;
     const marge = 8, largeur = Math.min(320, window.innerWidth - 2 * marge);
     setPlace({ top: r.bottom, left: Math.max(marge, Math.min(r.left, window.innerWidth - largeur - marge)), maxHeight: window.innerHeight - r.bottom - marge });
   };
-  const actif = menu.groupes.some((g) => g.ecrans.some((e) => lieu.pathname === e.chemin));
   useEffect(() => { setOuvert(false); }, [lieu.pathname]);
   useEffect(() => {
     if (!ouvert) return;
     placer();
     window.addEventListener("resize", placer);
+    const bouton = () => ref.current?.querySelector<HTMLButtonElement>(":scope > button");
     const fermer = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOuvert(false); };
-    const echap = (e: KeyboardEvent) => { if (e.key === "Escape") { setOuvert(false); ref.current?.querySelector("summary")?.focus(); } };
-    document.addEventListener("mousedown", fermer); document.addEventListener("keydown", echap);
-    return () => { document.removeEventListener("mousedown", fermer); document.removeEventListener("keydown", echap); window.removeEventListener("resize", placer); };
+    const echap = (e: KeyboardEvent) => { if (e.key === "Escape") { setOuvert(false); bouton()?.focus(); } };
+    const sortie = (e: FocusEvent) => { if (e.relatedTarget && !ref.current?.contains(e.relatedTarget as Node)) setOuvert(false); };
+    document.addEventListener("mousedown", fermer); document.addEventListener("keydown", echap); ref.current?.addEventListener("focusout", sortie);
+    const noeud = ref.current;
+    return () => { document.removeEventListener("mousedown", fermer); document.removeEventListener("keydown", echap); noeud?.removeEventListener("focusout", sortie); window.removeEventListener("resize", placer); };
   }, [ouvert]);
   return (
-    <details ref={ref} className="deroulant" open={ouvert} onToggle={(e) => setOuvert((e.target as HTMLDetailsElement).open)}>
-      <summary className={actif ? "actif" : ""}>{ICONES[menu.id] ?? null}<span>{libelle}</span></summary>
-      <div className="liste-deroulante" role="menu" style={place ? { position: "fixed", top: place.top, left: place.left, maxHeight: place.maxHeight } : undefined}>
-        {menu.groupes.map((g, i) => (
-          <div key={`${g.titre || "racine"}-${i}`} className="groupe-menu">
-            {g.titre && <p className="titre-groupe">{g.titre}</p>}
-            {g.ecrans.map((e) => (
-              <NavLink key={e.id} to={e.chemin} role="menuitem" className={CONSTRUITS[e.id] ? "" : "a-construire"}>
-                {e.nom}{!CONSTRUITS[e.id] && <span className="muet"> · à construire</span>}
-              </NavLink>
-            ))}
-          </div>
-        ))}
-      </div>
-    </details>
+    <div ref={ref} className={`deroulant${ouvert ? " ouvert" : ""}`}>
+      <button type="button" className={actif ? "actif" : ""} title={titre} aria-label={titre} aria-expanded={ouvert} aria-controls={id} onClick={() => setOuvert((v) => !v)}>{bouton}</button>
+      <div id={id} hidden={!ouvert} className="liste-deroulante" style={place && fixe ? { position: "fixed", top: place.top, left: place.left, maxHeight: place.maxHeight } : undefined}>{children}</div>
+    </div>
   );
 }
 

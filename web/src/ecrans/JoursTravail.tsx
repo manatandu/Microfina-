@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { api, type JourFerie } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
-import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Paginee, Formulaire } from "../composants";
 
 const PAGES = [["journees", "Journées de travail"], ["feries", "Jours fériés"]] as const;
 const JOURS = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
@@ -42,7 +42,7 @@ function Journees() {
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   } });
   return (
-    <section className="bloc pile" id="volet-journees" role="tabpanel" aria-labelledby="onglet-journees">
+    <section className="bloc pile" id="volet-journees" role="tabpanel" aria-labelledby="onglet-journees"><Formulaire className="pile" envoyer={enregistrer}>
       <fieldset className="cadre-champs pile champs-a-gauche">
         <legend>Journées de travail</legend>
         {!unique && <Champ libelle="Agence">{(p) => <select {...p} className="saisie" value={agence} onChange={(e) => { setAgence(e.target.value); setJours(null); }}>
@@ -54,11 +54,11 @@ function Journees() {
       </fieldset>
       <div className="actions-onglets">
         <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
-        <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
+        <button className="bouton" type="submit">Enregistrer</button>
       </div>
       <Textes sources={["Manuel Microfina++, p. 44 : « Dans le menu [Agence], cliquez sur [Journée de travail] et sélectionner le nom de l'agence pour associer les journées de travail correspondantes puis [Enregistrer] » ; capture : cadre Journées de travail, Agence, Dimanche à Samedi, Annuler, Enregistrer"]} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </section>
+    </Formulaire></section>
   );
 }
 
@@ -87,12 +87,12 @@ function Feries() {
   } });
   return (
     <section className="bloc pile" id="volet-feries" role="tabpanel" aria-labelledby="onglet-feries">
-      <div className="ligne-champ">
+      <Formulaire className="ligne-champ" envoyer={enregistrer}>
         {!unique && <Champ libelle="Institution">{(p) => <select {...p} className="saisie" value={institution} onChange={(e) => { setInstitution(e.target.value); setListe(null); }}>
           <option value=""></option>{donnees.institutions.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>}
         <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
-        <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
-      </div>
+        <button className="bouton" type="submit">Enregistrer</button>
+      </Formulaire>
       <fieldset className="cadre-champs pile">
         <legend>Jours fériés variables</legend>
         <div className="ligne-champ">

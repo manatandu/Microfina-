@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Formulaire } from "../composants";
 import { fr } from "../lib/dates";
 import { definirMonnaies } from "@design/montant.js";
 
@@ -37,11 +37,13 @@ function Volet({ id, champs, enregistrer, annuler, grille, sources, boite, ferme
   grille: ReactNode; sources: string[]; boite: Boite | null; fermer: () => void }) {
   return (
     <section className="bloc pile" id={`volet-${id}`} role="tabpanel" aria-labelledby={`onglet-${id}`}>
-      <div className="pile champs-a-gauche">{champs}</div>
-      <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
-        <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
-      </div>
+      <Formulaire className="pile" envoyer={enregistrer}>
+        <div className="pile champs-a-gauche">{champs}</div>
+        <div className="actions-onglets">
+          <button className="bouton" type="submit">Enregistrer</button>
+          <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
+        </div>
+      </Formulaire>
       {grille}
       <Textes sources={sources} />
       <Dialogue boite={boite} fermer={fermer} />

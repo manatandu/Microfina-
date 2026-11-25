@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "../donnees/api";
 import { message } from "../lib/useDonnees";
 import { exporterExcel } from "../lib/excel";
-import { ChampDate, Dialogue, Textes, type Boite, Paginee } from "../composants";
+import { ChampDate, Dialogue, Textes, type Boite, Paginee, Recherche } from "../composants";
 
 type Ligne = { utilisateur: string; operations: number; annulations: number; transactions: number };
 const nombre = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
@@ -27,11 +27,11 @@ export default function RapportTransactions() {
     <>
       
       <section className="bloc pile" aria-label="Rapport des transactions">
-        <div className="ligne-champ">
+        <Recherche className="ligne-champ" label="Critères" envoyer={afficher}>
           <ChampDate libelle="DU:" valeur={du} onChange={setDu} aide="" />
           <ChampDate libelle="AU:" valeur={au} onChange={setAu} aide="" />
-          <button className="bouton" type="button" onClick={afficher}>Afficher</button>
-        </div>
+          <button className="bouton" type="submit">Afficher</button>
+        </Recherche>
         <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col">Utilisateur</th><th scope="col" className="num">Nbres Opérations</th><th scope="col" className="num">Nbres Annulations</th><th scope="col" className="num">Nbres Transactions</th></tr></thead>
           <tbody>

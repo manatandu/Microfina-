@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { api, type FraisProduit, type ProduitCreditVue } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee, Formulaire } from "../composants";
 
 const ONGLETS = ["Caractéristiques", "Retenues au déblocage", "Remboursement et pénalités"];   // cinq onglets ramenés à trois parties (plan d'allègement, point 2.16)
 type Saisie = Record<string, string | boolean>;
@@ -167,12 +167,14 @@ export default function ProduitCredit() {
         {ONGLETS.map((t, i) => <button key={t} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{t}</button>)}
       </div>
       <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}>
+        <Formulaire className="pile" envoyer={enregistrer}>
         {pages[onglet]}
         <div className="actions-onglets">
           <button className="bouton secondaire" type="button" disabled={onglet === 0} onClick={() => setOnglet(onglet - 1)}>Précédent</button>
           {onglet < ONGLETS.length - 1 && <button className="bouton secondaire" type="button" onClick={() => setOnglet(onglet + 1)}>Suivant</button>}
-          <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton" type="submit">Enregistrer</button>
         </div>
+        </Formulaire>
         <Textes sources={["Manuel Microfina++, p. 37 et 38 : pages Information de base, Garanties financières, Assurance, Frais, Autres informations ; Information de base (Minimum, Maximum, Identification, Intérêt, Types de client, Divers) ; liste des produits crédits (Numero, Produit, Type de client, Taux interet, Taux différé)",
           "Instr. BCC n°38 du 03/01/2019 (TEG) : art. 5 (taux réglementés ou bonifiés), 6 (composantes et catégories), 9 (épargne obligatoire), 11 (méthode dégressive), 14 (remboursement anticipé : au plus 50 % des intérêts restant dus)",
           "Instr. BCC n°40 du 03/01/2019, art. 8 et 9 : frais de dossier, d'hypothèque, de mise en place, d'inscription des gages, de suivi du crédit ; frais d'assurance",

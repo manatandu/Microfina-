@@ -9,7 +9,7 @@ import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { exporterExcel } from "../lib/excel";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
 
 type Plainte = Awaited<ReturnType<typeof api.plaintes.lister>>[number];
@@ -82,7 +82,7 @@ export default function Plaintes() {
           "Art. 5 : suite dans 45 jours calendaires au plus ; à défaut, le client peut saisir la Banque Centrale du Congo", "Art. 15 : plainte fondée, réparation immédiate ; art. 17 : dossier gardé dix ans ; art. 19 : rapport trimestriel à la BCC"]} />
       </section>}
       <Fiche titre="Nouvelle plainte" ouverte={nouvelle} fermer={() => setNouvelle(false)}>
-        <div className="pile">
+        <Formulaire className="pile" envoyer={enregistrer}>
           <div className="grille-deux">
             <div className="pile">
               <ChampDate libelle="Reçue le : *" valeur={f.recueLe || jour} onChange={(v) => maj({ recueLe: v })} />
@@ -101,8 +101,8 @@ export default function Plaintes() {
             </div>
           </div>
           <Champ libelle="Objet de la plainte : *">{(p) => <textarea {...p} className="saisie" rows={3} value={f.objet} onChange={(e) => maj({ objet: e.target.value })} />}</Champ>
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={() => setNouvelle(false)}>Fermer</button></div>
-        </div>
+          <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button><button className="bouton secondaire" type="button" onClick={() => setNouvelle(false)}>Fermer</button></div>
+        </Formulaire>
       </Fiche>
       <Fiche titre={choisie ? `Plainte ${choisie.reference}` : ""} ouverte={!!choisie} fermer={() => setChoisie(null)}>
         {choisie && <div className="pile">

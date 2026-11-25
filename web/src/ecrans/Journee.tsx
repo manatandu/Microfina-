@@ -3,7 +3,7 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { montant, totalComptage } from "@design/montant.js";
-import { Bloquant, Champ, Chargement, ChampDate, Dialogue, Textes, type Boite } from "../composants";
+import { Bloquant, Champ, Chargement, ChampDate, Dialogue, Textes, type Boite, Formulaire } from "../composants";
 import { TableFiltree } from "./Groupes";
 import { mots } from "../lib/vocabulaire";
 
@@ -28,13 +28,13 @@ export function EcranJournee() {
   return (
     <>
       
-      <section className="bloc pile" aria-label="Ouverture de journée">
+      <Formulaire className="bloc pile" label="Ouverture de journée" envoyer={enregistrer}>
         <div className="grille-cadres quatre">
           <Champ libelle="Dernière journée ouverte">{(p) => <input {...p} className="saisie date" readOnly value={liste[0] ? fr(liste[0].date) : ""} />}</Champ>
           <ChampDate libelle="Date à ouvrir" valeur={date} onChange={setDate} aide="" />
         </div>
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton" type="submit">Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={() => setDate("")}>Annuler</button>
         </div>
         <TableFiltree sansFiltres lignes={liste} cle={(j) => j.id} colonnes={[
@@ -47,7 +47,7 @@ export function EcranJournee() {
         <Textes sources={["Manuel Microfina++, p. 21 : Ouverture de journée, Dernière journée ouverte, Date à ouvrir, Enregistrer, Annuler, liste Journée, Ouverte par, Heure ouverture, Date fermeture, Fermée par ; « Renseigner le champ de la date à ouvrir avant d'enregistrer »",
           "Manuel Microfina++, chapitre Comptabilité : « la comptabilisation ou clôture des journées »",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
-      </section>
+      </Formulaire>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );

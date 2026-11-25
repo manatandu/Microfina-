@@ -8,7 +8,7 @@ import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { decimal, lireMontant, montant, montantEnLettres } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee, Recherche, Formulaire } from "../composants";
 import JournauxComptables from "./JournauxComptables";
 
 type Ctx = Awaited<ReturnType<typeof api.facturesFournisseurs.contexte>>;
@@ -223,7 +223,7 @@ function Enregistrement({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
   const intitule = ctx.comptes.find((x) => x.numero === f.compte.trim())?.libelle ?? "";
   return <>
     <h2>Enregistrement de factures</h2>
-    <div className="deux-colonnes">
+    <Formulaire className="pile" envoyer={enregistrer}><div className="deux-colonnes">
       <fieldset className="cadre-champs formulaire"><legend>Facture</legend>
         <ChoixFournisseur ctx={ctx} valeur={f.fournisseur} choisir={(v) => maj({ fournisseur: v, commande: "", tranche: "" })} />
         <label className="case"><input type="checkbox" checked={f.directe} onChange={(e) => maj({ directe: e.target.checked, commande: "", tranche: "" })} /><span>Facture directe</span></label>
@@ -250,7 +250,7 @@ function Enregistrement({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
         <p>Montant à payer: <strong className="chiffres">{ap ? cdf(ap.aPayer) : ""}</strong></p>
       </fieldset>
     </div>
-    <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button></div>
+    <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button><button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button></div></Formulaire>
   </>;
 }
 
@@ -273,7 +273,7 @@ function Reglement({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
   }
   return <>
     <h2>Règlement de factures</h2>
-    <div className="deux-colonnes">
+    <Formulaire className="pile" envoyer={enregistrer}><div className="deux-colonnes">
       <fieldset className="cadre-champs formulaire"><legend>Facture</legend>
         <ChoixFournisseur ctx={ctx} valeur={f.fournisseur} choisir={(v) => maj({ fournisseur: v, facture: "", montant: "" })} />
         <Champ libelle="N° Facture: *">{(p) => <select {...p} className="saisie" value={f.facture} onChange={(e) => maj({ facture: e.target.value, montant: "" })}>
@@ -294,7 +294,7 @@ function Reglement({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
         <Champ libelle="Observations:">{(p) => <textarea {...p} className="saisie" rows={3} value={f.observations} onChange={(e) => maj({ observations: e.target.value })} />}</Champ>
       </fieldset>
     </div>
-    <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button></div>
+    <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button><button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button></div></Formulaire>
   </>;
 }
 
@@ -311,7 +311,7 @@ function Rapport({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
   const n = (v: number) => decimal.format(v / 100);
   return <>
     <h2>Facture</h2>
-    <div className="deux-colonnes">
+    <Recherche className="pile" label="Critères" envoyer={rechercher}><div className="deux-colonnes">
       <fieldset className="cadre-champs formulaire"><legend>Période</legend>
         <ChampDate libelle="Du :" valeur={f.du || ctx.date} onChange={(v) => maj({ du: v })} />
         <ChampDate libelle="Au :" valeur={f.au} onChange={(v) => maj({ au: v })} /></fieldset>
@@ -327,10 +327,10 @@ function Rapport({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
         <Champ libelle="Produit">{(p) => <select {...p} className="saisie" disabled><option></option></select>}</Champ>
       </fieldset>
     </div>
-    <div className="actions-onglets"><button className="bouton" type="button" onClick={rechercher}>Rechercher</button><button className="bouton secondaire" type="button" onClick={() => { setF(vide); setR(null); }}>Effacer</button>
+    <div className="actions-onglets"><button className="bouton" type="submit">Rechercher</button><button className="bouton secondaire" type="button" onClick={() => { setF(vide); setR(null); }}>Effacer</button>
       <button className="bouton secondaire" type="button" disabled={!r} onClick={() => r && (r.groupe
         ? exporterExcel("factures", ["Fournisseur", "Factures", "Montant (HT)", "TVA", "TTC", "Réglé", "Reste"], r.groupes.map((x) => [x.fournisseur, x.nombre, x.ht / 100, x.tva / 100, x.ttc / 100, x.regle / 100, x.reste / 100]))
-        : exporterExcel("factures", ["Date", "Fournisseur", "Référence", "Montant (HT)", "TVA", "TTC", "Réglé", "Reste"], r.lignes.map((x) => [fr(x.date), x.fournisseur, x.reference, x.ht / 100, x.tva / 100, x.ttc / 100, x.regle / 100, x.reste / 100])))}>Exporter</button></div>
+        : exporterExcel("factures", ["Date", "Fournisseur", "Référence", "Montant (HT)", "TVA", "TTC", "Réglé", "Reste"], r.lignes.map((x) => [fr(x.date), x.fournisseur, x.reference, x.ht / 100, x.tva / 100, x.ttc / 100, x.regle / 100, x.reste / 100])))}>Exporter</button></div></Recherche>
     {r && (r.groupe ? <Paginee lignes={r.groupes}>{(v) => (<table className="grille">
       <thead><tr><th scope="col">Fournisseur</th><th scope="col" className="num">Factures</th><th scope="col" className="num">Montant (HT)</th><th scope="col" className="num">TVA</th><th scope="col" className="num">TTC</th>
         <th scope="col" className="num">Réglé</th><th scope="col" className="num">Reste</th></tr></thead>
@@ -386,7 +386,7 @@ export function DeclarationTaxes() {
   return (
     <>
       <h2>État de déclaration des taxes</h2>
-      <section className="bloc pile" aria-label="État de déclaration des taxes">
+      <section className="bloc pile" aria-label="État de déclaration des taxes"><Recherche className="pile" label="Critères" envoyer={rechercher}>
         <div className="deux-colonnes">
           <fieldset className="cadre-champs formulaire"><legend>Période</legend>
             <Champ libelle="Exercice :">{(p) => <select {...p} className="saisie" value={exercice} onChange={(e) => setF({ ...f, exercice: e.target.value })}>{ctx.exercices.map((a) => <option key={a} value={a}>{a}</option>)}</select>}</Champ>
@@ -397,9 +397,9 @@ export function DeclarationTaxes() {
               {ctx.taxes.map((t) => <option key={t.id} value={t.id}>{`${t.code} ${t.taux}%`}</option>)}</select>}</Champ>
           </fieldset>
         </div>
-        <div className="actions-onglets"><button className="bouton" type="button" onClick={rechercher}>Rechercher</button>
+        <div className="actions-onglets"><button className="bouton" type="submit">Rechercher</button>
           <button className="bouton secondaire" type="button" disabled={!r || r.lignes.length === 0} onClick={() => r && exporterExcel("declaration-taxes", ["Date", "Fournisseur", "Référence", "Base", "Taux (%)", "Montant"],
-            r.lignes.map((x) => [fr(x.date), x.fournisseur, x.reference, x.base / 100, x.taux, x.montant / 100]))}>Exporter</button></div>
+            r.lignes.map((x) => [fr(x.date), x.fournisseur, x.reference, x.base / 100, x.taux, x.montant / 100]))}>Exporter</button></div></Recherche>
         <Paginee lignes={r?.lignes ?? []}>{(v) => (<table className="grille">
           <thead><tr><th scope="col">Date</th><th scope="col">Fournisseur</th><th scope="col">Référence</th><th scope="col" className="num">Base</th><th scope="col" className="num">Taux (%)</th><th scope="col" className="num">Montant</th></tr></thead>
           <tbody>{(r?.lignes ?? []).length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}

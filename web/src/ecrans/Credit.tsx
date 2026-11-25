@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { api, CATALOGUE_CREDIT, type ChampBudget, type LigneBudgetVue } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { exporterExcel } from "../lib/excel";
-import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee, Formulaire } from "../composants";
 
 const SOURCES: Record<string, string> = {
   objets: "Manuel Microfina++, p. 33 : Objet Credit*, Type Objet*, grille Objet Credit, Type Objet, Exporter",
@@ -115,7 +115,7 @@ export function Onglet({ page }: { page: string }) {
         </div>
       )}
       {!lecture && (
-        <div className="pile cadre-champs">
+        <Formulaire className="pile cadre-champs" envoyer={enregistrer}>
           {groupes.map((g, n) => g.cadre
             ? <fieldset key={n} className="cadre-champs"><legend>{g.cadre}</legend><div className="ligne-champ">{g.champs.map(champ)}</div></fieldset>
             : <div key={n} className="ligne-champ">{g.champs.map(champ)}</div>)}
@@ -127,13 +127,13 @@ export function Onglet({ page }: { page: string }) {
           )}
           <div className="actions-onglets">
             {fiche.outils
-              ? <><button className="bouton" type="button" disabled={choisi !== null} onClick={enregistrer}>Enregistrer</button>
+              ? <><button className="bouton" type="submit" disabled={choisi !== null}>Enregistrer</button>
                   <button className="bouton secondaire" type="button" onClick={effacer}>Annuler</button></>
-              : <><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
+              : <><button className="bouton" type="submit">Enregistrer</button>
                   <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
                   <button className="bouton secondaire" type="button" disabled={choisi === null} onClick={supprimer}>Supprimer</button></>}
           </div>
-        </div>
+        </Formulaire>
       )}
       {clients && (
         <table className="grille">

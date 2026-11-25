@@ -9,7 +9,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { DEVISES, lireMontant, montant, montantEnLettres, type Comptage, type Devise } from "@design/montant.js";
-import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
+import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Formulaire } from "../composants";
 import { billetageBon, OngletsGuichet, recapitulatif, Recu } from "./Guichet";
 
 type TypeOp = "ENCAISSEMENT" | "DECAISSEMENT";
@@ -57,7 +57,7 @@ export default function EdDivers() {
     <>
       
       <OngletsGuichet version={fait?.id} />
-      <section className="bloc pile" aria-label="Autres encaissements et décaissements">
+      <Formulaire className="bloc pile" label="Autres encaissements et décaissements" envoyer={enregistrer}>
         <div className="entete-ecran">
           {(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}
           <p>Date opération : <strong className="chiffres">{fr(j?.date ?? "")}</strong></p>
@@ -79,14 +79,14 @@ export default function EdDivers() {
           {saisies.map((d) => <Billetage key={d} devise={d} comptage={coupures[d] ?? {}} onChange={(c) => { setCoupures({ ...coupures, [d]: c }); nouveau(); }}
             cible={lu(d) ?? 0} sens={encaissement ? "recue" : "remise"} stock={encaissement ? undefined : stocks[d]} />)}</fieldset>}
         <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={!od || saisies.length === 0 || !!fait || !saisies.every((d) => billetageBon(coupures[d] ?? {}, lu(d)))} onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton" type="submit" disabled={!od || saisies.length === 0 || !!fait} aria-disabled={!saisies.every((d) => billetageBon(coupures[d] ?? {}, lu(d))) || undefined}>Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 89 et 90 : ED Divers, Type operation Encaissement ou Décaissement, le compte, le montant, Enregistrer ou Annuler (deux captures)",
           "Manuel Microfina++, p. 97 : le compte comptable de l'opération s'affiche automatiquement avec son libellé ; le libellé est modifiable",
           "Paramétrage > ED divers (S31, registre S31-1) : opérations PRODUIT proposées en encaissement, CHARGE en décaissement ; seules les ACTIF",
           "Registre T12 : un montant par devise tenue ; billetage de chaque devise (décision du porteur du 19/11/2026, registre S78-3)"]} />
-      </section>
+      </Formulaire>
       <Fiche titre="Reçu" ouverte={recu} fermer={() => setRecu(false)}>
         {fait && <Recu id={fait.id} onNouveau={() => { setRecu(false); annuler(); }} />}
       </Fiche>

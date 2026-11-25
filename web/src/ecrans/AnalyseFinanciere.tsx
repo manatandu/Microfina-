@@ -8,7 +8,7 @@ import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
-import { Champ, Chargement, Dialogue, Fiche, Paginee, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Paginee, Textes, type Boite, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
 
 type Type = "allegee" | "developpee";
@@ -95,7 +95,7 @@ function Analyse() {
     </dl>
   );
   return (
-    <section className="bloc pile" aria-label="Analyse financière">
+    <Formulaire className="bloc pile" label="Analyse financière" envoyer={() => (onglet < PARTIES.length - 1 ? suivant() : enregistrer())}>
       <div className="onglets" role="tablist" aria-label="Parties de l'analyse">
         {PARTIES.map(([k, l], i) => <button key={k} type="button" role="tab" aria-selected={i === onglet} disabled={i > onglet} onClick={() => setOnglet(i)}>{l}</button>)}
       </div>
@@ -139,8 +139,8 @@ function Analyse() {
       </>}
       {cle === "resultats" && <>{ratios}{avis}</>}
       <div className="actions-onglets">
-        {onglet < PARTIES.length - 1 ? <button className="bouton" type="button" onClick={suivant}>Suivant</button>
-          : <button className="bouton" type="button" disabled={!f.avis} onClick={enregistrer}>Enregistrer</button>}
+        {onglet < PARTIES.length - 1 ? <button className="bouton" type="submit">Suivant</button>
+          : <button className="bouton" type="submit" disabled={!f.avis}>Enregistrer</button>}
       </div>
       <Textes sources={["Manuel Microfina++, p. 112 : analyse financière allégée et développée ; plan d'allègement, point 6.11 : une analyse en quatre parties ; Suivant",
         "Registre CR-11, S85-1 à S85-7 : revenu net, capacité de remboursement (échéance mensuelle de la simulation S84 / revenu net), ratios du bilan quand il est rempli ; garanties proposées reprises dans les garanties du crédit (S94) ; indicative"]} />
@@ -148,7 +148,7 @@ function Analyse() {
         <RechercheClient source={async (q) => (q ? await api.tiers.rechercher(q) : [])} choisir={(x) => { setT(x); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </section>
+    </Formulaire>
   );
 }
 

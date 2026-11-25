@@ -246,6 +246,7 @@ LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
     (r"/epargne/rapports/.*", ["S72"]),
     (r"/caisse/journal.*", ["S83"]),
     (r"/credit/analyses.*", ["S85", "S86"]),
+    (r"/credit/dossiers/contexte", ["S86", "S87", "S88", "S89", "S93"]),   # le portefeuille (S93) filtre par agent de crédit
     (r"/credit/dossiers.*", ["S86", "S87", "S88", "S89"]),
     (r"/credit/mise-en-place/contexte", ["S89"]),
     (r"/credit/visas(/contexte)?", ["S90", "S91", "S92"]),

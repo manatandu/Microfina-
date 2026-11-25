@@ -7,7 +7,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { lireMontant, montant, montantEnLettres, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
 import { ChoixBanque } from "./OperationsBanque";
 
@@ -82,7 +82,7 @@ export function ChequesClients() {
       <div className="onglets" role="tablist" aria-label="Gestion Chèque Client">
         {ONGLETS.map((o, i) => <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => changerOnglet(i)}>{o}</button>)}
       </div>
-      <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}>
+      <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}><Formulaire className="pile" envoyer={enregistrer}>
         {onglet < 2 && (
           <div className="entete-ecran">
             <ChampDate libelle="Date Opération : *" valeur={date} onChange={(v) => maj({ date: v })} requis />
@@ -132,7 +132,7 @@ export function ChequesClients() {
               </div>
             </fieldset>
             <div className="actions-onglets">
-              <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
+              <button className="bouton" type="submit">Enregistrer</button>
               <button className="bouton secondaire" type="button" onClick={vider}>Annuler</button>
               <button className="bouton secondaire" type="button" disabled title="La pièce vient avec la comptabilisation (registre S59-4)">Imprimer</button>
             </div>
@@ -164,7 +164,7 @@ export function ChequesClients() {
           "Manuel Microfina++, p. 68 et 69 : Encaissement de Chèque (Date Opération, Date Encaissement, Infos Chèque, Encaisser, Retourner, Imprimer) ; Historique chèque : texte seul, la liste est complétée (registre S59-1)",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Instr. BCC 52 (incidents de paiement) : le chèque impayé relève du banquier tiré ; ici le retour est seulement noté"]} />
-      </section>
+      </Formulaire></section>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif") : [])}
           choisir={(x) => { setT(x); maj({ compte: "" }); setRecherche(false); }} fermer={() => setRecherche(false)} />

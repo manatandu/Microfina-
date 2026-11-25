@@ -7,7 +7,7 @@ import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
-import { Champ, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
+import { Champ, Dialogue, Fiche, Lecture, Textes, type Boite, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
 
 type Compte = Awaited<ReturnType<typeof api.operationsCompta.comptesDuClient>>[number];
@@ -90,7 +90,7 @@ function Mensuel({ mode }: { mode: "domiciliation" | "personnel" | "prelevement"
         {dom && <Champ libelle="Salaire total à verser *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" readOnly={fige} value={total} onChange={(e) => setTotal(e.target.value)} />}</Champ>}
         <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={!fige} onClick={() => setFige(false)}>Modifier</button></div>
       </fieldset>}
-      <fieldset className="cadre-champs formulaire"><legend>Ajout de nouveau compte</legend>
+      <Formulaire envoyer={ajouter}><fieldset className="cadre-champs formulaire"><legend>Ajout de nouveau compte</legend>
         <div className="ligne-champ"><Champ libelle="Client">{(p) => <input {...p} className="saisie code" readOnly value={cl.t?.numero ?? ""} />}</Champ>
           <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setCherche("client")}>Rechercher</button></div>
         <Champ libelle="Compte">{(p) => <select {...p} className="saisie code" value={cl.compte} onChange={(e) => cl.setCompte(e.target.value)}><option value=""></option>
@@ -103,9 +103,9 @@ function Mensuel({ mode }: { mode: "domiciliation" | "personnel" | "prelevement"
           <button className="bouton secondaire" type="button" disabled={!fichier} onClick={() => setFichier(null)}>Annuler</button>
           <span>{fichier?.name ?? ""}</span>
         </div>
-        <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={ajouter}>Ajouter</button>
+        <div className="actions-onglets"><button className="bouton secondaire" type="submit">Ajouter</button>
           <button className="bouton secondaire" type="button" onClick={() => { cl.choisir(null); setSalaire(""); }}>Effacer</button></div>
-      </fieldset>
+      </fieldset></Formulaire>
     </div>
     <fieldset className="cadre-champs pile"><legend>Liste des Client</legend>
       <div className="defile-x"><table className="grille">

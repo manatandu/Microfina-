@@ -8,7 +8,7 @@ import type { Operation, Tiers } from "../donnees/types";
 import { useDonnees } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { lireMontant, montant, montantEnLettres, type Comptage, type Devise } from "@design/montant.js";
-import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
+import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture, Formulaire } from "../composants";
 import { billetageBon, ChampClient, OngletsGuichet, recapitulatif, Recu } from "./Guichet";
 import { RechercheClient, useTiersDeLAdresse } from "./Visa";
 
@@ -68,7 +68,7 @@ export default function Adhesion() {
     <>
       
       <OngletsGuichet version={fait?.id} />
-      <section className="bloc pile" aria-label="Adhésion">
+      <Formulaire className="bloc pile" label="Adhésion" envoyer={enregistrer}>
         <div className="entete-ecran">
           {(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}
           <p>Date Opération : * <strong className="chiffres">{fr(j?.date ?? "")}</strong></p>
@@ -112,7 +112,7 @@ export default function Adhesion() {
           {enDevise && mDepot ? <Billetage devise={devDepot} comptage={coupuresDepot} onChange={(c) => { setCoupuresDepot(c); setCle(nouvelleCle()); }} cible={mDepot} sens="recue" /> : null}
         </fieldset>}
         <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={!t || !!fait || !bon} onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton" type="submit" disabled={!t || !!fait} aria-disabled={!bon || undefined}>Enregistrer</button>
           <button className="bouton secondaire" type="button" disabled={!fait} onClick={() => setRecu(true)}>Imprimer</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         </div>
@@ -121,7 +121,7 @@ export default function Adhesion() {
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Loi 002/2002, art. 21 et 22 : au moins une part, intégralement libérée ; PCCI, comptes 103 (parts) et 330 (épargne)",
           "Instr. BCC 37 : ouverture de compte gratuite ; Instr. BCC 15 bis : examen renforcé à 10 000 USD en espèces"]} />
-      </section>
+      </Formulaire>
       <Fiche titre="Reçu" ouverte={recu} fermer={() => setRecu(false)}>
         {fait && <Recu id={fait.id} onNouveau={() => { setRecu(false); effacer(); }} />}
       </Fiche>

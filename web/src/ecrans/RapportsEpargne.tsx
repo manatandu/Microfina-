@@ -11,7 +11,7 @@ import { imprimer } from "../lib/imprimer";
 import { exporterExcel } from "../lib/excel";
 import { CATEGORIES, CRITERES_TRI, INCONNU, multicritere, valeur, type ContexteRapport, type CriteresMulticritere, type Tri } from "../lib/rapports";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Paginee, Recherche } from "../composants";
 
 // Plan d'allègement, point 5.8 : quatre onglets ; le rapport des garanties, qui liste des crédits, est au Crédit ; les comptes dormants sont dans SE01 (point 5.7)
 const ONGLETS = [["virements", "Virements entre comptes"], ["multicritere", "Recherche multicritère"], ["indicateurs", "Indicateurs"], ["inactifs", "Comptes sans mouvement"]] as const;
@@ -116,6 +116,7 @@ function Multicritere({ erreur }: Proprietes) {
   return (
     <section className="bloc pile" aria-label="Recherche multicritères épargne">
       <h2>Recherche multicritères épargne</h2>
+      <Recherche className="pile" label="Critères" envoyer={rechercher}>
       <div className="grille-cadres">
         <fieldset className="pile cadre-champs"><legend>Recherche sur</legend>
           <label className="case"><input type="radio" name="m-sur" checked={c.sur === "comptes"} onChange={() => { maj({ sur: "comptes" }); setR(null); }} /><span>Comptes d'épargne</span></label>
@@ -167,9 +168,9 @@ function Multicritere({ erreur }: Proprietes) {
           <option value="">Tous les Client</option><option value="M">Homme</option><option value="F">Femme</option></select>}</Champ>
       </fieldset>
       <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={rechercher}>Rechercher</button>
+        <button className="bouton" type="submit">Rechercher</button>
         <button className="bouton secondaire" type="button" onClick={() => { setC(MULTI_VIDE()); setR(null); }}>Reinti champs</button>
-      </div>
+      </div></Recherche>
       {r && (r.dats ? <ResultatDat l={r.dats} /> : <ResultatMulticritere r={r} cx={cx} libelleTri={libelleTri} />)}
       <Textes sources={["Manuel Microfina++, p. 83 : 7.3 Recherche multicritère ; capture Recherche multicritères épargne (Rechercher, Période, Résultat, Ordre, Liste des, Éléments de la recherche)",
         "Registre S72-3 : les éléments de la recherche se lisent sur le titulaire comme au rapport client (S51) ; Montant de / à porte sur le solde à la fin de la période ; Groupé totalise par critère de « Ordonner suivant » ; Déposants : une ligne par client et par devise",
@@ -271,12 +272,12 @@ function Indicateurs({ erreur }: Proprietes) {
     <section className="bloc pile" aria-label="Indicateurs crédit épargne" id="indicateurs-credit-epargne">
       <h2>Indicateurs crédit épargne</h2>
       <fieldset className="cadre-champs"><legend>Grille des indicateurs</legend>
-        <div className="ligne-champ">
+        <Recherche className="ligne-champ" label="Critères" envoyer={executer}>
           <ChampDate libelle="Indicateurs au :" valeur={f.date} onChange={(v) => setF({ ...f, date: v })} />
           <label className="case"><input type="checkbox" checked={f.auxiliaires} onChange={(e) => setF({ ...f, auxiliaires: e.target.checked })} /><span>Ajouter clients auxiliaires</span></label>
-          <button className="bouton" type="button" onClick={executer}>Exécuter</button>
+          <button className="bouton" type="submit">Exécuter</button>
           <button className="bouton secondaire" type="button" disabled={!r} onClick={() => imprimer("#indicateurs-credit-epargne")}>Imprimer</button>
-        </div>
+        </Recherche>
       </fieldset>
       <div className="grille-deux">
         <fieldset className="cadre-champs"><legend>Comptes épargne par sexe</legend>
@@ -341,7 +342,7 @@ function Inactivite({ erreur }: Proprietes) {
   return (
     <section className="bloc pile" aria-label={titre}>
       <h2>{titre}</h2>
-      <fieldset className="cadre-champs"><legend>Parametres</legend>
+      <Recherche className="pile" label="Critères" envoyer={executer}><fieldset className="cadre-champs"><legend>Parametres</legend>
         <div className="ligne-champ">
           <Champ libelle="Nombres de jours">{(p) => <input {...p} className="saisie chiffres" inputMode="numeric" autoComplete="off" value={f.jours} onChange={(e) => setF({ ...f, jours: e.target.value })} />}</Champ>
           <label className="case"><input type="checkbox" checked={f.tous} onChange={(e) => setF({ ...f, tous: e.target.checked })} /><span>Afficher les comptes</span></label>
@@ -349,10 +350,10 @@ function Inactivite({ erreur }: Proprietes) {
         </div>
       </fieldset>
       <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={executer}>Exécuter</button>
+        <button className="bouton" type="submit">Exécuter</button>
         <button className="bouton secondaire" type="button" disabled={l.length === 0}
           onClick={() => exporterExcel(titre, COL, l.map((x) => [x.membre, x.compte, x.client, fr(x.dateCreation), fr(x.derniere), x.jours, m(x.solde, x.devise)]))}>Export</button>
-      </div>
+      </div></Recherche>
       <Paginee lignes={l}>{(v) => (<div className="defile-x"><table className="grille">
         <thead><tr>{COL.map((c, i) => <th key={c} scope="col" className={i > 4 ? "num" : undefined}>{c}</th>)}</tr></thead>
         <tbody>

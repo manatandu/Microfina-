@@ -9,7 +9,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr, texteEdition } from "../lib/dates";
 import { balanceXml, grandLivreXml, telecharger, type CompteGrandLivre } from "../lib/liasse";
 import { montant } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Recherche } from "../composants";
 
 const m = (v: number) => (v ? montant(v, "CDF") : "");
 type Ctx = Awaited<ReturnType<typeof api.etatsCompta.contexte>>;
@@ -66,6 +66,7 @@ function EditionGrandLivre({ analytique, ctx, jour }: { analytique: boolean; ctx
   return (
     <section className="bloc pile" aria-label={titre}>
       <h2>{titre}</h2>
+      <Recherche className="pile" label="Critères" envoyer={rechercher}>
       <fieldset className="cadre-champs formulaire"><legend className="sr-only">Critères</legend>
         <Champ libelle="Type de grand livre">{(p) => <select {...p} className="saisie" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>
           {ctx.typesGrandLivre.map((t) => <option key={t.code} value={t.code}>{t.libelle}</option>)}</select>}</Champ>
@@ -75,10 +76,10 @@ function EditionGrandLivre({ analytique, ctx, jour }: { analytique: boolean; ctx
         <label className="case"><input type="checkbox" checked={f.vidage} onChange={(e) => setF({ ...f, vidage: e.target.checked })} /><span>Grand livre avec vidage</span></label>
       </fieldset>
       <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={rechercher}>Rechercher</button>
+        <button className="bouton" type="submit">Rechercher</button>
         <button className="bouton secondaire" type="button" onClick={() => { setF(vide); setR(null); }}>Annuler</button>
         <button className="bouton secondaire" type="button" disabled={!r || r.comptes.length === 0} onClick={exporter}>Exporter</button>
-      </div>
+      </div></Recherche>
       {r && <div className="defile-x"><table className="grille">
         <caption>Grand livre{analytique ? " analytique" : ""} du {fr(r.du)} au {fr(r.au)}, exercice {r.exercice}, en CDF{texteEdition(r.edition)}</caption>
         <thead><tr><th scope="col">Date</th><th scope="col">Journal</th><th scope="col">N°Pièce</th><th scope="col">Libellé</th><th scope="col" className="num">Débit</th><th scope="col" className="num">Crédit</th><th scope="col" className="num">Solde</th></tr></thead>
@@ -140,7 +141,7 @@ function EditionBalance({ analytique, ctx, jour }: { analytique: boolean; ctx: C
   const [glCompte, setGlCompte] = useState<{ compte: string; intitule: string; r: GL } | null>(null);
   const ouvrirGl = async (compte: string, intitule: string) => { try { setGlCompte({ compte, intitule, r: await api.etatsCompta.grandLivre(criteresGl(compte)) }); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } };
   return (
-    <section className="bloc pile" aria-label={titre}>
+    <section className="bloc pile" aria-label={titre}><Recherche className="pile" label="Critères" envoyer={rechercher}>
       <h2>{titre}</h2>
       <fieldset className="cadre-champs formulaire"><legend className="sr-only">Critères</legend>
         {analytique && <Champ libelle="Plan :">{(p) => <select {...p} className="saisie" disabled><option>PCCI</option></select>}</Champ>}
@@ -158,10 +159,10 @@ function EditionBalance({ analytique, ctx, jour }: { analytique: boolean; ctx: C
         <label className="case"><input type="checkbox" checked={f.sansVidage} onChange={(e) => setF({ ...f, sansVidage: e.target.checked })} /><span>Balance sans VIDAGE</span></label>
       </fieldset>
       <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={rechercher}>Rechercher</button>
+        <button className="bouton" type="submit">Rechercher</button>
         <button className="bouton secondaire" type="button" onClick={() => { setF(vide); setR(null); }}>Effacer les critères</button>
         <button className="bouton secondaire" type="button" disabled={!r || r.lignes.length === 0} onClick={exporter}>Exporter</button>
-      </div>
+      </div></Recherche>
       {r && <div className="defile-x"><table className="grille">
         <caption>Balance{analytique ? " analytique" : ""} du {fr(r.du)} au {fr(r.au)}, exercice {r.exercice}, en CDF{texteEdition(r.edition)}</caption>
         <thead>

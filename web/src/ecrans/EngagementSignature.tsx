@@ -9,7 +9,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { lireMontant, montant, montantEnLettres, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, LigneFiltres, Paginee, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, LigneFiltres, Paginee, Textes, type Boite, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
 
 type Benef = Awaited<ReturnType<typeof api.engagements.beneficiaire>>;
@@ -62,7 +62,7 @@ export default function EngagementSignature() {
   return (
     <>
       <h2>Création engagement par signature</h2>
-      <section className="bloc pile" aria-label="Création engagement par signature">
+      <Formulaire className="bloc pile" label="Création engagement par signature" envoyer={enregistrer}>
         <fieldset className="cadre-champs formulaire"><legend>Bénéficiaire</legend>
           <div className="ligne-champ"><Champ libelle="N° Client">{(p) => <input {...p} className="saisie code" readOnly value={b?.numero ?? ""} />}</Champ>
             <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button></div>
@@ -102,7 +102,7 @@ export default function EngagementSignature() {
           <Champ libelle="Observation">{(p) => <textarea {...p} className="saisie" rows={2} value={f.observation} onChange={(e) => maj({ observation: e.target.value })} />}</Champ>
         </fieldset>
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button>
+          <button className="bouton" type="submit">Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={() => { setB(null); setF(VIDE); setChoisi(null); }}>Annuler</button>
           <button className="bouton secondaire" type="button" disabled={!choisi} onClick={() => setDoc(true)}>Imprimer</button>
           <button className="bouton secondaire" type="button" disabled={!choisi || !!choisi.clotureLe} onClick={() => setFin({ motif: "", montant: "" })}>Fin de l'engagement</button>
@@ -122,7 +122,7 @@ export default function EngagementSignature() {
           "Registre S100-1 à S100-7 : fin de l'engagement à l'échéance, à la mainlevée ou par mise en jeu de la garantie (le hors bilan est soldé, la garantie libérée ou utilisée) ; hors bilan 0001 (financement) ou 0012 (aval, caution) contre 090 ; frais = montant × pourcentage + forfait, prélevés sur le compte épargne au profit du compte 727 ; garantie saisie, bloquée sur le compte garanti ; liste rouge et gel des avoirs",
           "Instr. BCC 002, art. 23, 25 à 29 ; loi 002/2002, art. 59 et 60 : l'engagement par signature compte dans les risques et les plafonds par client avec les crédits (CR-14, CR-22)",
           "PCCI : comptes d'engagements donnés 00 (0001, 0012) et compte général 090 ; 727 Autres commissions"]} />
-      </section>
+      </Formulaire>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (x) => (x ? await api.tiers.rechercher(x) : [])} choisir={(x) => { void choisir(x); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>

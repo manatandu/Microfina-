@@ -9,7 +9,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { lireMontant, montant, montantEnLettres, type Comptage, type Devise } from "@design/montant.js";
-import { Attention, Billetage, Champ, Chargement, Dialogue, Lecture, Textes, type Boite } from "../composants";
+import { Attention, Billetage, Champ, Chargement, Dialogue, Lecture, Textes, type Boite, Formulaire } from "../composants";
 import { Link } from "react-router-dom";
 import { vers } from "./registre";
 import { billetageBon } from "./Guichet";
@@ -145,7 +145,7 @@ function CaisseVersBanque({ ctx, s, relire }: Proprietes & { s: Caisse }) {
     } });
   }
   return (
-    <section className="bloc pile" aria-label="Caisse vers Banque">
+    <Formulaire className="bloc pile" label="Caisse vers Banque" envoyer={enregistrer}>
       <h2>Caisse vers Banque</h2>
       <Entete fait={fait} date={ctx.date} />
       <fieldset className="cadre-champs formulaire">
@@ -168,13 +168,13 @@ function CaisseVersBanque({ ctx, s, relire }: Proprietes & { s: Caisse }) {
       {cb && m && !fait ? <fieldset className="pile cadre-champs"><legend>Billetage</legend>
         <BilletageSortie sessionId={s.sessionId} devise={dv} comptage={coupures} cible={m} onChange={(c) => { setCoupures(c); nouveau(); }} /></fieldset> : null}
       <div className="actions-onglets">
-        <button className="bouton" type="button" disabled={!cb || !m || !f.cheque.trim() || !!fait || !billetageBon(coupures, m)} onClick={enregistrer}>Enregistrer</button>
+        <button className="bouton" type="submit" disabled={!cb || !m || !f.cheque.trim() || !!fait || !billetageBon(coupures, m)}>Enregistrer</button>
         <button className="bouton secondaire" type="button" onClick={() => { setF(VIDE); setCoupures({}); nouveau(); }}>Annuler</button>
       </div>
       <Textes sources={["Manuel Microfina++, p. 92 et 93 (doublons p. 106 et 107) : choisir la caisse d'alimentation, saisir le montant, la banque et son compte, saisir le numéro de chèque, Enregistrer ou Annuler ; capture Caisse vers Banque",
         "PCCI, compte 59 : 591 « Virement caisse à banque », compte d'attente soldé dans la même écriture (registre S81-3)",
         "Montant dans la devise du compte bancaire (registre S81-5) ; billetage (décision du porteur du 19/11/2026, registre S81-4)"]} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </section>
+    </Formulaire>
   );
 }

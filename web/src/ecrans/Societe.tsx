@@ -4,7 +4,7 @@ import { api, type InfoSociete } from "../donnees/api";
 import { BlocAdresse, composerAdresse } from "../composants/Adresse";
 import type { Adresse } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Paginee, Formulaire } from "../composants";
 import { fr } from "../lib/dates";
 import { decimal, lireMontant, montant } from "@design/montant.js";
 
@@ -50,7 +50,7 @@ function InformationSociete() {
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   } });
   return (
-    <section className="bloc pile" id="volet-societe" role="tabpanel" aria-labelledby="onglet-societe">
+    <section className="bloc pile" id="volet-societe" role="tabpanel" aria-labelledby="onglet-societe"><Formulaire className="pile" envoyer={enregistrer}>
       <fieldset className="cadre-champs">
         <legend>Info générale</legend>
         <div className="grille-deux">
@@ -101,13 +101,13 @@ function InformationSociete() {
           <Champ libelle="Essais de connexion refusés avant blocage :">{(p) => <input {...p} className="saisie code" readOnly value={`${donnees.securite.essais} en ${donnees.securite.fenetreMinutes} minutes`} />}</Champ>
         </div>
       </fieldset>
-      <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>Enregistrer</button></div>
+      <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button></div>
       <Textes sources={["Manuel Microfina++, p. 42 : « Information société, Agence et zone, puis renseigner successivement sans omettre les champs obligatoires avec la possibilité d'intégrer le logo de l'institution » ; capture : Code Institution*, Dénomination*, Type base*, Description, Directeur, N° Agrément, Journée Maxi ouvert*, Compte Hors Bilan 1, I.F.U (NIF en RDC, demande du porteur du 13/11/2026), Pays, Ville, Quartier*, Rue / Maison (Commune entre Ville et Quartier : demande du porteur du 13/11/2026, découpage de S20), email, BP, Telephone fixe, Adresse, Hors Bilan 2, Logo (Choisir, APERCU LOGO), Liste institution",
         "Loi 002/2002 (COOPEC, structures faîtières) ; loi 11/020, art. 11 (sociétés de microfinance, entreprises de micro-crédit) : Type base",
         "PCCI § 9 : classe 0, comptes de hors bilan",
         "Loi 002/2002, art. 22, 6° : le Conseil d'Administration admet les membres ; sa décision de déléguer l'admission au visa se note ici (écart E05)"]} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </section>
+    </Formulaire></section>
   );
 }
 
@@ -181,11 +181,11 @@ export function FondsPropres() {
       <fieldset className="cadre-champs pile">
         <legend>Fonds propres prudentiels</legend>
         <p>Dernier arrêté : <strong className="chiffres">{fp ? `${montant(fp.montant, "CDF")} au ${fr(fp.dateArrete)}` : "non saisi"}</strong></p>
-        <div className="ligne-champ">
+        <Formulaire className="ligne-champ" envoyer={enregistrer}>
           <ChampDate libelle="Date de l'arrêté *" valeur={f.date} onChange={(v) => setF({ ...f, date: v })} />
           <Champ libelle="Montant (CDF) *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.montant} onChange={(e) => setF({ ...f, montant: e.target.value })} />}</Champ>
-          <button className="bouton secondaire" type="button" disabled={!f.date || !f.montant.trim()} onClick={enregistrer}>Enregistrer</button>
-        </div>
+          <button className="bouton secondaire" type="submit" disabled={!f.date || !f.montant.trim()}>Enregistrer</button>
+        </Formulaire>
       </fieldset>
       <Textes sources={["Registre CR-2 (décision du porteur, 19/11/2026) : montant du dernier arrêté mensuel ; Instr. BCC 002, art. 7 à 11 (composition), 25 à 29 (plafonds du crédit)"]} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />

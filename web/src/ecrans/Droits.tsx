@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Formulaire } from "../composants";
 import { APPLICATIONS, menus, type IdApplication } from "./registre";
 
 const PAGES = [["assigner", "Assigner droit", "Octroyer des droits à un profils"], ["modifier", "Modifier droit d'un profil", "Modification des droits octroyés à un profil"]] as const;
@@ -48,7 +48,7 @@ function Volet({ modifier }: { modifier: boolean }) {
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   } });
   return (
-    <section className="bloc pile" id={`volet-${modifier ? "modifier" : "assigner"}`} role="tabpanel" aria-labelledby={`onglet-${modifier ? "modifier" : "assigner"}`}>
+    <section className="bloc pile" id={`volet-${modifier ? "modifier" : "assigner"}`} role="tabpanel" aria-labelledby={`onglet-${modifier ? "modifier" : "assigner"}`}><Formulaire className="pile" envoyer={enregistrer}>
       {modifier
         ? <div className="ligne-champ">
             <Champ libelle="Profil sélectionné">{(p) => <input {...p} className="saisie" readOnly placeholder="Sélectionner un Profil" value={nomProfil} />}</Champ>
@@ -69,7 +69,7 @@ function Volet({ modifier }: { modifier: boolean }) {
         </div>
         <Arbre titre="LISTE DES DROITS OCTROYES" garder={(id) => accordes.includes(id)} groupes={groupes} coches={cochesD} cocher={setCochesD} />
       </div>
-      <div className="actions-onglets"><button className="bouton" type="button" disabled={!profil} onClick={enregistrer}>Enregistrer</button></div>
+      <div className="actions-onglets"><button className="bouton" type="submit" disabled={!profil}>Enregistrer</button></div>
       <Textes sources={["Manuel Microfina++, p. 15 : « Après avoir sélectionné le libellé du profil, cocher les cases correspondantes aux différentes tâches à attribuer au profil » ; p. 16 : « La modification du droit par rapport au profil peut se faire en cochant ou en décochant les cases des différentes tâches » ; captures : Libellé du Profil*, applications, LISTE DES DROITS RESTANTS, flèches, LISTE DES DROITS OCTROYES, Enregistrer ; Profil sélectionné, Liste profils",
         "Instr. BCC 008, art. 66 : séparation des tâches incompatibles (manipulation des valeurs, enregistrement, autorisation, vérification, inspection)"]} />
       <Fiche titre="Liste profils" ouverte={liste} fermer={() => setListe(false)}>
@@ -82,7 +82,7 @@ function Volet({ modifier }: { modifier: boolean }) {
         <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setListe(false)}>Fermer</button></div>
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </section>
+    </Formulaire></section>
   );
 }
 

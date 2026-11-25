@@ -9,7 +9,7 @@ import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { debutExercice, fr, jourOuvert } from "../lib/dates";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Paginee, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Paginee, Textes, type Boite, Formulaire, Recherche } from "../composants";
 import { RechercheClient } from "./Visa";
 
 type Ensemble = Awaited<ReturnType<typeof api.garanties.ensemble>>;
@@ -125,8 +125,8 @@ function useEnregistrer(fini: (piece?: string) => void) {
   return { confirmer, dialogue: <Dialogue boite={boite} fermer={() => setBoite(null)} /> };
 }
 
-function Pied({ enregistrer, fermer, libelle = "Enregistrer" }: { enregistrer: () => void; fermer: () => void; libelle?: string }) {
-  return <div className="actions-onglets"><button className="bouton" type="button" onClick={enregistrer}>{libelle}</button>
+function Pied({ fermer, libelle = "Enregistrer" }: { fermer: () => void; libelle?: string }) {
+  return <div className="actions-onglets"><button className="bouton" type="submit">{libelle}</button>
     <button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button></div>;
 }
 
@@ -139,8 +139,10 @@ function AjoutCaution({ e, fini, fermer }: { e: Ensemble; fini: (piece?: string)
   const { donnees } = useDonnees(async () => ({ j: await api.journees.courante(), comptes: caution ? await api.tiers.comptes(caution.id) : [] }), [caution?.id]);
   if (!donnees) return <Chargement />;
   const k = donnees.comptes.find((x) => String(x.id) === f.compte);
+  const envoyer = () => confirmer(() => api.garanties.ajouter(e.credit.id, { type: "caution", cautionId: caution?.id ?? null, compteId: f.compte ? Number(f.compte) : null,
+    montant: somme(f.montant), dateOperation: f.date || undefined }));
   return (
-    <div className="pile">
+    <div className="pile"><Formulaire className="pile" envoyer={envoyer}>
       <ChampDate libelle="Date opération : *" valeur={f.date || donnees.j?.date || ""} onChange={(v) => setF({ ...f, date: v })} />
       <div className="ligne-champ"><Champ libelle="N° Client de la caution:">{(p) => <input {...p} className="saisie code" readOnly value={caution?.numero ?? ""} />}</Champ>
         <button className="bouton secondaire" type="button" aria-label="Rechercher la caution" onClick={() => setRecherche(true)}>Rechercher</button></div>
@@ -149,8 +151,8 @@ function AjoutCaution({ e, fini, fermer }: { e: Ensemble; fini: (piece?: string)
         {donnees.comptes.filter((x) => x.devise === e.credit.devise).map((x) => <option key={x.id} value={x.id}>{x.numero}</option>)}</select>}</Champ>
       <Champ libelle="Solde:">{(p) => <Lecture {...p} value={k ? (k.masque ? "" : montant(k.disponible, k.devise as Devise)) : ""} />}</Champ>
       <Champ libelle="Montant caution *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.montant} onChange={(x) => setF({ ...f, montant: x.target.value })} />}</Champ>
-      <Pied fermer={fermer} enregistrer={() => confirmer(() => api.garanties.ajouter(e.credit.id, { type: "caution", cautionId: caution?.id ?? null, compteId: f.compte ? Number(f.compte) : null,
-        montant: somme(f.montant), dateOperation: f.date || undefined }))} />
+      <Pied fermer={fermer} />
+      </Formulaire>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={source} choisir={(x) => { setCaution(x); setF({ ...f, compte: "" }); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>
@@ -181,15 +183,15 @@ function AjoutNantissement({ e, fini, fermer }: { e: Ensemble; fini: (piece?: st
         <label className="case"><input type="radio" name="nature-nantissement" checked={nature === "depot"} onChange={() => setNature("depot")} /><span>Dépôt complémentaire</span></label>
         <label className="case"><input type="radio" name="nature-nantissement" checked={nature === "materiel"} onChange={() => setNature("materiel")} /><span>Matériel professionnel</span></label>
       </div></fieldset>
-      {nature === "depot" ? <>
+      {nature === "depot" ? <Formulaire className="pile" envoyer={() => confirmer(() => api.garanties.ajouter(e.credit.id, { type: "depot_garantie", compteId: d.compte ? Number(d.compte) : null,
+          montant: somme(d.montant), dateOperation: d.date || undefined }))}>
         <ChampDate libelle="Date opération : *" valeur={d.date || donnees.j?.date || ""} onChange={(v) => setD({ ...d, date: v })} />
         <Champ libelle="Compte: *">{(p) => <select {...p} className="saisie code" value={d.compte} onChange={(x) => setD({ ...d, compte: x.target.value })}><option value=""></option>
           {donnees.comptes.filter((x) => x.devise === e.credit.devise).map((x) => <option key={x.id} value={x.id}>{x.numero}</option>)}</select>}</Champ>
         <Champ libelle="Solde:">{(p) => <Lecture {...p} value={k ? (k.masque ? "" : montant(k.disponible, k.devise as Devise)) : ""} />}</Champ>
         <Champ libelle="Montant dépôt de garantie *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={d.montant} onChange={(x) => setD({ ...d, montant: x.target.value })} />}</Champ>
-        <Pied fermer={fermer} enregistrer={() => confirmer(() => api.garanties.ajouter(e.credit.id, { type: "depot_garantie", compteId: d.compte ? Number(d.compte) : null,
-          montant: somme(d.montant), dateOperation: d.date || undefined }))} />
-      </> : <>
+        <Pied fermer={fermer} />
+      </Formulaire> : <Formulaire className="pile" envoyer={() => confirmer(() => api.garanties.ajouterMateriel(e.credit.id, { ...f, montant: somme(f.montant) }))}>
         <dl className="infos">
           <div className="info-ligne"><dt>Constituant:</dt><dd>{donnees.m?.constituant.nom ?? ""}</dd></div>
           <div className="info-ligne"><dt>Domicile:</dt><dd>{donnees.m?.constituant.domicile ?? ""}</dd></div>
@@ -208,8 +210,8 @@ function AjoutNantissement({ e, fini, fermer }: { e: Ensemble; fini: (piece?: st
         {texte("Registre d'inscription: *", "registre")}
         {texte("N° d'inscription: *", "inscriptionNumero")}
         <ChampDate libelle="Date d'inscription: *" valeur={f.inscriptionLe} onChange={(v) => maj({ inscriptionLe: v })} />
-        <Pied fermer={fermer} enregistrer={() => confirmer(() => api.garanties.ajouterMateriel(e.credit.id, { ...f, montant: somme(f.montant) }))} />
-      </>}
+        <Pied fermer={fermer} />
+      </Formulaire>}
       {dialogue}
     </div>
   );
@@ -226,7 +228,7 @@ function Liberation({ x, dv, fini, fermer }: { x: Ligne; dv: Devise; fini: (piec
       <p>{x.garant} · {x.compte} · reste {montant(x.reste, dv)}</p>
       <ChampDate libelle="Date opération : *" valeur={date} onChange={(v) => setF({ ...f, date: v })} />
       {x.nature === "materiel" ? <>
-        <Pied fermer={fermer} enregistrer={() => confirmer(() => api.garanties.libererMateriel(x.id!, { dateOperation: f.date || undefined }))} libelle="Libérer" />
+        <Formulaire envoyer={() => confirmer(() => api.garanties.libererMateriel(x.id!, { dateOperation: f.date || undefined }))}><Pied fermer={fermer} libelle="Libérer" /></Formulaire>
         <fieldset className="pile cadre-champs"><legend>Renouveler l'inscription</legend>
           <Champ libelle="N° d'inscription (renouvellement): *">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.inscriptionNumero} onChange={(v) => setF({ ...f, inscriptionNumero: v.target.value })} />}</Champ>
           <ChampDate libelle="Date du renouvellement: *" valeur={f.inscriptionLe} onChange={(v) => setF({ ...f, inscriptionLe: v })} />
@@ -234,8 +236,10 @@ function Liberation({ x, dv, fini, fermer }: { x: Ligne; dv: Devise; fini: (piec
             { inscriptionNumero: f.inscriptionNumero, inscriptionLe: f.inscriptionLe }))}>Renouveler l'inscription</button></div>
         </fieldset>
       </> : <>
-        <Champ libelle="Montant à libérer *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.montant} onChange={(v) => setF({ ...f, montant: v.target.value })} />}</Champ>
-        <Pied fermer={fermer} enregistrer={() => confirmer(() => api.garanties.liberer(x.id!, { montant: somme(f.montant), dateOperation: f.date || undefined }))} libelle="Libérer" />
+        <Formulaire className="pile" envoyer={() => confirmer(() => api.garanties.liberer(x.id!, { montant: somme(f.montant), dateOperation: f.date || undefined }))}>
+          <Champ libelle="Montant à libérer *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.montant} onChange={(v) => setF({ ...f, montant: v.target.value })} />}</Champ>
+          <Pied fermer={fermer} libelle="Libérer" />
+        </Formulaire>
       </>}
       {dialogue}
     </div>
@@ -258,11 +262,11 @@ function Rapport() {
           {([["depot_garantie", "Nantissement"], ["caution", "Caution"]] as const).map(([k, t]) => <button key={k} type="button" role="tab" aria-selected={onglet === k}
             onClick={() => { setOnglet(k); setL([]); }}>{t}</button>)}
         </div>
-        <div className="ligne-champ">
+        <Recherche className="ligne-champ" label="Critères" envoyer={executer}>
           <ChampDate libelle={`${mot} du`} valeur={f.du} onChange={(v) => setF({ ...f, du: v })} />
           <ChampDate libelle="Au" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} />
-          <button className="bouton" type="button" onClick={executer}>Exécuter</button>
-        </div>
+          <button className="bouton" type="submit">Exécuter</button>
+        </Recherche>
         <Paginee lignes={l} colonnes={() => []}>{(v) => (<div className="defile-x"><table className="grille">
           <thead><tr>{["N°Membre", "N°Compte", "N°credit", "Date", "Client", onglet === "caution" ? "Caution et Ajout" : "Nantissement", "Libéré", "Restant"].map((t, i) =>
             <th key={t} scope="col" className={i >= 5 ? "num" : undefined}>{t}</th>)}</tr></thead>

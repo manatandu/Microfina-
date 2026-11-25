@@ -9,7 +9,7 @@ import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
-import { Champ, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
 import { FicheBeneficiaires, RecapRupture } from "./DepotsTerme";
 
@@ -80,7 +80,7 @@ function Echeancier({ plan }: { plan: Plan | null }) {
     } });
   }
   return (
-    <section className="bloc pile" aria-label="Échéancier du plan épargne">
+    <Formulaire className="bloc pile" label="Échéancier du plan épargne" envoyer={enregistrer}>
       <fieldset className="pile cadre-champs">
         <legend>Afficher uniquement</legend>
         <div className="ligne-champ">{FILTRES.map(([k, l]) => <label key={k} className="case"><input type="radio" name="afficher" checked={filtre === k} onChange={() => { setFiltre(k); setCoches([]); }} /><span>{l}</span></label>)}</div>
@@ -109,7 +109,7 @@ function Echeancier({ plan }: { plan: Plan | null }) {
         </table></div>)}</Paginee>
       </div>
       <div className="actions-onglets">
-        <button className="bouton" type="button" disabled={!coches.length} onClick={enregistrer}>Enregistrer</button>
+        <button className="bouton" type="submit" disabled={!coches.length}>Enregistrer</button>
         <button className="bouton secondaire" type="button" disabled={!coches.length} onClick={() => setCoches([])}>Annuler</button>
         <button className="bouton secondaire" type="button" disabled={!tb} onClick={() => imprimer(".bloc .a-imprimer")}>Imprimer</button>
       </div>
@@ -117,7 +117,7 @@ function Echeancier({ plan }: { plan: Plan | null }) {
         "Registre S69-3, S69-5 et S69-6 : intérêt prévu sur le cumul prévu, réel sur le cumul versé ; les échéances cochées sont prélevées sur le compte épargne et versées au compte du plan ; arriérés : date prévue passée ; échues : date prévue atteinte",
         "Plan d'allègement, point 5.4 : consultation et cotisations en un échéancier"]} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </section>
+    </Formulaire>
   );
 }
 
@@ -148,7 +148,7 @@ function Nouveau({ ctx, t, cree }: { ctx: Contexte; t: Tiers | null; cree: (x: P
     } });
   }
   return (
-    <section className="bloc pile" aria-label="Création du plan épargne">
+    <Formulaire className="bloc pile" label="Création du plan épargne" envoyer={enregistrer}>
       <div className="grille-deux">
         <fieldset className="pile cadre-champs">
           <legend>Infos de base</legend>
@@ -182,7 +182,7 @@ function Nouveau({ ctx, t, cree }: { ctx: Contexte; t: Tiers | null; cree: (x: P
         </fieldset>
       </div>
       <div className="actions-onglets">
-        <button className="bouton" type="button" disabled={!!fait} onClick={enregistrer}>Enregistrer</button>
+        <button className="bouton" type="submit" disabled={!!fait}>Enregistrer</button>
         <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
       </div>
       <Textes sources={["Manuel Microfina++, p. 79 : « Cette interface permet de créer le plan épargne » ; capture Création du plan épargne (Infos de base, Infos Contrat, Date, Enregistrer, Annuler)",
@@ -191,7 +191,7 @@ function Nouveau({ ctx, t, cree }: { ctx: Contexte; t: Tiers | null; cree: (x: P
         "Plan d'allègement, point 5.4 : montant à terme affiché pendant la saisie, versements et intérêt prévu"]} />
       <FicheBeneficiaires lignes={benef ? t?.beneficiaires ?? [] : null} fermer={() => setBenef(false)} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </section>
+    </Formulaire>
   );
 }
 

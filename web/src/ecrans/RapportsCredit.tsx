@@ -9,7 +9,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { debutExercice, fr, jourOuvert } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { montant, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Paginee, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Paginee, Textes, type Boite, Recherche } from "../composants";
 
 const ONGLETS = [["journal", "Journal"], ["base", "Rapports de base"], ["multicritere", "Rapport multicritère"], ["synthese", "Synthèse de la balance Agée"],
   ["taux", "Taux de remboursements"], ["previsionnel", "Encours Prévisionnel"], ["exigibles", "Rapport des exigibles"], ["indicateurs", "Indicateur de Gestion"],
@@ -71,7 +71,7 @@ function UnRapport({ onglet, ctx, erreur }: { onglet: Onglet; ctx: Ctx; erreur: 
     : t === "date" ? fr(String(v)) : t === "taux" ? `${String(v).replace(".", ",")}${nombres ? "" : " %"}` : String(v);
   const lignes = r?.lignes ?? [];
   return (
-    <section className="bloc pile" aria-label={titre}>
+    <section className="bloc pile" aria-label={titre}><Recherche className="pile" label="Critères" envoyer={afficher}>
       <div className="barre-filtres">
         <fieldset className="cadre-champs double"><legend>{c.libelle ?? "Date"}</legend>
           <div className="ligne-champ">{c.periode ? <><ChampDate libelle="Du" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} /><ChampDate libelle="Au" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} /></>
@@ -95,11 +95,11 @@ function UnRapport({ onglet, ctx, erreur }: { onglet: Onglet; ctx: Ctx; erreur: 
           </fieldset></>}
       </div>
       <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={afficher}>Afficher</button>
+        <button className="bouton" type="submit">Afficher</button>
         <button className="bouton secondaire" type="button" disabled={lignes.length === 0}
           onClick={() => r && exporterExcel(titre, [...r.colonnes.map((x) => x.titre), ...(r.colonnes.some((x) => x.type === "montant") ? ["Devise"] : [])],
             r.lignes.map((l) => [...l.v.map((v, i) => (typeof v === "number" ? (r.colonnes[i]!.type === "montant" && !l.nombres ? v / 100 : v) : v ?? "")), ...(r.colonnes.some((x) => x.type === "montant") ? [l.devise] : [])]))}>Export</button>
-      </div>
+      </div></Recherche>
       {r && <Paginee lignes={lignes} parPage={onglet === "indicateurs" ? 11 : undefined}>{(v) => (<div className="defile-x"><table className="grille">
         <thead><tr>{r.colonnes.map((x) => <th key={x.titre} scope="col" className={["montant", "nombre", "taux"].includes(x.type) ? "num" : undefined}>{x.titre}</th>)}</tr></thead>
         <tbody>{v.length === 0 && <tr><td colSpan={r.colonnes.length}>Aucune ligne.</td></tr>}
