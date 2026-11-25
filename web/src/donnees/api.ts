@@ -420,6 +420,8 @@ const caisses = {
     if (s.statut === "arretee") throw new ErreurMetier("Caisse déjà arrêtée.");
     if (E.operations.some((o) => o.sessionId === sessionId && (o.statut === "visa_requis" || o.statut === "visee")))
       throw new ErreurMetier("Une opération attend un visa : la faire viser ou refuser avant l'arrêté.");
+    if (E.operations.some((o) => o.sessionId === sessionId && o.statut === "a_recevoir"))   // plan d'allègement, point 7.5
+      throw new ErreurMetier("Des fonds envoyés par une autre caisse attendent d'être reçus : les recevoir avant l'arrêté (Fonds à recevoir).");
     if (Object.keys(compte).some((v) => !coupuresDe(devise).includes(Number(v)))) throw new ErreurMetier("Coupure inconnue.");
     const theorique = caisses.theorique(sessionId, devise);
     const deja = E.billetages.find((b) => b.sessionId === sessionId && b.moment === "arret" && b.devise === devise);
@@ -1722,6 +1724,14 @@ export interface SaisieOperationBanque {
   cle: string; type: TypeOperationBanque; date: string; compteBancaireId?: number; compteBancaireDestId?: number; guichetId?: number;
   compte?: string; libelle?: string; montant: number; cheque?: string; typeBudgetId?: number | null; ligneBudgetId?: number | null; compteDepotId?: number;
   donneurOrdre?: Partial<DonneurOrdre>; beneficiaire?: Partial<BeneficiaireVirement>;   // A12
+  ordreClient?: string;   // plan d'allègement, point 7.3
+}
+/** Plan d'allègement, point 7.3 : un prélèvement sur le compte d'un client se fait sur son ordre (référence de l'ordre écrit ou de la clause du contrat).
+ *  Code civil, livre III, art. 185, 2° ; loi 11/020, art. 48 ; registre T71. Comme noyau/virements.py (ordre_du_client). */
+function ordreDuClient(v: unknown): string {
+  const ordre = typeof v === "string" ? v.trim() : "";
+  if (!ordre) throw new ErreurMetier("À remplir : Ordre du client (Code civil, livre III, art. 185, 2° : pas de prélèvement sur un dépôt sans l'ordre du client).");
+  return ordre;
 }
 /** A12 : donneur d'ordre d'un virement reçu, bénéficiaire des fonds qui partent vers un compte bancaire (loi 22/068, art. 57 et 61). Comme noyau/virements.py. */
 function partiesVirement(d: { donneurOrdre?: Partial<DonneurOrdre>; beneficiaire?: Partial<BeneficiaireVirement> }, recu: boolean, sortantBancaire: boolean) {
@@ -1984,6 +1994,7 @@ function enregistrerOperationBanque(d: SaisieOperationBanque, client: boolean): 
       if (!libelle) throw new ErreurMetier("À remplir : libellé opération.");
       if (d.type === "prelevement_client") {                 // S53-2 : comme un retrait (S74), sur le disponible
         if (d.montant > soldeContrat(`depot:${c.id}`, c.devise, "C") - bloqueDe(c) - sortiesEnAttente(c)) throw new ErreurMetier("Solde disponible insuffisant sur le compte du client.");
+        o.ordreClient = ordreDuClient(d.ordreClient);
       }
       Object.assign(o, { compteDepotId: c.id, libelle, ...partiesVirement(d, d.type === "virement_client", d.type === "prelevement_client") });   // A12
     } else if (d.type === "banque_caisse") {
@@ -5170,19 +5181,18 @@ const transferts = {
       saisis.push([dv, m, c]);
     }
     if (saisis.length === 0) throw new ErreurMetier("À remplir : Montant.");
+    // Plan d'allègement, point 7.5 : la sortie tout de suite (C 570 d'origine, D 579) ; l'entrée attend le billetage du caissier qui reçoit (« Fonds à recevoir »)
     const lignes: Ligne[] = saisis.flatMap(([dv, m]) => [
       { compte: d.g.compteLiaison || "579", sens: "D", devise: dv, montant: m, montantCdf: cdf(m, dv) },
       { compte: "570", contrat: `guichet:${o.g.id}`, sens: "C", devise: dv, montant: m, montantCdf: cdf(m, dv) },
-      { compte: "570", contrat: `guichet:${d.g.id}`, sens: "D", devise: dv, montant: m, montantCdf: cdf(m, dv) },
-      { compte: o.g.compteLiaison || "579", sens: "C", devise: dv, montant: m, montantCdf: cdf(m, dv) },
     ] as Ligne[]);
     const e = poster({ evenement: "transfert_caisse", journal: "CA", journeeId: o.s.journeeId, libelle: `Alimentation de guichet : ${o.g.nom} vers ${d.g.nom}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
     const base = prochain(E.operations);
     const ops: Operation[] = saisis.flatMap(([dv, m, c], i) => [
       { id: base + 2 * i, cle: i === 0 ? p.cle : `${p.cle}:${dv}`, type: "transfert_sortie", statut: "validee", sessionId: o.s.id, tiersId: null, montant: m, devise: dv,
         coupures: c, remisPar: "", motif: `Vers ${d.g.nom}`, saisiPar: u.id, ecritureId: e.id, heure: heure() },
-      { id: base + 2 * i + 1, cle: `${p.cle}:entree:${dv}`, type: "transfert_entree", statut: "validee", sessionId: d.s.id, tiersId: null, montant: m, devise: dv,
-        coupures: c, remisPar: "", motif: `De ${o.g.nom}`, saisiPar: u.id, ecritureId: e.id, heure: heure() },
+      { id: base + 2 * i + 1, cle: `${p.cle}:entree:${dv}`, type: "transfert_entree", statut: "a_recevoir", sessionId: d.s.id, tiersId: null, montant: m, devise: dv,
+        coupures: {}, remisPar: "", motif: `De ${o.g.nom}`, saisiPar: u.id, ecritureId: null, heure: heure() },
     ] as Operation[]);
     E.operations.push(...ops); enregistrer(); return ops[0]!;
   },
@@ -5209,6 +5219,55 @@ const transferts = {
     const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "versement_banque", statut: "validee", sessionId: s.id, tiersId: null, montant: m, devise: dv,
       coupures: c, remisPar: "", motif: `Chèque ${cheque}`, saisiPar: u.id, ecritureId: e.id, heure: heure() };
     E.operations.push(o); enregistrer(); return o;
+  },
+  /** « Fonds à recevoir » de la caisse ouverte de l'utilisateur (plan d'allègement, point 7.5). Comme le serveur (transferts.a_recevoir). */
+  aRecevoir() {
+    const u = exiger();
+    const j = journees.courante();
+    const s = j && j.statut === "ouverte" ? [...E.sessions].reverse().find((x) => x.journeeId === j.id && x.caissierId === u.id && x.statut === "ouverte") : undefined;
+    if (!s || !j) return [];
+    const caisse = E.operations.filter((o) => o.sessionId === s.id && o.type === "transfert_entree" && o.statut === "a_recevoir").sort((a, b) => a.id - b.id)
+      .map((o) => ({ source: "caisse" as const, id: o.id, date: j.date, de: (o.motif ?? "").replace(/^De /, ""), montant: o.montant, devise: o.devise, envoyePar: nomUtilisateur(o.saisiPar) }));
+    const banque = E.operationsBanque.filter((o) => o.type === "banque_caisse" && (o.statut === "validee" || o.statut === "comptabilisee") && !o.recuOperationId && o.guichetId === s.guichetId)
+      .sort((a, b) => (a.dateValidation ?? "").localeCompare(b.dateValidation ?? "") || a.id - b.id).map((o) => {
+        const cb = E.comptesBancaires.find((c) => c.id === o.compteBancaireId), b = E.banques.find((x) => x.id === cb?.banqueId);
+        return { source: "banque" as const, id: o.id, date: o.date, de: `${b?.libelle ?? ""} ${cb?.numeroBancaire ?? ""}`, montant: o.montant, devise: o.devise, envoyePar: nomUtilisateur(o.saisiPar) };
+      });
+    return [...caisse, ...banque];
+  },
+  /** Recevoir : D 570 de sa caisse, C 579 (venus d'une caisse) ou C 591 (venus de la banque) ; le billetage fait le montant (PCCI, comptes 57 et 59) */
+  recevoir(p: { cle: string; source: string; id: number; coupures: Comptage }) {
+    const u = exiger();
+    const prec = dejaFaite(p.cle); if (prec) return prec;
+    const j = journees.courante();
+    const s = j && j.statut === "ouverte" ? [...E.sessions].reverse().find((x) => x.journeeId === j.id && x.caissierId === u.id && x.statut === "ouverte") : undefined;
+    if (!s) throw new ErreurMetier("Aucune caisse ouverte à votre nom.");
+    const g = E.guichets.find((x) => x.id === s.guichetId)!;
+    const c = nettoyer(p.coupures ?? {});
+    if (p.source === "caisse") {
+      const o = E.operations.find((x) => x.id === p.id && x.sessionId === s.id && x.type === "transfert_entree" && x.statut === "a_recevoir");
+      if (!o) throw new ErreurMetier("Ces fonds ne sont pas à recevoir dans votre caisse.");
+      controlerCoupures(c, o.montant, o.devise);
+      const origine = E.guichets.find((x) => `De ${x.nom}` === o.motif);
+      const e = poster({ evenement: "transfert_caisse", journal: "CA", journeeId: s.journeeId, libelle: `Alimentation de guichet : ${origine?.nom ?? ""} vers ${g.nom}, reçue`, piece: piece(),
+        saisiPar: u.id, validePar: u.id, lignes: [
+          { compte: "570", contrat: `guichet:${g.id}`, sens: "D", devise: o.devise, montant: o.montant, montantCdf: cdf(o.montant, o.devise) },
+          { compte: origine?.compteLiaison || "579", sens: "C", devise: o.devise, montant: o.montant, montantCdf: cdf(o.montant, o.devise) }] as Ligne[] });
+      Object.assign(o, { statut: "validee", coupures: c, ecritureId: e.id, validePar: u.id });
+      enregistrer(); return o;
+    }
+    if (p.source === "banque") {
+      const b = E.operationsBanque.find((x) => x.id === p.id && x.type === "banque_caisse" && (x.statut === "validee" || x.statut === "comptabilisee") && !x.recuOperationId && x.guichetId === s.guichetId);
+      if (!b) throw new ErreurMetier("Ces fonds ne sont pas à recevoir dans votre caisse.");
+      controlerCoupures(c, b.montant, b.devise);
+      const e = poster({ evenement: "transfert_banque", journal: "CA", journeeId: s.journeeId, libelle: `${b.libelle}, reçu en caisse`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes: [
+        { compte: "570", contrat: `guichet:${g.id}`, sens: "D", devise: b.devise, montant: b.montant, montantCdf: cdf(b.montant, b.devise) },
+        { compte: "591", sens: "C", devise: b.devise, montant: b.montant, montantCdf: cdf(b.montant, b.devise) }] as Ligne[] });
+      const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "transfert_entree", statut: "validee", sessionId: s.id, tiersId: null, montant: b.montant, devise: b.devise,
+        coupures: c, remisPar: "", motif: `De la banque (${b.libelle})`, saisiPar: u.id, ecritureId: e.id, heure: heure() };
+      E.operations.push(o); b.recuOperationId = o.id; enregistrer(); return o;
+    }
+    throw new ErreurMetier("Fonds à recevoir : origine inconnue.");
   },
 };
 function sessionTransfert(id: number, quoi: string) {
@@ -7084,7 +7143,7 @@ const operationsCompta = {
   },
   /** Comptes ouverts d'un client : N° Compte, N° Comptable, Produit, Solde (cadres « Compte Client » et « Compte Emetteur », p. 134) */
   comptesDuClient(tid: number) {
-    lectureAdmin(["S116", "S117"]);
+    lectureAdmin(["S53", "S116", "S117"]);   // S53 : Virement et prélèvement (plan d'allègement, point 7.3)
     return E.comptes.filter((c) => c.tiersId === tid && !c.closLe).sort((a, b) => a.numero.localeCompare(b.numero))
       .map((c) => ({ id: c.id, numero: c.numero, devise: c.devise as string, famille: familleOc(c) as string, produit: c.intitule, numeroComptable: c.pcci, solde: disponibleOc(c) }));
   },
@@ -7142,14 +7201,15 @@ const operationsCompta = {
   },
   /** S116, onglet Virement/Prélèvement (p. 134 ; texte p. 161) : le compte du client contre un compte du plan (registre S116-2) */
   enregistrerVirement(d: { cle: string; type: string; date?: string; compteDepotId: number | null; multiligne?: boolean; lignes: { compte: string; libelle: string; montant: number }[];
-    donneurOrdre?: Partial<DonneurOrdre>; beneficiaire?: Partial<BeneficiaireVirement> }) {
+    donneurOrdre?: Partial<DonneurOrdre>; beneficiaire?: Partial<BeneficiaireVirement>; ordreClient?: string }) {
     const u = exiger(), cle = cleOc(d.cle), prec = dejaOc(cle); if (prec) return prec;
     if (d.type !== "virement" && d.type !== "prelevement") throw new ErreurMetier("À remplir : Type opération.");
     const date = dateOperationOc(d.date), c = compteClientOc(d.compteDepotId, "N° Compte"), l = lignesComptaOc(d), total = l.reduce((t, x) => t + x.montant, 0);
     if (d.type === "prelevement" && total > disponibleOc(c)) throw new ErreurMetier("Solde disponible insuffisant sur le compte du client.");
+    const ordre = d.type === "prelevement" ? { ordreClient: ordreDuClient(d.ordreClient) } : {};
     // A12 : contrepartie bancaire (PCCI, compte 56), virement entre institutions (loi 22/068, art. 57 et 61). Comme le serveur.
     const bancaire = l.some((x) => (x.compte ?? "").startsWith("56"));
-    return nouvelleOc(u, cle, d.type, date, l[0]!.libelle!, total, c.devise, { compteDepotId: c.id, lignes: l, ...partiesVirement(d, d.type === "virement" && bancaire, d.type === "prelevement" && bancaire) });
+    return nouvelleOc(u, cle, d.type, date, l[0]!.libelle!, total, c.devise, { compteDepotId: c.id, lignes: l, ...ordre, ...partiesVirement(d, d.type === "virement" && bancaire, d.type === "prelevement" && bancaire) });
   },
   /** S116, onglets « Compte DAV vers un Autre Compte » et « Compte Tontine vers un Compte DAV » (p. 134 ; texte p. 160) : sans frais (Instr. BCC 37 ; registre S116-3) */
   enregistrerCompteACompte(d: { cle: string; onglet: string; emetteurId: number | null; recepteurId: number | null; montant: number | null }) {

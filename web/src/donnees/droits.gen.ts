@@ -830,6 +830,10 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "transferts.caisseVersCaisse": [
 "S81"
 ],
+"transferts.recevoir": [
+"S09",
+"S81"
+],
 "visasCredit.appel": [
 "S90"
 ],

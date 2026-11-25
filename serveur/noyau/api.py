@@ -943,6 +943,18 @@ def transfert_banque(request, corps: dict = Body(...)):
     return transferts.caisse_vers_banque(u(request), corps)
 
 
+@api.get("/caisse/fonds-a-recevoir")
+def fonds_a_recevoir(request):
+    from . import transferts
+    return transferts.a_recevoir(u(request))
+
+
+@api.post("/caisse/fonds-a-recevoir")
+def fonds_recevoir(request, corps: dict = Body(...)):
+    from . import transferts
+    return transferts.recevoir(u(request), corps)
+
+
 @api.post("/guichet/adhesions")
 def guichet_adhesion(request, corps: dict = Body(...)):
     return s.adhesion(u(request), corps)

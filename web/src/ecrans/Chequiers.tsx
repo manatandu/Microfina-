@@ -1,5 +1,5 @@
 // S60 : Banque > Gestion Chèque Institution > Générer chéquier (manuel Microfina++, p. 69, capture « Numéro Chequier »).
-// Le chéquier remis par la banque pour un compte de l'institution ; ses chèques alimentent la liste « N° de chèque » de S52 (registre S60-1 à S60-4).
+// Le chéquier remis par la banque pour un compte de l'institution ; ses chèques alimentent la liste « N° de chèque » des décaissements et virements de banque (registre S60-1 à S60-4).
 // « Chèque pour crédit » : l'onglet ne marche pas dans le manuel (p. 70) ; il viendra avec le déblocage de crédit par banque (S54).
 import { useState } from "react";
 import { api, FEUILLETS, TYPES_CHEQUE } from "../donnees/api";
@@ -70,7 +70,7 @@ export function Chequiers() {
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Instr. BCC 25 (normalisation du chèque), § 3.2 : numéro du chèque sur 8 caractères, code de type de chèque ; § 3.1 : barrement par deux barres parallèles",
           "Registre T139 (plan d'allègement 7.16) : « Visé » et « Certifié » se règlent chèque par chèque ; le type (ordinaire, certifié, garanti, chèque de banque) est marqué sur chaque chèque généré (Instr. BCC 25, ligne CMC7, zone 4)",
-          "Les chèques générés alimentent la liste « N° de chèque » de Banque > Opération (S52) ; un chèque ne sert qu'une fois"]} />
+          "Les chèques générés alimentent la liste « N° de chèque » des décaissements par banque et des virements de banque vers caisse ; un chèque ne sert qu'une fois"]} />
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>

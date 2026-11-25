@@ -24,3 +24,12 @@ def controler(d: dict, recu: bool, sortant_bancaire: bool) -> tuple[dict | None,
     donneur = _partie(d, "donneurOrdre", DONNEUR, "Donneur d'ordre") if recu else None
     beneficiaire = _partie(d, "beneficiaire", BENEFICIAIRE, "Bénéficiaire") if sortant_bancaire else None
     return donneur, beneficiaire
+
+
+def ordre_du_client(d: dict) -> str:
+    """Plan d'allègement, point 7.3 : un prélèvement sur le compte d'un client se fait sur son ordre (référence de l'ordre écrit ou de la clause du contrat).
+    Code civil, livre III, art. 185, 2° : pas de compensation contre la restitution d'un dépôt ; loi 11/020, art. 48 ; registre T71."""
+    ordre = d.get("ordreClient").strip() if isinstance(d.get("ordreClient"), str) else ""
+    if not ordre:
+        raise ErreurMetier("À remplir : Ordre du client (Code civil, livre III, art. 185, 2° : pas de prélèvement sur un dépôt sans l'ordre du client).")
+    return ordre

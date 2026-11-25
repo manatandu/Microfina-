@@ -239,6 +239,7 @@ export interface OperationCompta {
   montant: number; devise: Devise; sens: "" | "ENCAISSEMENT" | "DECAISSEMENT" | "DEPOT" | "RETRAIT"; lignes: LigneOc[];
   compteDepotId: number | null; compteDepotDestId: number | null; agenceClientId: number | null; numeroClient: string; nomClient: string;
   donneurOrdre?: DonneurOrdre | null; beneficiaire?: BeneficiaireVirement | null;   // A12
+  ordreClient?: string;   // plan d'allègement, point 7.3 : référence de l'ordre du client pour un prélèvement (Code civil, livre III, art. 185, 2°)
   typeBudgetId: number | null; ligneBudgetId: number | null; saisiPar: number; visePar?: number; viseLe?: string; validePar?: number; dateValidation?: string;
   piece: string; ecritureId?: number; operationId?: number; refletEcritureId?: number;
 }
@@ -249,6 +250,8 @@ export interface OperationBanque {
   visePar?: number; validePar?: number; dateValidation?: string;   // S57
   donneurOrdre?: DonneurOrdre | null; beneficiaire?: BeneficiaireVirement | null;   // A12 : loi 22/068, art. 57 et 61
   compteDepotId?: number | null;   // S53 : compte du client
+  recuOperationId?: number | null;   // plan d'allègement, point 7.5 : banque vers caisse, reçu par le caissier
+  ordreClient?: string;   // plan d'allègement, point 7.3 : référence de l'ordre du client pour un prélèvement (Code civil, livre III, art. 185, 2°)
   tiersId?: number | null; parts?: number | null; premierDepot?: number | null;   // S56 : adhésion par banque
 }
 
@@ -328,7 +331,7 @@ export interface Operation {
   id: number;
   cle: string;                 // clé d'idempotence tirée par le poste
   type: TypeOperation;
-  statut: "visa_requis" | "visee" | "validee";   // visa_requis : retrait au-delà du plafond, en attente du visa (registre S08-5)
+  statut: "visa_requis" | "visee" | "validee" | "a_recevoir";   // visa_requis : retrait au-delà du plafond, en attente du visa (registre S08-5) ; a_recevoir : point 7.5
   sessionId: number;
   tiersId: number | null;      // null : encaissement ou décaissement divers (S78)
   compteId?: number;

@@ -45,7 +45,7 @@ const FICHIERS: (() => Promise<unknown>)[] = [
   () => import("./Blocages"),
   () => import("./RapportsEpargne"),
   () => import("./EdDivers"),
-  () => import("./Transferts"),
+  () => import("./VirementsTresorerie"),
   () => import("./JournalCaisse"),
   () => import("./SimulationCredit"),
   () => import("./AnalyseFinanciere"),
@@ -97,7 +97,6 @@ const FICHIERS: (() => Promise<unknown>)[] = [
   () => import("./Procurations"),
   () => import("./Rapports"),
   () => import("./Parts"),
-  () => import("./OperationsBanque"),
   () => import("./VirementPrelevement"),
   () => import("./AdhesionBanque"),
   () => import("./Banques"),
@@ -172,7 +171,7 @@ const ClotureCompte = paresseux(() => import("./Clotures"), "default");
 const BlocageCompte = paresseux(() => import("./Blocages"), "default");
 const RapportsEpargne = paresseux(() => import("./RapportsEpargne"), "default");
 const EdDivers = paresseux(() => import("./EdDivers"), "default");
-const Transferts = paresseux(() => import("./Transferts"), "default");
+const VirementsTresorerie = paresseux(() => import("./VirementsTresorerie"), "default");   // plan d'allègement, point 7.5 : S52 et S81
 const JournalCaisse = paresseux(() => import("./JournalCaisse"), "default");
 const SimulationCredit = paresseux(() => import("./SimulationCredit"), "default");
 const AnalyseFinanciere = paresseux(() => import("./AnalyseFinanciere"), "default");
@@ -239,7 +238,6 @@ const GroupeSolidaire = paresseux(() => import("./Groupes"), "GroupeSolidaire");
 const TypesProcuration = paresseux(() => import("./Procurations"), "TypesProcuration");
 const RapportsClients = paresseux(() => import("./Rapports"), "RapportsClients");
 const PartsSociales = paresseux(() => import("./Parts"), "PartsSociales");
-const OperationsBanque = paresseux(() => import("./OperationsBanque"), "OperationsBanque");
 const VirementPrelevement = paresseux(() => import("./VirementPrelevement"), "VirementPrelevement");
 const AdhesionBanque = paresseux(() => import("./AdhesionBanque"), "AdhesionBanque");
 const CreationBanque = paresseux(() => import("./Banques"), "CreationBanque");
@@ -286,7 +284,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S48: ResiliationClient,
   S49: PhotosSignatures,
   S51: RapportsClients,
-  S52: OperationsBanque,
+  S52: VirementsTresorerie,
   S53: VirementPrelevement,
   S54: Deblocage,
   S55: Remboursement,
@@ -323,7 +321,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S76: RemboursementGuichet,
   S77: PartsSociales,
   S78: EdDivers,
-  S81: Transferts,
+  S81: VirementsTresorerie,
   S83: JournalCaisse,
   S84: SimulationCredit,
   S85: AnalyseFinanciere,

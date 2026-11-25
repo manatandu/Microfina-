@@ -323,13 +323,14 @@ def enregistrer_virement(u, d) -> dict:
     total = sum(x["montant"] for x in l)
     if type_ == "prelevement" and total > disponible(c):
         raise ErreurMetier("Solde disponible insuffisant sur le compte du client.")
+    from . import virements
+    ordre = virements.ordre_du_client(d) if type_ == "prelevement" else None
     # A12 : quand la contrepartie est un compte bancaire (PCCI, compte 56), c'est un virement entre institutions : donneur d'ordre du virement reçu,
     # bénéficiaire des fonds qui partent (loi 22/068, art. 57 et 61). Une contrepartie interne (intérêts, commissions) n'en demande pas.
-    from . import virements
     bancaire = any(str(x["compte"]).startswith("56") for x in l)
     donneur, beneficiaire = virements.controler(d, type_ == "virement" and bancaire, type_ == "prelevement" and bancaire)
     return inserer(u, cle, type_, date_op, l[0]["libelle"], total, c["devise"], compte_depot_id=c["id"], lignes=Jsonb(l),
-                   donneur_ordre=Jsonb(donneur) if donneur else None, beneficiaire=Jsonb(beneficiaire) if beneficiaire else None)
+                   donneur_ordre=Jsonb(donneur) if donneur else None, beneficiaire=Jsonb(beneficiaire) if beneficiaire else None, ordre_client=ordre)
 
 
 def enregistrer_compte_a_compte(u, d) -> dict:

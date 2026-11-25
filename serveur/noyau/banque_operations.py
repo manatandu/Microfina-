@@ -136,7 +136,7 @@ def enregistrer(u, d, client: bool = False) -> dict:
         raise ErreurMetier("Montant : un montant supérieur à zéro.")
     origine = compte_bancaire(u, entier(d, "compteBancaireId"), "Compte Banque" if type_ != "banque_banque" else "Compte Banque d'origine")
     compte = libelle = cheque = None
-    guichet = dest = type_budget = ligne_budget = compte_client = None
+    guichet = dest = type_budget = ligne_budget = compte_client = ordre = None
     if type_ in ("encaissement", "decaissement"):
         compte = texte(d, "compte")
         if not compte:
@@ -178,6 +178,8 @@ def enregistrer(u, d, client: bool = False) -> dict:
             bloque = montant_bloque(c["id"], solde_contrat(f"depot:{c['id']}", c["devise"], "C"))
             if montant > solde_contrat(f"depot:{c['id']}", c["devise"], "C") - bloque - sorties_en_attente(c["id"]):
                 raise ErreurMetier("Solde disponible insuffisant sur le compte du client.")
+            from .virements import ordre_du_client
+            ordre = ordre_du_client(d)
         compte_client = c["id"]
     elif type_ == "banque_caisse":
         guichet = entier(d, "guichetId")
@@ -198,10 +200,10 @@ def enregistrer(u, d, client: bool = False) -> dict:
     donneur, beneficiaire = virements.controler(d, type_ == "virement_client", type_ == "prelevement_client")
     oid = valeur("""insert into operation_banque (institution_id, agence_id, type, date_operation, compte_bancaire_id, compte_bancaire_dest_id, guichet_id, compte,
                                                   libelle, montant, devise, cheque, budget_type_id, budget_ligne_id, cle_idempotence, saisi_par, compte_depot_id,
-                                                  donneur_ordre, beneficiaire)
-                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
+                                                  donneur_ordre, beneficiaire, ordre_client)
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
                  (i, u["agence_id"], type_, date_op, origine["id"], dest, guichet, compte, libelle, montant, origine["devise"], cheque,
-                  type_budget, ligne_budget, cle, u["id"], compte_client, Jsonb(donneur) if donneur else None, Jsonb(beneficiaire) if beneficiaire else None))
+                  type_budget, ligne_budget, cle, u["id"], compte_client, Jsonb(donneur) if donneur else None, Jsonb(beneficiaire) if beneficiaire else None, ordre))
     if cheque:                                                # registre S60-2 : un chèque d'un chéquier du compte, une seule fois
         chequiers.utiliser(origine["id"], cheque, oid)
     return vue(une("select * from operation_banque where id = %s", (oid,)))

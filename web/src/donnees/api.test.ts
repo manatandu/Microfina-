@@ -1097,10 +1097,19 @@ describe("journée de guichet", () => {
     await expect(t.caisseVersCaisse({ cle: cle(), origineSessionId: s.id, destinationSessionId: s1.id, montants: { CDF: 10000000000 }, coupures: { CDF: { 1000: 100000 } } })).rejects.toThrow("Pas assez de coupures");
     const o = await t.caisseVersCaisse({ cle: cle(), origineSessionId: s.id, destinationSessionId: s1.id, montants: { CDF: 200000 }, coupures: { CDF: { 1000: 2 } } });
     expect(o.type).toBe("transfert_sortie");
-    expect([await n(s.id), await n(s1.id)]).toEqual([a2 - 2, a1 + 2]);
-    const r = await api.operations.recu(o.id);
-    const net = (c: string) => r.lignes.filter((x) => x.compte.startsWith(c)).reduce((v, x) => v + (x.sens === "D" ? x.montant : -x.montant), 0);
+    // Plan d'allègement, point 7.5 : l'entrée attend le billetage du caissier qui reçoit (« Fonds à recevoir »)
+    expect([await n(s.id), await n(s1.id)]).toEqual([a2 - 2, a1]);
+    expect(await t.aRecevoir()).toEqual([]);
+    await connecter("jpmukendi");
+    const f = await t.aRecevoir();
+    expect(f.map((x) => [x.source, x.montant, x.devise])).toEqual([["caisse", 200000, "CDF"]]);
+    await expect(t.recevoir({ cle: cle(), source: "caisse", id: f[0]!.id, coupures: { 1000: 1 } })).rejects.toThrow("billetage");
+    const rc = await t.recevoir({ cle: cle(), source: "caisse", id: f[0]!.id, coupures: { 1000: 2 } });
+    expect([rc.statut, await n(s1.id), (await t.aRecevoir()).length]).toEqual(["validee", a1 + 2, 0]);
+    const [r, r2] = [await api.operations.recu(o.id), await api.operations.recu(rc.id)];
+    const net = (c: string) => [...r.lignes, ...r2.lignes].filter((x) => x.compte.startsWith(c)).reduce((v, x) => v + (x.sens === "D" ? x.montant : -x.montant), 0);
     expect([net("579"), net("570")]).toEqual([0, 0]);
+    await connecter("engalula");
     await expect(t.caisseVersBanque({ cle: cle(), sessionId: s.id, compteBancaireId: cb.id, montant: 100000, cheque: "", coupures: { 1000: 1 } })).rejects.toThrow("bordereau");
     const avant = (await t.contexte()).comptes.find((c) => c.id === cb.id)!.solde;
     const v = await t.caisseVersBanque({ cle: cle(), sessionId: s.id, compteBancaireId: cb.id, montant: 100000, cheque: "0001234", coupures: { 1000: 1 } });
@@ -1168,9 +1177,12 @@ describe("journée de guichet", () => {
     await expect(api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "virement_client", libelle: "" })).rejects.toThrow("libellé opération");
     await expect(api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "virement_client", compteDepotId: ccdf.id })).rejects.toThrow("même devise");
     await expect(api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "prelevement_client", montant: cusd.disponible + 1 })).rejects.toThrow("disponible insuffisant");
+    // plan d'allègement, point 7.3 : pas de prélèvement sans l'ordre du client (Code civil, livre III, art. 185, 2°)
+    await expect(api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "prelevement_client", montant: 1 })).rejects.toThrow("Ordre du client");
     expect((await api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "virement_client" })).statut).toBe("saisie");
-    await api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "prelevement_client", montant: cusd.disponible });
-    await expect(api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "prelevement_client", montant: 1 })).rejects.toThrow("disponible insuffisant");
+    const pb = await api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "prelevement_client", montant: cusd.disponible, ordreClient: "Ordre écrit" });
+    expect(pb.ordreClient).toBe("Ordre écrit");
+    await expect(api.banqueOperations.enregistrerVirement({ ...base, cle: cle(), type: "prelevement_client", montant: 1, ordreClient: "Ordre écrit" })).rejects.toThrow("disponible insuffisant");
   });
 
   it("visa puis validation des opérations de banque (S57) : quatre yeux, quatre listes (registre S57-1 à S57-3)", async () => {
@@ -3149,7 +3161,9 @@ describe("journée de guichet", () => {
     const comptes = async (tid: number, id: number) => (await api.operationsCompta.comptesDuClient(tid)).find((x) => x.id === id)!;
     const k = await comptes(k0.tid, k0.c.id), r = await comptes(r0.tid, r0.c.id);
     expect([k.numeroComptable, k.solde > 0]).toEqual(["330", true]);
-    const v = { cle: cle(), type: "prelevement", date: "2026-11-05", compteDepotId: k.id, lignes: [{ compte: "72700000", libelle: "Commission de tenue", montant: 5000 }] };
+    const v = { cle: cle(), type: "prelevement", date: "2026-11-05", compteDepotId: k.id, lignes: [{ compte: "72700000", libelle: "Commission de tenue", montant: 5000 }], ordreClient: "" };
+    await expect(api.operationsCompta.enregistrerVirement(v)).rejects.toThrow("Ordre du client");   // plan d'allègement, point 7.3
+    v.ordreClient = "Clause 4 du contrat de compte";
     await expect(api.operationsCompta.enregistrerVirement({ ...v, type: "" })).rejects.toThrow("Type opération");
     await expect(api.operationsCompta.enregistrerVirement({ ...v, compteDepotId: null })).rejects.toThrow("N° Compte");
     await expect(api.operationsCompta.enregistrerVirement({ ...v, lignes: [{ compte: "57000000", libelle: "x", montant: 5 }] })).rejects.toThrow("tenu par la gestion");

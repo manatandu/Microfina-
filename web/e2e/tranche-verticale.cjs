@@ -343,24 +343,28 @@ const OUT = process.argv[2];
   await p.getByLabel('Banque *').selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte *').fill('56010002'); await p.getByLabel('N° Compte Bancaire : *').fill('R-CDF-1');
   await p.getByLabel('Devise *').selectOption('CDF'); await p.getByLabel('Nom *').fill('Mutombo');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  // Opérations de banque (S52), par le comptable : saisies, en attente du visa (S57)
-  await login('Patrick Lumbala'); await aller('/banque/s52');
+  // Encaissement divers par banque (plan d'allègement, point 7.4 : Comptabilité > Autres opérations, « Par : Banque / Caisse »), en attente du visa
+  await login('Patrick Lumbala'); await aller('/comptabilite/s116'); await p.getByLabel('Type opération').selectOption('ENCAISSEMENT');
+  await p.getByRole('radio', { name: 'Banque' }).check();
   await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte Banque *').selectOption({ index: 1 });
-  await p.getByLabel('Compte *').fill('72700000'); await p.getByLabel('Libellé').fill('Commission reçue'); await p.getByLabel('Montant *').fill('500');
+  await p.getByLabel('Compte *', { exact: true }).fill('72700000'); await p.getByLabel('Libellé', { exact: true }).fill('Commission reçue'); await p.getByLabel('Montant *').fill('500');
   await etape('06c4-banque-encaissement');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await p.getByRole('tab', { name: 'V. Banque vers caisse' }).click();
-  await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte Banque *').selectOption({ index: 1 });
-  await p.getByLabel('Montant *').fill('100'); await p.getByLabel('Caisse *').selectOption({ label: 'Caisse 2' }); await etape('06c5-banque-vers-caisse');
+  // Virements internes de trésorerie (plan d'allègement, point 7.5) : De, Vers, Montant ; de la banque vers la Caisse 2, puis entre deux devises (refusé)
+  await aller('/banque/s52'); await p.getByLabel('De *').selectOption({ label: 'RAW 05100-01234567-89 (USD)' });
+  await p.getByLabel('Vers *').selectOption({ label: 'Caisse 2' }); await p.getByLabel('Montant (USD) *').fill('100'); await etape('06c5-banque-vers-caisse');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await p.getByRole('tab', { name: 'V. Banque vers Banque' }).click(); await p.getByLabel('Montant *').fill('50');
+  await p.getByLabel('De *').selectOption({ label: 'RAW 05100-01234567-89 (USD)' }); await p.getByLabel('Vers *').selectOption({ label: 'RAW R-CDF-1 (CDF)' });
+  await p.getByLabel('Montant (USD) *').fill('50');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Erreur' }).waitFor(); await etape('06c6-banque-vers-banque-refus'); await p.getByRole('button', { name: 'Ok' }).click();
   // Virement prélèvement (S53) : un virement reçu par la banque pour le compte en dollars de Kalala
-  await aller('/banque/s53'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  await aller('/banque/s53'); await p.getByRole('button', { name: 'Rechercher : Identifiant Client' }).click();
   const rv = p.getByRole('dialog', { name: "Recherche d'un client" });
   await rv.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rv.getByRole('row').filter({ hasText: 'Kalala' }).first().click();
-  await p.getByRole('radio', { name: 'Virement' }).check(); await p.getByLabel('N° Compte *').selectOption({ label: '0412-000318-01' });
+  // plan d'allègement, point 7.3 : un prélèvement demande l'ordre du client (Code civil, livre III, art. 185, 2°)
+  await p.getByRole('radio', { name: 'Prélèvement' }).check(); await p.getByLabel('Ordre du client : *').waitFor();
+  await p.getByRole('radio', { name: 'Virement', exact: true }).check(); await p.getByLabel('N° Compte *').selectOption({ label: '0412-000318-01' });
   await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte Banque *').selectOption({ index: 1 });
   await p.getByLabel('Libellé opération *').fill('Salaire novembre'); await p.getByLabel('Montant *').fill('100');
   // donneur d'ordre du virement reçu (A12 ; loi 22/068, art. 57 et 61)
@@ -855,7 +859,9 @@ const OUT = process.argv[2];
   await p.getByRole('dialog', { name: 'Reçu' }).getByText('Retrait enregistré').waitFor(); await etape('12-retrait-recu');
   await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
   // Adhésion par banque (S56) : la Boulangerie paie par virement sur le compte en CDF ; saisie en attente du visa (S57)
-  await login('Patrick Lumbala'); await aller('/banque/s56'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  // Plan d'allègement 7.6 : l'adhésion par banque est au menu Membre ; « en espèces » renvoie au guichet
+  await login('Patrick Lumbala'); await aller('/clients/s56'); await p.getByLabel('en espèces').check(); await p.getByRole('link', { name: 'Guichet : adhésion' }).waitFor();
+  await p.getByLabel('par banque').check(); await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rab = p.getByRole('dialog', { name: "Recherche d'un client" });
   await rab.getByLabel('Nom:', { exact: true }).fill('Boulangerie'); await rab.getByRole('row').filter({ hasText: 'Boulangerie' }).first().click();
   await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte Banque *').selectOption({ label: 'R-CDF-1 (CDF)' });
@@ -897,7 +903,7 @@ const OUT = process.argv[2];
   if (await p.getByRole('radiogroup', { name: 'Visé' }).count()) throw new Error('S60 : « Visé » resté au chéquier');   // 7.16, T139 : le type chèque par chèque
   await p.getByLabel('Type de chèque').selectOption('certifie'); await etape('06c13-chequier');
   await p.getByRole('button', { name: 'Generer' }).click(); await oui();
-  await aller('/banque/s52'); await p.getByLabel('Type operation').selectOption('decaissement');
+  await aller('/comptabilite/s116'); await p.getByLabel('Type opération').selectOption('DECAISSEMENT'); await p.getByRole('radio', { name: 'Banque' }).check();
   await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte Banque *').selectOption({ label: '05100-01234567-89 (USD)' });
   await p.getByLabel('N° de chèque').selectOption('0001001'); await p.getByLabel('N° de chèque').locator('option', { hasText: '0001001 (Certifié)' }).waitFor({ state: 'attached' }); await etape('06c14-cheque-dans-s52');
   // Emprunt bancaire (S61) : mise en place au compte 533, puis un remboursement
@@ -1061,11 +1067,9 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Reçu' }).getByText('Encaissement enregistré').waitFor(); await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
   await p.getByText(/Numéro de pièce : \S+/).waitFor(); await etape('14d-ed-divers');
-  // Transferts de fonds (S81, p. 92 et 93 ; registre S81-1 à S81-7) : versement de 1 000 CDF de la caisse vers le compte CDF de Rawbank
-  await aller('/caisse/s81?page=caisse'); await p.getByRole('heading', { name: 'Caisse vers Caisse' }).waitFor(); await etape('14e-caisse-vers-caisse');
-  await p.getByRole('tab', { name: 'Caisse vers banque' }).click(); await p.getByRole('heading', { name: 'Caisse vers Banque' }).waitFor();
-  await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'RAW:Rawbank' });   // la caisse est celle de l'utilisateur ; banque et compte avant le montant (plan 4.10)
-  await p.getByLabel('Compte Banque *').selectOption(await p.getByLabel('Compte Banque *').locator('option', { hasText: '56010002' }).getAttribute('value'));
+  // Virements internes de trésorerie (S81 ; plan d'allègement, points 4.10 et 7.5) : fonds à recevoir, puis versement de 1 000 CDF de sa caisse vers le compte CDF de Rawbank
+  await aller('/caisse/s81'); await p.getByRole('heading', { name: 'Fonds à recevoir' }).waitFor(); await etape('14e-caisse-vers-caisse');
+  await p.getByLabel('De *').selectOption({ label: 'Caisse 2' }); await p.getByLabel('Vers *').selectOption({ label: 'RAW R-CDF-1 (CDF)' });
   await p.getByLabel('Montant (CDF) *').fill('1 000');
   await p.getByLabel('N° du bordereau de versement *').fill('0001234'); await p.getByText('mille francs congolais', { exact: false }).first().waitFor();
   await p.getByLabel('Nombre de coupures de 1 000 CDF').fill('1');
@@ -1086,11 +1090,11 @@ const OUT = process.argv[2];
   await p.getByText(/^Pièce non équilibrée : il manque .+ au débit\.$/).waitFor();
   await p.getByLabel('Compte: *').fill('61000000'); await p.getByLabel('Sens:').selectOption('D'); await p.getByLabel('Montant: *').fill('2500'); await p.getByRole('button', { name: 'Ajouter' }).click();
   await succes(); await p.getByText('Pièce équilibrée.').waitFor(); await etape('14i-saisie-ecriture');
-  await aller('/comptabilite/s116'); await p.getByRole('heading', { name: 'Autres opérations' }).waitFor(); await etape('14j-virement-prelevement');
+  await aller('/banque/s53'); await p.getByRole('radio', { name: 'Autre compte comptable' }).check(); await p.getByLabel('Compte *', { exact: true }).waitFor(); await etape('14j-virement-prelevement');
   await aller('/epargne/se03'); await p.getByRole('heading', { name: 'Virement entre comptes' }).waitFor(); await p.getByText('Identifiant Recepteur').waitFor(); await etape('14k-compte-a-compte');
   await aller('/comptabilite/s116'); await p.getByRole('heading', { name: 'Autres opérations' }).waitFor();
   await p.getByRole('tab', { name: 'Opérations déplacées' }).click(); await etape('14l-operations-deplacees');
-  await p.getByRole('tab', { name: 'Opération diverse' }).click();
+  await p.getByRole('tab', { name: 'Encaissements et décaissements divers' }).click(); await p.getByRole('radio', { name: 'Caisse' }).check();
   await p.getByLabel('Compte *').fill('61000000'); await p.getByLabel('Libellé *').fill("Prime d'assurance"); await p.getByLabel('Montant *').fill('10000');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: "Prime d'assurance" }).waitFor(); await etape('14m-operation-diverse');
   await aller('/comptabilite/s117'); await p.getByRole('heading', { name: 'Virement de salaire' }).waitFor(); await etape('14n-virement-salaire');
@@ -1236,7 +1240,7 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Erreur' }).getByText(/Quatre yeux/).waitFor(); await etape('23h-validation-quatre-yeux');
   await p.getByRole('button', { name: 'Ok' }).click();
   // Un écran sans droit ne s'ouvre pas, même par son adresse (registre T07) : le chef n'a pas les transferts de fonds
-  await aller('/caisse/s81'); await p.getByText(/^Droit manquant : Transferts de fonds/).waitFor(); await etape('23i-droit-manquant');
+  await aller('/caisse/s81'); await p.getByText(/^Droit manquant : Virements internes de trésorerie/).waitFor(); await etape('23i-droit-manquant');
   // Annulation de règlement de crédit (S142, p. 158) : le règlement par prélèvement saisi par le comptable, annulé par le chef (PCCI § 3.3)
   await aller('/credit/s142'); await p.getByRole('button', { name: 'Rechercher un règlement' }).click();
   const an = p.getByRole('dialog', { name: 'Remboursements annulables' });

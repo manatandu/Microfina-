@@ -101,6 +101,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/guichet/parts", ["S77"]),
     (r"/guichet/ed-divers", ["S78"]),
     (r"/caisse/transferts/(caisse|banque)", ["S81"]),
+    (r"/caisse/fonds-a-recevoir", ["S81", "S09"]),   # plan d'allègement, point 7.5 : celui qui tient la caisse qui reçoit
     (r"/credit/simulation", ["S84"]),
     (r"/credit/analyses", ["S85"]),
     (r"/credit/dossiers", ["S86"]),
@@ -273,7 +274,7 @@ LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
     (r"/credit/provisions/radies", ["S99"]),
     (r"/conformite/incidents", ["SC06"]),
     (r"/comptabilite/operations/contexte", ["S109", "S116", "S117"]),
-    (r"/comptabilite/operations/comptes/\d+", ["S116", "S117"]),
+    (r"/comptabilite/operations/comptes/\d+", ["S53", "S116", "S117"]),   # S53 : Virement et prélèvement (plan d'allègement, point 7.3)
     (r"/comptabilite/operations/compte", ["S117"]),
     (r"/comptabilite/operations/saisies/\w+", ["S116", "S117"]),
     (r"/comptabilite/operations/visas/\w+/\w+", ["S113", "S114"]),

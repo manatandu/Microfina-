@@ -983,9 +983,20 @@ def test_transferts(clients, journee):
     assert "billetage" in refus(vc({**base, "montants": {"CDF": 200000}, "coupures": {"CDF": {"1000": 1}}}))
     assert "Pas assez de coupures" in refus(vc({**base, "montants": {"CDF": 10000000000}, "coupures": {"CDF": {"1000": 100000}}}))
     o = vc({**base, "montants": {"CDF": 200000}, "coupures": {"CDF": {"1000": 2}}}).json()
-    assert o["type"] == "transfert_sortie" and (n(s["id"]), n(s1["id"])) == (a2 - 2, a1 + 2)
-    assert ident("""select coalesce(sum(case l.sens when 'D' then l.montant_devise else -l.montant_devise end), 0) from ligne_ecriture l join compte c on c.id = l.compte_id
-                    where c.numero like '579%%' and l.ecriture_id = %s""", (o["ecritureId"],)) == 0
+    # Plan d'allègement, point 7.5 : l'entrée attend le billetage du caissier qui reçoit (« Fonds à recevoir ») ; le 579 attend jusque-là
+    assert o["type"] == "transfert_sortie" and (n(s["id"]), n(s1["id"])) == (a2 - 2, a1)
+    net579 = lambda eids: ident("""select coalesce(sum(case l.sens when 'D' then l.montant_devise else -l.montant_devise end), 0) from ligne_ecriture l
+                                  join compte c on c.id = l.compte_id where c.numero like '579%%' and l.ecriture_id = any(%s)""", (eids,))
+    assert net579([o["ecritureId"]]) == 200000
+    assert caisse.get("/api/caisse/fonds-a-recevoir").json() == []
+    f = chef.get("/api/caisse/fonds-a-recevoir").json()
+    assert [(x["source"], x["montant"], x["devise"]) for x in f] == [("caisse", 200000, "CDF")]
+    recoit = lambda client, corps: client.post("/api/caisse/fonds-a-recevoir", {"cle": cle(), "source": "caisse", "id": f[0]["id"], **corps}, **H)
+    assert "pas à recevoir dans votre caisse" in refus(recoit(caisse, {"coupures": {"1000": 2}}))
+    assert "billetage" in refus(recoit(chef, {"coupures": {"1000": 1}}))
+    r = recoit(chef, {"coupures": {"1000": 2}}).json()
+    assert r["statut"] == "validee" and n(s1["id"]) == a1 + 2 and chef.get("/api/caisse/fonds-a-recevoir").json() == []
+    assert net579([o["ecritureId"], r["ecritureId"]]) == 0
     assert "bordereau" in refus(vb({"sessionId": s["id"], "compteBancaireId": cb["id"], "montant": 100000, "cheque": "", "coupures": {"1000": 1}}))
     solde = lambda: next(c for c in caisse.get("/api/caisse/transferts").json()["comptes"] if c["id"] == cb["id"])["solde"]
     avant = solde()
@@ -1128,12 +1139,16 @@ def test_virement_prelevement(clients, journee):
     assert "même devise" in refus({"type": "virement_client", "compteDepotId": ccdf})
     assert "disponible insuffisant" in refus({"type": "prelevement_client", "montant": dispo + 1})
     assert "Donneur d'ordre : à remplir : institution" in refus({"type": "virement_client", "donneurOrdre": {**base["donneurOrdre"], "institution": ""}})
+    assert "Ordre du client" in refus({"type": "prelevement_client", "montant": 1})      # plan d'allègement, point 7.3 ; Code civil, livre III, art. 185, 2°
+    base["ordreClient"] = "Ordre écrit du 05/11/2026"
     assert "Bénéficiaire : à remplir : numéro de compte" in refus({"type": "prelevement_client", "beneficiaire": {"nom": "X"}})
     v = compta.post("/api/banque/virements", {"cle": cle(), **base, "type": "virement_client"}, **H).json()
     assert v["donneurOrdre"]["institution"] == "Rawbank"
     assert (v["statut"], v["compteDepotId"], v["libelle"]) == ("saisie", cusd, "Salaire")
     p = compta.post("/api/banque/virements", {"cle": cle(), **base, "type": "prelevement_client", "montant": dispo}, **H).json()
     assert p["type"] == "prelevement_client"
+    from noyau.bd import une
+    assert une("select ordre_client from operation_banque where id = %s", (p["id"],))["ordre_client"] == "Ordre écrit du 05/11/2026"
     assert "disponible insuffisant" in refus({"type": "prelevement_client", "montant": 1})      # le prélèvement saisi réserve le disponible
 
 
@@ -2750,6 +2765,32 @@ def test_visa_validation_banque(clients, journee):
     assert (v["statut"], v["piece"]) == ("validee", "")
 
 
+def test_fonds_a_recevoir_banque(clients, journee):
+    """Plan d'allègement, point 7.5 : un virement de banque vers caisse, validé dans la file, attend le billetage du caissier du guichet qui reçoit ;
+    D 570 de sa caisse, C 591 (PCCI, compte 59) ; reçu une seule fois"""
+    _, s = journee
+    chef, compta, agent, caisse = clients["chef"], clients["compta"], clients["agent"], clients["caisse"]
+    ids = banque_usd(chef)
+    from noyau.bd import executer, une
+    executer("insert into profil_droit (profil_id, droit_code) select id, 'S57' from profil where code = 'agent_credit' on conflict do nothing")
+    o = compta.post("/api/banque/operations", {"cle": cle(), "date": "2026-11-05", "type": "banque_caisse", "compteBancaireId": ids["R-CDF-1"], "montant": 100000,
+                                               "guichetId": G2()}, **H).json()
+    assert caisse.get("/api/caisse/fonds-a-recevoir").json() == []            # pas avant la validation
+    chef.post(f"/api/banque/visas/{o['id']}/visa", {}, **H); agent.post(f"/api/banque/visas/{o['id']}/validation", {}, **H)
+    f = caisse.get("/api/caisse/fonds-a-recevoir").json()
+    assert [(x["source"], x["id"], x["montant"], x["devise"]) for x in f] == [("banque", o["id"], 100000, "CDF")]
+    n = lambda: caisse.get(f"/api/caisses/{s['id']}/theorique?devise=CDF").json().get("1000", 0)
+    avant = n()
+    assert chef.post("/api/caisse/fonds-a-recevoir", {"cle": cle(), "source": "banque", "id": o["id"], "coupures": {"1000": 1}}, **H).status_code == 422   # pas sa caisse
+    r = caisse.post("/api/caisse/fonds-a-recevoir", {"cle": cle(), "source": "banque", "id": o["id"], "coupures": {"1000": 1}}, **H).json()
+    assert (r["type"], r["statut"], n()) == ("transfert_entree", "validee", avant + 1)
+    assert ident("""select c.numero || l.sens from ligne_ecriture l join compte c on c.id = l.compte_id where l.ecriture_id = %s and c.numero like '59%%'""",
+                 (r["ecritureId"],)) == "59100000C"
+    assert une("select recu_operation_id from operation_banque where id = %s", (o["id"],))["recu_operation_id"] == r["id"]
+    assert caisse.get("/api/caisse/fonds-a-recevoir").json() == []
+    assert caisse.post("/api/caisse/fonds-a-recevoir", {"cle": cle(), "source": "banque", "id": o["id"], "coupures": {"1000": 1}}, **H).status_code == 422
+
+
 def test_operations_en_attente(clients, journee):
     """Plan d'allègement 7.1 : une file ; le nombre pour le menu ; Refuser avec motif, par une autre personne que celle qui a saisi (Instr. BCC 008, art. 66 ;
     registre T138) ; l'opération refusée quitte la file et ne passe pas au grand livre"""
@@ -4333,6 +4374,8 @@ def test_autres_operations(clients, journee):
     def refus(chemin, corps):
         x = compta.post(f"{OC}/{chemin}", corps, **H); assert x.status_code in (403, 422), x.content; return x.json()["message"]
     v = {"cle": cle(), "type": "prelevement", "date": "2026-11-05", "compteDepotId": k["id"], "lignes": [{"compte": "72700000", "libelle": "Commission de tenue", "montant": 5000}]}
+    assert "Ordre du client" in refus("virement", v)      # plan d'allègement, point 7.3 ; Code civil, livre III, art. 185, 2°
+    v["ordreClient"] = "Clause 4 du contrat de compte"
     assert "Type opération" in refus("virement", {**v, "type": ""})
     assert "N° Compte" in refus("virement", {**v, "compteDepotId": None})
     assert "tenu par la gestion" in refus("virement", {**v, "lignes": [{"compte": "57000000", "libelle": "x", "montant": 5}]})

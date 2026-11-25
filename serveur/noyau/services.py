@@ -481,6 +481,8 @@ def saisir_billetage(u: dict, session_id: int, devise: str, compte: dict) -> dic
         raise ErreurMetier("Caisse déjà arrêtée.")
     if une("select 1 from operation where session_caisse_id = %s and statut in ('saisie', 'visee')", (session_id,)):
         raise ErreurMetier("Une opération attend un visa : la faire viser ou refuser avant l'arrêté.")
+    if une("select 1 from operation where session_caisse_id = %s and statut = 'a_recevoir'", (session_id,)):   # plan d'allègement, point 7.5
+        raise ErreurMetier("Des fonds envoyés par une autre caisse attendent d'être reçus : les recevoir avant l'arrêté (Fonds à recevoir).")
     compte = nettoyer(compte)
     controler_coupures(compte, devise)
     th = theorique(session_id, devise)

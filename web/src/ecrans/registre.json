@@ -429,9 +429,9 @@
   },
   {
     "id": "S52",
-    "nom": "Opérations de banque",
-    "acces": "Banque > Opération",
-    "but": "Encaissement et décaissement, virement banque vers caisse, banque vers banque",
+    "nom": "Virements internes de trésorerie",
+    "acces": "Banque > Virements internes de trésorerie",
+    "but": "Virement d'un compte bancaire de l'institution vers une caisse ou un autre compte bancaire ; depuis sa caisse, vers une autre caisse ou la banque ; fonds à recevoir",
     "module": "banque",
     "priorite": "must",
     "chemin": "/banque/s52"
@@ -440,7 +440,7 @@
     "id": "S53",
     "nom": "Virement et prélèvement",
     "acces": "Banque > Virement prélèvement",
-    "but": "Mouvement entre un compte client et une banque",
+    "but": "Mouvement entre un compte client et un compte bancaire de l'institution ou un autre compte comptable",
     "module": "banque",
     "priorite": "must",
     "chemin": "/banque/s53"
@@ -467,12 +467,12 @@
   },
   {
     "id": "S56",
-    "nom": "Adhésion par banque",
-    "acces": "Banque > Adhésion",
-    "but": "Premier dépôt d'adhésion reçu en banque",
-    "module": "banque",
+    "nom": "Adhésion",
+    "acces": "Client > Adhésion",
+    "but": "Adhésion du membre, payée par banque (saisie ici, puis visée et validée) ou en espèces (au guichet)",
+    "module": "clients",
     "priorite": "should",
-    "chemin": "/banque/s56"
+    "chemin": "/clients/s56"
   },
   {
     "id": "S57",
@@ -728,9 +728,9 @@
   },
   {
     "id": "S81",
-    "nom": "Transferts de fonds",
-    "acces": "Caisse > Transferts de fonds",
-    "but": "Mouvements de fonds",
+    "nom": "Virements internes de trésorerie",
+    "acces": "Caisse > Virements internes de trésorerie",
+    "but": "Depuis sa caisse, vers une autre caisse ou la banque ; fonds à recevoir, comptés avec son billetage",
     "module": "caisse",
     "priorite": "must",
     "chemin": "/caisse/s81"
@@ -982,7 +982,7 @@
     "id": "S116",
     "nom": "Autres opérations",
     "acces": "Comptabilité > Saisie > Autres opérations",
-    "but": "Virement et prélèvement, opération diverse (à payer en caisse ou sur compte client), opération déplacée",
+    "but": "Encaissements et décaissements divers, par banque ou par caisse ; opération déplacée",
     "module": "comptabilite",
     "priorite": "must",
     "chemin": "/comptabilite/s116"

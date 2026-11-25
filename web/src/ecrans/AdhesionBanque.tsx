@@ -1,6 +1,9 @@
 // S56 : Banque > Adhésion (manuel Microfina++, p. 64 : écran « Adhésion à la Banque »). Comme l'adhésion au guichet (S73), avec la banque à la place de la caisse :
 // Info Banque (Banque, Compte Banque, Solde). Saisie en attente du visa (S57) ; le compte épargne s'ouvre à la validation (registre S56-1).
+// Plan d'allègement 7.6 : elle rejoint le menu Membre ; « Payée : par banque / en espèces » ; en espèces, l'adhésion s'encaisse au guichet (S73).
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { vers } from "./registre";
 import { api } from "../donnees/api";
 import { aDesParts } from "../lib/vocabulaire";
 import type { Tiers } from "../donnees/types";
@@ -23,6 +26,7 @@ export function AdhesionBanque() {
   const [cle, setCle] = useState(nouvelleCle);
   const [recherche, setRecherche] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
+  const [especes, setEspeces] = useState(false);
   const parts_ = donnees ? aDesParts(donnees.ctx.institution) : true;   // IMF : pas de parts sociales (loi 11/020, art. 14 et 15)
   const nParts = !parts_ ? 0 : /^\d+$/.test(parts.trim()) ? Number(parts.trim()) : 0;
   const mDepot = depot.trim() ? lireMontant(depot) : 0;
@@ -46,6 +50,12 @@ export function AdhesionBanque() {
 
   return (
     <>
+      <div className="ligne-champ" role="radiogroup" aria-label="Payée">
+        <span>Payée :</span>
+        <label className="case"><input type="radio" name="paiement" checked={!especes} onChange={() => setEspeces(false)} /><span>par banque</span></label>
+        <label className="case"><input type="radio" name="paiement" checked={especes} onChange={() => setEspeces(true)} /><span>en espèces</span></label>
+      </div>
+      {especes ? <section className="bloc pile" aria-label="Adhésion payée en espèces"><p>L'adhésion payée en espèces s'encaisse au guichet. <Link to={vers("S73")}>Guichet : adhésion</Link></p></section> : <>
       <h2>Adhésion a la Banque</h2>
       <Formulaire className="bloc pile" label="Adhésion à la banque" envoyer={enregistrer}>
         <div className="entete-ecran">
@@ -99,8 +109,9 @@ export function AdhesionBanque() {
         <Textes sources={["Manuel Microfina++, p. 64 : écran Adhésion a la Banque (N° Client, Intitulé*, Catégorie*, N° compte épargne*, Premier dépôt*, Total, Info Banque, Liste des Frais, Enregistrer, Imprimer, Effacer)",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Même règles que l'adhésion au guichet (S73) : loi 002/2002, art. 21 et 22 (au moins une part, intégralement libérée) ; PCCI, comptes 103 (parts) et 330 (épargne) ; Instr. BCC 37 (ouverture de compte gratuite)",
-          "Chaîne : saisie ici, visée puis validée (Banque > Visa, Validation, S57), validée à la caisse (p. 89 et 104), comptabilisée (S111) ; le compte épargne s'ouvre à la validation"]} />
-      </Formulaire>
+          "Chaîne : saisie ici, visée puis validée (Opérations en attente), validée à la caisse (p. 89 et 104), comptabilisée (S111) ; le compte épargne s'ouvre à la validation",
+          "Plan d'allègement 7.6 : l'adhésion par banque rejoint le menu Membre ; payée en espèces, elle s'encaisse au guichet (S73)"]} />
+      </Formulaire></>}
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif") : [])}
           choisir={(x) => { setT(x); setDepot(enSaisie(x.premierDepot)); setParts("1"); setCle(nouvelleCle()); setRecherche(false); }} fermer={() => setRecherche(false)} />

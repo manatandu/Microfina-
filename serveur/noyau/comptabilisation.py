@@ -5,8 +5,8 @@ Mêmes règles que web/src/donnees/api.ts (comptabilisation). Registre S111-1 à
 grille Date opération, N°Pièce, N° Compte, Débit, Crédit, Référence écriture, Intitulé ; confirmation.
 La comptabilisation passe d'abord les écritures que la Banque laisse en attente, avec leur N° de pièce (registre S111-4) :
 - opérations de banque validées (S52, S53, S56) : encaissement et décaissement divers, virement banque vers banque, virement et prélèvement d'un client,
-  adhésion par banque (le compte épargne s'ouvre alors) ; banque vers caisse : débit du compte 591 de virements internes, la caisse encaisse les fonds
-  par un encaissement divers sur ce compte (S78), pour que son stock de coupures reste juste ;
+  adhésion par banque (le compte épargne s'ouvre alors) ; banque vers caisse : débit du compte 591 de virements internes, le caissier du guichet reçoit
+  les fonds avec son billetage depuis « Fonds à recevoir » (plan d'allègement, point 7.5), pour que son stock de coupures reste juste ;
 - chèques clients encaissés (S59) : débit de la banque, crédit du compte du client ;
 - emprunts bancaires (S61) : mise en place (banque, 533) et remboursements (533, 6020 ou 6021, 60702).
 Puis la journée est fermée : ses écritures deviennent définitives (T13 ; PCCI § 3.4)."""

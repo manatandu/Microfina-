@@ -444,6 +444,8 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       contexte: () => get("/caisse/transferts"),
       caisseVersCaisse: (p: unknown) => post("/caisse/transferts/caisse", p),
       caisseVersBanque: (p: unknown) => post("/caisse/transferts/banque", p),
+      aRecevoir: () => get("/caisse/fonds-a-recevoir"),
+      recevoir: (p: unknown) => post("/caisse/fonds-a-recevoir", p),
     },
     blocages: {
       etat: (compteId: number) => get(`/epargne/blocages?compteId=${compteId}`),
