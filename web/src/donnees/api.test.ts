@@ -11,6 +11,7 @@ const PNG = "data:image/png;base64,iVBORw0KGgo=";
 // A12 : donneur d'ordre et bénéficiaire d'un virement (loi 22/068, art. 57 et 61)
 const PARTIES = { donneurOrdre: { nom: "Entreprise Lukaku SARL", compte: "RAW-0001-USD", identification: "Gombe, avenue du Port 4", institution: "Rawbank" },
   beneficiaire: { nom: "Kalala Mbuyi Josée", compte: "TMB-778-USD" } };
+import { aujourdhui } from "../lib/dates";
 import { graine } from "./graine";
 import type { Representant, Tiers } from "./types";
 import { totalComptage, type Comptage, type Devise } from "@design/montant.js";
@@ -483,7 +484,7 @@ describe("journée de guichet", () => {
   });
 
   it("journal de sécurité (écart E17) : connexions, identifiant inconnu, accès refusés ; droit à attribuer", async () => {
-    const jour = new Date().toISOString().slice(0, 10);
+    const jour = aujourdhui();   // le jour de l'agence, jamais le jour UTC (le journal range les événements au jour de l'agence ; point 11.4)
     await expect(api.session.ouvrir("inconnu")).rejects.toThrow("Identifiant inconnu");
     await connecter("jpmukendi");
     await expect(api.journalSecurite.consulter(jour, jour)).rejects.toThrow("Droit manquant");   // aucun profil de départ n'a SA01

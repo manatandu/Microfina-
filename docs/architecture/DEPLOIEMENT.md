@@ -17,7 +17,7 @@ Région : `europe-west1` (Belgique). Page web et serveur sont sur le même domai
 ## Ce que fait un envoi sur la branche
 
 1. Tests du serveur et de la page web. S'ils échouent, rien n'est publié.
-2. Construction de l'image, puis tâche `likelemba-preparer` : migrations, graine (uniquement si la base est vide), premier mot de passe de `jpmukendi` (uniquement s'il n'en a pas).
+2. Construction de l'image, puis tâche `likelemba-preparer` : migrations, graine (uniquement si la base est vide), premier mot de passe des six comptes de démonstration (`jpmukendi`, `engalula`, `bkasongo`, `stshibanda`, `plumbala`, `gmbuyi`), le même pour tous, uniquement pour un compte qui n'en a pas (demande du porteur du 25/11/2026). Chacun le change ensuite depuis l'icône de clé.
 3. Mise à jour du serveur, puis des pages web.
 4. Contrôle : `/api/session/mode` doit répondre « mot de passe requis ».
 
