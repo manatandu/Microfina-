@@ -536,7 +536,7 @@ def test_connexion_avec_mot_de_passe(clients, settings):
     assert any(u["login"] == "jpmukendi" for u in autre.get("/api/referentiel").json()["utilisateurs"])   # après connexion : noms des rapports
     # Registre T207 : le mot de passe donné par l'administrateur se remplace à la première connexion, avant toute écriture (Instr. BCC 008, art. 16)
     assert autre.get("/api/session").json()["motDePasseAChanger"] is True
-    r = autre.post("/api/tiers/personnes", {}, **H)
+    r = autre.post("/api/credit-referentiels/demarches", {"libelle": "Essai"}, **H)
     assert r.status_code == 403 and "Changez d'abord votre mot de passe" in r.json()["message"]
     changer = lambda corps: autre.post("/api/session/mot-de-passe", corps, **H)
     assert changer({"ancien": "mauvais", "nouveau": "secret-9a", "confirmation": "secret-9a"}).json()["message"] == "Mot de passe actuel incorrect."
