@@ -412,7 +412,7 @@ Demande du porteur, 23/11/2026 (registre T128, T129). Ce lot se fait avant le lo
 Sortent du Paramétrage : le référentiel du budget (vers Budget), les fonds propres prudentiels (vers les normes), le cours du jour (vers la journée du jour).
 
 **8.9 Profils de départ d'une COOPEC (S03, S04).** Les profils de départ suivent l'organigramme courant d'une COOPEC. Trois s'ajoutent :
-- RAF : supervise sans saisir. Il valide les opérations en attente (S114), donne le visa du service financier (S90) et suit la balance, les états financiers, les indicateurs et normes, le budget et la clôture (S121 à S127).
+- RAF ou DAF, un seul profil : c'est le même rôle, le nom suit la politique de l'institution (décision du porteur, 25/11/2026). Il part sous le nom RESPONSABLE ADMINISTRATIF ET FINANCIER, que l'institution renomme dans Profils et droits sans toucher à ses droits (registre S03-1). Il supervise sans saisir. Il valide les opérations en attente (S114), donne le visa du service financier (S90) et suit la balance, les états financiers, les indicateurs et normes, le budget et la clôture (S121 à S127).
 - Responsable des opérations : supervise le crédit et l'épargne, sans saisir ni décider.
 - Agent de recouvrement : tient les démarches de recouvrement (6.17), le contentieux (SL01) et la balance âgée (S99).
 
@@ -506,7 +506,6 @@ Elles se posent au début du lot concerné. Aucune n'a de réponse dans les text
 - 6.10 Le taux actuariel reste-t-il à l'écran « pour information » ?
 - 7.2 Tout mouvement saisi hors guichet passe-t-il par la file des opérations en attente, ou au-delà d'un seuil ?
 - 7.16 « Visé » et « Certifié » : par chéquier ou chèque par chèque ?
-- 8.9 RAF ou DAF : quel nom pour le profil ?
 - 9.3 Personnel et Immobilisations dans la barre, page des modules supprimée (change S02-2 et S02-3) ?
 - 9.4 Liaison du budget aux opérations : la brancher ou la supprimer ?
 - 9.5 Calcul de la paie : à construire, ou le module reste-t-il fiche du personnel et retenues ?
