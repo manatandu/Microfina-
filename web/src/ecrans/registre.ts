@@ -22,7 +22,6 @@ export interface Menu { id: string; libelle: string; groupes: { titre: string; e
 /** Barre de menus du module principal, dans l'ordre du manuel (figure 10 et p. 13) */
 const BARRE_PRINCIPALE: { id: string; libelle: string; ecrans: (e: Ecran) => boolean }[] = [
   { id: "clients", libelle: "Client", ecrans: (e) => e.module === "clients" && !e.acces.startsWith("Conformité") },
-  { id: "conformite", libelle: "Conformité", ecrans: (e) => e.acces.startsWith("Conformité") },   // plan d'allègement, point 3.16
   { id: "parts", libelle: "Part sociale", ecrans: (e) => e.id === "S77" },
   { id: "banque", libelle: "Banque", ecrans: (e) => e.module === "banque" },
   { id: "epargne", libelle: "Épargne", ecrans: (e) => e.module === "epargne" },
@@ -30,6 +29,7 @@ const BARRE_PRINCIPALE: { id: string; libelle: string; ecrans: (e: Ecran) => boo
   { id: "credit", libelle: "Crédit", ecrans: (e) => e.module === "credit" },
   { id: "comptabilite", libelle: "Comptabilité", ecrans: (e) => e.module === "comptabilite" },
   { id: "budget", libelle: "Budget", ecrans: (e) => e.acces.startsWith("Budget") },
+  { id: "conformite", libelle: "Conformité", ecrans: (e) => e.acces.startsWith("Conformité") },   // plan d'allègement, point 3.16 ; entre Budget et Paramétrage (demande du porteur du 25/11/2026)
   { id: "parametrage", libelle: "Paramétrage", ecrans: (e) => e.module === "parametrage" },
   { id: "administration", libelle: "Administration", ecrans: (e) => e.module === "administration" && e.id !== "S01" && e.id !== "S02" },
 ];

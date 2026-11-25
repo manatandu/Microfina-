@@ -16,6 +16,8 @@ export const ICONES: Record<string, ReactNode> = {
   banque: <T><path d="M3 9l9-5 9 5" /><path d="M5 9v9M10 9v9M14 9v9M19 9v9M3 20h18" /></T>,
   comptabilite: <T><path d="M5 3h11l3 3v15H5z" /><path d="M9 9h6M9 13h6M9 17h3" /></T>,
   budget: <T><path d="M12 3a9 9 0 1 0 9 9h-9z" /><path d="M15 3.5A9 9 0 0 1 20.5 9H15z" /></T>,
+  // Conformité : une balance (lutte anti-blanchiment, plaintes, déclarations ; demande du porteur du 25/11/2026)
+  conformite: <T><path d="M12 4v16M8 20h8M4 7h16" /><circle cx="12" cy="4" r="1" /><path d="M4 7l-2.5 6h5zM20 7l-2.5 6h5z" /><path d="M1.5 13a2.5 2.5 0 0 0 5 0M17.5 13a2.5 2.5 0 0 0 5 0" /></T>,
   immobilisations: <T><path d="M4 21V5l8-3v19M12 9h8v12M8 8h.01M8 12h.01M8 16h.01M16 13h.01M16 17h.01M2 21h20" /></T>,
   paie: <T><rect x="3" y="7" width="18" height="13" rx="2" /><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18" /></T>,
   parametrage: <T><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="18" cy="18" r="2" /></T>,
