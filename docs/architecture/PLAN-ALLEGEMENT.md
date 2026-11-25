@@ -11,6 +11,7 @@ Rien de ce plan n'est appliqué avant l'accord du porteur. On corrige lot par lo
 - Les 346 constats des revues ont été dédoublonnés et regroupés ici. Quand deux revues proposaient deux solutions, le plan en retient une et le dit.
 - Les défauts graves ont été revérifiés dans le code ; ils portent la mention « vérifié dans le code ».
 - Les limites déjà notées dans `LIMITES-MICROFINA.md` sont reprises à leur place.
+- Deux points (6.17, 8.9) viennent des documents d'une COOPEC lus le 25/11/2026, à la demande du porteur. Seule leur structure est reprise, ni nom ni chiffre de l'institution.
 
 ## Ce qui ne change pas
 
@@ -327,6 +328,8 @@ Textes : Instr. BCC 008, art. 66 ; loi 002/2002, art. 41 à 43 et Instr. BCC 007
 
 **6.16 Menu Crédit, dans l'ordre de la vie du crédit.** Simulation, Analyse, Demande, Portefeuille (vérifier, décider, viser), Déblocage, Remboursement, Garanties, Prorogation et contentieux, Liste rouge, Affectation, Balance âgée et provisions, Engagements par signature, Rapports.
 
+**6.17 Suivi du recouvrement (S99, SL01).** Aujourd'hui, le logiciel classe et provisionne les crédits en retard (S99) et ouvre un contentieux (SL01), mais ne garde aucune trace des démarches faites entre le premier retard et le contentieux. Après : sur le crédit en retard, chaque démarche se note avec sa date, sa nature, son auteur et son issue. Natures de départ, dans une liste que l'institution complète : visite, lettre de rappel, convocation, mise en demeure, transfert à l'agent de recouvrement, saisine de l'avocat. La liste des crédits en retard montre la dernière démarche et le nombre de jours depuis : la commission de crédit y vérifie que les démarches sont lancées. Texte : Instr. BCC 007, art. 33 (la commission vérifie le niveau des crédits en retard et s'assure du déclenchement des démarches de recouvrement). Origine : documents d'une COOPEC lus le 25/11/2026, demande du porteur.
+
 ## Lot 10. Plan des comptes : un compte pour chaque compte du membre et pour chaque opération
 
 Demande du porteur, 23/11/2026 (registre T128, T129). Ce lot se fait avant le lot 7 : toutes les écritures automatiques en dépendent.
@@ -407,6 +410,13 @@ Demande du porteur, 23/11/2026 (registre T128, T129). Ce lot se fait avant le lo
 5. Agents et zones.
 
 Sortent du Paramétrage : le référentiel du budget (vers Budget), les fonds propres prudentiels (vers les normes), le cours du jour (vers la journée du jour).
+
+**8.9 Profils de départ d'une COOPEC (S03, S04).** Les profils de départ suivent l'organigramme courant d'une COOPEC. Trois s'ajoutent :
+- RAF : supervise sans saisir. Il valide les opérations en attente (S114), donne le visa du service financier (S90) et suit la balance, les états financiers, les indicateurs et normes, le budget et la clôture (S121 à S127).
+- Responsable des opérations : supervise le crédit et l'épargne, sans saisir ni décider.
+- Agent de recouvrement : tient les démarches de recouvrement (6.17), le contentieux (SL01) et la balance âgée (S99).
+
+Les droits de chacun sont confrontés à l'Instr. BCC 008, art. 66 : l'avertissement de 8.2 ne s'affiche pour aucun. Origine : documents d'une COOPEC lus le 25/11/2026, demande du porteur.
 
 ## Lot 9. Budget, personnel, immobilisations, menu Autres
 
@@ -496,6 +506,7 @@ Elles se posent au début du lot concerné. Aucune n'a de réponse dans les text
 - 6.10 Le taux actuariel reste-t-il à l'écran « pour information » ?
 - 7.2 Tout mouvement saisi hors guichet passe-t-il par la file des opérations en attente, ou au-delà d'un seuil ?
 - 7.16 « Visé » et « Certifié » : par chéquier ou chèque par chèque ?
+- 8.9 RAF ou DAF : quel nom pour le profil ?
 - 9.3 Personnel et Immobilisations dans la barre, page des modules supprimée (change S02-2 et S02-3) ?
 - 9.4 Liaison du budget aux opérations : la brancher ou la supprimer ?
 - 9.5 Calcul de la paie : à construire, ou le module reste-t-il fiche du personnel et retenues ?
