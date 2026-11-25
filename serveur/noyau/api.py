@@ -736,6 +736,18 @@ def litigieux_credits(request, tid: int):
     return lt.credits_du_client(u(request), tid)
 
 
+@api.get("/credit/litigieux/retards")
+def litigieux_retards(request):
+    from . import litigieux as lt
+    return lt.retards(u(request))
+
+
+@api.post("/credit/litigieux/{cid}/demarche")
+def litigieux_demarche(request, cid: int, corps: dict = Body(...)):
+    from . import litigieux as lt
+    return lt.noter_demarche(u(request), cid, corps)
+
+
 @api.get("/credit/litigieux/{cid}")
 def litigieux_situation(request, cid: int):
     from . import litigieux as lt

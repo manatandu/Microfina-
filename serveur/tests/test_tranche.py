@@ -2027,6 +2027,18 @@ def test_profil_chef_comptable(clients):
                     where p.code = 'chef_comptable' group by p.nom""") == "CHEF COMPTABLE S114"
 
 
+def test_profils_coopec(clients):
+    """Plan d'allègement, point 8.9 : RAF, responsable des opérations, agent de recouvrement ; aucun ne saisit ce qu'il valide (Instr. BCC 008, art. 66)"""
+    from noyau.bd import lignes
+    droits = {r["code"]: set(r["d"].split(",")) for r in lignes("""select p.code, string_agg(d.droit_code, ',') as d from profil p
+              join profil_droit d on d.profil_id = p.id where p.code in ('raf', 'responsable_operations', 'agent_recouvrement') group by p.code""")}
+    assert droits["raf"] == {"S114", "S90", "S93", "S121", "S122", "S123", "S124", "S125", "S126", "S127"}
+    assert {"S87", "S93", "S101"} <= droits["responsable_operations"] and not {"S86", "S88", "S105", "S106"} & droits["responsable_operations"]
+    assert droits["agent_recouvrement"] == {"SL01", "S93", "S95"}
+    saisies = {"S52", "S53", "S56", "S107", "S109", "S116", "S117", "SE03", "S74"}
+    assert not any(saisies & d for d in droits.values())
+
+
 def test_differee_refus(clients, journee):
     """Plan d'allègement, point 7.2 : un déblocage saisi hors guichet attend dans la file ; refusé avec motif par une autre personne, il ne se passe pas ;
     le crédit peut être saisi de nouveau"""
@@ -2608,7 +2620,8 @@ def test_profils(clients):
     les quatre profils de départ gardent leur code (registre T07, S03-1, S03-2)"""
     chef, agent = clients["chef"], clients["agent"]; connecter(chef, "gmbuyi"); connecter(agent, "bkasongo")
     l = chef.get("/api/profils", **H).json()["profils"]
-    assert [p["nom"] for p in l] == ["ADMINISTRATEUR SÉCURITÉ", "AGENT DE CRÉDIT", "CAISSIER", "CHEF COMPTABLE", "CHEF D'AGENCE", "COMPTABLE"]   # chef comptable : registre T203
+    assert [p["nom"] for p in l] == ["ADMINISTRATEUR SÉCURITÉ", "AGENT DE CRÉDIT", "AGENT DE RECOUVREMENT", "CAISSIER", "CHEF COMPTABLE", "CHEF D'AGENCE", "COMPTABLE",
+                                       "RESPONSABLE ADMINISTRATIF ET FINANCIER", "RESPONSABLE DES OPÉRATIONS"]   # registre T203 ; plan 8.9
     def refus(url, corps):
         r = chef.post(url, corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
     assert agent.post("/api/profils", {"nom": "AUDITEUR"}, **H).status_code == 403
@@ -4145,6 +4158,37 @@ def test_centrale_risques(clients, journee):
     assert "déjà déclaré" in refus({"evenements": ev[:1], "date": "2026-11-05", "reference": "CR-2"})
     assert chef.get("/api/conformite/centrale-risques?du=2026-11-01&au=2026-11-05&statut=a_declarer", **H).json() == []
     assert caisse.get("/api/conformite/centrale-risques?du=2026-11-01&au=2026-11-05", **H).status_code == 403
+
+
+def test_recouvrement(clients, journee):
+    """Plan d'allègement, point 6.17 : démarches de recouvrement sur un crédit en retard, liste des crédits en retard avec la dernière démarche ; la commission
+    de crédit s'assure du déclenchement des démarches de recouvrement (Instr. BCC 007, art. 33 ; registre T206)"""
+    from django.db import connection
+    agent, caisse, chef = clients["agent"], clients["caisse"], clients["chef"]
+    cid = credit_debloque(clients, journee)
+    s = agent.get(f"/api/credit/litigieux/{cid}", **H).json()
+    nat = {n["libelle"]: n["id"] for n in s["natures"]}
+    assert list(nat) == ["Visite", "Lettre de rappel", "Convocation", "Mise en demeure", "Transfert à l'agent de recouvrement", "Saisine de l'avocat"]
+    assert s["demarches"] == []
+    refus = lambda corps: agent.post(f"/api/credit/litigieux/{cid}/demarche", corps, **H).json()["message"]
+    assert "pas en retard" in refus({"natureId": nat["Visite"], "date": "2026-11-05"})
+    assert all(r["id"] != cid for r in agent.get("/api/credit/litigieux/retards", **H).json())
+    with connection.cursor() as cur:            # dix jours de retard sur la première échéance
+        cur.execute("update echeance set date_due = (date_due - ((select min(date_due) from echeance where credit_id = %s) - date '2026-11-05' + 10) * interval '1 day')::date where credit_id = %s", (cid, cid))
+    assert "Démarche" in refus({"date": "2026-11-05"})
+    assert "Date de la démarche" in refus({"natureId": nat["Visite"], "date": ""})
+    assert "pas après" in refus({"natureId": nat["Visite"], "date": "2026-11-06"})
+    assert caisse.post(f"/api/credit/litigieux/{cid}/demarche", {"natureId": nat["Visite"], "date": "2026-11-03"}, **H).status_code == 403   # sans le droit SL01
+    r = agent.post(f"/api/credit/litigieux/{cid}/demarche", {"natureId": nat["Visite"], "date": "2026-11-03", "issue": "Client absent"}, **H)
+    assert r.status_code == 200, r.content
+    r = agent.post(f"/api/credit/litigieux/{cid}/demarche", {"natureId": nat["Lettre de rappel"], "date": "2026-11-04"}, **H).json()
+    assert [(d["date"], d["nature"], d["issue"]) for d in r["demarches"]] == [("2026-11-04", "Lettre de rappel", ""), ("2026-11-03", "Visite", "Client absent")]
+    assert r["demarches"][0]["par"] == "Bijou Kasongo"
+    l = [x for x in chef.get("/api/credit/litigieux/retards", **H).json() if x["id"] == cid][0]
+    assert (l["joursRetard"], l["derniereDemarche"], l["derniereLe"], l["joursDepuis"]) == (10, "Lettre de rappel", "2026-11-04", 1)
+    # L'institution complète la liste des natures dans le référentiel du crédit (S21)
+    assert chef.post("/api/credit-referentiels/demarches", {"libelle": "Appel téléphonique"}, **H).status_code == 200
+    assert "Appel téléphonique" in [n["libelle"] for n in agent.get(f"/api/credit/litigieux/{cid}", **H).json()["natures"]]
 
 
 def test_credits_litigieux(clients, journee):

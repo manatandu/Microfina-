@@ -144,6 +144,7 @@ Note : l'art. 14 associe les pondérations à des niveaux de risque dans l'ordre
 | Instr. 003, art. 2 à 13 | Classement sain, impayé, douteux, contentieux, irrécupérable ; contagion ; une prorogation ; pas de crédit pour rembourser un retard ; provisions mensuelles 5 à 100 % ; perte au 31/12 ; intérêts des litigieux en hors bilan | Demande, balance âgée, déclassement et provisions | registre CR-15 à CR-19 | lu |
 | Instr. 004, annexe | Ratios et normes de performance | Rapports crédit | Indicateur de gestion (S101) : onze ratios, numérateur, dénominateur, norme ; sans le ×100 pour les emprunteurs par agent (S101-10) | en place |
 | Instr. 007, art. 32 et 33 ; loi 002/2002, art. 41 à 43 | Commission de crédit COOPEC : trois membres, unanimité, recours au Conseil | Visas | registre CR-4 | lu |
+| Instr. 007, art. 33 | La commission vérifie le niveau des crédits en retard et s'assure du déclenchement des démarches de recouvrement | Prorogation et contentieux (SL01) | Crédits en retard avec la dernière démarche ; démarches notées sur le crédit (registre T206) | en place |
 | Instr. 13, art. 7 | Mise à l'index : plus de crédit, dirigeants et associés compris | Liste rouge, approbation | registre CR-9, CR-25 | lu |
 | Instr. 51 | Apparentés : accord préalable du Conseil, conditions de marché, plafond 20 % | Fiche client, approbation | registre CR-3 | lu |
 | Loi 002/2002, art. 24 | Pas de démission d'un membre emprunteur ou caution | Résiliation de membre | registre CR-23 | lu |

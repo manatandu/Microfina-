@@ -1,10 +1,11 @@
 // Écart E27 (docs/reglementaire/ECARTS-2026-11-15.md) : Crédit > Prorogation et contentieux. Écran imposé par les textes, absent de Microfina++.
 // Instr. BCC 003 : art. 5 (prorogation à la demande du client, une seule fois), art. 8 (contentieux : résolution à l'amiable ou en justice d'une créance
 // impayée), art. 12 (prorogé provisionné à compter de l'échéancier initial). Registre CR-16b, E27-1 à E27-5. Gabarit guichet : Infos client, Infos crédit.
+// Plan d'allègement, point 6.17 : liste des crédits en retard avec la dernière démarche, démarches de recouvrement notées sur le crédit (Instr. BCC 007, art. 33).
 import { useState } from "react";
 import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
-import { message } from "../lib/useDonnees";
+import { message, useDonnees } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { montant, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
@@ -12,6 +13,7 @@ import { RechercheClient } from "./Visa";
 
 type Situation = Awaited<ReturnType<typeof api.litigieux.situation>>;
 type Credit = Awaited<ReturnType<typeof api.litigieux.creditsDuClient>>[number];
+type Retard = Awaited<ReturnType<typeof api.litigieux.retards>>[number];
 
 export default function Litigieux() {
   const [client, setClient] = useState<{ numero: string; nom: string } | null>(null);
@@ -19,6 +21,9 @@ export default function Litigieux() {
   const [s, setS] = useState<Situation | null>(null);
   const [pr, setPr] = useState({ demandeLe: "", mois: "", motif: "" });
   const [ct, setCt] = useState({ type: "", reference: "", observation: "", issue: "" });
+  const [dm, setDm] = useState({ date: "", natureId: "", issue: "" });
+  const [relu, setRelu] = useState(0);
+  const retards = useDonnees(() => api.litigieux.retards(), [relu]);
   const [recherche, setRecherche] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
   const erreur = (x: unknown) => setBoite({ type: "erreur", message: message(x) });
@@ -27,18 +32,38 @@ export default function Litigieux() {
     try { const l = await api.litigieux.creditsDuClient(t.id); setCredits(l); if (l.length === 1) setS(await api.litigieux.situation(l[0]!.id)); } catch (x) { erreur(x); }
   }
   async function choisirCredit(id: string) { setS(null); if (id) try { setS(await api.litigieux.situation(Number(id))); } catch (x) { erreur(x); } }
+  async function choisirRetard(r: Retard) {
+    setClient({ numero: r.membre, nom: r.client });
+    try { setCredits(await api.litigieux.creditsDuClient(r.tiersId)); setS(await api.litigieux.situation(r.id)); } catch (x) { erreur(x); }
+  }
   function agir(question: string, f: () => Promise<Situation>) {
     setBoite({ type: "confirmation", message: question, oui: async () => {
-      try { setS(await f()); setPr({ demandeLe: "", mois: "", motif: "" }); setCt({ type: "", reference: "", observation: "", issue: "" }); setBoite({ type: "succes", message: "Opération effectuée avec succès !" }); }
+      try {
+        setS(await f()); setPr({ demandeLe: "", mois: "", motif: "" }); setCt({ type: "", reference: "", observation: "", issue: "" }); setDm({ date: "", natureId: "", issue: "" });
+        setRelu((x) => x + 1); setBoite({ type: "succes", message: "Opération effectuée avec succès !" });
+      }
       catch (x) { erreur(x); }
     } });
   }
   const dv = (s?.devise ?? "CDF") as Devise;
   const ouvert = s?.contentieux.find((x) => !x.closLe);
   const contentieuxPossible = !!s && (s.joursRetard > 0 || s.contentieux.length > 0);   // Instr. BCC 003, art. 8
+  const demarchePossible = !!s && (s.joursRetard > 0 || !!ouvert || s.demarches.length > 0);   // plan d'allègement, point 6.17
   return (
     <>
       
+      <section className="bloc pile" aria-label="Crédits en retard">
+        <h3>Crédits en retard</h3>
+        <div className="defile-x"><table className="grille">
+          <thead><tr><th scope="col">N° crédit</th><th scope="col">Client</th><th scope="col">Jours de retard</th><th scope="col">Capital restant</th>
+            <th scope="col">Dernière démarche</th><th scope="col">Le</th><th scope="col">Jours depuis</th></tr></thead>
+          <tbody>{(retards.donnees ?? []).length === 0 && <tr><td colSpan={7}>{retards.erreur ?? "Aucune ligne."}</td></tr>}
+            {(retards.donnees ?? []).map((r) => <tr key={r.id} aria-selected={s?.id === r.id}>
+              <td className="code"><button className="bouton discret" type="button" onClick={() => void choisirRetard(r)}>{r.numero}</button></td><td>{r.client}</td>
+              <td className="chiffres">{r.joursRetard}</td><td className="chiffres">{montant(r.capitalRestant, r.devise as Devise)}</td>
+              <td>{r.derniereDemarche}</td><td className="chiffres">{fr(r.derniereLe)}</td><td className="chiffres">{r.joursDepuis ?? ""}</td></tr>)}</tbody>
+        </table></div>
+      </section>
       <section className="bloc pile" aria-label="Prorogation et contentieux">
         <fieldset className="cadre-champs formulaire"><legend>Infos client</legend>
           <div className="ligne-champ"><Champ libelle="N° Client:">{(p) => <input {...p} className="saisie code" readOnly value={client?.numero ?? ""} />}</Champ>
@@ -91,6 +116,21 @@ export default function Litigieux() {
             : <button className="bouton" type="button" disabled={!s} onClick={() => agir("Voulez-vous vraiment ouvrir un dossier contentieux pour ce crédit ?",
               () => api.litigieux.ouvrirContentieux(s!.id, { type: ct.type, reference: ct.reference, observation: ct.observation }))}>Ouvrir le dossier</button>}
         </div></>}
+        {demarchePossible && <><fieldset className="cadre-champs formulaire"><legend>Démarches de recouvrement</legend>
+          <ChampDate libelle="Date de la démarche: *" valeur={dm.date} onChange={(v) => setDm({ ...dm, date: v })} />
+          <Champ libelle="Démarche: *">{(p) => <select {...p} className="saisie" value={dm.natureId} onChange={(e) => setDm({ ...dm, natureId: e.target.value })}>
+            <option value=""></option>{(s?.natures ?? []).map((n) => <option key={n.id} value={n.id}>{n.libelle}</option>)}</select>}</Champ>
+          <Champ libelle="Issue:">{(p) => <textarea {...p} className="saisie" rows={2} value={dm.issue} onChange={(e) => setDm({ ...dm, issue: e.target.value })} />}</Champ>
+        </fieldset>
+        <div className="actions-onglets">
+          <button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment enregistrer ?",
+            () => api.litigieux.noterDemarche(s!.id, { natureId: dm.natureId ? Number(dm.natureId) : null, date: dm.date, issue: dm.issue }))}>Noter la démarche</button>
+        </div>
+        <div className="defile-x"><table className="grille">
+          <thead><tr><th scope="col">Date</th><th scope="col">Démarche</th><th scope="col">Issue</th><th scope="col">Par</th></tr></thead>
+          <tbody>{(s?.demarches ?? []).length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
+            {(s?.demarches ?? []).map((x) => <tr key={x.id}><td className="chiffres">{fr(x.date)}</td><td>{x.nature}</td><td>{x.issue}</td><td>{x.par}</td></tr>)}</tbody>
+        </table></div></>}
         <div className="defile-x"><table className="grille">
           <thead><tr><th scope="col">Type de résolution</th><th scope="col">Référence</th><th scope="col">Ouvert le</th><th scope="col">Clos le</th><th scope="col">Issue</th></tr></thead>
           <tbody>{(s?.contentieux ?? []).length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
@@ -98,6 +138,7 @@ export default function Litigieux() {
         </table></div>
         <Textes sources={["Instr. BCC 003, art. 5 : crédit prorogé = échéances modifiées à la demande du membre ou client, avant ou après l'échéance ; une seule prorogation ; art. 12 : provisionné comme un crédit litigieux à compter de son échéancier initial",
           "Instr. BCC 003, art. 8 : crédit contentieux = créance impayée dont le dossier fait l'objet d'une résolution à l'amiable ou en justice",
+          "Instr. BCC 007, art. 33 : la commission de crédit vérifie le niveau des crédits en retard et s'assure du déclenchement des démarches de recouvrement (plan d'allègement, point 6.17)",
           "Registre CR-16b, E27-1 à E27-5 : la prorogation reporte les échéances pas encore soldées du nombre de mois demandé, sans changer leurs montants ; le dossier contentieux se clôt seul quand le crédit est remboursé ; les deux se déclarent à la Centrale des risques"]} />
       </section>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>

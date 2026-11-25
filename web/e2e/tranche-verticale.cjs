@@ -832,7 +832,8 @@ const OUT = process.argv[2];
   await p.getByLabel('Référence : *').fill('CR-2026-0001'); await p.getByRole('dialog', { name: 'Déclaration à la Centrale des risques' }).getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('cell', { name: 'Aucune ligne.' }).waitFor();
   // Prorogation et contentieux (écart E27, Instr. BCC 003, art. 5 et 8) : le crédit de Kalala est prorogé d'un mois, une seule fois
-  await aller('/credit/sl01'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
+  await aller('/credit/sl01'); await p.getByRole('heading', { name: 'Crédits en retard' }).waitFor();   // plan d'allègement, point 6.17
+  await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rLit = p.getByRole('dialog', { name: "Recherche d'un client" }); await rLit.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rLit.getByRole('row').filter({ hasText: 'Kalala' }).first().click();
   await p.getByLabel('Report (mois): *').waitFor(); await p.getByText('1 000 000,00 CDF').first().waitFor();
   await p.getByLabel('Demande du client le: *').fill('05/11/2026'); await p.getByLabel('Report (mois): *').fill('1'); await p.getByLabel('Motif: *').fill('Stock détruit par un incendie');

@@ -15,6 +15,7 @@ const SOURCES: Record<string, string> = {
   periodicites: "Manuel Microfina++, p. 35 : Périodicité, grille Libelle, Code, Denominateur, Contante, Unité, Exporter",
   types_assurance: "Manuel Microfina++, p. 36 : Type assurance, Code Type Assurance*, Libellé Type Assurance*, Enregistrer, Annuler, Exporter",
   assureurs: "Manuel Microfina++, p. 36 : Assureur crédit, Info générale (Nom Assureur*, Type Assurance*, Compte Assureur), Données D'adresse",
+  demarches: "Plan d'allègement, point 6.17 ; Instr. BCC 007, art. 33 : la commission de crédit vérifie le niveau des crédits en retard et s'assure du déclenchement des démarches de recouvrement",
   gestionnaires: "Manuel Microfina++, p. 36 : Agent de crédit, Code*, Utilisateur, Montant de, à, Durée de, Au, Actif, Nom prénom*, Portefeuille, Adresse",
 };
 
@@ -26,6 +27,7 @@ const ONGLETS: { cle: string; menu: string; pages: string[] }[] = [
   { cle: "assurance", menu: "Assurance", pages: ["types_assurance", "assureurs"] },
   { cle: "regles", menu: "Règles du crédit", pages: ["degres", "termes", "periodicites"] },
   { cle: "cycles", menu: "Cycle", pages: ["cycles"] },
+  { cle: "recouvrement", menu: "Recouvrement", pages: ["demarches"] },   // plan d'allègement, point 6.17
 ];
 export default function CreditGeneral() {
   const [params, setParams] = useSearchParams();

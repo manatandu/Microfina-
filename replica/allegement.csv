@@ -126,7 +126,7 @@ id,lot,titre,ecrans,statut,question,reste
 6.14,6,Autres écrans du crédit,S96 S97 S100 SL01,fait,,
 6.15,6,Rapports crédit,S101,partiel,"Le renvoi retirerait les indicateurs à l'agent de crédit : il tient S101 mais pas « Indicateurs et normes » (S123). Renvoyer quand même, ou garder l'onglet pour celui qui n'a pas S123 ?","Question au porteur : le renvoi vers « Indicateurs et normes » (7.9, fait) retirerait les indicateurs à l'agent de crédit, qui n'a pas le droit S123."
 6.16,6,"Menu Crédit, dans l'ordre de la vie du crédit",,fait,,
-6.17,6,Suivi du recouvrement,S99 SL01,à faire,,"Démarches de recouvrement notées sur le crédit en retard (Instr. BCC 007, art. 33) : rien n'est construit."
+6.17,6,Suivi du recouvrement,S21 SL01,fait,,
 10.1,10,Seuls les comptes de l'institution reçoivent des écritures,S102,fait,,
 10.2,10,"Comptes au plan par produit et catégorie, membre en auxiliaire",S63 S65 S102,fait,,
 10.3,10,Parts sociales : comptes collectifs,S37 S102,fait,,
@@ -160,7 +160,7 @@ id,lot,titre,ecrans,statut,question,reste
 8.6,8,Exercices,S11 S11b S11c S30,fait,,
 8.7,8,Journaux,S30 S115,fait,,
 8.8,8,Paramétrage,,fait,,
-8.9,8,Profils de départ d'une COOPEC,S03 S04,à faire,,"Trois profils à ajouter (RAF, responsable des opérations, agent de recouvrement) : rien n'est construit."
+8.9,8,Profils de départ d'une COOPEC,S03 S04,fait,,
 9.1,9,Menu Autres supprimé,,fait,,
 9.2,9,Clôture,S127,fait,,
 9.3,9,Personnel et immobilisations : la page des modules reste,S02,fait,,

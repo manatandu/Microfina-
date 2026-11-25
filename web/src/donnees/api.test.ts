@@ -1990,7 +1990,8 @@ describe("journée de guichet", () => {
   it("profils (S03, p. 15) : Nom Droit obligatoire, unique ; Modifier, Supprimer refusé tant qu'un utilisateur le porte", async () => {
     await connecter("gmbuyi");
     const l = (await api.profils.lire()).profils;
-    expect(l.map((p) => p.nom)).toEqual(["ADMINISTRATEUR SÉCURITÉ", "AGENT DE CRÉDIT", "CAISSIER", "CHEF COMPTABLE", "CHEF D'AGENCE", "COMPTABLE"]);   // chef comptable : registre T203
+    expect(l.map((p) => p.nom)).toEqual(["ADMINISTRATEUR SÉCURITÉ", "AGENT DE CRÉDIT", "AGENT DE RECOUVREMENT", "CAISSIER", "CHEF COMPTABLE", "CHEF D'AGENCE", "COMPTABLE",
+      "RESPONSABLE ADMINISTRATIF ET FINANCIER", "RESPONSABLE DES OPÉRATIONS"]);   // registre T203 ; plan 8.9
     await expect(api.profils.enregistrer({ nom: " " })).rejects.toThrow("Nom Droit");
     await expect(api.profils.enregistrer({ nom: "caissier" })).rejects.toThrow("existe déjà");
     const a = (await api.profils.enregistrer({ nom: "AUDITEUR", description: "PROFIL DES AUDITEURS" })).profils.find((p) => p.nom === "AUDITEUR")!;
@@ -2777,6 +2778,30 @@ describe("journée de guichet", () => {
     const pr = ctx.provinces.find((x) => x.nom === "Kinshasa")!.id, vi = ctx.villes.find((x) => x.provinceId === pr)!.id;
     const e = { nbHommes: 0, nbFemmes: 1, montantHommes: 0, montantFemmes: 100000000, nbGroupes: 0 };
     await expect(api.dossiers.demander({ produitId: c.produitId, tiersId: 1, duree: 12, provinceId: pr, villeId: vi, ...e, ressaisie: e, consentementLe: "2026-11-01", consentementRef: "CR-1" })).rejects.toThrow("en retard de 10 jours");   // comme le serveur
+  });
+
+  it("suivi du recouvrement (plan d'allègement, point 6.17 ; Instr. BCC 007, art. 33) : démarches sur un crédit en retard, liste des crédits en retard", async () => {
+    const cid = await creditDebloque();
+    const j = (await api.journees.courante())!.date;
+    const c = _etat().credits.find((x) => x.id === cid)!;
+    await connecter("bkasongo");
+    const s = await api.litigieux.situation(cid);
+    const nat = Object.fromEntries(s.natures.map((n) => [n.libelle, n.id]));
+    expect(Object.keys(nat)).toEqual(["Visite", "Lettre de rappel", "Convocation", "Mise en demeure", "Transfert à l'agent de recouvrement", "Saisine de l'avocat"]);
+    await expect(api.litigieux.noterDemarche(cid, { natureId: nat.Visite, date: j })).rejects.toThrow("pas en retard");
+    expect((await api.litigieux.retards()).some((r) => r.id === cid)).toBe(false);
+    const ecart = Math.round((Date.parse(`${c.echeancier[0]!.date}T00:00:00Z`) - Date.parse(`${j}T00:00:00Z`)) / 86400000) + 10;
+    for (const e of c.echeancier) e.date = new Date(Date.parse(`${e.date}T00:00:00Z`) - ecart * 86400000).toISOString().slice(0, 10);
+    await expect(api.litigieux.noterDemarche(cid, { date: j })).rejects.toThrow("Démarche");
+    await expect(api.litigieux.noterDemarche(cid, { natureId: nat.Visite, date: "" })).rejects.toThrow("Date de la démarche");
+    await expect(api.litigieux.noterDemarche(cid, { natureId: nat.Visite, date: "2099-01-01" })).rejects.toThrow("pas après");
+    const veille = new Date(Date.parse(`${j}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
+    await api.litigieux.noterDemarche(cid, { natureId: nat.Visite, date: veille, issue: " Client absent " });
+    const r = await api.litigieux.noterDemarche(cid, { natureId: nat["Lettre de rappel"], date: j });
+    expect(r.demarches.map((d) => [d.date, d.nature, d.issue])).toEqual([[j, "Lettre de rappel", ""], [veille, "Visite", "Client absent"]]);
+    expect(r.demarches[0]!.par).toBe("Bijou Kasongo");
+    const l = (await api.litigieux.retards()).find((x) => x.id === cid)!;
+    expect([l.joursRetard, l.derniereDemarche, l.derniereLe, l.joursDepuis]).toEqual([10, "Lettre de rappel", j, 0]);
   });
 
   it("crédits litigieux : prorogation une seule fois, compensation du dépôt nanti (loi 11/020, art. 48), contentieux, intérêts en hors bilan (Instr. BCC 003, art. 5, 8, 11, 12)", async () => {

@@ -1,7 +1,9 @@
 """Écart E27 (docs/reglementaire/ECARTS-2026-11-15.md) : Crédit > Prorogation et contentieux. Écran imposé par les textes, absent de Microfina++.
 Instr. BCC 003 : art. 5, crédit prorogé = échéances modifiées à la demande du membre ou client, avant ou après l'échéance, une seule fois ; art. 8, crédit
 contentieux = créance impayée dont le dossier fait l'objet d'une résolution à l'amiable ou en justice ; art. 12, le prorogé se provisionne comme un
-litigieux à compter de son échéancier initial. Registre CR-16b, E27-1 à E27-5. Mêmes règles que web/src/donnees/api.ts (litigieux)."""
+litigieux à compter de son échéancier initial. Registre CR-16b, E27-1 à E27-5. Plan d'allègement, point 6.17 : démarches de recouvrement notées sur le
+crédit en retard, liste des crédits en retard avec la dernière démarche, pour la commission de crédit (Instr. BCC 007, art. 33 ; registre T206).
+Mêmes règles que web/src/donnees/api.ts (litigieux)."""
 import calendar
 from datetime import date
 
@@ -9,7 +11,7 @@ from psycopg.types.json import Jsonb
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .remboursements import etat
-from .services import exiger, journee_courante, json_lu, titulaire
+from .services import exiger, journee_courante, json_lu, nom_utilisateur, titulaire
 
 TYPES = {"amiable": "Résolution à l'amiable", "judiciaire": "Résolution en justice"}
 
@@ -58,12 +60,57 @@ def situation(u, cid: int) -> dict:
     s = etat(c, d)
     pr = une("select * from credit_prorogation where credit_id = %s", (cid,))
     ct = lignes("select * from credit_contentieux where credit_id = %s order by id desc", (cid,))
+    dm = lignes("""select d.*, n.libelle as nature from credit_demarche d join credit_demarche_nature n on n.id = d.nature_id
+                   where d.credit_id = %s order by d.date_demarche desc, d.id desc""", (cid,))
     return {"id": c["id"], "numero": c["numero"], "client": titulaire(c["tiers_id"]), "membre": valeur("select numero from tiers where id = %s", (c["tiers_id"],)),
             "montant": c["montant"], "devise": c["devise"].strip(), "capitalRestant": s["capitalRestant"], "joursRetard": s["joursRetard"], "degre": s["degreLibelle"],
             "echeances": [{"rang": e["rang"], "date": e["date_due"].isoformat(), "capital": e["capital"], "interet": e["interet"]} for e in non_soldees(c, d)],
             "prorogation": {"date": pr["date_prorogation"].isoformat(), "demandeLe": pr["demande_le"].isoformat(), "mois": pr["mois"], "motif": pr["motif"]} if pr else None,
             "contentieux": [{"id": x["id"], "type": x["type"], "typeLibelle": TYPES[x["type"]], "ouvertLe": x["ouvert_le"].isoformat(), "reference": x["reference"],
-                             "observation": x["observation"] or "", "closLe": x["clos_le"].isoformat() if x["clos_le"] else "", "issue": x["issue"] or ""} for x in ct]}
+                             "observation": x["observation"] or "", "closLe": x["clos_le"].isoformat() if x["clos_le"] else "", "issue": x["issue"] or ""} for x in ct],
+            "demarches": [{"id": x["id"], "date": x["date_demarche"].isoformat(), "nature": x["nature"], "issue": x["issue"], "par": nom_utilisateur(x["par"])} for x in dm],
+            "natures": lignes("select id, libelle from credit_demarche_nature where institution_id = %s and actif order by id", (u["institution_id"],))}
+
+
+def noter_demarche(u, cid: int, p) -> dict:
+    """Une démarche de recouvrement sur un crédit en retard, ou dont le dossier contentieux est ouvert : date, nature, issue ; l'auteur est l'utilisateur"""
+    exiger(u)
+    p = p if isinstance(p, dict) else {}
+    c = credit(u, cid)
+    d = jour(u)
+    n = p.get("natureId")
+    if not isinstance(n, int) or isinstance(n, bool) or not valeur("select 1 from credit_demarche_nature where id = %s and institution_id = %s and actif", (n, u["institution_id"])):
+        raise ErreurMetier("À remplir : Démarche.")
+    try:
+        le = date.fromisoformat(p.get("date") or "")
+    except ValueError:
+        raise ErreurMetier("À remplir : Date de la démarche.")
+    if le > d:
+        raise ErreurMetier("Date de la démarche : pas après la journée ouverte.")
+    if etat(c, d)["joursRetard"] < 1 and not valeur("select 1 from credit_contentieux where credit_id = %s and clos_le is null", (cid,)):
+        raise ErreurMetier("Ce crédit n'est pas en retard : la démarche de recouvrement porte sur un crédit en retard.")
+    issue = p.get("issue").strip() if isinstance(p.get("issue"), str) else ""
+    executer("insert into credit_demarche (credit_id, nature_id, date_demarche, issue, par) values (%s, %s, %s, %s, %s)", (cid, n, le, issue, u["id"]))
+    return situation(u, cid)
+
+
+def retards(u) -> list[dict]:
+    """Les crédits en retard à la journée ouverte, du plus ancien retard au plus récent, avec la dernière démarche et le nombre de jours depuis"""
+    exiger(u)
+    d = jour(u)
+    out = []
+    for c in lignes("select * from credit where institution_id = %s and statut = 'debloque' order by id", (u["institution_id"],)):
+        s = etat(c, d)
+        if s["joursRetard"] < 1:
+            continue
+        x = une("""select d.date_demarche, n.libelle from credit_demarche d join credit_demarche_nature n on n.id = d.nature_id
+                   where d.credit_id = %s order by d.date_demarche desc, d.id desc limit 1""", (c["id"],))
+        out.append({"id": c["id"], "numero": c["numero"], "client": titulaire(c["tiers_id"]), "tiersId": c["tiers_id"],
+                    "membre": valeur("select numero from tiers where id = %s", (c["tiers_id"],)), "joursRetard": s["joursRetard"],
+                    "capitalRestant": s["capitalRestant"], "devise": c["devise"].strip(),
+                    "derniereDemarche": x["libelle"] if x else "", "derniereLe": x["date_demarche"].isoformat() if x else "",
+                    "joursDepuis": (d - x["date_demarche"]).days if x else None})
+    return sorted(out, key=lambda r: (-r["joursRetard"], r["numero"]))
 
 
 def proroger(u, cid: int, p) -> dict:

@@ -36,7 +36,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 87) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 88) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return miseEnService(graine());
@@ -108,7 +108,8 @@ function noterSecurite(evenement: string, login: string, utilisateurId: number |
   // Un accès refusé ne change aucune donnée affichée : il s'écrit sans réveiller les écrans, sinon l'écran refusé se relirait sans fin
   if (evenement === "acces_refuse") sauver(); else enregistrer();
 }
-export const LIBELLES_ROLES: Record<Role, string> = { caissier: "caissier", chef_agence: "chef d'agence", agent_credit: "agent de crédit", comptable: "comptable", administrateur: "administrateur sécurité", chef_comptable: "chef comptable" };
+export const LIBELLES_ROLES: Record<Role, string> = { caissier: "caissier", chef_agence: "chef d'agence", agent_credit: "agent de crédit", comptable: "comptable", administrateur: "administrateur sécurité", chef_comptable: "chef comptable",
+  raf: "responsable administratif et financier", responsable_operations: "responsable des opérations", agent_recouvrement: "agent de recouvrement" };
 
 const session = {
   /** La démonstration dans le navigateur n'a pas de mot de passe ; le serveur l'exige sur le site en ligne (registre S01-2) */
@@ -5970,6 +5971,7 @@ const cip = {
 };
 // Écart E27 : Crédit > Prorogation et contentieux (Instr. BCC 003, art. 5, 8 et 12 ; registre CR-16b, E27-1 à E27-5). Mêmes règles que noyau/litigieux.py.
 const TYPES_CONTENTIEUX: Record<string, string> = { amiable: "Résolution à l'amiable", judiciaire: "Résolution en justice" };
+const natureDemarche = (id: number) => String((E.credit.demarches ?? []).find((n) => n.id === id)?.libelle ?? "");
 const creditLitigieux = (cid: number) => { const c = E.credits.find((x) => x.id === cid); if (!c || c.statut !== "debloque") throw new ErreurMetier("Choisir un crédit débloqué, en cours de remboursement."); return c; };
 function nonSoldees(c: CreditPret, d: string) {
   const s = etatCredit(c, d), reg = s.payes.capital! - s.payes.capitalAnticipe! + s.payes.interet!; let cumul = 0;
@@ -5985,7 +5987,33 @@ const litigieux = {
       degre: s.degreLibelle, echeances: nonSoldees(c, d).map((e) => ({ rang: e.rang, date: e.date, capital: e.capital, interet: e.interet })),
       prorogation: pr ? { date: pr.date, demandeLe: pr.demandeLe, mois: pr.mois, motif: pr.motif } : null,
       contentieux: E.contentieux.filter((x) => x.creditId === cid).sort((a, b) => b.id - a.id).map((x) => ({ id: x.id, type: x.type as string, typeLibelle: TYPES_CONTENTIEUX[x.type]!, ouvertLe: x.ouvertLe,
-        reference: x.reference, observation: x.observation, closLe: x.closLe, issue: x.issue })) };
+        reference: x.reference, observation: x.observation, closLe: x.closLe, issue: x.issue })),
+      demarches: E.demarchesRecouvrement.filter((x) => x.creditId === cid).sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id)
+        .map((x) => ({ id: x.id, date: x.date, nature: natureDemarche(x.natureId), issue: x.issue, par: nomUtilisateur(x.par) })),
+      natures: (E.credit.demarches ?? []).filter((n) => n.actif).map((n) => ({ id: n.id, libelle: String(n.libelle) })) };
+  },
+  /** Plan d'allègement, point 6.17 : une démarche de recouvrement sur un crédit en retard, ou dont le dossier contentieux est ouvert (Instr. BCC 007, art. 33) */
+  noterDemarche(cid: number, p: { natureId?: number | null; date?: string; issue?: string }) {
+    const u = exiger(), c = creditLitigieux(cid), d = jourDeblocage().date;
+    if (!Number.isInteger(p.natureId) || !(E.credit.demarches ?? []).some((n) => n.id === p.natureId && n.actif)) throw new ErreurMetier("À remplir : Démarche.");
+    if (!DATE_ISO.test(p.date ?? "")) throw new ErreurMetier("À remplir : Date de la démarche.");
+    if (p.date! > d) throw new ErreurMetier("Date de la démarche : pas après la journée ouverte.");
+    if (etatCredit(c, d).joursRetard < 1 && !E.contentieux.some((x) => x.creditId === cid && !x.closLe))
+      throw new ErreurMetier("Ce crédit n'est pas en retard : la démarche de recouvrement porte sur un crédit en retard.");
+    E.demarchesRecouvrement.push({ id: prochain(E.demarchesRecouvrement), creditId: cid, natureId: p.natureId!, date: p.date!, issue: (p.issue ?? "").trim(), par: u.id });
+    enregistrer(); return litigieux.situation(cid);
+  },
+  /** Les crédits en retard à la journée ouverte, du plus ancien retard au plus récent, avec la dernière démarche et le nombre de jours depuis */
+  retards() {
+    lectureAdmin(["SL01"]);
+    const d = jourDeblocage().date;
+    return E.credits.filter((c) => c.statut === "debloque").flatMap((c) => {
+      const s = etatCredit(c, d); if (s.joursRetard < 1) return [];
+      const t = E.tiers.find((x) => x.id === c.tiersId)!;
+      const x = E.demarchesRecouvrement.filter((y) => y.creditId === c.id).sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id)[0];
+      return [{ id: c.id, numero: c.numero, client: titulaire(t), tiersId: t.id, membre: t.numero, joursRetard: s.joursRetard, capitalRestant: s.capitalRestant, devise: c.devise as string,
+        derniereDemarche: x ? natureDemarche(x.natureId) : "", derniereLe: x?.date ?? "", joursDepuis: x ? Math.round((Date.parse(d) - Date.parse(x.date)) / 864e5) : null }];
+    }).sort((a, b) => b.joursRetard - a.joursRetard || a.numero.localeCompare(b.numero));
   },
   proroger(cid: number, p: { mois?: number | null; motif?: string; demandeLe?: string }) {
     const u = exiger(), c = creditLitigieux(cid), d = jourDeblocage().date;
@@ -9863,6 +9891,8 @@ export const CATALOGUE_CREDIT: FicheBudget[] = [
     champs: [ch("nom", "Nom Assureur:", "Nom Assureur", "texte", true, { cadre: "Info générale" }),
       ch("typeAssuranceId", "Type Assurance:", "Type Assurance", "choix", true, { ref: "types_assurance", cadre: "Info générale" }),
       ch("compte", "Compte Assureur", "Compte Assureur", "compteSimple", false, { cadre: "Info générale" }), ...adresse("Données D'adresse")] },
+  // Plan d'allègement, point 6.17 : natures des démarches de recouvrement (Instr. BCC 007, art. 33)
+  { page: "demarches", menu: "Démarche de recouvrement", unique: ["libelle"], champs: [ch("libelle", "Démarche de recouvrement :", "Démarche de recouvrement")] },
   { page: "gestionnaires", menu: "Agent de crédit", portefeuille: true,
     champs: [ch("code", "Code :", "Code"), ch("utilisateurId", "Utilisateur", "Utilisateur", "choix", false, { ref: "utilisateurs", grille: false }),
       ch("montantDe", "Montant de", "Montant Début", "entier", false), ch("montantA", "à", "Montant Fin", "entier", false),

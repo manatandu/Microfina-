@@ -176,6 +176,8 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       proroger: (cid: number, p: unknown) => post(`/credit/litigieux/${cid}/prorogation`, p),
       ouvrirContentieux: (cid: number, p: unknown) => post(`/credit/litigieux/${cid}/contentieux`, p),
       cloreContentieux: (cid: number, p: unknown) => post(`/credit/litigieux/${cid}/cloture`, p),
+      noterDemarche: (cid: number, p: unknown) => post(`/credit/litigieux/${cid}/demarche`, p),
+      retards: () => get(`/credit/litigieux/retards`),
     },
     operationsCompta: {
       lire: () => get("/comptabilite/operations/contexte"),

@@ -13,7 +13,8 @@ from noyau.droits import DROITS_DEPART
 
 # Quatre profils de départ (registre T07, S03-1) : code du rôle, nom en majuscules comme la capture p. 15
 NOMS_PROFILS = {"caissier": "CAISSIER", "chef_agence": "CHEF D'AGENCE", "comptable": "COMPTABLE", "agent_credit": "AGENT DE CRÉDIT",
-                "administrateur": "ADMINISTRATEUR SÉCURITÉ", "chef_comptable": "CHEF COMPTABLE"}   # Instr. BCC 008, art. 16 : gestion des accès hors de l'exploitation (registre T29)
+                "administrateur": "ADMINISTRATEUR SÉCURITÉ", "chef_comptable": "CHEF COMPTABLE",
+                "raf": "RESPONSABLE ADMINISTRATIF ET FINANCIER", "responsable_operations": "RESPONSABLE DES OPÉRATIONS", "agent_recouvrement": "AGENT DE RECOUVREMENT"}   # Instr. BCC 008, art. 16 : gestion des accès hors de l'exploitation (registre T29)
 COURS = 2850                 # CDF pour 1 USD, fictif
 VALEUR_PART = 400000         # 4 000 CDF : exemple du manuel Microfina++ ; la vraie valeur vient des statuts (loi 002/2002, art. 20)
 COUPURES = {"USD": [100, 50, 20, 10, 5, 1], "CDF": [20000, 10000, 5000, 1000, 500, 200, 100, 50]}
@@ -21,6 +22,7 @@ FONDS_G2 = {"USD": {100: 140, 50: 12, 20: 8, 10: 3, 5: 2, 1: 6}, "CDF": {20000: 
 
 
 
+NATURES_DEMARCHE = ("Visite", "Lettre de rappel", "Convocation", "Mise en demeure", "Transfert à l'agent de recouvrement", "Saisine de l'avocat")
 SECTEURS = [("S1", "Primaire"), ("S2", "Secondaire"), ("S3", "Tertiaire")]
 # Décision du porteur (18/11/2026, registre S14-3) : les autres lignes de la capture p. 23 sont des types d'activité (S14a), rangés sous leur secteur
 TYPES_ACTIVITE = []   # les types T1 à T5 de la capture redisaient des domaines : retirés (plan d'allègement, point 2.1)
@@ -101,11 +103,13 @@ def completer(ins: int) -> int:
             executer("insert into utilisateur_profil_historique (utilisateur_id, profil_id) values (%s, %s)", (u, pid))
             ajouts += 1
     # Validation de ce qui est saisi hors guichet par une troisième personne (plan d'allègement, point 7.2 ; décision du porteur du 25/11/2026, registre T203)
-    if not valeur("select count(*) from profil where institution_id = %s and code = 'chef_comptable'", (ins,)):
-        pid = valeur("insert into profil (institution_id, code, nom) values (%s, 'chef_comptable', %s) returning id", (ins, NOMS_PROFILS["chef_comptable"]))
-        for c in DROITS_DEPART["chef_comptable"]:
-            executer("insert into profil_droit (profil_id, droit_code) values (%s, %s) on conflict do nothing", (pid, c))
-        ajouts += 1
+    # Plan d'allègement, point 8.9 : profils de départ tirés de l'organigramme courant d'une COOPEC (décision du porteur du 25/11/2026)
+    for code in ("chef_comptable", "raf", "responsable_operations", "agent_recouvrement"):
+        if not valeur("select count(*) from profil where institution_id = %s and code = %s", (ins, code)):
+            pid = valeur("insert into profil (institution_id, code, nom) values (%s, %s, %s) returning id", (ins, code, NOMS_PROFILS[code]))
+            for c in DROITS_DEPART[code]:
+                executer("insert into profil_droit (profil_id, droit_code) values (%s, %s) on conflict do nothing", (pid, c))
+            ajouts += 1
     if not valeur("select count(*) from journal where institution_id = %s and code = 'OD'", (ins,)):
         ajouter("insert into journal (institution_id, code, libelle, type) values (%s, 'OD', 'Opérations diverses', 'operations_diverses')", (ins,))
     for ev in EVENEMENTS:
@@ -306,6 +310,9 @@ class Command(BaseCommand):
         for c, l in (("C01", "Premier cycle"), ("C02", "Deuxième cycle")):
             executer("insert into credit_cycle (institution_id, code, libelle) values (%s, %s, %s)", (ins, c, l))
         executer("insert into credit_type_assurance (institution_id, code, libelle) values (%s, 'T01', 'Interne')", (ins,))
+        # Natures de démarche de recouvrement (plan d'allègement, point 6.17), que l'institution complète
+        for l in NATURES_DEMARCHE:
+            executer("insert into credit_demarche_nature (institution_id, libelle) values (%s, %s)", (ins, l))
         # Ordres de remboursement (S22) : ceux des captures p. 34 et 37 ; Sains et Impayés en PICES, les autres degrés en CIPES (capture p. 34)
         od = {c: valeur("insert into credit_ordre (institution_id, code, libelle) values (%s, %s, %s) returning id", (ins, c, l)) for c, l in (
             ("CIPES", "Capital Intérêt Pénalité Epargne Solidarité"), ("CPIES", "Capital Pénalité Intérêt Epargne Solidarité"),

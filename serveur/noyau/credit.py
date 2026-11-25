@@ -61,6 +61,9 @@ CATALOGUE = [
         ch("nom", "nom", "Nom Assureur:", colonne="Nom Assureur", cadre="Info générale"),
         ch("typeAssuranceId", "type_assurance_id", "Type Assurance:", "choix", True, "types_assurance", colonne="Type Assurance", cadre="Info générale"),
         ch("compte", "compte", "Compte Assureur", "compteSimple", False, colonne="Compte Assureur", cadre="Info générale"), *adresse(ADRESSE)]},
+    # Plan d'allègement, point 6.17 : natures des démarches de recouvrement (Instr. BCC 007, art. 33)
+    {"page": "demarches", "table": "credit_demarche_nature", "menu": "Démarche de recouvrement", "unique": ["libelle"], "champs": [
+        ch("libelle", "libelle", "Démarche de recouvrement :", colonne="Démarche de recouvrement")]},
     {"page": "gestionnaires", "table": "credit_gestionnaire", "menu": "Agent de crédit", "etiquette": "nom", "portefeuille": True, "champs": [
         ch("code", "code", "Code :", colonne="Code"), ch("utilisateurId", "utilisateur_id", "Utilisateur", "choix", False, "utilisateurs", grille=False),
         ch("montantDe", "montant_de", "Montant de", "entier", False, colonne="Montant Début"), ch("montantA", "montant_a", "à", "entier", False, colonne="Montant Fin"),
@@ -87,7 +90,7 @@ def verifier(u, c, v, lid):
 
 UTILISE_PAR = {
     "types_assurance": [("credit_assureur", "type_assurance_id", "Assureur crédit")],
-}
+}   # une nature de démarche déjà notée reste lisible dans l'historique : sa suppression est logique (registre T02)
 
 MOTEUR = Referentiel(CATALOGUE, CHOIX, verifier, UTILISE_PAR)
 enregistrer, supprimer = MOTEUR.enregistrer, MOTEUR.supprimer

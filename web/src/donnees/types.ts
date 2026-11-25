@@ -1,6 +1,6 @@
 import type { Comptage, Devise } from "@design/montant.js";
 
-export type Role = "caissier" | "chef_agence" | "agent_credit" | "comptable" | "administrateur" | "chef_comptable";   // administrateur : Instr. BCC 008, art. 16 (registre T29)
+export type Role = "caissier" | "chef_agence" | "agent_credit" | "comptable" | "administrateur" | "chef_comptable" | "raf" | "responsable_operations" | "agent_recouvrement";   // administrateur : Instr. BCC 008, art. 16 (registre T29)
 
 export interface Utilisateur { id: number; login: string; nom: string; roles: Role[];
   // S05 : Informations et Info Adresse (le mot de passe n'est pas gardé par la démo, registre S05-3)
@@ -364,7 +364,7 @@ export interface OperationDifferee {
   visePar?: number; valideePar?: number; resultat?: unknown;
 }
 export interface Etat {
-  version: 87;
+  version: 88;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -422,6 +422,7 @@ export interface Etat {
     utilise?: number; clotureLe?: string; motifFin?: "echeance" | "mainlevee" | "mise_en_jeu" | "" }[];   // S100
   prorogations: { id: number; creditId: number; date: string; demandeLe: string; mois: number; motif: string; echeancierInitial: { rang: number; date: string; capital: number; interet: number }[]; par: number }[];   // E27
   contentieux: { id: number; creditId: number; type: "amiable" | "judiciaire"; ouvertLe: string; reference: string; observation: string; closLe: string; issue: string; ouvertPar: number }[];   // E27
+  demarchesRecouvrement: { id: number; creditId: number; natureId: number; date: string; issue: string; par: number }[];   // plan d'allègement, point 6.17
   affectationsCredit: { id: number; creditId: number; de: number; vers: number; le: string; par: number }[];   // S96
   liberationsGarantie: { id: number; garantieId: number; montant: number; date: string; ecritureId: number | null; par: number }[];
   nantissementsMateriel?: NantissementMateriel[];   // A4 et P3
