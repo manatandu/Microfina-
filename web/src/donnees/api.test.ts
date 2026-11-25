@@ -1867,7 +1867,7 @@ describe("journée de guichet", () => {
   it("référentiel crédit (S21, p. 32 à 36) : Degré selon l'Instr. BCC 003, Terme selon le PCCI, listes, zones de la fiche client", async () => {
     await connecter("jpmukendi");
     const l = await api.credit.lire("objets");
-    expect(l.catalogue).toHaveLength(10);
+    expect(l.catalogue).toHaveLength(11);   // + Démarche de recouvrement (6.17)
     expect(l.lignes.map((x) => x.libelle)).toEqual(expect.arrayContaining(["Prêt à la consommation", "Prêt commercial", "Crédit de trésorerie", "Prêt d'investissement"]));   // Instr. BCC 38, art. 6
     expect((await api.credit.lire("degres")).lignes.map((x) => [x.debut, x.fin, x.taux])).toEqual([[0, 0, 0], [1, 30, 5], [31, 60, 25], [61, 90, 50], [91, 180, 75], [181, 365, 100], [366, 999999, 100]]);
     await expect(api.credit.enregistrer("degres", { libelle: "X" })).rejects.toThrow("ne se modifie pas");

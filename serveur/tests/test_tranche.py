@@ -1562,7 +1562,7 @@ def test_credit_general(clients):
     def refus(page, corps, lid=None):
         r = chef.post(f"{C}/{page}" + (f"/{lid}" if lid else ""), corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
     l = chef.get(f"{C}/objets", **H).json()
-    assert [x["menu"] for x in l["catalogue"]][:2] == ["Objet Credit", "Type produit Credit"] and len(l["catalogue"]) == 10
+    assert [x["menu"] for x in l["catalogue"]][:2] == ["Objet Credit", "Type produit Credit"] and len(l["catalogue"]) == 11   # + Démarche de recouvrement (6.17)
     assert {"Prêt à la consommation", "Prêt commercial", "Crédit de trésorerie", "Prêt d'investissement"} <= {x["libelle"] for x in l["lignes"]}   # Instr. BCC 38, art. 6
     assert agent.post(f"{C}/cycles", {"code": "C03", "libelle": "Troisième cycle"}, **H).status_code == 403
     d = chef.get(f"{C}/degres", **H).json()["lignes"]                     # Instr. BCC 003, art. 12
