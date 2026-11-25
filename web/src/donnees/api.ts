@@ -36,7 +36,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 86) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 87) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return miseEnService(graine());
@@ -108,7 +108,7 @@ function noterSecurite(evenement: string, login: string, utilisateurId: number |
   // Un accès refusé ne change aucune donnée affichée : il s'écrit sans réveiller les écrans, sinon l'écran refusé se relirait sans fin
   if (evenement === "acces_refuse") sauver(); else enregistrer();
 }
-export const LIBELLES_ROLES: Record<Role, string> = { caissier: "caissier", chef_agence: "chef d'agence", agent_credit: "agent de crédit", comptable: "comptable", administrateur: "administrateur sécurité" };
+export const LIBELLES_ROLES: Record<Role, string> = { caissier: "caissier", chef_agence: "chef d'agence", agent_credit: "agent de crédit", comptable: "comptable", administrateur: "administrateur sécurité", chef_comptable: "chef comptable" };
 
 const session = {
   /** La démonstration dans le navigateur n'a pas de mot de passe ; le serveur l'exige sur le site en ligne (registre S01-2) */

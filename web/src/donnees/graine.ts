@@ -72,7 +72,7 @@ export function graine(): Etat {
     lieuNaissance: "", pieceDelivreeLe: "", pieceLieu: "", pieceAutorite: "", liees: [] as number[],
     type: "physique" as const, formeJuridique: "", registre: "", centreActivite: "", activite: "", dirigeant: null, signataires: [], nbHommes: 0, nbFemmes: 0, membres: [], intitule: "", dateVisa: "2026-01-15", profession: "", pays: "", ville: "", quartier: "", rue: "", email: "", bp: "", telephoneFixe: "", motifDepart: "", resilieLe: "", creeLe: "2026-01-15", creePar: 4, visePar: 2, statut: "actif" as const };
   return {
-    version: 86,
+    version: 87,
     institution: { nom: "COOPEC Tujenge", sigle: "CTJ", profil: "coopec", delegationAdmission: "Décision du Conseil d'Administration n° 01/2026 du 05/01/2026", pays: "République démocratique du Congo", ville: "Kinshasa", commune: "Matete", quartier: "Kinsaku", journeeMax: 1 },   // sigle fictif : élément Institution du numéro client (S15-11)
     agence: { id: 1, code: "0412", nom: "Matete" },
     agences: [{ id: 1, code: "0412", nom: "Matete", supprime: false, jours: Array(7).fill(true) }],   // les sept jours actifs d'emblée (plan d'allègement, point 2.22)
@@ -236,7 +236,8 @@ export function graine(): Etat {
     typesCommande: [],
     historiqueProfils: [1, 2, 3, 4, 5].map((id) => ({ utilisateurId: id, profilId: id, debut: "2026-11-01T08:00:00.000Z", fin: "", par: null })),   // registre S06-2
     // S03 : quatre profils de départ (registre T07, S03-1), nom en majuscules comme la capture p. 15
-    profils: ([["caissier", "CAISSIER"], ["chef_agence", "CHEF D'AGENCE"], ["comptable", "COMPTABLE"], ["agent_credit", "AGENT DE CRÉDIT"], ["administrateur", "ADMINISTRATEUR SÉCURITÉ"]] as const)
+    profils: ([["caissier", "CAISSIER"], ["chef_agence", "CHEF D'AGENCE"], ["comptable", "COMPTABLE"], ["agent_credit", "AGENT DE CRÉDIT"], ["administrateur", "ADMINISTRATEUR SÉCURITÉ"],
+      ["chef_comptable", "CHEF COMPTABLE"]] as const)   // chef comptable : la validation de « Opérations en attente » (décision du porteur du 25/11/2026, registre T203)
       .map(([code, nom], i) => ({ id: i + 1, code, nom, description: "", supprime: false, droits: [...(DROITS_DEPART[code] ?? [])] })),   // droits : registre S04-2
     // S35 : CDF, symbole FC et cent centimes (D.-L. 080/1998, art. 1 et 2) ; USD : données de démonstration
     devises: [{ code: "CDF", libelle: "Franc congolais", unite: "FC", subdivision: 100 }, { code: "USD", libelle: "Dollar américain", unite: "$", subdivision: 100 }],

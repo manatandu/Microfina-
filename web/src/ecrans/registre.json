@@ -1016,6 +1016,7 @@
     "id": "S113",
     "nom": "Opérations en attente",
     "acces": "Comptabilité > Contrôle > Opérations en attente",
+    "aussi": ["S114", "S57"],
     "but": "Viser, valider ou refuser avec motif les opérations de banque et de comptabilité, factures, règlements, commandes et retraits au-delà du plafond",
     "module": "comptabilite",
     "priorite": "must",

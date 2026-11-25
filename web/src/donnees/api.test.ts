@@ -309,7 +309,7 @@ describe("journée de guichet", () => {
     // un second chef d'agence autorise : le profil de plumbala reçoit le droit SC01
     await connecter("jpmukendi");
     const profils = Object.fromEntries((await adm.droits.lire()).profils.map((p) => [p.nom, p.id]));
-    const id = Object.entries(profils).find(([n]) => n.includes("COMPTABLE"))![1]!;
+    const id = Object.entries(profils).find(([n]) => n === "COMPTABLE")![1]!;
     await adm.droits.enregistrer(id, { droits: [...(await adm.droits.lire(id)).octroyes, "SC01"] });
     await connecter("plumbala");
     expect((await api.conformite.enregistrerPpe(t.id, { autoriser: true })).autorisePar).toBe("Patrick Lumbala");
@@ -488,7 +488,7 @@ describe("journée de guichet", () => {
     await connecter("jpmukendi");
     await expect(api.journalSecurite.consulter(jour, jour)).rejects.toThrow("Droit manquant");   // aucun profil de départ n'a SA01
     const profils = Object.fromEntries((await adm.droits.lire()).profils.map((p) => [p.nom, p.id]));
-    const id = Object.entries(profils).find(([n]) => n.includes("COMPTABLE"))![1]!;
+    const id = Object.entries(profils).find(([n]) => n === "COMPTABLE")![1]!;
     await adm.droits.enregistrer(id, { droits: [...(await adm.droits.lire(id)).octroyes, "SA01"] });
     await connecter("plumbala");
     const ev = await api.journalSecurite.consulter(jour, jour);
@@ -1990,7 +1990,7 @@ describe("journée de guichet", () => {
   it("profils (S03, p. 15) : Nom Droit obligatoire, unique ; Modifier, Supprimer refusé tant qu'un utilisateur le porte", async () => {
     await connecter("gmbuyi");
     const l = (await api.profils.lire()).profils;
-    expect(l.map((p) => p.nom)).toEqual(["ADMINISTRATEUR SÉCURITÉ", "AGENT DE CRÉDIT", "CAISSIER", "CHEF D'AGENCE", "COMPTABLE"]);
+    expect(l.map((p) => p.nom)).toEqual(["ADMINISTRATEUR SÉCURITÉ", "AGENT DE CRÉDIT", "CAISSIER", "CHEF COMPTABLE", "CHEF D'AGENCE", "COMPTABLE"]);   // chef comptable : registre T203
     await expect(api.profils.enregistrer({ nom: " " })).rejects.toThrow("Nom Droit");
     await expect(api.profils.enregistrer({ nom: "caissier" })).rejects.toThrow("existe déjà");
     const a = (await api.profils.enregistrer({ nom: "AUDITEUR", description: "PROFIL DES AUDITEURS" })).profils.find((p) => p.nom === "AUDITEUR")!;

@@ -9,7 +9,7 @@ const OUT = process.argv[2];
   const p = await ctx.newPage(); if (process.argv[4]) await p.emulateMedia({ colorScheme: process.argv[4] }); p.setDefaultTimeout(5000); globalThis.__p = p;
   const errs = []; p.on('pageerror', e => errs.push('page: ' + e.message)); p.on('console', m => { if (m.type() === 'error' && !/status of 422/.test(m.text())) errs.push('console: ' + m.text()); }); // 422 : refus métier attendu
   const etape = async (nom) => { await p.waitForTimeout(50); const d = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth); await p.screenshot({ path: `${OUT}/${nom}.png`, fullPage: true }); console.log(d > 0 ? '⚠ débord ' + d : '✓', nom); };
-  const IDS = { 'J.-P. Mukendi': 'jpmukendi', 'Esther Ngalula': 'engalula', 'Bijou Kasongo': 'bkasongo', 'Patrick Lumbala': 'plumbala', 'Grâce Mbuyi': 'gmbuyi', 'Sarah Tshibanda': 'stshibanda' };
+  const IDS = { 'J.-P. Mukendi': 'jpmukendi', 'Esther Ngalula': 'engalula', 'Bijou Kasongo': 'bkasongo', 'Patrick Lumbala': 'plumbala', 'Grâce Mbuyi': 'gmbuyi', 'Sarah Tshibanda': 'stshibanda', 'Lucie Kabeya': 'lkabeya' };
   const login = async (nom) => { await p.goto(B + '/connexion'); await p.getByLabel("Identifiant de connexion").fill(IDS[nom]); await p.getByRole('button', { name: 'Connexion' }).click(); await p.waitForURL(B + '/'); };
   // Valide les billetages un par un, en attendant que la liste se mette à jour entre deux clics
   const aller = async (chemin) => { await p.goto(B + chemin); await p.waitForLoadState('networkidle'); };
@@ -220,9 +220,16 @@ const OUT = process.argv[2];
   await aller('/administration/s04'); await p.getByRole('button', { name: 'AUDITEUR', exact: true }).click();
   await p.getByRole('checkbox', { name: 'Tout le menu : Client' }).check();
   await etape('02f32-droits'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  // Plan d'allègement, point 7.2 (registre T138) : une troisième personne valide ce qui est saisi hors guichet ; le profil de l'agent de crédit reçoit la validation
-  await p.getByRole('button', { name: 'AGENT DE CRÉDIT', exact: true }).click(); await p.getByLabel('Rechercher un écran').fill('Opérations en attente');
-  await p.getByRole('checkbox', { name: 'Opérations en attente : validation' }).check(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  // Plan d'allègement, point 7.2 : une troisième personne valide ce qui est saisi hors guichet ; le profil de départ CHEF COMPTABLE tient la validation
+  // (décision du porteur du 25/11/2026, registre T203) ; l'administrateur sécurité enregistre une chef comptable
+  await p.getByRole('button', { name: 'CHEF COMPTABLE', exact: true }).click(); await p.getByLabel('Rechercher un écran').fill('Opérations en attente');
+  await p.getByRole('checkbox', { name: 'Opérations en attente : validation' }).and(p.locator(':checked')).waitFor(); await etape('02f32b-chef-comptable');
+  await aller('/administration/s05'); await p.getByRole('button', { name: 'Nouvel utilisateur' }).click(); const fcc = p.getByRole('dialog', { name: 'Nouvel utilisateur' });
+  await fcc.getByLabel('Nom *').fill('Kabeya'); await fcc.getByLabel('Prénoms').fill('Lucie');
+  await fcc.getByLabel('Identifiant de connexion *').fill('lkabeya'); await fcc.getByLabel('Mot de passe *').fill('secret-2'); await fcc.getByLabel('Confirmation *').fill('secret-2');
+  await fcc.getByLabel('Portable : *').fill('+243 810 000 555'); await fcc.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('button', { name: 'Changer de profil : lkabeya' }).click(); const fcp = p.getByRole('dialog', { name: 'Changer de profil : lkabeya' });
+  await fcp.getByLabel('Nouveau profil *').selectOption({ label: 'CHEF COMPTABLE' }); await fcp.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await login('J.-P. Mukendi');
   // Chef : facture (S36, p. 46) : un élément de facture, la retenue sur les loyers au compte 433 (O.-L. 69/009, art. 10 et 11 ; PCCI), désactivé ensuite :
   // un élément actif s'applique à toutes les factures ; puis un type de commande (p. 125)
@@ -1141,10 +1148,11 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await succes('Opérations en attente');
   await aller('/credit/s105'); await p.getByRole('heading', { name: 'Déblocage' }).waitFor(); await p.getByRole('button', { name: 'Rechercher un crédit' }).click();
   await p.getByRole('dialog', { name: 'Crédits à débloquer' }).waitFor(); await etape('15e-deblocage-epargne');
-  // Plan d'allègement, point 7.2 : le remboursement saisi hors guichet attend dans la file ; visé par le chef, validé par l'agent de crédit (Instr. BCC 008, art. 66)
+  // Plan d'allègement, point 7.2 : le remboursement saisi hors guichet attend dans la file ; visé par le chef, validé par la chef comptable (Instr. BCC 008, art. 66)
   await login('J.-P. Mukendi'); await aller('/comptabilite/s113');
   await p.getByRole('button', { name: /^Viser Remboursement de crédit par prélèvement/ }).click(); await oui(); await etape('15f-visa-remboursement');
-  await login('Bijou Kasongo'); await aller('/comptabilite/s114');
+  // la chef comptable n'a que la validation : « Opérations en attente » s'ouvre pour elle (droit S114, registre T203)
+  await login('Lucie Kabeya'); await aller('/comptabilite/s113'); await p.getByRole('heading', { name: 'Opérations en attente', exact: true }).waitFor();
   await p.getByRole('button', { name: /^Valider Remboursement de crédit par prélèvement/ }).click(); await oui(); await etape('15g-validation-remboursement');
   await login('J.-P. Mukendi'); await aller('/administration/s13');
   await p.getByLabel('DU:').fill('05112026'); await p.getByLabel('AU:').fill('05112026'); await p.getByRole('button', { name: 'Afficher' }).click();

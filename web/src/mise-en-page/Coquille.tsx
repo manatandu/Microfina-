@@ -6,7 +6,7 @@ import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react
 import { api, SUR_SERVEUR } from "../donnees/api";
 import { useDonnees } from "../lib/useDonnees";
 import { definirFuseau, definirJourOuvert, fr } from "../lib/dates";
-import { menus, applicationDe, APPLICATIONS, ECRANS, type Menu } from "../ecrans/registre";
+import { menus, applicationDe, APPLICATIONS, ECRANS, permisPour, type Menu } from "../ecrans/registre";
 import { CONSTRUITS, prechargerEcrans } from "../ecrans/construits";
 import { definirMonnaies } from "@design/montant.js";
 import { mots } from "../lib/vocabulaire";
@@ -58,10 +58,10 @@ export function Coquille() {
   const application = applicationDe(lieu.pathname);
   // Registre T07 : un écran absent des droits de l'utilisateur n'apparaît pas au menu
   const permis = new Set((u as { droits?: string[] }).droits ?? []);
-  const barre = menus(application).map((x) => ({ ...x, groupes: x.groupes.map((g) => ({ ...g, ecrans: g.ecrans.filter((e) => permis.has(e.id)) })).filter((g) => g.ecrans.length) }))
+  const barre = menus(application).map((x) => ({ ...x, groupes: x.groupes.map((g) => ({ ...g, ecrans: g.ecrans.filter((e) => permisPour(e, permis)) })).filter((g) => g.ecrans.length) }))
     .filter((x) => x.groupes.length);
   // Un écran ouvert par son adresse suit la même règle que le menu : sans le droit, il ne s'affiche pas (registre T07)
-  const vise = ECRANS.find((e) => e.chemin === lieu.pathname), refuse = vise && !permis.has(vise.id) ? vise : null;
+  const vise = ECRANS.find((e) => e.chemin === lieu.pathname), refuse = vise && !permisPour(vise, permis) ? vise : null;
   const nomApplication = APPLICATIONS.find((a) => a.id === application)?.libelle ?? "";
   const m = mots(ctx.institution);
   const libelle = (x: Menu) => (x.id === "clients" ? m.Membre : x.libelle);

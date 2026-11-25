@@ -2021,6 +2021,12 @@ def test_deblocage_epargne(clients, journee):
     assert balance_equilibree(compta)
 
 
+def test_profil_chef_comptable(clients):
+    """Décision du porteur du 25/11/2026 (registre T203) : le profil de départ CHEF COMPTABLE tient la validation de « Opérations en attente » (S114)"""
+    assert ident("""select p.nom || ' ' || string_agg(d.droit_code, ',') from profil p join profil_droit d on d.profil_id = p.id
+                    where p.code = 'chef_comptable' group by p.nom""") == "CHEF COMPTABLE S114"
+
+
 def test_differee_refus(clients, journee):
     """Plan d'allègement, point 7.2 : un déblocage saisi hors guichet attend dans la file ; refusé avec motif par une autre personne, il ne se passe pas ;
     le crédit peut être saisi de nouveau"""
@@ -2602,7 +2608,7 @@ def test_profils(clients):
     les quatre profils de départ gardent leur code (registre T07, S03-1, S03-2)"""
     chef, agent = clients["chef"], clients["agent"]; connecter(chef, "gmbuyi"); connecter(agent, "bkasongo")
     l = chef.get("/api/profils", **H).json()["profils"]
-    assert [p["nom"] for p in l] == ["ADMINISTRATEUR SÉCURITÉ", "AGENT DE CRÉDIT", "CAISSIER", "CHEF D'AGENCE", "COMPTABLE"]
+    assert [p["nom"] for p in l] == ["ADMINISTRATEUR SÉCURITÉ", "AGENT DE CRÉDIT", "CAISSIER", "CHEF COMPTABLE", "CHEF D'AGENCE", "COMPTABLE"]   # chef comptable : registre T203
     def refus(url, corps):
         r = chef.post(url, corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
     assert agent.post("/api/profils", {"nom": "AUDITEUR"}, **H).status_code == 403

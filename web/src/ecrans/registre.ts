@@ -1,7 +1,10 @@
 import liste from "./registre.json";
 
 export type Module = "administration" | "parametrage" | "clients" | "banque" | "epargne" | "caisse" | "credit" | "comptabilite" | "budget" | "paie" | "immobilisations";
-export interface Ecran { id: string; nom: string; acces: string; but: string; module: Module; priorite: "must" | "should" | "could" | "skip"; chemin: string; menu?: false }
+export interface Ecran { id: string; nom: string; acces: string; but: string; module: Module; priorite: "must" | "should" | "could" | "skip"; chemin: string; menu?: false;
+  aussi?: string[] }   // aussi : autres droits qui ouvrent le même écran (S113 : S114 et S57, « Opérations en attente », points 7.1 et 7.2)
+/** Un écran s'ouvre avec son droit, ou avec un des droits qui mènent au même écran */
+export const permisPour = (e: Ecran, droits: Set<string>) => droits.has(e.id) || (e.aussi ?? []).some((x) => droits.has(x));
 
 export const ECRANS = liste as Ecran[];
 export const ecran = (id: string) => ECRANS.find((e) => e.id === id);

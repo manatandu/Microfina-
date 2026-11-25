@@ -13,7 +13,7 @@ from noyau.droits import DROITS_DEPART
 
 # Quatre profils de départ (registre T07, S03-1) : code du rôle, nom en majuscules comme la capture p. 15
 NOMS_PROFILS = {"caissier": "CAISSIER", "chef_agence": "CHEF D'AGENCE", "comptable": "COMPTABLE", "agent_credit": "AGENT DE CRÉDIT",
-                "administrateur": "ADMINISTRATEUR SÉCURITÉ"}   # Instr. BCC 008, art. 16 : gestion des accès hors de l'exploitation (registre T29)
+                "administrateur": "ADMINISTRATEUR SÉCURITÉ", "chef_comptable": "CHEF COMPTABLE"}   # Instr. BCC 008, art. 16 : gestion des accès hors de l'exploitation (registre T29)
 COURS = 2850                 # CDF pour 1 USD, fictif
 VALEUR_PART = 400000         # 4 000 CDF : exemple du manuel Microfina++ ; la vraie valeur vient des statuts (loi 002/2002, art. 20)
 COUPURES = {"USD": [100, 50, 20, 10, 5, 1], "CDF": [20000, 10000, 5000, 1000, 500, 200, 100, 50]}
@@ -100,6 +100,12 @@ def completer(ins: int) -> int:
             executer("insert into utilisateur_profil values (%s, %s)", (u, pid))
             executer("insert into utilisateur_profil_historique (utilisateur_id, profil_id) values (%s, %s)", (u, pid))
             ajouts += 1
+    # Validation de ce qui est saisi hors guichet par une troisième personne (plan d'allègement, point 7.2 ; décision du porteur du 25/11/2026, registre T203)
+    if not valeur("select count(*) from profil where institution_id = %s and code = 'chef_comptable'", (ins,)):
+        pid = valeur("insert into profil (institution_id, code, nom) values (%s, 'chef_comptable', %s) returning id", (ins, NOMS_PROFILS["chef_comptable"]))
+        for c in DROITS_DEPART["chef_comptable"]:
+            executer("insert into profil_droit (profil_id, droit_code) values (%s, %s) on conflict do nothing", (pid, c))
+        ajouts += 1
     if not valeur("select count(*) from journal where institution_id = %s and code = 'OD'", (ins,)):
         ajouter("insert into journal (institution_id, code, libelle, type) values (%s, 'OD', 'Opérations diverses', 'operations_diverses')", (ins,))
     for ev in EVENEMENTS:
