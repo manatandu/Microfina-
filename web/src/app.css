@@ -1,5 +1,8 @@
-/* Mise en page de l'application. Jetons seulement (tokens.css). */
+@layer base {
 a { color: var(--tampon); text-underline-offset: 3px; }
+}
+@layer interface {
+/* Mise en page de l'application. Jetons seulement (tokens.css). */
 #racine { min-height: 100vh; min-height: 100dvh; }
 /* La case active n'est jamais cachée sous la barre du haut ni sous la barre d'état ; la barre de défilement ne fait plus sauter la page
    (guides state-aware-sticky-headers et css-layout ; plan d'allègement, point 11.2) */
@@ -134,9 +137,9 @@ a.module:active { transform: scale(.97); }
 .module.inactif .pastille { background: var(--nuit); border: 1px dashed var(--nuit-trait); box-shadow: none; color: color-mix(in srgb, var(--nuit-texte) 70%, var(--nuit)); }
 .module.inactif > span:last-child { opacity: .75; }
 /* Le centre : le signe d'Exofina dans un grand cartouche, le nom dessous (« EXO » en rouge) */
-.nom-marque { letter-spacing: -.01em; font-size: 20px; }
+.nom-marque { letter-spacing: -.01em; font-size: 1.25rem; }
 .nom-marque .exo { color: var(--marque-rouge); }
-.module.centre { grid-column: 2; grid-row: 2; gap: var(--espace-3); font-family: var(--police-marque); font-size: 17px; font-weight: 700; letter-spacing: .12em; }
+.module.centre { grid-column: 2; grid-row: 2; gap: var(--espace-3); font-family: var(--police-marque); font-size: 1.0625rem; font-weight: 700; letter-spacing: .12em; }
 .module.centre .symbole {
   box-sizing: content-box; width: 84px; height: 84px; padding: 34px; border-radius: 30px; background: var(--nuit-2);
   border: 1px solid color-mix(in srgb, var(--nuit-fort) 16%, var(--nuit-2)); box-shadow: 0 0 0 8px color-mix(in srgb, var(--nuit-2) 45%, transparent), 0 18px 48px color-mix(in srgb, var(--nuit) 70%, black);
@@ -166,7 +169,7 @@ a.module:active { transform: scale(.97); }
   .tableau-modules { aspect-ratio: .82; width: 100%; }
   .module { font-size: var(--taille-dense); }
   .module .pastille { width: 52px; height: 52px; border-radius: 12px; } .module .pastille svg { width: 24px; height: 24px; }
-  .module.centre { font-size: 14px; } .module.centre .symbole { width: 52px; height: 52px; padding: 18px; border-radius: 20px; }
+  .module.centre { font-size: 0.875rem; } .module.centre .symbole { width: 52px; height: 52px; padding: 18px; border-radius: 20px; }
   .liaison { width: calc(hypot(var(--lx), var(--ly)) * .62); }
 }
 
@@ -192,7 +195,7 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
 }
 .controle { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 2px var(--espace-3); padding: var(--espace-3) 0; border-top: 1px solid var(--ligne); align-items: start; }
 .controle:first-child { border-top: 0; padding-top: 0; }
-.controle .marque { display: grid; place-items: center; width: 24px; height: 24px; border-radius: var(--rayon-rond); font: 700 12px/1 var(--police-texte); }
+.controle .marque { display: grid; place-items: center; width: 24px; height: 24px; border-radius: var(--rayon-rond); font: 700 0.75rem/1 var(--police-texte); }
 .controle[data-etat="ok"] .marque { color: var(--sain-texte); background: var(--sain-pale); }
 .controle[data-etat="ko"] .marque { color: var(--alerte); background: var(--alerte-pale); }
 .controle[data-etat="info"] .marque { color: var(--encre-2); background: var(--ligne); }
@@ -235,8 +238,10 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
 /* Valeur d'exemple ou à confirmer */
 .exemple { font-size: var(--taille-dense); color: var(--encre-2); font-style: italic; }
 
-/* 1100px : --mise-bascule-une-colonne (une media query ne lit pas de variable) */
-@media (max-width: 1100px) {
+/* Plan d'allègement, point 11.7 : le guichet passe sur une colonne selon la largeur de la zone de travail elle-même (requête de conteneur),
+   et non plus celle de la fenêtre : 860 px de zone, soit l'ancienne bascule à 1100 px de fenêtre moins le volet de gauche */
+.page { container: travail / inline-size; }
+@container travail (max-width: 860px) {
   .guichet { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 860px) {
@@ -298,7 +303,7 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
 /* Écran tactile (fiche emil-kowalski « mobile-native ») : champs à 16 px pour que l'iPhone ne zoome pas à la saisie ;
    cibles d'au moins 44 px sous le doigt ; pas de flash gris au toucher ni d'attente de double tape */
 @media (pointer: coarse) {
-  input, select, textarea, .saisie, .grille tr.filtres .saisie { font-size: 16px; }
+  input, select, textarea, .saisie, .grille tr.filtres .saisie { font-size: 1rem; }
   .saisie, .bouton, .sortir { min-height: 44px; }
   .sortir { min-width: 44px; }
   .bouton { padding-top: 10px; padding-bottom: 10px; }
@@ -533,26 +538,26 @@ select.saisie { max-width: 100%; }
 /* Tableau plus large que la zone de travail, sur ordinateur aussi : il défile dans son cadre */
 .defile-x { overflow-x: auto; max-width: 100%; }
 /* Filtres de colonne : 16 px aussi sous le doigt (ils sont définis plus haut en taille dense) */
-@media (pointer: coarse) { .grille tr.filtres .saisie { font-size: 16px; } }
+@media (pointer: coarse) { .grille tr.filtres .saisie { font-size: 1rem; } }
 
 /* ---------- S64 : relevé de compte au modèle standard (registre S64-7) : forme d'un relevé bancaire, identité de l'institution cliente ----------
    Typographie d'un relevé bancaire (demande du porteur, 15/11/2026) : police de bureau sans empattement, petite et serrée, chiffres dans la même police. */
 .releve-std { --releve-police: var(--police-texte);
-  display: grid; gap: 10px; background: var(--feuille); color: var(--encre); padding: 18px; font-family: var(--releve-police); font-size: 11px; line-height: 1.3; }
+  display: grid; gap: 10px; background: var(--feuille); color: var(--encre); padding: 18px; font-family: var(--releve-police); font-size: 0.6875rem; line-height: 1.3; }
 .releve-std .chiffres, .releve-std .montant { font-family: var(--releve-police); font-variant-numeric: tabular-nums; letter-spacing: 0; }
 .releve-tete { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
-.releve-num { margin: 0; font-size: 12px; }
-.releve-titre { margin: 0; justify-self: center; padding: 4px 28px; border: 1px solid var(--encre); font-family: var(--releve-police); font-size: 14px; font-weight: 400; letter-spacing: .03em; }
+.releve-num { margin: 0; font-size: 0.75rem; }
+.releve-titre { margin: 0; justify-self: center; padding: 4px 28px; border: 1px solid var(--encre); font-family: var(--releve-police); font-size: 0.875rem; font-weight: 400; letter-spacing: .03em; }
 .releve-logo { display: grid; justify-items: end; gap: 1px; text-align: right; }
 .releve-logo img { max-height: 44px; max-width: 160px; object-fit: contain; }
-.releve-logo strong { font-size: 20px; color: var(--tampon); }
-.releve-logo span { color: var(--encre-2); font-size: 10px; }
+.releve-logo strong { font-size: 1.25rem; color: var(--tampon); }
+.releve-logo span { color: var(--encre-2); font-size: 0.625rem; }
 .releve-haut { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
 .releve-synthese { border-collapse: collapse; width: 100%; }
 .releve-synthese th { text-align: left; font-weight: 700; background: var(--nuit); color: var(--nuit-fort); padding: 2px 6px; border-bottom: 1px solid var(--nuit-trait); white-space: nowrap; width: 42%; }
 .releve-synthese td { text-align: right; padding: 2px 6px; border-bottom: 1px solid var(--ligne); }
 .releve-client { font-style: normal; display: grid; gap: 1px; padding-top: 10px; font-weight: 700; }
-.releve-client strong { font-size: 12px; margin-bottom: 6px; }
+.releve-client strong { font-size: 0.75rem; margin-bottom: 6px; }
 .releve-detail { border-collapse: collapse; width: 100%; table-layout: fixed; }
 .releve-detail col.c-date { width: 13%; } .releve-detail col.c-desc { width: 27%; } .releve-detail col.c-ref { width: 12%; } .releve-detail col.c-valeur { width: 12%; }
 .releve-detail col.c-montant { width: 12%; }
@@ -560,7 +565,7 @@ select.saisie { max-width: 100%; }
 .releve-detail td { padding: 3px 4px; border-bottom: 1px solid var(--ligne); vertical-align: middle; text-align: center; }
 .releve-detail td.montant { text-align: right; }
 .releve-detail td:nth-child(2) { text-align: left; overflow-wrap: anywhere; }
-.releve-pied { display: grid; gap: 1px; border-top: 1px solid var(--nuit); padding-top: 4px; color: var(--encre-2); font-size: 9px; }
+.releve-pied { display: grid; gap: 1px; border-top: 1px solid var(--nuit); padding-top: 4px; color: var(--encre-2); font-size: 0.5625rem; }
 .releve-pied strong { color: var(--tampon); font-size: 9.5px; }
 @media (max-width: 720px) { .releve-tete, .releve-haut { grid-template-columns: minmax(0, 1fr); } .releve-titre { justify-self: start; } .releve-logo { justify-items: start; text-align: left; } }
 @media print {
@@ -735,3 +740,4 @@ select.saisie { max-width: 100%; }
 .lien-evitement:focus { position: fixed; top: var(--espace-2); left: var(--espace-2); z-index: 100; padding: var(--espace-2) var(--espace-3);
   background: var(--feuille); color: var(--tampon); border: 2px solid var(--tampon); border-radius: var(--rayon-champ); font-weight: 600; }
 #titre-ecran:focus, #contenu:focus { outline: none; }   /* cibles du focus après navigation, pas des contrôles */
+}

@@ -26,6 +26,7 @@ MIDDLEWARE = [
     "django.middleware.gzip.GZipMiddleware",         # réponses de l'API compressées : les listes et les états pèsent cinq à dix fois moins sur le réseau
     "noyau.chrono.Chrono",                           # durée et nombre de requêtes SQL de chaque appel (en-tête Server-Timing)
     "django.middleware.security.SecurityMiddleware",
+    "noyau.securite.FetchMetadata",                  # plan d'allègement, point 11.6 : refus des requêtes venues d'un autre site, avant la session
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",

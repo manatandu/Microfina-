@@ -24,13 +24,23 @@ const enVol = new Map<string, Promise<string>>();
 export function creerApiHttp(notifier: () => void): ApiDonnees {
   async function envoyer(methode: Methode, chemin: string, corps?: unknown): Promise<string> {
     signaler(1);
+    // Plan d'allègement, point 11.5 : délai maximal d'un appel (lecture 30 s, écriture 60 s) ; repli pour les navigateurs sans AbortSignal.timeout
+    const delai = methode === "GET" ? 30_000 : 60_000, arret = new AbortController(), minuterie = setTimeout(() => arret.abort(), delai);
     try {
-      const r = await fetch(`/api${chemin}`, {
-        method: methode,
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json", ...(methode !== "GET" ? { "X-Likelemba": "1" } : {}) },
-        body: corps === undefined ? undefined : JSON.stringify(corps),
-      });
+      let r: Response;
+      try {
+        r = await fetch(`/api${chemin}`, {
+          method: methode,
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json", ...(methode !== "GET" ? { "X-Likelemba": "1" } : {}) },
+          body: corps === undefined ? undefined : JSON.stringify(corps),
+          signal: arret.signal,
+        });
+      } catch (x) {
+        if (!arret.signal.aborted) throw x;
+        throw new ErreurMetier(methode === "GET" ? "Le serveur n'a pas répondu à temps. Réessayez."
+          : "Le serveur n'a pas répondu à temps : vérifiez si l'opération est passée avant de la refaire.");
+      }
       if (!r.ok) {
         let message = "Le serveur ne répond pas comme prévu.";
         try { message = ((await r.json()) as { message?: string }).message ?? message; } catch { /* réponse vide */ }
@@ -44,7 +54,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
         throw new ErreurMetier(message);
       }
       return await r.text();
-    } finally { signaler(-1); }
+    } finally { clearTimeout(minuterie); signaler(-1); }
   }
   async function appel<T>(methode: Methode, chemin: string, corps?: unknown): Promise<T> {
     const lire = (texte: string) => (texte ? JSON.parse(texte) : null) as T;
@@ -548,7 +558,15 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       courante: () => get("/session"),
       mode: () => get<{ motDePasseRequis: boolean }>("/session/mode"),
       ouvrir: (login: string, motDePasse?: string) => post("/session", { login, motDePasse }),
-      fermer: () => appel("DELETE", "/session"),
+      // Plan d'allègement, point 11.6 : la réponse demande au navigateur d'effacer les données du site (Clear-Site-Data) ; une marque
+      // posée avant et retrouvée après dit qu'il ne l'a pas fait : le stockage est vidé ici, et l'écran de connexion le signale
+      fermer: async () => {
+        try { localStorage.setItem("exofina-poste", "1"); } catch { /* stockage indisponible */ }
+        await appel("DELETE", "/session");
+        let reste = false;
+        try { reste = localStorage.getItem("exofina-poste") === "1"; if (reste) { localStorage.clear(); sessionStorage.clear(); } } catch { /* rien à vider */ }
+        return { nettoye: !reste };
+      },
     },
     journees: {
       courante: () => get("/journees/courante"),

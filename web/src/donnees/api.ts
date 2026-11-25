@@ -29,7 +29,8 @@ export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art.
 
 const CLE = "likelemba-demo-v106";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
-let E: Etat = /* @__PURE__ */ charger();
+// Plan d'allègement, point 11.5 : sur le serveur, l'état local n'est pas construit ; la graine de démonstration quitte le paquet de départ
+let E: Etat = import.meta.env.VITE_DONNEES === "serveur" ? ({} as Etat) : /* @__PURE__ */ charger();
 const abonnes = new Set<() => void>();
 
 function charger(): Etat {
@@ -4433,7 +4434,7 @@ const provisions = {
     return b.lignes.map((l) => ({ l, c: E.credits.find((x) => x.id === l.creditId)! })).sort((a, b2) => a.c.numero.localeCompare(b2.c.numero)).map(({ l, c }) => {
       const g = degreCible(l);
       return { id: c.id, numero: c.numero, client: titulaire(E.tiers.find((t) => t.id === c.tiersId)!), montant: c.montant, devise: c.devise, dateDeblocage: c.debloqueLe,
-        capitalRestant: l.capitalRestant, joursRetard: l.joursRetard, degre: String(fixeCredit("degres")[g - 1]!.libelle) + (l.assimile ? " (assimilé)" : ""), taux: tauxProvision(g),
+        capitalRestant: l.capitalRestant, joursRetard: l.joursRetard, degre: String(fixeCredit("degres")[g - 1]!.libelle) + (l.assimile ? " (assimilé)" : ""), tranche: g - 1, taux: tauxProvision(g),
         provisionRequise: Math.floor(l.capitalRestant * tauxProvision(g) / 100), provision: c.provision ?? 0, statut: c.statut, irrecuperable: l.classe === "irrecuperable" };
     });
   },
@@ -4528,13 +4529,13 @@ function candidatsDecouvert(d: string) {
     if (solde <= 0 || !depuis || joursEntre(depuis, d) <= 30) return [];
     const jours = joursEntre(depuis, d), [g, lib] = degreDe(jours);
     return [{ compteId: k.id, numero: k.numero, client: titulaire(E.tiers.find((t) => t.id === k.tiersId)!), devise: k.devise as string, solde, dernierVersement: dernier,
-      retardDepuis: depuis, joursRetard: jours, degre: lib, taux: tauxProvision(g) }];
+      retardDepuis: depuis, joursRetard: jours, degre: lib, tranche: g - 1, taux: tauxProvision(g) }];
   }).sort((a, b) => a.numero.localeCompare(b.numero));
 }
 function vueDecouvert(x: DecouvertDouteux, d: string) {
   const k = E.comptes.find((c) => c.id === x.compteId)!, jours = joursEntre(x.retardDepuis, d), [g, lib] = degreDe(jours);
   return { id: x.id, compteId: x.compteId, numero: k.numero, client: titulaire(E.tiers.find((t) => t.id === k.tiersId)!), devise: x.devise, montant: x.montant, restant: x.restant,
-    retardDepuis: x.retardDepuis, joursRetard: jours, degre: lib, taux: tauxProvision(g), provisionRequise: Math.floor(x.restant * tauxProvision(g) / 100), provision: x.provision, classeLe: x.classeLe };
+    retardDepuis: x.retardDepuis, joursRetard: jours, degre: lib, tranche: g - 1, taux: tauxProvision(g), provisionRequise: Math.floor(x.restant * tauxProvision(g) / 100), provision: x.provision, classeLe: x.classeLe };
 }
 function ecrireDecouvert(u: number, libelle: string, evenement: string, lg: Omit<Ligne, "montantCdf">[]) {
   if (lg.length) poster({ evenement, journal: "OD", journeeId: jourDeblocage().id, libelle, piece: piece("OD"), saisiPar: u, validePar: u,

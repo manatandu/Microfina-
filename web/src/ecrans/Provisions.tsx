@@ -48,7 +48,7 @@ export default function Provisions() {
               <LigneFiltres titres={["N° crédit", "Client", null, null, null, null, null, null, null, null]} /></thead>
             <tbody>{v.length === 0 && <tr><td colSpan={10}>Aucune ligne.</td></tr>}
               {v.map((x) => <tr key={x.id}><td className="code">{x.numero}</td><td>{x.client}</td><td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td className="chiffres">{fr(x.dateDeblocage)}</td>
-                <td className="num chiffres">{montant(x.capitalRestant, x.devise as Devise)}</td><td className="num chiffres">{x.joursRetard}</td><td>{x.degre}</td>
+                <td className="num chiffres">{montant(x.capitalRestant, x.devise as Devise)}</td><td className="num chiffres">{x.joursRetard}</td><td><span className="puce" data-tranche={x.tranche}>{x.degre}</span></td>
                 <td className="num chiffres">{x.taux} %</td><td className="num chiffres">{montant(x.provisionRequise, x.devise as Devise)}</td>
                 <td className="num chiffres">{montant(x.provision, x.devise as Devise)}</td></tr>)}</tbody>
           </table></div>)}</Paginee>
@@ -93,7 +93,7 @@ function ComptesCourantsDebiteurs() {
           <th scope="col" className="num">Jours de retard</th><th scope="col">Degré</th><th scope="col" className="num">Taux</th></tr></thead>
         <tbody>{donnees.candidats.length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
           {donnees.candidats.map((x) => <tr key={x.compteId}><td className="code">{x.numero}</td><td>{x.client}</td><td className="num chiffres">{montant(x.solde, x.devise as Devise)}</td>
-            <td className="chiffres">{x.dernierVersement ? fr(x.dernierVersement) : ""}</td><td className="num chiffres">{x.joursRetard}</td><td>{x.degre}</td><td className="num chiffres">{x.taux} %</td></tr>)}</tbody>
+            <td className="chiffres">{x.dernierVersement ? fr(x.dernierVersement) : ""}</td><td className="num chiffres">{x.joursRetard}</td><td><span className="puce" data-tranche={x.tranche}>{x.degre}</span></td><td className="num chiffres">{x.taux} %</td></tr>)}</tbody>
       </table></div>
       <div className="actions-onglets">
         <button className="bouton" type="button" disabled={donnees.candidats.length + donnees.creances.length === 0}
@@ -105,7 +105,7 @@ function ComptesCourantsDebiteurs() {
         <tbody>{donnees.creances.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
           {donnees.creances.map((x) => <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={x.id === choisi} onClick={() => setChoisi(x.id)}
             onKeyDown={(e) => { if (e.key === "Enter") setChoisi(x.id); }}><td className="code">{x.numero}</td><td>{x.client}</td>
-            <td className="num chiffres">{montant(x.restant, x.devise as Devise)}</td><td className="num chiffres">{x.joursRetard}</td><td>{x.degre}</td><td className="num chiffres">{x.taux} %</td>
+            <td className="num chiffres">{montant(x.restant, x.devise as Devise)}</td><td className="num chiffres">{x.joursRetard}</td><td><span className="puce" data-tranche={x.tranche}>{x.degre}</span></td><td className="num chiffres">{x.taux} %</td>
             <td className="num chiffres">{montant(x.provisionRequise, x.devise as Devise)}</td><td className="num chiffres">{montant(x.provision, x.devise as Devise)}</td></tr>)}</tbody>
       </table></div>
       {choisi !== null && <div className="ligne-champ">

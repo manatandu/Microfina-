@@ -22,14 +22,17 @@ def main():
     sombre = json.loads((ICI / "tokens-sombre.json").read_text(encoding="utf-8"))
     assert clair["color"].keys() == sombre["color"].keys(), "les deux thèmes doivent avoir les mêmes noms"
 
-    lignes = ["/* Généré par generer.py depuis tokens.json et tokens-sombre.json. Ne pas modifier à la main. */", ""]
+    lignes = ["/* Généré par generer.py depuis tokens.json et tokens-sombre.json. Ne pas modifier à la main. */", "",
+              "/* Plan d'allègement, point 11.7 : la cascade en couches ; « base » pour les éléments nus (liens), « interface » pour les composants",
+              "   partagés puis l'application, dans cet ordre : entre eux, la spécificité et l'ordre décident comme avant */",
+              "@layer base, interface;", ""]
     lignes.append(":root {")
     lignes.append(bloc(clair["color"]))
     for nom, val in ((k, v) for k, v in clair["font"].items() if not k.startswith("_")):
         lignes.append(f"  --police-{nom}: {val};")
-    for nom, t in clair["type"].items():
-        lignes.append(f"  --taille-{nom}: {t['size']}px;")
-        lignes.append(f"  --interligne-{nom}: {t['line']}px;")
+    for nom, t in clair["type"].items():   # en rem, interligne sans unité : le texte suit le réglage de l'utilisateur (registre T148)
+        lignes.append(f"  --taille-{nom}: {t['size'] / 16:g}rem;")
+        lignes.append(f"  --interligne-{nom}: {t['line'] / t['size']:.4g};")
         lignes.append(f"  --graisse-{nom}: {t['weight']};")
     for i, v in enumerate(clair["space"]):
         lignes.append(f"  --espace-{i}: {v}px;")

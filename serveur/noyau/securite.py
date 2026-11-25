@@ -123,3 +123,24 @@ def consulter(u: dict, du: str, au: str, evenement: str = "") -> list[dict]:
                      order by j.le desc, j.id desc limit 1000""", {"du": du, "au": au, "ev": evenement, "i": u["institution_id"], "fz": fz.key})
     return [{"le": r["le"].astimezone(fz).isoformat(timespec="seconds"), "evenement": r["evenement"], "evenementLibelle": EVENEMENTS.get(r["evenement"], r["evenement"]),
              "login": r["login"] or "", "utilisateur": r["nom"] or "", "ip": r["ip"] or "", "detail": r["detail"] or ""} for r in rows]
+
+
+class FetchMetadata:
+    """Plan d'allègement, point 11.6 : l'API ne sert que le site lui-même. Une requête qu'un navigateur dit venir d'un autre site (en-tête
+    Sec-Fetch-Site) est refusée avant toute vérification de session. Sans cet en-tête (navigateur ancien), la requête passe : l'en-tête
+    X-Likelemba exigé sur toute écriture reste la protection (api.u)."""
+    def __init__(self, suivant):
+        self.suivant = suivant
+
+    def __call__(self, request):
+        api = request.path.startswith("/api/")
+        site = request.headers.get("Sec-Fetch-Site") if api else None
+        if site and site not in ("same-origin", "none"):
+            journal.warning("securite evenement=requete_autre_site ip=%s detail=%s %s %s", adresse(request), request.method, request.path[:120], site)
+            r = JsonResponse({"message": "Requête refusée."}, status=403)
+        else:
+            r = self.suivant(request)
+        if api:
+            from django.utils.cache import patch_vary_headers
+            patch_vary_headers(r, ("Sec-Fetch-Site",))
+        return r

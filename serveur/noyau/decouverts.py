@@ -28,7 +28,7 @@ def candidats(u, d: date) -> list[dict]:
             g, lib = degre_de((d - depuis).days)
             out.append({"compteId": k["id"], "numero": k["numero"], "client": titulaire(k["tiers_id"]), "devise": k["devise"].strip(), "solde": int(k["solde"]),
                         "dernierVersement": k["dernier_credit"].isoformat() if k["dernier_credit"] else "", "retardDepuis": depuis.isoformat(),
-                        "joursRetard": (d - depuis).days, "degre": lib, "taux": taux(g)})
+                        "joursRetard": (d - depuis).days, "degre": lib, "tranche": g - 1, "taux": taux(g)})
     return out
 
 
@@ -37,7 +37,7 @@ def vue(x: dict, d: date) -> dict:
     jours = (d - x["retard_depuis"]).days
     g, lib = degre_de(jours)
     return {"id": x["id"], "compteId": x["compte_id"], "numero": k["numero"], "client": titulaire(k["tiers_id"]), "devise": x["devise"].strip(), "montant": x["montant"],
-            "restant": x["restant"], "retardDepuis": x["retard_depuis"].isoformat(), "joursRetard": jours, "degre": lib, "taux": taux(g),
+            "restant": x["restant"], "retardDepuis": x["retard_depuis"].isoformat(), "joursRetard": jours, "degre": lib, "tranche": g - 1, "taux": taux(g),
             "provisionRequise": x["restant"] * taux(g) // 100, "provision": x["provision"], "classeLe": x["classe_le"].isoformat()}
 
 

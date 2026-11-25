@@ -120,7 +120,7 @@ Une COOPEC a des **membres** et des **parts sociales**. Une IMF a des **clients*
 
 ---
 
-## 3. Système visuel, version 2.0 (21/11/2026)
+## 3. Système visuel, version 3.0 (25/11/2026 ; version 2.0 du 21/11/2026 remplacée pour § 3.1, § 3.2, § 3.4 et § 3.6)
 
 Demande du porteur, 21/11/2026 : « retravaille encore le design […] que ça soit professionnel, je ne veux pas qu'on voie que ça a été généré par une IA avec cet aspect toujours propre et tout blanc. Fais des recherches sur des vrais logiciels et inspire-toi. » La version 1.0 (page blanche, sections sans cadre, onglets soulignés, cases de 40 px) est archivée dans [`historique/DESIGN-v1.md`](historique/DESIGN-v1.md). La structure des écrans reste celle de Microfina++ (CLAUDE.md § 0) : seule l'apparence suit cette section.
 
@@ -130,27 +130,27 @@ Sources regardées le 21/11/2026 :
 - Déjà lues pour la version 1.0 et gardées : **SAP Fiori** (libellé et case en grille, montants à droite, devise dans la cellule), **IBM Carbon** (hauteur de ligne fixe), **Oracle Banking Branch** (cases de même largeur).
 - Non ouvertes ce jour (réseau fermé) : captures de Sage 100, Oracle Flexcube, Temenos T24. À regarder si le porteur le demande.
 
-### 3.1 Quatre plans au lieu d'un
+### 3.1 Trois plans, cinq fonds (version 3.0, 25/11/2026)
 
-Un logiciel de bureau se lit par ses plans. Du fond vers l'avant :
+Plan d'allègement, point 11.7, demande du porteur du 25/11/2026 (« modernise le design ») ; registre T148, T149. La structure des écrans ne change pas.
 
-| Plan | Jeton | Où |
+| Plan | Jetons | Où |
 |---|---|---|
-| Bureau | `bureau` | Fond de la zone de travail, de la page de connexion |
-| Cadre | `cadre` | Chaque panneau d'un écran (`.bloc`), les fenêtres de dialogue |
-| Bandeau | `bandeau`, `bandeau-fort` | Titre d'un cadre, titre d'une fenêtre, en-tête d'un menu |
-| Feuille | `feuille` | Seulement là où l'on tape et où l'on lit des données : cases, tableaux |
+| Bureau | `bureau`, `papier` | Fond de la zone de travail et de la page de connexion, gris très clair |
+| Carte | `cadre`, `feuille`, `bandeau`, `zebre` | Chaque panneau (`.bloc`), les cases, les tableaux, les fenêtres : blanc, filet fin, ombre à peine marquée |
+| Sourdine | `lecture`, `tete-grille`, `bandeau-fort`, `inactif` | Ce qui se lit sans se taper : case en lecture, en-tête de tableau, titre de fenêtre, bouton inactif |
 
-Le blanc n'est plus le fond de la page : il désigne ce qui se remplit. Une valeur en lecture est une case grisée (`lecture`), de la même taille que les autres.
+Cinq fonds au plus : bureau, carte, sourdine, sélection (`tampon-pale`) et la nuit de la barre du haut. Plus de bandeau gris sous les titres de cadre ni de relief : le titre est posé sur la carte, souligné d'un filet. Le gras et le bleu restent réservés au sens (titre, action, élément choisi).
 
 ### 3.2 Jetons
 
-Les valeurs font foi dans `replica/design/tokens.json` (clair) et `tokens-sombre.json` (sombre) ; `generer.py` écrit `tokens.css`. Aucune couleur, taille ou rayon ne s'écrit ailleurs.
+Les valeurs font foi dans `replica/design/tokens.json` (clair) et `tokens-sombre.json` (sombre) ; `generer.py` écrit `tokens.css`, `contraste.py` vérifie le contraste de chaque paire (`contraste.txt`). Aucune couleur, taille ou rayon ne s'écrit ailleurs.
 
-- **Couleurs** : neutres acier teintés du Bleu Nuit de la marque ; **bleu d'action** `tampon` (#1D4F91, dérivé du Bleu Nuit) pour le bouton principal, les liens, l'onglet et la ligne choisis ; Bleu Nuit pour la barre du haut et la barre d'état ; rouge de la marque pour le logo, le filet sous la barre du haut, la marque du titre d'écran et les erreurs ; rampe des statuts de crédit (§ 2.4) inchangée. Contraste mesuré à chaque changement (`replica/design/contraste.txt`) : 60 paires, aucun échec en clair ni en sombre le 21/11/2026.
-- **Typographie** : police de l'appareil (décision du 15/11/2026), chiffres de même largeur. Texte et tableaux 13 px, libellés secondaires 12 px, titre de cadre 13 px gras, titre d'écran 18 px ; le montant du guichet garde 28 px.
-- **Densité** : cases et boutons de 30 px, lignes de tableau de 28 px, grille de 4 px. Sous le doigt (`pointer: coarse`) : 44 px et texte de 16 px dans les cases.
-- **Formes** : rayon de 3 à 4 px ; un léger relief sur les boutons (`ombre-relief`), un léger creux dans les cases (`ombre-creux`) ; ombre portée seulement sur ce qui flotte.
+- **Couleurs** : une rampe de gris en oklch à pas nets, teintée du Bleu Nuit (teinte 255) ; en clair, bureau à 96,6 %, carte blanche, sourdine à 97,6 %, filets à 93,5 et 90,5 %, encre à 24 % ; en sombre, la même rampe retournée (bureau 16,5 %, carte 21 %, sourdine 24,5 %). Bleu d'action `tampon` (#1D4F91) inchangé ; rouge de la marque pour le logo, le filet sous la barre du haut, la marque du titre d'écran et les erreurs ; rampe des statuts de crédit (§ 2.4) inchangée. Contraste : aucun échec en clair ni en sombre le 25/11/2026.
+- **Typographie** : police de l'appareil, chiffres de même largeur. Échelle en rem à vrais écarts (16 px de base) : 0,75 rem (libellés secondaires, puces), 0,875 rem (texte, cases, tableaux), 1 rem (titre de cadre), 1,25 rem (titre d'écran, totaux), 2 rem (montant du guichet). Interlignes sans unité. Le texte suit le réglage de l'utilisateur.
+- **Densité** : cases et boutons de 32 px, lignes de tableau de 34 px, grille de 4 px. Sous le doigt (`pointer: coarse`) : 44 px et texte de 16 px dans les cases.
+- **Formes** : rayon de 4 px (petits éléments), 6 px (cases, boutons), 10 px (cartes) ; aucun relief ni creux ; ombre portée seulement sur ce qui flotte (fenêtres, menus) et ombre à peine marquée sous une carte.
+- **Cascade** : deux couches, `base` (éléments nus) puis `interface` (composants partagés, puis l'application). Le guichet passe sur une colonne selon la largeur de la zone de travail (requête de conteneur), non celle de la fenêtre.
 
 ### 3.3 Cadre de l'application
 
@@ -161,9 +161,9 @@ Les valeurs font foi dans `replica/design/tokens.json` (clair) et `tokens-sombre
 
 ### 3.4 Cadres, onglets, cases
 
-- **Cadre** (`.bloc`) : bordure, fond `cadre`, titre dans un bandeau.
+- **Cadre** (`.bloc`) : une carte blanche, filet fin, rayon de 10 px ; le titre posé dessus, souligné d'un filet.
 - **Cadre de champs** (`fieldset.cadre-champs`) : la boîte à légende des logiciels de bureau, le titre posé sur le filet, comme les cadres de Microfina++. Sans légende visible ou dans une barre de filtres : pas de boîte.
-- **Onglets pleins** : l'onglet choisi prend le fond du cadre, un trait bleu au-dessus, et tient à son panneau.
+- **Onglets soulignés** (version 3.0) : l'onglet choisi est en bleu d'action, souligné d'un trait de 2 px ; les autres en encre secondaire.
 - **Libellé à gauche** dans un cadre de champs (colonne de 9,5rem), au-dessus dans une barre de filtres et au téléphone. Toutes les cases d'un cadre ont la même largeur.
 - **Boutons** : un seul bouton principal par écran, en bleu d'action ; les autres sur fond acier. Les boutons d'un écran restent à droite, sous le contenu, comme sur les captures.
 
@@ -175,7 +175,7 @@ Les valeurs font foi dans `replica/design/tokens.json` (clair) et `tokens-sombre
 
 ### 3.6 Tableaux
 
-En-tête plein (`tete-grille`), filets verticaux et horizontaux, lignes de 28 px, lignes alternées teintées, ligne survolée ou choisie en bleu pâle, total arrêté (un trait au-dessus, double trait dessous, fond de bandeau). Le titre d'un tableau est un bandeau collé à son en-tête. Une action dans une ligne est un petit bouton (24 px).
+En-tête discret (`tete-grille`, texte de 0,75 rem), filets horizontaux seulement, lignes de 34 px, ligne survolée ou choisie en bleu pâle, total arrêté (un trait au-dessus, double trait dessous, fond de bandeau). Le titre d'un tableau est un bandeau collé à son en-tête. Une action dans une ligne est un petit bouton (24 px).
 
 ### 3.7 Fenêtres de dialogue
 

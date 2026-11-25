@@ -1,127 +1,125 @@
 Thème clair
-  AAA   14.01:1  encre                    on papier               
-  AAA   16.17:1  encre                    on feuille              
-  AAA   12.79:1  encre                    on tampon-pale          
-  AAA   15.20:1  encre                    on specimen             
-  AAA    7.04:1  encre-2                  on papier               
-  AAA    8.13:1  encre-2                  on feuille              
-  AA     6.42:1  encre-2                  on tampon-pale          
-  AAA    8.14:1  tampon                   on feuille              
-  AAA    7.05:1  tampon                   on papier               
-  AAA    8.14:1  sur-tampon               on tampon               
-  AA     5.71:1  alerte                   on feuille              
-  AA     4.84:1  alerte                   on alerte-pale          
-  AA     5.55:1  sain-texte               on feuille              
-  AA     4.76:1  sain-texte               on sain-pale            
-  AA     6.24:1  r1-texte                 on feuille              
-  AA     5.64:1  r1-texte                 on r1-pale              
-  AA     6.00:1  r2-texte                 on feuille              
-  AA     5.15:1  r2-texte                 on r2-pale              
-  AA     6.81:1  r3-texte                 on feuille              
-  AA     5.66:1  r3-texte                 on r3-pale              
-  AAA    7.63:1  r4-texte                 on feuille              
-  AA     6.19:1  r4-texte                 on r4-pale              
-  AAA   12.37:1  r5-texte                 on feuille              
-  AAA    9.94:1  r5-texte                 on r5-pale              
-  PASS   4.01:1  trait-saisie             on feuille              ui
-  PASS   3.47:1  trait-saisie             on papier               ui
-  PASS   8.14:1  tampon                   on feuille              ui
-  PASS   5.71:1  alerte                   on feuille              ui
-  PASS   5.55:1  sain                     on feuille              ui
-  PASS   3.18:1  r1                       on feuille              ui
-  PASS   3.78:1  r2                       on feuille              ui
-  PASS   5.05:1  r3                       on feuille              ui
-  PASS   7.63:1  r4                       on feuille              ui
-  PASS  12.37:1  r5                       on feuille              ui
-  AAA    9.71:1  nuit-texte               on nuit                 
-  AAA   12.51:1  nuit-fort                on nuit-2               
-  AAA   15.99:1  nuit-fort                on nuit                 
-  PASS  15.99:1  ciel                     on nuit                 ui
-  PASS  15.99:1  etoile                   on nuit                 ui
-  AAA    8.14:1  sur-tampon               on tampon               
-  AA     6.44:1  tampon                   on tampon-pale          
-  AA     6.53:1  encre-2                  on bandeau              
-  AAA   10.69:1  sur-tete-grille          on tete-grille          
-  AAA    7.37:1  encre-2                  on zebre                
-  AAA   14.94:1  encre                    on cadre                
-  AAA    7.51:1  encre-2                  on cadre                
-  AAA   11.93:1  encre                    on bureau               
-  AA     5.99:1  encre-2                  on bureau               
-  AAA   13.00:1  encre                    on bandeau              
-  AAA   10.48:1  encre                    on bandeau-fort         
-  AAA   13.64:1  encre                    on lecture              
-  AA     6.85:1  encre-2                  on lecture              
-  AAA    7.52:1  tampon                   on cadre                
-  AAA   10.63:1  sur-tampon               on tampon-fort          
-  AAA   12.79:1  encre                    on tampon-pale          
-  PASS   3.70:1  trait-saisie             on cadre                ui
-  AA     5.28:1  alerte                   on cadre                
-  AA     5.12:1  sain-texte               on cadre                
-  AAA   10.69:1  sur-tete-grille          on tete-grille          
-  AAA   14.66:1  encre                    on zebre                
-
-  60 pairs, 0 failing AA
+  AAA    14.90:1  encre                    on papier                  
+  AAA    16.44:1  encre                    on feuille                 
+  AAA    14.44:1  encre                    on tampon-pale             
+  AAA    15.45:1  encre                    on specimen                
+  AA      6.18:1  encre-2                  on papier                  
+  AA      6.82:1  encre-2                  on feuille                 
+  AA      5.99:1  encre-2                  on tampon-pale             
+  AAA     8.14:1  tampon                   on feuille                 
+  AAA     7.38:1  tampon                   on papier                  
+  AAA     8.14:1  sur-tampon               on tampon                  
+  AA      5.71:1  alerte                   on feuille                 
+  AA      4.84:1  alerte                   on alerte-pale             
+  AA      5.55:1  sain-texte               on feuille                 
+  AA      4.76:1  sain-texte               on sain-pale               
+  AA      6.24:1  r1-texte                 on feuille                 
+  AA      5.64:1  r1-texte                 on r1-pale                 
+  AA      6.00:1  r2-texte                 on feuille                 
+  AA      5.15:1  r2-texte                 on r2-pale                 
+  AA      6.81:1  r3-texte                 on feuille                 
+  AA      5.66:1  r3-texte                 on r3-pale                 
+  AAA     7.63:1  r4-texte                 on feuille                 
+  AA      6.19:1  r4-texte                 on r4-pale                 
+  AAA    12.37:1  r5-texte                 on feuille                 
+  AAA     9.94:1  r5-texte                 on r5-pale                 
+  PASS    3.94:1  trait-saisie             on feuille                  ui
+  PASS    3.57:1  trait-saisie             on papier                   ui
+  PASS    8.14:1  tampon                   on feuille                  ui
+  PASS    5.71:1  alerte                   on feuille                  ui
+  PASS    5.55:1  sain                     on feuille                  ui
+  PASS    3.18:1  r1                       on feuille                  ui
+  PASS    3.78:1  r2                       on feuille                  ui
+  PASS    5.05:1  r3                       on feuille                  ui
+  PASS    7.63:1  r4                       on feuille                  ui
+  PASS   12.37:1  r5                       on feuille                  ui
+  AAA     9.71:1  nuit-texte               on nuit                    
+  AAA    12.51:1  nuit-fort                on nuit-2                  
+  AAA    15.99:1  nuit-fort                on nuit                    
+  PASS   15.99:1  ciel                     on nuit                     ui
+  PASS   15.99:1  etoile                   on nuit                     ui
+  AAA     8.14:1  sur-tampon               on tampon                  
+  AAA     7.15:1  tampon                   on tampon-pale             
+  AA      6.82:1  encre-2                  on bandeau                 
+  AAA     7.89:1  sur-tete-grille          on tete-grille             
+  AA      6.82:1  encre-2                  on zebre                   
+  AAA    16.44:1  encre                    on cadre                   
+  AA      6.82:1  encre-2                  on cadre                   
+  AAA    14.90:1  encre                    on bureau                  
+  AA      6.18:1  encre-2                  on bureau                  
+  AAA    16.44:1  encre                    on bandeau                 
+  AAA    15.35:1  encre                    on bandeau-fort            
+  AAA    15.35:1  encre                    on lecture                 
+  AA      6.36:1  encre-2                  on lecture                 
+  AAA     8.14:1  tampon                   on cadre                   
+  AAA    10.63:1  sur-tampon               on tampon-fort             
+  AAA    14.44:1  encre                    on tampon-pale             
+  PASS    3.94:1  trait-saisie             on cadre                    ui
+  AA      5.71:1  alerte                   on cadre                   
+  AA      5.55:1  sain-texte               on cadre                   
+  AAA     7.89:1  sur-tete-grille          on tete-grille             
+  AAA    16.44:1  encre                    on zebre                   
 
 Thème sombre
-  AAA   13.83:1  encre                    on papier               
-  AAA   13.00:1  encre                    on feuille              
-  AAA   10.73:1  encre                    on tampon-pale          
-  AAA   14.61:1  encre                    on specimen             
-  AAA    7.78:1  encre-2                  on papier               
-  AAA    7.32:1  encre-2                  on feuille              
-  AA     6.04:1  encre-2                  on tampon-pale          
-  AAA    7.44:1  tampon                   on feuille              
-  AAA    7.92:1  tampon                   on papier               
-  AAA    8.80:1  sur-tampon               on tampon               
-  AA     5.10:1  alerte                   on feuille              
-  AA     4.81:1  alerte                   on alerte-pale          
-  AAA    7.48:1  sain-texte               on feuille              
-  AA     6.64:1  sain-texte               on sain-pale            
-  AAA    8.11:1  r1-texte                 on feuille              
-  AA     6.92:1  r1-texte                 on r1-pale              
-  AA     6.80:1  r2-texte                 on feuille              
-  AA     6.39:1  r2-texte                 on r2-pale              
-  AA     6.07:1  r3-texte                 on feuille              
-  AA     5.93:1  r3-texte                 on r3-pale              
-  AA     5.73:1  r4-texte                 on feuille              
-  AA     5.73:1  r4-texte                 on r4-pale              
-  AA     6.95:1  r5-texte                 on feuille              
-  AA     6.95:1  r5-texte                 on r5-pale              
-  PASS   4.75:1  trait-saisie             on feuille              ui
-  PASS   5.05:1  trait-saisie             on papier               ui
-  PASS   7.44:1  tampon                   on feuille              ui
-  PASS   5.10:1  alerte                   on feuille              ui
-  PASS   7.48:1  sain                     on feuille              ui
-  PASS   8.11:1  r1                       on feuille              ui
-  PASS   6.80:1  r2                       on feuille              ui
-  PASS   6.07:1  r3                       on feuille              ui
-  PASS   5.73:1  r4                       on feuille              ui
-  PASS   6.95:1  r5                       on feuille              ui
-  AAA   10.06:1  nuit-texte               on nuit                 
-  AAA   11.83:1  nuit-fort                on nuit-2               
-  AAA   18.17:1  nuit-fort                on nuit                 
-  PASS  18.17:1  ciel                     on nuit                 ui
-  PASS  18.17:1  etoile                   on nuit                 ui
-  AAA    8.80:1  sur-tampon               on tampon               
-  AA     6.14:1  tampon                   on tampon-pale          
-  AA     6.95:1  encre-2                  on bandeau              
-  AAA    9.28:1  sur-tete-grille          on tete-grille          
-  AAA    7.77:1  encre-2                  on zebre                
-  AAA   14.61:1  encre                    on cadre                
-  AAA    8.22:1  encre-2                  on cadre                
-  AAA   16.04:1  encre                    on bureau               
-  AAA    9.03:1  encre-2                  on bureau               
-  AAA   12.35:1  encre                    on bandeau              
-  AAA   10.70:1  encre                    on bandeau-fort         
-  AAA   12.34:1  encre                    on lecture              
-  AA     6.95:1  encre-2                  on lecture              
-  AAA    8.36:1  tampon                   on cadre                
-  AAA   10.68:1  sur-tampon               on tampon-fort          
-  AAA   10.73:1  encre                    on tampon-pale          
-  PASS   5.34:1  trait-saisie             on cadre                ui
-  AA     5.73:1  alerte                   on cadre                
-  AAA    8.40:1  sain-texte               on cadre                
-  AAA    9.28:1  sur-tete-grille          on tete-grille          
-  AAA   13.81:1  encre                    on zebre                
+  AAA    15.92:1  encre                    on papier                  
+  AAA    14.64:1  encre                    on feuille                 
+  AAA    11.27:1  encre                    on tampon-pale             
+  AAA    14.13:1  encre                    on specimen                
+  AAA     8.98:1  encre-2                  on papier                  
+  AAA     8.25:1  encre-2                  on feuille                 
+  AA      6.35:1  encre-2                  on tampon-pale             
+  AAA     8.66:1  tampon                   on feuille                 
+  AAA     9.42:1  tampon                   on papier                  
+  AAA     8.80:1  sur-tampon               on tampon                  
+  AA      5.93:1  alerte                   on feuille                 
+  AA      4.81:1  alerte                   on alerte-pale             
+  AAA     8.70:1  sain-texte               on feuille                 
+  AA      6.64:1  sain-texte               on sain-pale               
+  AAA     9.44:1  r1-texte                 on feuille                 
+  AA      6.92:1  r1-texte                 on r1-pale                 
+  AAA     7.92:1  r2-texte                 on feuille                 
+  AA      6.39:1  r2-texte                 on r2-pale                 
+  AAA     7.07:1  r3-texte                 on feuille                 
+  AA      5.93:1  r3-texte                 on r3-pale                 
+  AA      6.67:1  r4-texte                 on feuille                 
+  AA      5.73:1  r4-texte                 on r4-pale                 
+  AAA     8.09:1  r5-texte                 on feuille                 
+  AA      6.95:1  r5-texte                 on r5-pale                 
+  PASS    4.87:1  trait-saisie             on feuille                  ui
+  PASS    5.30:1  trait-saisie             on papier                   ui
+  PASS    8.66:1  tampon                   on feuille                  ui
+  PASS    5.93:1  alerte                   on feuille                  ui
+  PASS    8.70:1  sain                     on feuille                  ui
+  PASS    9.44:1  r1                       on feuille                  ui
+  PASS    7.92:1  r2                       on feuille                  ui
+  PASS    7.07:1  r3                       on feuille                  ui
+  PASS    6.67:1  r4                       on feuille                  ui
+  PASS    8.09:1  r5                       on feuille                  ui
+  AAA    10.06:1  nuit-texte               on nuit                    
+  AAA    11.83:1  nuit-fort                on nuit-2                  
+  AAA    18.17:1  nuit-fort                on nuit                    
+  PASS   18.17:1  ciel                     on nuit                     ui
+  PASS   18.17:1  etoile                   on nuit                     ui
+  AAA     8.80:1  sur-tampon               on tampon                  
+  AA      6.67:1  tampon                   on tampon-pale             
+  AAA     8.25:1  encre-2                  on bandeau                 
+  AAA     9.29:1  sur-tete-grille          on tete-grille             
+  AAA     8.25:1  encre-2                  on zebre                   
+  AAA    14.64:1  encre                    on cadre                   
+  AAA     8.25:1  encre-2                  on cadre                   
+  AAA    15.92:1  encre                    on bureau                  
+  AAA     8.98:1  encre-2                  on bureau                  
+  AAA    14.64:1  encre                    on bandeau                 
+  AAA    13.40:1  encre                    on bandeau-fort            
+  AAA    13.40:1  encre                    on lecture                 
+  AAA     7.56:1  encre-2                  on lecture                 
+  AAA     8.66:1  tampon                   on cadre                   
+  AAA    10.68:1  sur-tampon               on tampon-fort             
+  AAA    11.27:1  encre                    on tampon-pale             
+  PASS    4.87:1  trait-saisie             on cadre                    ui
+  AA      5.93:1  alerte                   on cadre                   
+  AAA     8.70:1  sain-texte               on cadre                   
+  AAA     9.29:1  sur-tete-grille          on tete-grille             
+  AAA    14.64:1  encre                    on zebre                   
 
-  60 pairs, 0 failing AA
+0 échec(s)

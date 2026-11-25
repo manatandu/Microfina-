@@ -1,3 +1,4 @@
+@layer interface {
 /* Composants d'Exofina. Uniquement des jetons de tokens.css : aucun code couleur ici.
    Règles : docs/design/DESIGN.md, version 2.0 du 21/11/2026 (demande du porteur : un vrai logiciel, pas une page blanche).
    Quatre plans : le bureau (--bureau), la fenêtre de l'écran (--cadre), les bandeaux de titre (--bandeau), la case où l'on tape (--feuille).
@@ -64,19 +65,19 @@ h1, h2, h3 { letter-spacing: -0.01em; }
 .puce[data-tranche="3"]::before { background: var(--r3); }
 
 /* ---------- Cadre : une boîte bordée, son titre dans un bandeau (les cadres « Info client », « Info crédit » de Microfina++, p. 87) ---------- */
-.bloc { background: var(--cadre); border: 1px solid var(--trait); border-radius: var(--rayon-bloc); box-shadow: none; padding: var(--espace-3); min-width: 0; }
+/* Plan d'allègement, point 11.7 : une carte blanche posée sur le bureau, filet fin et ombre à peine marquée ; le titre sur la carte, souligné d'un filet */
+.bloc { background: var(--cadre); border: 1px solid var(--trait); border-radius: var(--rayon-bloc); box-shadow: var(--ombre-surface); padding: var(--espace-4); min-width: 0; }
 .bloc > h2, .bloc > h3 {
-  margin: 0 0 var(--espace-3); font-size: var(--taille-courant); line-height: var(--interligne-courant);
-  font-weight: 700; color: var(--encre);
+  margin: 0 0 var(--espace-3); font-size: var(--taille-titre); line-height: var(--interligne-titre);
+  font-weight: var(--graisse-titre); color: var(--encre);
   display: flex; align-items: center; gap: var(--espace-2); flex-wrap: wrap;
 }
 .bloc > h2:first-child, .bloc > h3:first-child {
-  margin: calc(-1 * var(--espace-3)) calc(-1 * var(--espace-3)) var(--espace-3); padding: 6px var(--espace-3);
-  background: var(--bandeau); border-bottom: 1px solid var(--trait); border-radius: calc(var(--rayon-bloc) - 1px) calc(var(--rayon-bloc) - 1px) 0 0;
-  font-size: var(--taille-courant);
+  margin: calc(-1 * var(--espace-4)) calc(-1 * var(--espace-4)) var(--espace-4); padding: var(--espace-3) var(--espace-4);
+  background: var(--bandeau); border-bottom: 1px solid var(--ligne); border-radius: calc(var(--rayon-bloc) - 1px) calc(var(--rayon-bloc) - 1px) 0 0;
 }
 /* Un cadre dans un cadre : même fond, le filet suffit */
-.bloc .bloc { background: none; }
+.bloc .bloc { background: none; box-shadow: none; }
 
 /* ---------- Onglets : pleins, l'onglet choisi tient à son panneau (Microfina++, p. 87) ---------- */
 .onglets {
@@ -86,20 +87,20 @@ h1, h2, h3 { letter-spacing: -0.01em; }
 }
 .onglets [role="tab"], .onglets > a, .onglets > span {
   font: inherit; font-size: var(--taille-courant); font-weight: 600; color: var(--encre-2); text-decoration: none; white-space: nowrap;
-  background: var(--bandeau); border: 1px solid var(--trait); border-bottom: 0; border-radius: var(--rayon-bloc) var(--rayon-bloc) 0 0;
-  padding: 6px var(--espace-4); margin-bottom: -1px; cursor: pointer; position: relative;
+  background: none; border: 0; border-radius: var(--rayon-petit) var(--rayon-petit) 0 0;
+  padding: var(--espace-2) var(--espace-3); margin-bottom: -1px; cursor: pointer; position: relative;
 }
 .onglets [role="tab"][aria-selected="true"], .onglets > [aria-current="page"] {
-  background: var(--cadre); color: var(--encre); border-bottom: 1px solid var(--cadre);
+  background: none; color: var(--tampon);
 }
 /* Le trait de l'onglet choisi : une bordure sur un pseudo-élément, qui reste en couleurs forcées (guide tabs : « DO NOT use box-shadow or a background ») */
 .onglets [role="tab"][aria-selected="true"]::after, .onglets > [aria-current="page"]::after {
-  content: ""; position: absolute; inset: -1px -1px auto; border-top: 2px solid var(--tampon); border-radius: inherit; pointer-events: none;
+  content: ""; position: absolute; inset: auto 0 0; border-bottom: 2px solid var(--tampon); pointer-events: none;
 }
 .onglets [role="tab"] .touche { margin-left: var(--espace-1); }
 @media (hover: hover) and (pointer: fine) { .onglets [role="tab"]:not([aria-selected="true"]):hover, .onglets > a:not([aria-current="page"]):hover { color: var(--encre); background: var(--papier); } }
 /* Le panneau d'un onglet : collé sous la rangée, sans coin en haut */
-.onglets + .bloc, .onglets + [role="tabpanel"] > .bloc:first-child { border-top: 0; border-radius: 0 0 var(--rayon-bloc) var(--rayon-bloc); margin-top: calc(-1 * var(--espace-3)); }
+.onglets + .bloc, .onglets + [role="tabpanel"] > .bloc:first-child { margin-top: 0; }
 
 .assistant { display: flex; flex-wrap: wrap; gap: var(--espace-2) var(--espace-4); list-style: none; margin: 0; padding: 0; counter-reset: etape; }
 .assistant li {
@@ -160,7 +161,7 @@ input.saisie.montant[readonly] { text-align: left; }   /* en lecture dans une se
 .champ:has(> .saisie.date), .champ:has(> .saisie.court) { justify-items: start; }
 select.saisie { appearance: none; padding-right: 26px; background-image: linear-gradient(45deg, transparent 50%, var(--encre-2) 50%), linear-gradient(135deg, var(--encre-2) 50%, transparent 50%); background-position: calc(100% - 14px) 50%, calc(100% - 9px) 50%; background-size: 5px 5px; background-repeat: no-repeat; }
 .aide { font-size: var(--taille-dense); color: var(--encre-2); margin: 0; }
-.erreur { font-size: var(--taille-dense); color: var(--alerte); font-weight: 600; margin: 0; min-height: var(--interligne-dense); }
+.erreur { font-size: var(--taille-dense); color: var(--alerte); font-weight: 600; margin: 0; min-height: calc(var(--interligne-dense) * var(--taille-dense)); }
 
 /* ---------- Montant : le chiffre est le héros du bordereau ---------- */
 .montant-champ {
@@ -178,7 +179,7 @@ select.saisie { appearance: none; padding-right: 26px; background-image: linear-
 .montant-champ .devise { font: 600 var(--taille-courant) var(--police-chiffres); color: var(--encre-2); flex-shrink: 0; }
 .lettres::first-letter { text-transform: uppercase; }
 .lettres {
-  margin: var(--espace-2) 0 0; min-height: var(--interligne-courant);
+  margin: var(--espace-2) 0 0; min-height: calc(var(--interligne-courant) * var(--taille-courant));
   color: var(--encre-2); padding: 0 var(--espace-1);
   overflow-wrap: anywhere;
 }
@@ -253,10 +254,10 @@ select.saisie { appearance: none; padding-right: 26px; background-image: linear-
 }
 @media (hover: hover) and (pointer: fine) {
   .bouton:not(:disabled):not(.secondaire):not(.discret):hover { background: var(--tampon-fort); }
-  .bouton.secondaire:not(:disabled):hover { background: var(--feuille); border-color: var(--encre-2); }
+  .bouton.secondaire:not(:disabled):hover { background: var(--lecture); border-color: var(--encre-2); }
   .bouton.discret:not(:disabled):hover { background: var(--tampon-pale); }
 }
-.bouton.secondaire { background: var(--papier); color: var(--encre); border-color: var(--trait-saisie); box-shadow: var(--ombre-relief-clair); }
+.bouton.secondaire { background: var(--feuille); color: var(--encre); border-color: var(--trait-saisie); box-shadow: var(--ombre-relief-clair); }
 .bouton.discret { background: none; border-color: transparent; color: var(--tampon); padding-inline: var(--espace-2); box-shadow: none; }
 .bouton:disabled, .bouton[aria-disabled="true"] { background: var(--inactif); border-color: var(--ligne); color: var(--sur-inactif); cursor: not-allowed; box-shadow: none; }
 .bouton.discret:disabled { background: none; border-color: transparent; color: var(--encre-2); }
@@ -288,22 +289,21 @@ details.textes ul { margin: var(--espace-1) 0 0; padding-left: var(--espace-4); 
 .grille-cadre { overflow-x: auto; border: 1px solid var(--trait); border-radius: var(--rayon-bloc); background: var(--feuille); }
 .grille { width: 100%; border-collapse: collapse; border: 1px solid var(--trait); background: var(--feuille); font-size: var(--taille-courant); line-height: var(--interligne-courant); }
 .grille-cadre > .grille { border: 0; }
-.grille caption { caption-side: top; text-align: left; font-weight: 700; padding: 5px var(--espace-2); background: var(--bandeau); border: 1px solid var(--trait); border-bottom: 0; color: var(--encre); }
+.grille caption { caption-side: top; text-align: left; font-weight: 600; padding: var(--espace-2) var(--espace-3); background: var(--bandeau); border: 1px solid var(--trait); border-bottom: 0; color: var(--encre); }
 .grille caption.sr-only { padding: 0; border: 0; }
 .grille th {
   position: sticky; top: 0; background: var(--bandeau); text-align: left; font-weight: 600; color: var(--encre); font-size: var(--taille-courant);
-  padding: 5px var(--espace-2); border-bottom: 1px solid var(--trait); white-space: nowrap;
+  padding: var(--espace-2) var(--espace-3); border-bottom: 1px solid var(--trait); white-space: nowrap;
 }
 .grille th.num { text-align: right; font-family: var(--police-texte); }
-.grille thead th { background: var(--tete-grille); color: var(--sur-tete-grille); border-bottom: 1px solid var(--trait-saisie); font-weight: 700; }
-.grille thead th + th, .grille td + td, .grille tbody th + td, .grille td + th { border-left: 1px solid var(--ligne); }
-.grille thead th + th { border-left-color: var(--trait); }
+/* Plan d'allègement, point 11.7 : en-tête discret, sans filets verticaux ; les lignes se lisent par leurs filets horizontaux */
+.grille thead th { background: var(--tete-grille); color: var(--sur-tete-grille); border-bottom: 1px solid var(--trait); font-size: var(--taille-dense); font-weight: 600; letter-spacing: .01em; }
 .grille thead th button:focus-visible { outline: 2px solid var(--sur-tete-grille); outline-offset: 2px; }
 .grille tbody th { position: static; background: inherit; color: var(--encre); border-bottom: 1px solid var(--ligne); }
 .grille th button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 .grille th[aria-sort="ascending"] button::after { content: " ↑"; }
 .grille th[aria-sort="descending"] button::after { content: " ↓"; }
-.grille td { padding: 4px var(--espace-2); border-bottom: 1px solid var(--ligne); vertical-align: middle; height: 28px; }
+.grille td { padding: var(--espace-1) var(--espace-3); border-bottom: 1px solid var(--ligne); vertical-align: middle; height: 34px; }
 .grille td.code, .grille td.chiffres, .grille td.num { white-space: nowrap; }   /* un numéro, une date, un montant ne se coupent pas */
 .grille tbody tr:last-child td, .grille tbody tr:last-child th { border-bottom: 0; }
 .grille tbody tr:nth-child(even) td, .grille tbody tr:nth-child(even) th { background: var(--zebre); }   /* lignes alternées : l'œil suit la ligne d'un bord à l'autre */
@@ -313,7 +313,7 @@ details.textes ul { margin: var(--espace-1) 0 0; padding-left: var(--espace-4); 
 .grille tbody tr[aria-selected="true"], .grille tbody tr[aria-selected="true"] td { background: var(--tampon-pale); box-shadow: inset 0 0 0 0 transparent; }
 .grille tbody tr[aria-selected="true"] td:first-child { box-shadow: inset 3px 0 0 var(--tampon); }
 /* Ligne de total : un trait au-dessus, deux au-dessous, comme un total arrêté au registre */
-.grille tfoot th, .grille tfoot td { background: var(--bandeau); font-weight: 700; border-top: 1px solid var(--encre); border-bottom: 3px double var(--encre); padding: 5px var(--espace-2); }
+.grille tfoot th, .grille tfoot td { background: var(--tete-grille); font-weight: 700; border-top: 1px solid var(--encre); border-bottom: 3px double var(--encre); padding: 5px var(--espace-2); }
 .grille .vide td { text-align: center; color: var(--encre-2); padding: var(--espace-6); height: auto; }
 .grille tr.muet td { color: var(--encre-2); }
 .pagination { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--espace-2); padding: var(--espace-2) var(--espace-3); font-size: var(--taille-dense); color: var(--encre-2); border-top: 1px solid var(--ligne); }
@@ -385,3 +385,4 @@ dialog:modal { overscroll-behavior: contain; }
 dialog::backdrop { overflow: hidden; overscroll-behavior: contain; }
 .fiche > h1 { position: sticky; top: 0; z-index: 2; margin: 0 calc(-1 * var(--espace-4)) var(--espace-4); padding: 8px var(--espace-4); font-size: var(--taille-titre); line-height: var(--interligne-titre);
   background: var(--bandeau-fort); border-bottom: 1px solid var(--trait); }
+}

@@ -73,7 +73,9 @@ export function Coquille() {
           </Deroulant>
           <button type="button" className="sortir" title="Aide en ligne" aria-label="Aide en ligne" aria-expanded={aide} onClick={() => setAide((v) => !v)}>?</button>
           <button type="button" className="sortir" title="Se déconnecter" aria-label="Se déconnecter"
-            onClick={async () => { await api.session.fermer(); nav("/connexion"); }}>{ICONES.sortie}</button>
+            onClick={async () => {   // plan 11.6 : l'écran de connexion dit si le navigateur n'a pas nettoyé le poste
+              const r = await api.session.fermer() as { nettoye?: boolean } | undefined;
+              nav("/connexion", r?.nettoye === false ? { state: { nettoyage: false } } : undefined); }}>{ICONES.sortie}</button>
         </div>
       </header>
 

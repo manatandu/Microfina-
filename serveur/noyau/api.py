@@ -2,7 +2,7 @@
 Chaque route lit l'utilisateur de la session ; les droits sont vérifiés dans les services (exiger)."""
 from django.conf import settings
 from django.db import transaction
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from ninja import Body, NinjaAPI
 
 from . import frais as fr
@@ -112,7 +112,18 @@ def session_ouvrir(request, corps: dict = Body(...)):
 def session_fermer(request):
     s.fermer_session(request.session.get("utilisateur"), request.session.get("jeton"))
     request.session.flush()
-    return None
+    # Plan d'allègement, point 11.6 : le poste est nettoyé à la déconnexion (cookies, stockage, cache du site)
+    r = JsonResponse(None, safe=False)
+    r["Clear-Site-Data"] = '"cache", "cookies", "storage"'
+    return r
+
+
+@api.post("/rapports-csp")
+def rapports_csp(request):
+    """Plan d'allègement, point 11.6 : rapports de la politique de contenu (Reporting-Endpoints), notés au journal du serveur, sans session"""
+    import logging
+    logging.getLogger("exofina.securite").warning("securite evenement=rapport_csp detail=%s", request.body[:4000].decode("utf-8", "replace"))
+    return HttpResponse(status=204)
 
 
 @api.get("/session")

@@ -22,3 +22,12 @@ activerOnglets();   // onglets au clavier (plan d'allègement, point 11.3)
 // Langue des libellés (manuel p. 14, article XX) : en anglais, le dictionnaire est chargé avant le premier affichage, pour que l'écran ne passe pas par le français
 const afficher = () => createRoot(document.getElementById("racine")!).render(<StrictMode><App /></StrictMode>);
 demarrerLangue().then(afficher, (e) => { console.warn("Langue non chargée :", e); afficher(); });
+
+// Plan d'allègement, point 11.5 (registre T154) : application installable ; le service worker ne garde que les fichiers statiques.
+// Version publiée seulement (pas en développement ni pendant les essais). Son adresse passe par une politique Trusted Types qui n'accepte qu'elle.
+if (import.meta.env.PROD && SUR_SERVEUR && "serviceWorker" in navigator) {
+  type Politiques = { createPolicy: (nom: string, regles: { createScriptURL: (u: string) => string }) => { createScriptURL: (u: string) => unknown } };
+  const tt = (window as unknown as { trustedTypes?: Politiques }).trustedTypes;
+  const politique = tt?.createPolicy("exofina-sw", { createScriptURL: (u: string) => { if (u !== "/sw.js") throw new TypeError("Adresse refusée."); return u; } });
+  addEventListener("load", () => { void navigator.serviceWorker.register((politique?.createScriptURL("/sw.js") ?? "/sw.js") as string).catch(() => undefined); });
+}

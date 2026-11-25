@@ -5465,3 +5465,17 @@ def test_fonds_solidarite_commun(clients, journee):
     assert ident("""select sum(l.montant_devise) from ligne_ecriture l join compte c on c.id = l.compte_id join credit k on k.ecriture_deblocage_id = l.ecriture_id
                     where k.id = %s and c.numero = '17290000' and l.sens = 'C'""", (cid,)) == fonds
     assert ident("select count(*) from blocage where garantie_de = %s and motif like 'Fonds%%'", (cid,)) == 0
+
+
+def test_securite_navigateur(clients):
+    """Plan d'allègement, point 11.6 : l'API refuse une requête qu'un navigateur dit venir d'un autre site (Fetch Metadata), avant la session ;
+    la déconnexion demande au navigateur d'effacer les données du site (Clear-Site-Data) ; les rapports de la politique de contenu sont reçus"""
+    chef = clients["chef"]
+    r = chef.get("/api/session", HTTP_SEC_FETCH_SITE="cross-site")
+    assert r.status_code == 403 and "Sec-Fetch-Site" in r["Vary"]
+    assert chef.get("/api/session", HTTP_SEC_FETCH_SITE="same-origin").status_code == 200
+    assert chef.get("/api/session").status_code == 200                       # navigateur ancien, sans l'en-tête
+    assert chef.post("/api/rapports-csp", "{}", content_type="application/reports+json").status_code == 204
+    r = chef.delete("/api/session", **H)
+    assert r.status_code == 200 and r["Clear-Site-Data"] == '"cache", "cookies", "storage"'
+    assert chef.get("/api/session").json() is None                          # la session est close

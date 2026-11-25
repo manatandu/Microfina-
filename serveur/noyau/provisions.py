@@ -68,7 +68,7 @@ def charger(u, p) -> list[dict]:
         g = cible(l)
         out.append({"id": l["credit_id"], "numero": l["numero"], "client": titulaire(l["tiers_id"]), "montant": l["montant"], "devise": l["devise"],
                     "dateDeblocage": l["debloque_le"].isoformat(), "capitalRestant": l["capital_restant"], "joursRetard": l["jours_retard"],
-                    "degre": DEGRES[g - 1]["libelle"] + (" (assimilé)" if l["assimile"] else ""), "taux": taux(g),
+                    "degre": DEGRES[g - 1]["libelle"] + (" (assimilé)" if l["assimile"] else ""), "tranche": g - 1, "taux": taux(g),
                     "provisionRequise": l["capital_restant"] * taux(g) // 100, "provision": l["provision"], "statut": l["statut"],
                     "irrecuperable": l["classe"] == "irrecuperable"})
     return out
