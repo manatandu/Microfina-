@@ -196,28 +196,28 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: 'Coupures', exact: true }).click(); await p.getByLabel('Billet ou pièce :').selectOption('Pièce'); await p.getByLabel('Valeur fiduciaire:').fill('0,50');
   await p.getByLabel('Devise :').selectOption('CDF');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Pièce de 0,5 CDF' }).waitFor(); await etape('02f27-monnaies');
-  // Administrateur sécurité (Instr. BCC 008, art. 16 ; registre T29) : profils (S03, p. 15) : le profil AUDITEUR de la capture
+  // Administrateur sécurité (Instr. BCC 008, art. 16 ; registre T29) : profils (S03, p. 15) : un profil comme celui de la capture (AUDITEUR est désormais un profil de départ, registre T209)
   await login('Grâce Mbuyi');
   // Plan d'allègement, point 8.2 : profils et droits sur une page
   await aller('/administration/s03'); await p.getByRole('button', { name: 'Nouveau profil' }).click();
-  await p.getByLabel('Nom Droit *').fill('AUDITEUR'); await p.getByLabel('Description').fill('PROFIL DES AUDITEURS');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('button', { name: 'AUDITEUR', exact: true }).waitFor(); await etape('02f31-profils');
+  await p.getByLabel('Nom Droit *').fill('CONTRÔLE INTERNE'); await p.getByLabel('Description').fill('PROFIL DU CONTRÔLE INTERNE');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('button', { name: 'CONTRÔLE INTERNE', exact: true }).waitFor(); await etape('02f31-profils');
   // Administrateur sécurité : un utilisateur (plan d'allègement, point 8.3 : Utilisateurs, « Nouvel utilisateur » ; Nom et Prénoms séparés)
   await aller('/administration/s05'); await p.getByRole('button', { name: 'Nouvel utilisateur' }).click(); const fu = p.getByRole('dialog', { name: 'Nouvel utilisateur' });
   await fu.getByLabel('Nom *').fill('Mbala'); await fu.getByLabel('Prénoms').fill('Joseph');
   await fu.getByLabel('Identifiant de connexion *').fill('jmbala'); await fu.getByLabel('Mot de passe *').fill('secret-1'); await fu.getByLabel('Confirmation *').fill('secret-1');
   await fu.getByLabel('Portable : *').fill('+243 810 000 444'); await fu.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('row').filter({ hasText: 'jmbala' }).getByRole('cell', { name: 'Joseph', exact: true }).waitFor(); await etape('02f33-utilisateurs');
-  // Administrateur sécurité : le profil AUDITEUR donné à cet utilisateur, depuis sa ligne (S06, p. 17)
+  // Administrateur sécurité : le profil CONTRÔLE INTERNE donné à cet utilisateur, depuis sa ligne (S06, p. 17)
   await p.getByRole('button', { name: 'Changer de profil : jmbala' }).click(); const fpr = p.getByRole('dialog', { name: 'Changer de profil : jmbala' });
-  await fpr.getByLabel('Nouveau profil *').selectOption({ label: 'AUDITEUR' }); await fpr.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f34-profils-utilisateur');
+  await fpr.getByLabel('Nouveau profil *').selectOption({ label: 'CONTRÔLE INTERNE' }); await fpr.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f34-profils-utilisateur');
   // Administrateur sécurité : utilisateurs connectés et déconnexion, sur la même liste (S07, p. 18)
   await p.getByRole('row').filter({ hasText: 'gmbuyi' }).getByRole('cell', { name: /^Oui/ }).first().waitFor(); await etape('02f35-connexions');
   await p.getByRole('button', { name: 'Déconnecter gmbuyi' }).click();
   await p.getByRole('dialog', { name: 'Confirmation' }).getByText('Voulez-vous déconnecter cet utilisateur').waitFor(); await etape('02f36-deconnexion');
   await p.getByRole('button', { name: 'Oui' }).click(); await p.getByText('bouton de sortie').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
-  // Administrateur sécurité : droits du profil AUDITEUR (S04, p. 15 et 16) : le menu Client lui est octroyé
-  await aller('/administration/s04'); await p.getByRole('button', { name: 'AUDITEUR', exact: true }).click();
+  // Administrateur sécurité : droits du profil CONTRÔLE INTERNE (S04, p. 15 et 16) : le menu Client lui est octroyé
+  await aller('/administration/s04'); await p.getByRole('button', { name: 'CONTRÔLE INTERNE', exact: true }).click();
   await p.getByRole('checkbox', { name: 'Tout le menu : Client' }).check();
   await etape('02f32-droits'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   // Plan d'allègement, point 7.2 : une troisième personne valide ce qui est saisi hors guichet ; le profil de départ CHEF COMPTABLE tient la validation

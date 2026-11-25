@@ -161,6 +161,7 @@ id,lot,titre,ecrans,statut,question,reste
 8.7,8,Journaux,S30 S115,fait,,
 8.8,8,Paramétrage,,fait,,
 8.9,8,Profils de départ d'une COOPEC,S03 S04,fait,,
+8.10,8,Profil AUDITEUR en lecture seule,S03 S04,fait,,
 9.1,9,Menu Autres supprimé,,fait,,
 9.2,9,Clôture,S127,fait,,
 9.3,9,Personnel et immobilisations : la page des modules reste,S02,fait,,

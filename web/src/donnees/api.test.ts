@@ -1990,13 +1990,14 @@ describe("journée de guichet", () => {
   it("profils (S03, p. 15) : Nom Droit obligatoire, unique ; Modifier, Supprimer refusé tant qu'un utilisateur le porte", async () => {
     await connecter("gmbuyi");
     const l = (await api.profils.lire()).profils;
-    expect(l.map((p) => p.nom)).toEqual(["ADMINISTRATEUR SÉCURITÉ", "AGENT DE CRÉDIT", "AGENT DE RECOUVREMENT", "CAISSIER", "CHEF COMPTABLE", "CHEF D'AGENCE", "COMPTABLE",
+    expect(l.map((p) => p.nom)).toEqual(["ADMINISTRATEUR SÉCURITÉ", "AGENT DE CRÉDIT", "AGENT DE RECOUVREMENT", "AUDITEUR", "CAISSIER", "CHEF COMPTABLE", "CHEF D'AGENCE", "COMPTABLE",
       "RESPONSABLE ADMINISTRATIF ET FINANCIER", "RESPONSABLE DES OPÉRATIONS"]);   // registre T203 ; plan 8.9
     await expect(api.profils.enregistrer({ nom: " " })).rejects.toThrow("Nom Droit");
     await expect(api.profils.enregistrer({ nom: "caissier" })).rejects.toThrow("existe déjà");
-    const a = (await api.profils.enregistrer({ nom: "AUDITEUR", description: "PROFIL DES AUDITEURS" })).profils.find((p) => p.nom === "AUDITEUR")!;
+    await expect(api.profils.enregistrer({ nom: "auditeur" })).rejects.toThrow("existe déjà");   // profil de départ en lecture seule (registre T209)
+    const a = (await api.profils.enregistrer({ nom: "CONTRÔLE INTERNE", description: "PROFIL DU CONTRÔLE INTERNE" })).profils.find((p) => p.nom === "CONTRÔLE INTERNE")!;
     await expect(api.profils.supprimer(l.find((p) => p.nom === "CAISSIER")!.id)).rejects.toThrow("Des utilisateurs");
-    expect((await api.profils.enregistrer({ nom: "AUDITEURS", description: "" }, a.id)).profils.some((p) => p.nom === "AUDITEURS")).toBe(true);
+    expect((await api.profils.enregistrer({ nom: "CONTRÔLES INTERNES", description: "" }, a.id)).profils.some((p) => p.nom === "CONTRÔLES INTERNES")).toBe(true);
     expect((await api.profils.supprimer(a.id)).profils.some((p) => p.id === a.id)).toBe(false);
   });
 

@@ -2640,22 +2640,23 @@ def test_profils(clients):
     les quatre profils de départ gardent leur code (registre T07, S03-1, S03-2)"""
     chef, agent = clients["chef"], clients["agent"]; connecter(chef, "gmbuyi"); connecter(agent, "bkasongo")
     l = chef.get("/api/profils", **H).json()["profils"]
-    assert [p["nom"] for p in l] == ["ADMINISTRATEUR SÉCURITÉ", "AGENT DE CRÉDIT", "AGENT DE RECOUVREMENT", "CAISSIER", "CHEF COMPTABLE", "CHEF D'AGENCE", "COMPTABLE",
+    assert [p["nom"] for p in l] == ["ADMINISTRATEUR SÉCURITÉ", "AGENT DE CRÉDIT", "AGENT DE RECOUVREMENT", "AUDITEUR", "CAISSIER", "CHEF COMPTABLE", "CHEF D'AGENCE", "COMPTABLE",
                                        "RESPONSABLE ADMINISTRATIF ET FINANCIER", "RESPONSABLE DES OPÉRATIONS"]   # registre T203 ; plan 8.9
     def refus(url, corps):
         r = chef.post(url, corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
-    assert agent.post("/api/profils", {"nom": "AUDITEUR"}, **H).status_code == 403
+    assert agent.post("/api/profils", {"nom": "CONTRÔLE INTERNE"}, **H).status_code == 403
     assert "Nom Droit" in refus("/api/profils", {"nom": " "})
     assert "existe déjà" in refus("/api/profils", {"nom": "caissier"})
-    a = next(p for p in chef.post("/api/profils", {"nom": "AUDITEUR", "description": "PROFIL DES AUDITEURS"}, **H).json()["profils"] if p["nom"] == "AUDITEUR")
-    assert a["description"] == "PROFIL DES AUDITEURS"
+    assert "existe déjà" in refus("/api/profils", {"nom": "auditeur"})                     # profil de départ en lecture seule (registre T209)
+    a = next(p for p in chef.post("/api/profils", {"nom": "CONTRÔLE INTERNE", "description": "PROFIL DU CONTRÔLE INTERNE"}, **H).json()["profils"] if p["nom"] == "CONTRÔLE INTERNE")
+    assert a["description"] == "PROFIL DU CONTRÔLE INTERNE"
     caissier = next(p for p in l if p["nom"] == "CAISSIER")
     assert "Des utilisateurs" in refus(f"/api/profils/{caissier['id']}/suppression", {})
     chef.post(f"/api/profils/{caissier['id']}", {"nom": "CAISSIÈRE", "description": ""}, **H)
     assert chef.get("/api/session", **H).status_code == 200
     connecter(clients["caisse"], "engalula")
     assert "caissier" in clients["caisse"].get("/api/session", **H).json()["roles"]          # le code reste, le nom change
-    assert all(p["nom"] != "AUDITEUR" for p in chef.post(f"/api/profils/{a['id']}/suppression", {}, **H).json()["profils"])
+    assert all(p["nom"] != "CONTRÔLE INTERNE" for p in chef.post(f"/api/profils/{a['id']}/suppression", {}, **H).json()["profils"])
 
 
 def test_droits_profils(clients):
@@ -4178,6 +4179,24 @@ def test_centrale_risques(clients, journee):
     assert "déjà déclaré" in refus({"evenements": ev[:1], "date": "2026-11-05", "reference": "CR-2"})
     assert chef.get("/api/conformite/centrale-risques?du=2026-11-01&au=2026-11-05&statut=a_declarer", **H).json() == []
     assert caisse.get("/api/conformite/centrale-risques?du=2026-11-01&au=2026-11-05", **H).status_code == 403
+
+
+def test_profil_auditeur(clients):
+    """Profil de départ AUDITEUR en lecture seule (demande du porteur du 25/11/2026 ; capture p. 15) : ses écrans ne figurent dans aucune route d'écriture,
+    toute écriture lui est refusée, la lecture lui est ouverte (registre T209)"""
+    from django.db import connection
+    from noyau.droits import DROITS_DEPART, ROUTES
+    lus = set(DROITS_DEPART["auditeur"])
+    assert lus and not lus & {e for _, l in ROUTES for e in l}
+    assert ident("""select string_agg(d.droit_code, ',' order by d.droit_code) from profil p join profil_droit d on d.profil_id = p.id
+                    where p.code = 'auditeur'""") == ",".join(sorted(lus))
+    connection.cursor().execute("""update utilisateur_profil set profil_id = (select id from profil where code = 'auditeur')
+                                   where utilisateur_id = (select id from utilisateur where login = 'bkasongo')""")
+    a = clients["agent"]; connecter(a, "bkasongo")
+    assert set(a.get("/api/session", **H).json()["droits"]) == lus
+    r = a.post("/api/credit-referentiels/demarches", {"libelle": "Essai"}, **H)
+    assert r.status_code == 403 and "Droit manquant" in r.json()["message"]
+    assert a.get("/api/referentiel", **H).status_code == 200
 
 
 def test_journal_audit(clients):

@@ -1,6 +1,6 @@
 import type { Comptage, Devise } from "@design/montant.js";
 
-export type Role = "caissier" | "chef_agence" | "agent_credit" | "comptable" | "administrateur" | "chef_comptable" | "raf" | "responsable_operations" | "agent_recouvrement";   // administrateur : Instr. BCC 008, art. 16 (registre T29)
+export type Role = "caissier" | "chef_agence" | "agent_credit" | "comptable" | "administrateur" | "chef_comptable" | "raf" | "responsable_operations" | "agent_recouvrement" | "auditeur";   // administrateur : Instr. BCC 008, art. 16 (registre T29)
 
 export interface Utilisateur { id: number; login: string; nom: string; roles: Role[];
   // S05 : Informations et Info Adresse (le mot de passe n'est pas gardé par la démo, registre S05-3)

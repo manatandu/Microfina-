@@ -418,6 +418,8 @@ Sortent du Paramétrage : le référentiel du budget (vers Budget), les fonds pr
 
 Les droits de chacun sont confrontés à l'Instr. BCC 008, art. 66 : l'avertissement de 8.2 ne s'affiche pour aucun. Origine : documents d'une COOPEC lus le 25/11/2026, demande du porteur.
 
+**8.10 Profil AUDITEUR en lecture seule (S03, S04).** Pour l'auditeur interne, le conseil de surveillance et les commissaires aux comptes, comme le profil que montre la capture p. 15. Il ne reçoit que des écrans de consultation qu'aucune route d'écriture ne cite : il lit, il n'écrit rien. Le journal de sécurité reste au responsable de la sécurité informatique (registre T209). Demande du porteur, 25/11/2026.
+
 ## Lot 9. Budget, personnel, immobilisations, menu Autres
 
 **9.1 Menu Autres supprimé.** Il mêle cinq écrans sans lien. Chaque chose rejoint sa place : clôtures du mois et de l'exercice, affectation du résultat dans Comptabilité > Clôture ; intérêts des comptes à vue et frais de tenue dans Épargne > Fin de mois (5.6) ; intérêts courus des DAT dans Dépôts à terme (5.3) ; état des provisions au Crédit (6.13) ; trésorerie en Comptabilité (7.11).

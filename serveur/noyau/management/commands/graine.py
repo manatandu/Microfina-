@@ -14,7 +14,7 @@ from noyau.droits import DROITS_DEPART
 # Quatre profils de départ (registre T07, S03-1) : code du rôle, nom en majuscules comme la capture p. 15
 NOMS_PROFILS = {"caissier": "CAISSIER", "chef_agence": "CHEF D'AGENCE", "comptable": "COMPTABLE", "agent_credit": "AGENT DE CRÉDIT",
                 "administrateur": "ADMINISTRATEUR SÉCURITÉ", "chef_comptable": "CHEF COMPTABLE",
-                "raf": "RESPONSABLE ADMINISTRATIF ET FINANCIER", "responsable_operations": "RESPONSABLE DES OPÉRATIONS", "agent_recouvrement": "AGENT DE RECOUVREMENT"}   # Instr. BCC 008, art. 16 : gestion des accès hors de l'exploitation (registre T29)
+                "raf": "RESPONSABLE ADMINISTRATIF ET FINANCIER", "responsable_operations": "RESPONSABLE DES OPÉRATIONS", "agent_recouvrement": "AGENT DE RECOUVREMENT", "auditeur": "AUDITEUR"}   # Instr. BCC 008, art. 16 : gestion des accès hors de l'exploitation (registre T29)
 COURS = 2850                 # CDF pour 1 USD, fictif
 VALEUR_PART = 400000         # 4 000 CDF : exemple du manuel Microfina++ ; la vraie valeur vient des statuts (loi 002/2002, art. 20)
 COUPURES = {"USD": [100, 50, 20, 10, 5, 1], "CDF": [20000, 10000, 5000, 1000, 500, 200, 100, 50]}
@@ -104,7 +104,7 @@ def completer(ins: int) -> int:
             ajouts += 1
     # Validation de ce qui est saisi hors guichet par une troisième personne (plan d'allègement, point 7.2 ; décision du porteur du 25/11/2026, registre T203)
     # Plan d'allègement, point 8.9 : profils de départ tirés de l'organigramme courant d'une COOPEC (décision du porteur du 25/11/2026)
-    for code in ("chef_comptable", "raf", "responsable_operations", "agent_recouvrement"):
+    for code in ("chef_comptable", "raf", "responsable_operations", "agent_recouvrement", "auditeur"):   # auditeur : lecture seule (registre T209)
         if not valeur("select count(*) from profil where institution_id = %s and code = %s", (ins, code)):
             pid = valeur("insert into profil (institution_id, code, nom) values (%s, %s, %s) returning id", (ins, code, NOMS_PROFILS[code]))
             for c in DROITS_DEPART[code]:

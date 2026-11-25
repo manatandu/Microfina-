@@ -109,7 +109,7 @@ function noterSecurite(evenement: string, login: string, utilisateurId: number |
   if (evenement === "acces_refuse") sauver(); else enregistrer();
 }
 export const LIBELLES_ROLES: Record<Role, string> = { caissier: "caissier", chef_agence: "chef d'agence", agent_credit: "agent de crédit", comptable: "comptable", administrateur: "administrateur sécurité", chef_comptable: "chef comptable",
-  raf: "responsable administratif et financier", responsable_operations: "responsable des opérations", agent_recouvrement: "agent de recouvrement" };
+  raf: "responsable administratif et financier", responsable_operations: "responsable des opérations", agent_recouvrement: "agent de recouvrement", auditeur: "auditeur" };
 
 const session = {
   /** La démonstration dans le navigateur n'a pas de mot de passe ; le serveur l'exige sur le site en ligne (registre S01-2) */

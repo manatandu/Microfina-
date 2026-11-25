@@ -242,7 +242,8 @@ export function graine(): Etat {
     profils: ([["caissier", "CAISSIER"], ["chef_agence", "CHEF D'AGENCE"], ["comptable", "COMPTABLE"], ["agent_credit", "AGENT DE CRÉDIT"], ["administrateur", "ADMINISTRATEUR SÉCURITÉ"],
       ["chef_comptable", "CHEF COMPTABLE"],
       // plan d'allègement, point 8.9 : profils tirés de l'organigramme courant d'une COOPEC (décision du porteur du 25/11/2026)
-      ["raf", "RESPONSABLE ADMINISTRATIF ET FINANCIER"], ["responsable_operations", "RESPONSABLE DES OPÉRATIONS"], ["agent_recouvrement", "AGENT DE RECOUVREMENT"]] as const)   // chef comptable : la validation de « Opérations en attente » (décision du porteur du 25/11/2026, registre T203)
+      ["raf", "RESPONSABLE ADMINISTRATIF ET FINANCIER"], ["responsable_operations", "RESPONSABLE DES OPÉRATIONS"], ["agent_recouvrement", "AGENT DE RECOUVREMENT"],
+      ["auditeur", "AUDITEUR"]] as const)   // lecture seule, comme la capture p. 15 (demande du porteur du 25/11/2026, registre T209)   // chef comptable : la validation de « Opérations en attente » (décision du porteur du 25/11/2026, registre T203)
       .map(([code, nom], i) => ({ id: i + 1, code, nom, description: "", supprime: false, droits: [...(DROITS_DEPART[code] ?? [])] })),   // droits : registre S04-2
     // S35 : CDF, symbole FC et cent centimes (D.-L. 080/1998, art. 1 et 2) ; USD : données de démonstration
     devises: [{ code: "CDF", libelle: "Franc congolais", unite: "FC", subdivision: 100 }, { code: "USD", libelle: "Dollar américain", unite: "$", subdivision: 100 }],
