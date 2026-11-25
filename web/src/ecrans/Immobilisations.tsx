@@ -78,7 +78,7 @@ export function CreationBien() {
   const radio = (k: string, l: string) => <fieldset className="choix-radio"><legend>{l}</legend>{["oui", "non"].map((x) =>
     <label key={x} className="case"><input type="radio" name={k} checked={v(k) === x} onChange={() => maj(k, x)} /><span>{x === "oui" ? "Oui" : "Non"}</span></label>)}</fieldset>;
   return <Formulaire className="bloc pile" label="Création d'une immobilisation" envoyer={() => c.confirmer(id ? "Voulez-vous vraiment modifier ?" : "Voulez-vous vraiment enregistrer ?", async () => {
-        const x = await api.immobilisations.enregistrer(envoi(), id ?? undefined); charger(x); })}><h2>Création d'une immobilisation</h2>
+        const x = await api.immobilisations.enregistrer(envoi(), id ?? undefined); charger(x); })}>
     <div className="deux-colonnes">{b?.numeroPiece && <Champ libelle="Numéro de pièce :">{(p) => <Lecture {...p} value={b.numeroPiece} />}</Champ>}
       <Champ libelle="Date opération">{(p) => <Lecture {...p} value={b ? fr(b.dateOperation) : ""} />}</Champ></div>
     <div className="deux-colonnes">
