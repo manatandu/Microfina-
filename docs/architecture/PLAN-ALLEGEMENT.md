@@ -474,18 +474,6 @@ Demande du porteur, 25/11/2026, après l'audit fait avec le skill « modern-web-
 
 **11.7 Refonte visuelle.** D'abord la cascade (`@layer`, `@scope`, requêtes de conteneur). Puis une rampe de gris en oklch à pas nets, cinq fonds au plus, `light-dark()` ; une échelle de texte en rem à vrais écarts ; le gras et le bleu réservés au sens ; fin des reliefs et des cadres emboîtés ; montant du guichet en grand ; pastilles de retard employées ; thème sombre corrigé. La structure des écrans ne change pas. Captures avant et après, écran par écran, en clair et en sombre. DESIGN § 3.1 et § 3.2 sont réécrits. Guides : color, typography, dark-mode, css, content-first-noise-reduction, card, motion.
 
-## Lot 12. Disposition des écrans
-
-Demande du porteur, 25/11/2026 : après la refonte visuelle (11.7), qui n'a changé que l'aspect, la disposition des écrans change aussi ; le porteur donne son accord écran par écran, sur maquette, avant toute construction (registre T188). Le cadre de l'application (barre du haut, accès rapide, barre d'état) ne change pas. Maquettes dans `docs/design/maquettes/disposition-*.html`, jetons et composants du système de design seulement. Réponse du porteur, 25/11/2026 : « Je n'aime pas aussi cette disposition, mais on y reviendra plus tard » ; les quatre maquettes ne sont pas retenues, le lot est repris avec lui plus tard.
-
-**12.1 Guichet (S74).** La disposition de DESIGN § 4 : le membre à gauche (recherche, photo et signature d'office, ses comptes à choisir avec solde, bloqué et disponible, ses crédits avec leur retard), le bordereau au centre (compte choisi, montant en grand, en lettres juste dessous, versé par le titulaire ou un tiers, motif, solde après l'opération, étapes cochées, bouton Enregistrer), le billetage à droite (total, écart, caisse après l'opération). Les touches F2, F4, F9 et Échap sous l'écran. Le bouton Photo et le cadre « Info compte » disparaissent : leur contenu est affiché d'office.
-
-**12.2 Nouveau membre (S37).** La nature du membre se choisit dans la tête de l'écran ; le second titre disparaît. Les cinq onglets deviennent des étapes à gauche, chacune avec ce qui reste à remplir. Le formulaire en groupes titrés (pour l'Identité : Nom ; Naissance et filiation ; Pièce d'identité), libellés au-dessus des cases. Les boutons restent visibles au bas de l'écran.
-
-**12.3 Portefeuille de crédits (S93).** Les critères sur une ligne ; les autres (niveau de validation, montant, archivés) derrière « Autres critères ». La liste s'affiche d'emblée et suit les critères. Une synthèse : nombre de crédits, montant prêté, capital restant, et le capital restant par tranche de retard avec la rampe de l'Instr. BCC 003 (DESIGN § 2.4), par devise. Le tableau passe de 17 à 8 colonnes : la date de demande sous le numéro, le numéro de membre sous le nom, l'agent sous le produit, Échéancier et Contrat sous un bouton « Documents » ; la date d'approbation et le contact restent dans l'export et la fiche du crédit.
-
-**12.4 Plan des comptes (S102).** Exporter et Nouveau compte dans la tête de l'écran. L'arbre à gauche ; à droite, la fiche du compte choisi en lecture (chemin dans le plan, numéro, libellé, parent, statut, nature, type de suivi, autorisation BCC), avec Modifier et Supprimer ; le formulaire ne paraît que pour créer ou modifier.
-
 ## La barre des menus après allègement
 
 Membre, Conformité, Épargne, Caisse, Crédit, Banque, Comptabilité, Budget, Personnel, Immobilisations, Administration, Paramétrage. Disparaissent : Part sociale (dans le Guichet), Autres (réparti), la page des modules (si 9.3 est retenu).
