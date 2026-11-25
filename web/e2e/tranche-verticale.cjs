@@ -1327,6 +1327,9 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: 'Classification' }).click(); await p.getByLabel('Catégorie :').selectOption({ label: 'A' }); await p.getByLabel('Classe :').selectOption({ label: 'I' });
   await p.getByLabel('Echelon :').selectOption({ label: '1' }); await p.getByLabel('Salaire de base prédéfini :').selectOption('Régime catégoriel');
   if ((await p.getByLabel('Salaire de base :').inputValue()) !== '250000') throw new Error('S133 : salaire de base non proposé par la grille salariale');
+  // Plan 9.5 : la date d'embauche reprise comme date de référence de l'ancienneté ; le taux va avec elle
+  if ((await p.getByLabel("Date référence de prime d'ancienneté : *").inputValue()) !== '01/02/2024') throw new Error("9.5 : la date d'embauche reprise pour l'ancienneté");
+  await p.getByLabel("Taux de prime d'ancienneté : *").fill('2');
   await etape('31e-employe-classification');
   await p.getByRole('tab', { name: 'Affectation et contrat' }).click(); await p.getByLabel('Type de contrat :').selectOption('Contrat à durée indéterminée');
   if ((await p.getByLabel('Date début :').inputValue()) !== '01/02/2024') throw new Error("9.5 : la date d'embauche reprise comme début du contrat");
