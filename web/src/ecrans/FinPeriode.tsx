@@ -1,8 +1,10 @@
-// S128 : Autres > Calculs (manuel Microfina++, p. 163 : « frais de tenue de comptes, calcul intérêt sur DAV, calcul des intérêts sur DAT, intérêt et frais de
+// S128 : Crédit > Intérêts courus, venu du menu Autres (plan d'allègement, point 9.1) (manuel Microfina++, p. 163 : « frais de tenue de comptes, calcul intérêt sur DAV, calcul des intérêts sur DAT, intérêt et frais de
 // tenue de comptes, Etat des provisions de crédits » ; menu seul). S127 : Autres > Clôture : crédit (capture « état des provisions de crédit » : Balance âgée
 // des crédits au, Afficher, Imprimer), dépôt, comptabilité. Les fenêtres que le manuel ne montre pas suivent la famille des traitements : critères,
 // Calculer pour voir, Valider avec confirmation Oui/Non (manuel p. 11). Registre S127-1 à S127-12, S128-1 à S128-9.
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { vers } from "./registre";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr, aujourdhui } from "../lib/dates";
@@ -132,10 +134,16 @@ export function TableProvisions({ r }: { r: Provisions }) {
       <td className="code">{x.compteProvisionCredit}</td></tr>)}</tbody></table>;
 }
 
+/** L'écran qui règle chaque contrôle (plan d'allègement, point 9.2) */
+const ECRAN_DU_CONTROLE: [string, string][] = [["Période terminée", "S12"], ["Journées comptabilisées", "S111"], ["Caisses arrêtées", "S79"], ["Rapprochements bancaires", "S110"],
+  ["Comptes d'attente", "S109"], ["Virements internes", "S109"], ["Suspens", "S109"], ["Balance âgée", "S99"], ["Provisions au niveau", "S99"], ["Crédits irrécupérables", "S99"],
+  ["Cautions reçues", "S94"], ["Incidents", "SC06"], ["Intérêts courus des dépôts", "S68"], ["Intérêts courus des crédits", "S128"], ["Amortissements", "S139"]];
 function Controles({ titre, liste }: { titre: string; liste: Cloture["controles"] }) {
+  const ecran = (l: string) => ECRAN_DU_CONTROLE.find(([d]) => l.startsWith(d))?.[1];
   return <table className="grille"><caption>{titre}</caption>
     <thead><tr><th scope="col">Contrôle</th><th scope="col">État</th><th scope="col">Détail</th></tr></thead>
-    <tbody>{liste.map((c) => <tr key={c.libelle}><th scope="row">{c.libelle}</th><td>{c.ok ? "Oui" : c.bloquant ? "Non (bloquant)" : "Non"}</td><td>{c.detail}</td></tr>)}</tbody></table>;
+    <tbody>{liste.map((c) => { const e = ecran(c.libelle);
+      return <tr key={c.libelle}><th scope="row">{!c.ok && e ? <Link to={vers(e)}>{c.libelle}</Link> : c.libelle}</th><td>{c.ok ? "Oui" : c.bloquant ? "Non (bloquant)" : "Non"}</td><td>{c.detail}</td></tr>; })}</tbody></table>;
 }
 
 function ClotureComptable({ ctx, jour }: { ctx: Ctx; jour: string }) {
@@ -170,26 +178,25 @@ function ClotureComptable({ ctx, jour }: { ctx: Ctx; jour: string }) {
       {r.echeances.map((x) => <p key={x}>{x}</p>)}
       <table className="grille"><caption>Soldes de gestion de l'exercice</caption>
         <thead><tr><th scope="col">Compte</th><th scope="col">Solde</th><th scope="col" className="num">Montant</th></tr></thead>
-        <tbody>{r.soldes.map((s) => <tr key={s.compte}><td className="code">{s.compte}</td><th scope="row">{s.libelle}</th><td className="num chiffres">{n(s.montant)}</td></tr>)}</tbody></table></>}
+        <tbody>{r.soldes.map((s) => <tr key={s.compte}><td className="code">{s.compte}</td><th scope="row">{s.libelle}</th><td className="num chiffres">{n(s.montant)}</td></tr>)}</tbody></table>
+      {/* Étape suivante : l'affectation du résultat de l'exercice choisi (plan d'allègement, point 9.2) */}
+      <AffectationResultat key={`${r.exercice}-${r.clotureLe ?? ""}`} exercice={r.exercice} jour={jour} /></>}
     {t.dialogue}</section>;
 }
 
 /** A1 et B14 (confrontation du 21/11/2026) : affectation du résultat de l'exercice clôturé, sur décision de l'assemblée générale. Réserve générale d'au moins
  * 15 % des excédents nets, après imputation du report à nouveau déficitaire (loi 002/2002, art. 9, 6° et 59, 1° ; Instr. BCC 002, art. 19 à 21 ; registre S127-13). */
-function AffectationResultat({ jour }: { jour: string }) {
-  const [exercice, setExercice] = useState(jour.slice(0, 4));
+function AffectationResultat({ exercice: ex, jour }: { exercice: number | string; jour: string }) {
+  const exercice = String(ex);
   const [a, setA] = useState<Affectation | null>(null);
   const [saisie, setSaisie] = useState<Record<string, string>>({});
   const [decision, setDecision] = useState({ reference: "", le: jour });
   const t = useTraitement();
-  const afficher = async () => { try { const x = await api.finPeriode.apercuAffectation({ exercice }); setA(x); setSaisie(x.resultat > 0 && x.reserveMinimum ? { reserveGenerale: n(x.reserveMinimum) } : {}); } catch (e) { t.erreur(e); } };
+  useDonnees(async () => { try { const x = await api.finPeriode.apercuAffectation({ exercice }); setA(x); setSaisie(x.resultat > 0 && x.reserveMinimum ? { reserveGenerale: n(x.reserveMinimum) } : {}); }
+    catch (e) { t.erreur(e); } return null; }, [exercice]);
   const montants = Object.fromEntries(Object.entries(saisie).map(([k, v]) => [k, v.trim() ? lireMontant(v) ?? -1 : 0]));
   const reparti = Object.values(montants).reduce((s, v) => s + Math.max(0, v), 0);
-  return <section className="bloc pile" aria-label="Affectation du résultat"><h2>Affectation du résultat</h2><Recherche className="pile" label="Critères" envoyer={afficher}>
-    <div className="formulaire">
-      <Champ libelle="Exercice :">{(p) => <input {...p} className="saisie code court" inputMode="numeric" value={exercice} onChange={(e) => { setExercice(e.target.value); setA(null); }} />}</Champ>
-    </div>
-    <div className="actions-onglets"><button className="bouton" type="submit">Afficher</button></div></Recherche>
+  return <section className="pile" aria-label="Affectation du résultat"><h2>Affectation du résultat de l'exercice {exercice}</h2>
     {a && <>
       <dl className="info-ligne-liste">
         <div className="info-ligne"><dt>Résultat de l'exercice {a.exercice} (compte 13)</dt><dd className="chiffres">{n(a.resultat)} CDF {a.resultat >= 0 ? "(excédent)" : "(déficit)"}</dd></div>
@@ -240,5 +247,5 @@ export function Clotures() {
   const cadre = useCadreCloture();
   if (!cadre) return <Chargement />;
   const jour = cadre.j?.date ?? aujourdhui();
-  return <><ClotureComptable ctx={cadre.ctx} jour={jour} /><AffectationResultat jour={jour} /></>;
+  return <ClotureComptable ctx={cadre.ctx} jour={jour} />;
 }

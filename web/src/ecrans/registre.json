@@ -172,12 +172,12 @@
   },
   {
     "id": "S19",
-    "nom": "Budget : référentiel",
-    "acces": "Info de base > Budget (types de centre de coût, centres, types de budget, types de période, périodes, plan, lignes, opérations)",
-    "but": "Préparer le budget",
-    "module": "parametrage",
+    "nom": "Référentiel du budget",
+    "acces": "Budget > Référentiel du budget",
+    "but": "Centres de coût, types de budget, lignes budgétaires, liaison aux opérations, bailleurs (plan d'allègement, point 9.4)",
+    "module": "budget",
     "priorite": "should",
-    "chemin": "/parametrage/s19"
+    "chemin": "/budget/s19"
   },
   {
     "id": "S20",
@@ -1168,18 +1168,18 @@
   },
   {
     "id": "S124",
-    "nom": "Nouveau budget",
-    "acces": "Budget > Nouveau",
-    "but": "Définir ou reconduire un budget",
+    "nom": "Budgets",
+    "acces": "Budget > Budgets",
+    "but": "La liste des budgets ; Nouveau, Reconduire, Ouvrir ; Ouvrir mène aux lignes et aux valeurs (plan d'allègement, point 9.4)",
     "module": "budget",
     "priorite": "should",
     "chemin": "/budget/s124"
   },
   {
     "id": "S125",
-    "nom": "Consultation et suivi budgétaire",
-    "acces": "Budget > Consultation ; Suivi ; Consommation par centre de coût",
-    "but": "Suivre le réalisé",
+    "nom": "Suivi budgétaire",
+    "acces": "Budget > Suivi budgétaire",
+    "but": "Prévu, réalisé, écart et taux, regroupés par ligne et compte, par centre de coût ou par bailleur (plan d'allègement, point 9.4)",
     "module": "budget",
     "priorite": "should",
     "chemin": "/budget/s125"
@@ -1188,37 +1188,37 @@
     "id": "S126",
     "nom": "Financement",
     "acces": "Budget > Financement",
-    "but": "Lignes, types de financement, bailleurs",
+    "but": "Lignes et types de financement, lus par rien, retirés ; le bailleur passe dans le référentiel du budget (plan d'allègement, point 9.4)",
     "module": "budget",
-    "priorite": "should",
+    "priorite": "skip",
     "chemin": "/budget/s126"
   },
   {
     "id": "S127",
     "nom": "Clôtures",
-    "acces": "Autres > Clôture",
+    "acces": "Comptabilité > Clôture",
     "but": "Comptabilité : clôture du mois et de l'exercice, affectation du résultat (l'état des provisions est au Crédit, plan d'allègement, point 6.13)",
-    "module": "budget",
+    "module": "comptabilite",
     "priorite": "must",
-    "chemin": "/budget/s127"
+    "chemin": "/comptabilite/s127"
   },
   {
     "id": "S143",
     "nom": "Trésorerie",
-    "acces": "Autres > Trésorerie",
+    "acces": "Comptabilité > Trésorerie",
     "but": "Voir les soldes des caisses et des banques à une date",
-    "module": "budget",
+    "module": "comptabilite",
     "priorite": "must",
-    "chemin": "/budget/s143"
+    "chemin": "/comptabilite/s143"
   },
   {
     "id": "S128",
-    "nom": "Calculs",
-    "acces": "Autres > Calculs",
-    "but": "Intérêts courus sur crédits (l'état des provisions est au Crédit, plan d'allègement, point 6.13)",
-    "module": "budget",
+    "nom": "Intérêts courus sur crédits",
+    "acces": "Crédit > Intérêts courus",
+    "but": "Intérêts courus non échus des crédits sains, aux créances rattachées (PCCI § 4.1.3 ; plan d'allègement, point 9.1)",
+    "module": "credit",
     "priorite": "must",
-    "chemin": "/budget/s128"
+    "chemin": "/credit/s128"
   },
   {
     "id": "S129",
@@ -1242,7 +1242,7 @@
     "id": "S131",
     "nom": "Données de base de la paie",
     "acces": "Structure de base > Données de base",
-    "but": "Allocations, barème d'imposition, catégories, classes, échelons, familles et rubriques d'éléments, grilles salariales, types d'avance, d'heures supplémentaires, de grille, de retenue (avec compte comptable)",
+    "but": "Catégorie, classe, échelon, grille salariale, type de retenue (plan d'allègement, point 9.5)",
     "module": "paie",
     "priorite": "should",
     "chemin": "/paie/s131"
@@ -1258,9 +1258,9 @@
   },
   {
     "id": "S133",
-    "nom": "Employé",
-    "acces": "Personnel > Nouvel employé",
-    "but": "Fiche, classification et grilles, affectation, contrat",
+    "nom": "Employés",
+    "acces": "Personnel > Employés",
+    "but": "La liste du personnel, puis la fiche de l'employé (plan d'allègement, point 9.5)",
     "module": "paie",
     "priorite": "should",
     "chemin": "/paie/s133"
@@ -1276,9 +1276,9 @@
   },
   {
     "id": "S135",
-    "nom": "Retenues",
+    "nom": "Retenues sur salaire",
     "acces": "Traitement retenues",
-    "but": "Mettre en place, lister, viser une retenue",
+    "but": "Mise en place en haut, liste à viser dessous (plan d'allègement, point 9.5)",
     "module": "paie",
     "priorite": "must",
     "chemin": "/paie/s135"
@@ -1294,7 +1294,7 @@
   },
   {
     "id": "S137",
-    "nom": "Création de bien",
+    "nom": "Création d'une immobilisation",
     "acces": "Nouveau",
     "but": "Créer un bien",
     "module": "immobilisations",
@@ -1303,9 +1303,9 @@
   },
   {
     "id": "S138",
-    "nom": "Affectation et transfert",
-    "acces": "Affectation ; Transfert",
-    "but": "Affecter un bien, le transférer, le libérer",
+    "nom": "Mouvements",
+    "acces": "Mouvements",
+    "but": "Changer le détenteur d'une immobilisation : affecter, transférer, libérer, en un écran (plan d'allègement, point 9.6)",
     "module": "immobilisations",
     "priorite": "must",
     "chemin": "/immobilisations/s138"

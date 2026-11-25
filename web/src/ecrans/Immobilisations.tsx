@@ -1,5 +1,5 @@
-// Module Immobilisation (manuel Microfina++, chap. 7, p. 1 à 9 du chapitre). S136 : Données de base (six listes). S137 : « Création de Bien immobilier ».
-// S138 : « Création des affectations de Biens », « Transférer un bien immobilier », « Transfert de biens d'un employé à un autre », « Libération d'un bien
+// Module Immobilisation (manuel Microfina++, chap. 7, p. 1 à 9 du chapitre). S136 : Données de base (six listes). S137 : « Création d'une immobilisation ».
+// S138 : « Création des affectations de Biens », « Transférer une immobilisation », « Transfert de biens d'un employé à un autre », « Libération d'un bien
 // encours d'utilisation ». S139 : « Amortissement », « Inventaire de biens », Sortie de biens (texte seul). S140 : cinq rapports.
 // PCCI, classe 2 et comptes 28, 681, 673 à 774. Registre S136 à S140. Montants en francs entiers, comme la paie.
 import { enClair } from "../lib/enclair";
@@ -15,7 +15,6 @@ import { Referentiels, type FacadeReferentiel } from "./Referentiels";
 
 const entier = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
 const n = (v: number | null | undefined) => (v === null || v === undefined ? "" : entier.format(v));
-type Ctx = Awaited<ReturnType<typeof api.immobilisations.contexte>>;
 type Bien = Awaited<ReturnType<typeof api.immobilisations.fiche>>;
 type Plan = Awaited<ReturnType<typeof api.immobilisations.simuler>>;
 const M = (p: string) => `Manuel Microfina++, chap. 7, ${p}`;
@@ -49,7 +48,7 @@ function ChoixBien({ ouverte, fermer, choisir, statut }: { ouverte: boolean; fer
   </Fiche>;
 }
 
-/** S137 : « Création de Bien immobilier » (p. 4) */
+/** S137 : « Création d'une immobilisation » (p. 4) */
 export function CreationBien() {
   const ctx = useCtx();
   const [f, setF] = useState<Record<string, string>>({ amortissable: "oui", subventionne: "non", unite: "ans" });
@@ -67,7 +66,7 @@ export function CreationBien() {
   const charger = (x: Bien) => { setId(x.id); setB(x); setF({ ...Object.fromEntries(Object.entries(x).map(([k, y]) => [k, y === null || y === undefined || typeof y === "object" ? "" : String(y)])),
     amortissable: x.amortissable ? "oui" : "non", subventionne: x.subventionne ? "oui" : "non", unite: "ans" }); };
   const effacer = () => { setId(null); setB(null); setF({ amortissable: "oui", subventionne: "non", unite: "ans" }); };
-  const envoi = () => ({ codification: v("codification"), refConstructeur: v("refConstructeur"), categorieId: v("categorieId") ? Number(v("categorieId")) : null, familleId: v("familleId") ? Number(v("familleId")) : null,
+  const envoi = () => ({ codification: v("codification"), refConstructeur: v("refConstructeur"), familleId: v("familleId") ? Number(v("familleId")) : null,
     libelle: v("libelle"), dateAcquisition: v("dateAcquisition"), dureeVie: v("dureeVie") ? Number(v("dureeVie")) : null,
     utilisationId: v("utilisationId") ? Number(v("utilisationId")) : null, localisationId: v("localisationId") ? Number(v("localisationId")) : null, dateMiseService: v("dateMiseService"),
     fournisseurId: v("fournisseurId") ? Number(v("fournisseurId")) : null, factureId: v("factureId") ? Number(v("factureId")) : null, montantTtc: v("montantTtc") ? Number(v("montantTtc")) : null,
@@ -78,28 +77,33 @@ export function CreationBien() {
   const txt = (k: string, l: string, req = false) => <Champ libelle={`${l}${req ? " *" : ""}`}>{(p) => <input {...p} className="saisie" value={v(k)} onChange={(e) => maj(k, e.target.value)} />}</Champ>;
   const radio = (k: string, l: string) => <fieldset className="choix-radio"><legend>{l}</legend>{["oui", "non"].map((x) =>
     <label key={x} className="case"><input type="radio" name={k} checked={v(k) === x} onChange={() => maj(k, x)} /><span>{x === "oui" ? "Oui" : "Non"}</span></label>)}</fieldset>;
-  return <Formulaire className="bloc pile" label="Création de Bien immobilier" envoyer={() => c.confirmer(id ? "Voulez-vous vraiment modifier ?" : "Voulez-vous vraiment enregistrer ?", async () => {
-        const x = await api.immobilisations.enregistrer(envoi(), id ?? undefined); charger(x); })}><h2>Création de Bien immobilier</h2>
+  return <Formulaire className="bloc pile" label="Création d'une immobilisation" envoyer={() => c.confirmer(id ? "Voulez-vous vraiment modifier ?" : "Voulez-vous vraiment enregistrer ?", async () => {
+        const x = await api.immobilisations.enregistrer(envoi(), id ?? undefined); charger(x); })}><h2>Création d'une immobilisation</h2>
     <div className="deux-colonnes">{b?.numeroPiece && <Champ libelle="Numéro de pièce :">{(p) => <Lecture {...p} value={b.numeroPiece} />}</Champ>}
       <Champ libelle="Date opération">{(p) => <Lecture {...p} value={b ? fr(b.dateOperation) : ""} />}</Champ></div>
     <div className="deux-colonnes">
       <fieldset className="cadre-champs formulaire"><legend className="sr-only">Bien</legend>
         {txt("codification", "Codification", true)}{txt("refConstructeur", "Réf constructeur")}
-        {sel("categorieId", "Catégorie :", ctx.categories)}{sel("familleId", "Famille", ctx.familles.filter((x) => !v("categorieId") || String(x.categorieId) === v("categorieId")).map((x) => ({ id: x.id, libelle: x.libelle })))}
+        {sel("familleId", "Famille", ctx.familles.map((x) => ({ id: x.id, libelle: x.libelle })))}
         {txt("libelle", "Libellé Bien", true)}<ChampDate libelle="Date Acquisition *" valeur={v("dateAcquisition")} onChange={(x) => maj("dateAcquisition", x)} />
         <Champ libelle="Durée de vie *">{(p) => <span className="avec-unite"><input {...p} className="saisie montant" inputMode="numeric" value={v("dureeVie")} onChange={(e) => maj("dureeVie", e.target.value.replace(/\D/g, ""))} /><span>ans</span></span>}</Champ>
         {sel("utilisationId", "Utilisation", ctx.utilisations)}{sel("localisationId", "Localisation", ctx.localisations)}
-        {fam?.immatriculation && txt("immatriculation", "Immatriculation")}{fam?.chassis && txt("chassis", "N°chassis")}{fam?.carburant && txt("carburant", "Carburant")}
-        {fam?.titreFoncier && txt("titreFoncier", "Ref. titre foncier")}{fam?.description && txt("description", "Description")}
-        {txt("autorisationBcc", "Autorisation BCC (au-delà de 10 % des fonds propres de base)")}
+        {fam?.vehicule && <>{txt("immatriculation", "Immatriculation")}{txt("chassis", "N°chassis")}{txt("carburant", "Carburant")}</>}
+        {fam?.terrainBatiment && txt("titreFoncier", "Ref. titre foncier")}{txt("description", "Description")}
+        {/* Instr. BCC 41, art. 33 : au-delà de 10 % des fonds propres de base seulement (plan d'allègement, point 9.6) */}
+        {ttc - tva > ctx.seuilAutorisationBcc && txt("autorisationBcc", "Autorisation BCC (au-delà de 10 % des fonds propres de base)")}
       </fieldset>
       <fieldset className="cadre-champs formulaire"><legend className="sr-only">Acquisition</legend>
+        {/* Point 9.6 : la facture se choisit d'abord ; fournisseur, montant et date d'acquisition se remplissent */}
+        <Champ libelle="Facture">{(p) => <select {...p} className="saisie" value={v("factureId")} onChange={(e) => {
+          const x = ctx.factures.find((y) => String(y.id) === e.target.value);
+          setF({ ...f, factureId: e.target.value, ...(x ? { fournisseurId: String(x.fournisseurId), montantTtc: String(x.montant), dateAcquisition: x.date } : {}) }); }}>
+          <option value=""></option>{ctx.factures.map((x) => <option key={x.id} value={String(x.id)}>{`${x.numero} ${x.fournisseur} (${n(x.montant)})`}</option>)}</select>}</Champ>
         {sel("fournisseurId", "Fournisseur", ctx.fournisseurs, false)}
-        {sel("factureId", "Facture", ctx.factures.filter((x) => String(x.fournisseurId) === v("fournisseurId")).map((x) => ({ id: x.id, libelle: `${x.numero} (${n(x.montant)})` })), false)}
         <fieldset className="cadre-champs"><legend>Détails Catégorie</legend><dl className="definitions">
           <dt>Durée de vie</dt><dd>{fam ? `${fam.dureeMin} à ${fam.dureeMax} ans` : ""}</dd><dt>Compte d'acquisition</dt><dd>{fam?.compteAcquisition}</dd>
           <dt>Compte amortissement</dt><dd>{fam?.compteAmortissement}</dd><dt>Compte dotation</dt><dd>{fam?.compteDotation}</dd><dt>Compte produit</dt><dd>{fam?.compteProduits}</dd>
-          <dt>Compte charge VCN</dt><dd>{fam?.compteChargeVcn}</dd><dt>Plan amortissement</dt><dd>{fam?.periodicite}</dd><dt>Type amortissement</dt><dd>{fam?.systeme}</dd></dl></fieldset>
+          <dt>Compte charge VCN</dt><dd>{fam?.compteChargeVcn}</dd><dt>Type amortissement</dt><dd>{fam?.systeme}</dd></dl></fieldset>
         <fieldset className="cadre-champs"><legend>Val. acquisition</legend>
           <Champ libelle="Montant TTC *">{(p) => <input {...p} className="saisie montant" inputMode="numeric" value={v("montantTtc")} onChange={(e) => maj("montantTtc", e.target.value.replace(/\D/g, ""))} />}</Champ>
           <Champ libelle="T.V.A">{(p) => <Lecture {...p} value={n(tva)} />}</Champ><Champ libelle="Prix Acquis.">{(p) => <Lecture {...p} value={ttc ? n(ttc - tva) : ""} />}</Champ></fieldset>
@@ -132,75 +136,55 @@ function TablePlan({ plan }: { plan: (Plan[number] & { passe?: boolean })[] }) {
 }
 
 /** Liste des biens choisis (captures p. 4 à 6) : Code, Libellé, Catégorie, Nouvelle localisation */
-function BiensChoisis({ biens, retirer, ctx }: { biens: Bien[]; retirer: (id: number) => void; ctx: Ctx }) {
-  return <table className="grille"><caption>Liste des biens choisis</caption>
-    <thead><tr><th scope="col">Code</th><th scope="col">Libellé</th><th scope="col">Catégorie</th><th scope="col">Nouvelle localisation</th><th scope="col"><span className="sr-only">Retirer</span></th></tr></thead>
-    <tbody>{biens.length === 0 && <tr><td colSpan={5}>La liste des sélections est vide</td></tr>}
-      {biens.map((b) => <tr key={b.id}><td className="code">{b.codification}</td><td>{b.libelle}</td><td>{ctx.categories.find((x) => x.id === b.categorieId)?.libelle}</td><td>{b.localisation}</td>
-        <td><button className="bouton secondaire" type="button" onClick={() => retirer(b.id)}>Retirer</button></td></tr>)}</tbody></table>;
-}
 
-const PAGES_MOUV = [["affectation", "Affectation"], ["bien", "Transfert par bien"], ["employe", "Transfert par employé"], ["liberation", "Libération"]] as const;
-/** S138 : Affectation, Transfert (par bien, par employé), Libération (p. 4 à 6) */
+/** S138 : Mouvements (plan d'allègement, point 9.6) : les quatre onglets qui changeaient le détenteur (affectation, transfert par bien, par employé,
+ *  libération) deviennent un écran : les biens, le nouveau détenteur (aucun : le bien est libéré), la localisation, la date (p. 4 à 6) */
 export function MouvementsBiens() {
-  const [params, setParams] = useSearchParams();
-  const page = PAGES_MOUV.find(([k]) => k === params.get("page"))?.[0] ?? "affectation";
   const ctx = useCtx();
-  const [emp, setEmp] = useState(""), [emp2, setEmp2] = useState(""), [loc, setLoc] = useState(""), [saisie, setQuand] = useState("");
+  const [emp, setEmp] = useState(""), [loc, setLoc] = useState(""), [saisie, setQuand] = useState("");
   const { donnees: jr } = useDonnees(() => api.journees.courante());
   const quand = saisie || jr?.date || "";   // la journée ouverte, sans heure (plan d'allègement, point 0.8 ; registre S138-4)
-  const [choisis, setChoisis] = useState<Bien[]>([]), [bien, setBien] = useState<Bien | null>(null), [liste, setListe] = useState<"" | "LIBRE" | "AFFECTE">("");
+  const [choisis, setChoisis] = useState<Bien[]>([]), [liste, setListe] = useState(false);
   const c = useConfirmer();
   if (!ctx) return <Chargement />;
-  const vider = () => { setChoisis([]); setBien(null); setEmp(""); setEmp2(""); setLoc(""); setQuand(""); };
-  const choisirEmp = (val: string, set: (x: string) => void, l: string) => <Champ libelle={l}>{(p) => <select {...p} className="saisie" value={val} onChange={(e) => set(e.target.value)}><option value=""></option>
-    {ctx.employes.map((e) => <option key={e.id} value={String(e.id)}>{e.matricule} {e.nom}</option>)}</select>}</Champ>;
-  const local = (req = false) => <Champ libelle={`Localisation${req ? " *" : ""}`}>{(p) => <select {...p} className="saisie" value={loc} onChange={(e) => setLoc(e.target.value)}><option value=""></option>
-    {ctx.localisations.map((x) => <option key={x.id} value={String(x.id)}>{x.libelle}</option>)}</select>}</Champ>;
-  const date = (l: string) => <ChampDate libelle={`${l} *`} valeur={quand} onChange={setQuand} />;
-  const ajouter = (b: Bien) => { if (!choisis.some((x) => x.id === b.id)) setChoisis([...choisis, b]); };
-  const ids = choisis.map((b) => b.id), num = (x: string) => (x ? Number(x) : null);
-  return <>
-    <div className="onglets" role="tablist" aria-label="Mouvements des biens">{PAGES_MOUV.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => { vider(); setParams(k === "affectation" ? {} : { page: k }); }}>{l}</button>)}</div>
-    {page === "affectation" && <section className="bloc pile" aria-label="Création des affectations de Biens"><h2>Création des affectations de Biens</h2>
-      <Formulaire className="pile" envoyer={() => c.confirmer("Voulez-vous vraiment enregistrer ?", () => api.immobilisations.affecter({ employeId: num(emp), localisationId: num(loc), date: quand, biens: ids }), vider)}><fieldset className="cadre-champs formulaire"><legend className="sr-only">Affectation</legend>{choisirEmp(emp, setEmp, "Matricule")}{local()}{date("Date affectation")}</fieldset>
-      <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setListe("LIBRE")}>Liste des biens à affecter</button></div>
-      <BiensChoisis biens={choisis} retirer={(i) => setChoisis(choisis.filter((x) => x.id !== i))} ctx={ctx} />
+  const vider = () => { setChoisis([]); setEmp(""); setLoc(""); setQuand(""); };
+  const num = (x: string) => (x ? Number(x) : null);
+  const ajouter = (b: Bien) => { if (b.statut !== "SORTI" && !choisis.some((x) => x.id === b.id)) setChoisis([...choisis, b]); };
+  // Un enregistrement : les biens libres sont affectés, les biens affectés transférés (par ancien détenteur) ; sans nouveau détenteur, ils sont libérés
+  async function enregistrer() {
+    const libres = choisis.filter((b) => b.statut === "LIBRE"), affectes = choisis.filter((b) => b.statut === "AFFECTE");
+    if (!emp) {
+      if (libres.length) throw new Error(`Déjà libre : ${libres.map((b) => b.codification).join(", ")}.`);
+      await api.immobilisations.liberer({ localisationId: num(loc), date: quand, biens: affectes.map((b) => b.id) });
+      return;
+    }
+    if (libres.length) await api.immobilisations.affecter({ employeId: num(emp), localisationId: num(loc), date: quand, biens: libres.map((b) => b.id) });
+    for (const ancien of [...new Set(affectes.map((b) => b.detenteurId))])
+      await api.immobilisations.transfererEmploye({ ancienId: ancien, nouveauId: num(emp), localisationId: num(loc), date: quand, biens: affectes.filter((b) => b.detenteurId === ancien).map((b) => b.id) });
+  }
+  return <section className="bloc pile" aria-label="Mouvements des biens">
+    <Formulaire className="pile" envoyer={() => c.confirmer(emp ? "Voulez-vous vraiment enregistrer ?" : "Voulez-vous vraiment libérer ces biens ?", enregistrer, vider)}>
+      <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setListe(true)}>Choisir des biens</button></div>
+      <table className="grille"><caption>Biens choisis</caption>
+        <thead><tr><th scope="col">Code</th><th scope="col">Libellé</th><th scope="col">Statut</th><th scope="col">Détenteur</th><th scope="col">Localisation</th><th scope="col"><span className="sr-only">Retirer</span></th></tr></thead>
+        <tbody>{choisis.length === 0 && <tr><td colSpan={6}>Aucun bien choisi.</td></tr>}
+          {choisis.map((b) => <tr key={b.id}><td className="code">{b.codification}</td><td>{b.libelle}</td><td>{b.statut}</td><td>{b.detenteur}</td><td>{b.localisation}</td>
+            <td><button className="bouton secondaire" type="button" onClick={() => setChoisis(choisis.filter((x) => x.id !== b.id))}>Retirer</button></td></tr>)}</tbody></table>
+      <fieldset className="cadre-champs formulaire"><legend>Nouveau détenteur</legend>
+        <Champ libelle="Détenteur">{(p) => <select {...p} className="saisie" value={emp} onChange={(e) => setEmp(e.target.value)}><option value="">Aucun : libérer le bien</option>
+          {ctx.employes.map((e) => <option key={e.id} value={String(e.id)}>{e.matricule} {e.nom}</option>)}</select>}</Champ>
+        <Champ libelle={`Localisation${emp ? " *" : ""}`}>{(p) => <select {...p} className="saisie" value={loc} onChange={(e) => setLoc(e.target.value)}><option value=""></option>
+          {ctx.localisations.map((x) => <option key={x.id} value={String(x.id)}>{x.libelle}</option>)}</select>}</Champ>
+        <ChampDate libelle="Date *" valeur={quand} onChange={setQuand} />
+      </fieldset>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={vider}>Effacer</button>
         <button className="bouton secondaire" type="button" onClick={() => window.print()}>Imprimer reçu</button>
-        <button className="bouton" type="submit">Enregistrer</button></div></Formulaire>
-    </section>}
-    {page === "bien" && <section className="bloc pile" aria-label="Transférer un bien immobilier"><h2>Transférer un bien immobilier</h2>
-      <fieldset className="cadre-champs formulaire"><legend>Détails Biens</legend>
-        <Champ libelle="Code:">{(p) => <span className="avec-unite"><input {...p} className="saisie code" readOnly value={bien?.codification ?? ""} />
-          <button className="bouton secondaire" type="button" aria-label="Rechercher un bien" onClick={() => setListe("AFFECTE")}>Rechercher</button></span>}</Champ>
-        <dl className="definitions"><dt>Libellé</dt><dd>{bien?.libelle}</dd><dt>Statut</dt><dd>{bien?.statut}</dd><dt>Date Acquisition</dt><dd>{bien ? fr(bien.dateAcquisition) : ""}</dd>
-          <dt>Durée de vie</dt><dd>{bien?.dureeVie}</dd><dt>Ancien Détenteur</dt><dd>{bien?.detenteur}</dd><dt>Localisation</dt><dd>{bien?.localisation}</dd></dl></fieldset>
-      <fieldset className="cadre-champs formulaire"><legend>Transfert vers</legend>{choisirEmp(emp, setEmp, "Nouveau Détenteur")}{date("Date transfert")}{local(true)}</fieldset>
-      <div className="actions-onglets"><button className="bouton" type="button" onClick={() => c.confirmer("Voulez-vous vraiment transférer ce bien ?",
-        () => api.immobilisations.transfererBien({ bienId: bien?.id, employeId: num(emp), localisationId: num(loc), date: quand }), vider)}>Transférer</button>
-        <button className="bouton secondaire" type="button" onClick={() => window.print()}>Imprimer reçu</button></div>
-    </section>}
-    {page === "employe" && <section className="bloc pile" aria-label="Transfert de biens d'un employé à un autre"><h2>Transfert de biens d'un employé à un autre</h2>
-      <Formulaire className="pile" envoyer={() => c.confirmer("Voulez-vous vraiment enregistrer ?", () => api.immobilisations.transfererEmploye({ ancienId: num(emp), nouveauId: num(emp2), localisationId: num(loc), date: quand, biens: ids }), vider)}><fieldset className="cadre-champs formulaire"><legend>Infos ancien détenteur</legend>{choisirEmp(emp, (x) => { setEmp(x); setChoisis([]); }, "Matricule")}{local()}</fieldset>
-      <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={!emp} onClick={() => setListe("AFFECTE")}>Liste des biens encours d'utilisation</button></div>
-      <BiensChoisis biens={choisis} retirer={(i) => setChoisis(choisis.filter((x) => x.id !== i))} ctx={ctx} />
-      <fieldset className="cadre-champs formulaire"><legend>Infos nouveau détenteur</legend>{choisirEmp(emp2, setEmp2, "Matricule du nouveau détenteur")}{date("Date transfert")}</fieldset>
-      <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={vider}>Effacer</button>
-        <button className="bouton" type="submit">Enregistrer</button></div></Formulaire>
-    </section>}
-    {page === "liberation" && <section className="bloc pile" aria-label="Libération d'un bien encours d'utilisation"><h2>Libération d'un bien encours d'utilisation</h2>
-      <fieldset className="cadre-champs formulaire"><legend className="sr-only">Libération</legend>{date("Date libération")}{local()}</fieldset>
-      <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setListe("AFFECTE")}>Liste des biens encours d'utilisation</button></div>
-      <BiensChoisis biens={choisis} retirer={(i) => setChoisis(choisis.filter((x) => x.id !== i))} ctx={ctx} />
-      <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={vider}>Effacer</button>
-        <button className="bouton" type="button" onClick={() => c.confirmer("Voulez-vous vraiment libérer ces biens ?", () => api.immobilisations.liberer({ localisationId: num(loc), date: quand, biens: ids }), vider)}>Libérer</button></div>
-    </section>}
-    <Textes sources={[M("p. 4 à 6 : affectation, transfert par bien, par employé, libération ; « imprimer l'état »")]} />
-    <ChoixBien ouverte={liste !== ""} fermer={() => setListe("")} statut={liste || undefined}
-      choisir={(b) => { if (page === "bien") setBien(b); else if (page !== "employe" || String(b.detenteurId) === emp) ajouter(b); }} />
+        <button className="bouton" type="submit" disabled={!choisis.length}>{emp ? "Enregistrer" : "Libérer"}</button></div>
+    </Formulaire>
+    <Textes sources={[M("p. 4 à 6 : affectation, transfert par bien, par employé, libération ; « imprimer l'état »"), "Plan d'allègement, point 9.6 : quatre onglets pour changer le détenteur deviennent un écran"]} />
+    <ChoixBien ouverte={liste} fermer={() => setListe(false)} choisir={ajouter} />
     {c.dialogue}
-  </>;
+  </section>;
 }
 
 const PAGES_TRAIT = [["amortissement", "Amortissement"], ["inventaire", "Inventaire"], ["sortie", "Sortie de biens"]] as const;
@@ -226,7 +210,7 @@ export function TraitementsBiens() {
         {f.par === "materiel" && choixBien}
         <Champ libelle="Exercice: *">{(p) => <select {...p} className="saisie court" value={f.exercice ?? ""} onChange={(e) => maj("exercice", e.target.value)}><option value=""></option>{exercices.map((x) => <option key={x.annee}>{x.annee}</option>)}</select>}</Champ>
         {bien && f.par === "materiel" && <dl className="definitions"><dt>Date acquisition</dt><dd>{fr(bien.dateAcquisition)}</dd><dt>Type amortissement</dt><dd>{bien.systeme}</dd>
-          <dt>Durée de vie</dt><dd>{bien.dureeVie}</dd><dt>Périodicité</dt><dd>{bien.periodicite}</dd><dt>Dernier amort</dt><dd>{bien.dernierAmortissement ?? ""}</dd><dt>Date d'amort</dt><dd>{bien.dateAmortissement ? fr(bien.dateAmortissement) : ""}</dd></dl>}
+          <dt>Durée de vie</dt><dd>{bien.dureeVie}</dd><dt>Dernier amort</dt><dd>{bien.dernierAmortissement ?? ""}</dd><dt>Date d'amort</dt><dd>{bien.dateAmortissement ? fr(bien.dateAmortissement) : ""}</dd></dl>}
       </fieldset>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => { setBien(null); setF({ par: f.par ?? "materiel" }); }}>Effacer</button>
         <button className="bouton secondaire" type="button" onClick={() => window.print()}>Imprimer</button>
@@ -270,22 +254,26 @@ export function TraitementsBiens() {
   </>;
 }
 
-const PAGES_RAPPORTS = [["biens", "Liste des biens par localisation"], ["inventaires", "Liste des inventaires"], ["tableau", "Tableau d'amortissement"], ["suivi", "État de suivi de bien"], ["multicritere", "État recherche multicritère"]] as const;
+// Plan d'allègement, point 9.6 : les rapports par localisation et multicritère fusionnent en « Registre des immobilisations », avec totaux (PCCI, classe 2 :
+// registre de l'inventaire)
+const PAGES_RAPPORTS = [["registre", "Registre des immobilisations"], ["inventaires", "Liste des inventaires"], ["tableau", "Tableau d'amortissement"], ["suivi", "État de suivi de bien"]] as const;
 /** S140 : rapports (p. 7 à 9) */
 export function RapportsImmo() {
   const [params, setParams] = useSearchParams();
-  const page = PAGES_RAPPORTS.find(([k]) => k === params.get("page"))?.[0] ?? "biens";
+  const page = PAGES_RAPPORTS.find(([k]) => k === params.get("page"))?.[0] ?? "registre";
   const ctx = useCtx();
   const annee = Number(aujourdhui().slice(0, 4));
-  const [f, setF] = useState<Record<string, string>>({ rechercher: "periode", du: `${annee}-01-01`, au: `${annee}-12-31`, resultat: "transfert", systeme: "Linéaire", periodicite: "Annuelle", groupe: "detaille" });
+  const [f, setF] = useState<Record<string, string>>({ rechercher: "periode", du: `${annee}-01-01`, au: `${annee}-12-31`, resultat: "transfert", systeme: "Linéaire", groupe: "detaille" });
   const [r, setR] = useState<Record<string, unknown>[] | null>(null);
   const c = useConfirmer();
   if (!ctx) return <Chargement />;
   const maj = (k: string, x: string) => setF({ ...f, [k]: x });
+  // Point 9.6 : le coefficient dégressif se lit dans la table des coefficients selon la durée, au lieu d'être tapé
+  const coefficient = ctx.coefficients.find((x) => x.de <= Number(f.duree || 0) && Number(f.duree || 0) <= x.a)?.coefficient ?? "";
   const executer = async () => {
     try {
       setR(page === "inventaires" ? await api.immobilisations.rapportInventaires(f) : page === "suivi" ? await api.immobilisations.suivi(f)
-        : page === "tableau" ? await api.immobilisations.simuler({ systeme: f.systeme, coefficient: f.coefficient, dateAcquisition: f.dateAcquisition, duree: f.duree, montant: f.montant })
+        : page === "tableau" ? await api.immobilisations.simuler({ systeme: f.systeme, coefficient, dateAcquisition: f.dateAcquisition, duree: f.duree, montant: f.montant })
         : await api.immobilisations.rapportBiens(f));
     } catch (x) { c.erreur(x); }
   };
@@ -293,34 +281,36 @@ export function RapportsImmo() {
     {o.map((x) => typeof x === "string" ? <option key={x}>{x}</option> : <option key={x.id} value={String(x.id)}>{x.libelle}</option>)}</select>}</Champ>;
   const recherche = <fieldset className="cadre-champs formulaire"><legend>Période</legend><ChampDate libelle="Du :" valeur={f.du ?? ""} onChange={(x) => maj("du", x)} /><ChampDate libelle="Au :" valeur={f.au ?? ""} onChange={(x) => maj("au", x)} /></fieldset>;
   const elements = <fieldset className="cadre-champs formulaire"><legend>Eléments de la recherche</legend>
-    {sel("categorieId", "Catégorie bien", ctx.categories)}{sel("familleId", "Famille", ctx.familles.map((x) => ({ id: x.id, libelle: x.libelle })))}{sel("utilisationId", "Utilisation", ctx.utilisations)}
+    {sel("familleId", "Famille", ctx.familles.map((x) => ({ id: x.id, libelle: x.libelle })))}{sel("utilisationId", "Utilisation", ctx.utilisations)}
     {sel("statut", "Statut bien", ["LIBRE", "AFFECTE", "SORTI"])}{sel("subventionne", "Bien subventionné", ["Oui", "Non"])}{sel("amorti", "Bien amorti", ["Oui", "Non"])}
     {sel("localisationId", "Localisation", ctx.localisations)}{page === "inventaires" && sel("etat", "État du bien", ctx.etats)}</fieldset>;
   const lignes = (r ?? []) as Record<string, string | number | boolean | null>[];
-  const titre = { biens: "Eléments immobilisés sur une période donnée", inventaires: "État des inventaires sur une période donnée", tableau: "Tableau Amortissement",
-    suivi: "État des transferts de biens effectués sur une période donnée", multicritere: "Recherche multicritère sur les biens acquis" }[page];
+  const titre = { registre: "Registre des immobilisations", inventaires: "État des inventaires sur une période donnée", tableau: "Tableau Amortissement",
+    suivi: "État des transferts de biens effectués sur une période donnée" }[page];
   return <>
-    <div className="onglets" role="tablist" aria-label="Rapports">{PAGES_RAPPORTS.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => { setR(null); setParams(k === "biens" ? {} : { page: k }); }}>{l}</button>)}</div>
+    <div className="onglets" role="tablist" aria-label="Rapports">{PAGES_RAPPORTS.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => { setR(null); setParams(k === "registre" ? {} : { page: k }); }}>{l}</button>)}</div>
     <section className="bloc pile" aria-label={titre}><h2>{titre}</h2>
       {page === "tableau" ? <fieldset className="cadre-champs formulaire"><legend>Simulation</legend>
-        {sel("systeme", "Système : *", ctx.systemes)}{f.systeme === "Dégressif" && <Champ libelle="Coef. degressi. *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.coefficient ?? ""} onChange={(e) => maj("coefficient", e.target.value)} />}</Champ>}
-        {sel("periodicite", "Périodicité : *", ctx.periodicites)}<ChampDate libelle="Date Acquisition *" valeur={f.dateAcquisition ?? ""} onChange={(x) => maj("dateAcquisition", x)} />
+        {sel("systeme", "Système : *", ctx.systemes)}{f.systeme === "Dégressif" && <Champ libelle="Coef. degressi.">{(p) => <Lecture {...p} value={coefficient} />}</Champ>}
+        <ChampDate libelle="Date Acquisition *" valeur={f.dateAcquisition ?? ""} onChange={(x) => maj("dateAcquisition", x)} />
         <Champ libelle="Durée de vie * (ans)">{(p) => <input {...p} className="saisie montant" inputMode="numeric" value={f.duree ?? ""} onChange={(e) => maj("duree", e.target.value.replace(/\D/g, ""))} />}</Champ>
         <Champ libelle="Montant Acquis. *">{(p) => <input {...p} className="saisie montant" inputMode="numeric" value={f.montant ?? ""} onChange={(e) => maj("montant", e.target.value.replace(/\D/g, ""))} />}</Champ>
       </fieldset> : <>{recherche}
         {page === "suivi" && <fieldset className="choix-radio cadre-champs"><legend>Résultat</legend>{([["affectation", "Affectation"], ["transfert", "Transfert"], ["liberation", "Libération"]] as const).map(([k, l]) =>
           <label key={k} className="case"><input type="radio" name="resultat" checked={f.resultat === k} onChange={() => maj("resultat", k)} /><span>{l}</span></label>)}</fieldset>}
-        {page === "multicritere" && <label className="case"><input type="checkbox" checked={f.aAmortir === "true"} onChange={(e) => maj("aAmortir", e.target.checked ? "true" : "")} /><span>Afficher les biens à amortir</span></label>}
-        {page !== "biens" && page !== "suivi" && elements}</>}
+        {page === "registre" && <label className="case"><input type="checkbox" checked={f.aAmortir === "true"} onChange={(e) => maj("aAmortir", e.target.checked ? "true" : "")} /><span>Afficher les biens à amortir</span></label>}
+        {page !== "suivi" && elements}</>}
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setR(null)}>Effacer</button>
-        <button className="bouton" type="button" onClick={executer}>{page === "biens" ? "Afficher" : "Exécuter"}</button>
+        <button className="bouton" type="button" onClick={executer}>{page === "registre" ? "Afficher" : "Exécuter"}</button>
         <button className="bouton secondaire" type="button" disabled={!r} onClick={() => r && lignes.length && exporterExcel(titre, Object.keys(lignes[0]!).filter((k) => typeof lignes[0]![k] !== "object"),
           lignes.map((l) => Object.keys(lignes[0]!).filter((k) => typeof lignes[0]![k] !== "object").map((k) => (typeof l[k] === "number" ? l[k] as number : String(l[k] ?? "")))))}>Exporter</button></div>
       {r && page === "tableau" && <TablePlan plan={r as unknown as Plan} />}
-      {r && (page === "biens" || page === "multicritere") && <table className="grille"><thead><tr><th scope="col">Code</th><th scope="col">Libellé</th><th scope="col">Localisation</th><th scope="col">Date acquisition</th>
+      {r && page === "registre" && <table className="grille"><caption>{titre}</caption><thead><tr><th scope="col">Code</th><th scope="col">Libellé</th><th scope="col">Localisation</th><th scope="col">Date acquisition</th>
         <th scope="col" className="num">Prix d'acquisition</th><th scope="col" className="num">Cumul amortissements</th><th scope="col">Statut</th><th scope="col">Détenteur</th></tr></thead>
         <tbody>{lignes.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}{lignes.map((b) => <tr key={String(b.id)}><td className="code">{String(b.codification)}</td><td>{String(b.libelle)}</td><td>{String(b.localisation)}</td>
-          <td>{fr(String(b.dateAcquisition))}</td><td className="num chiffres">{n(b.prixAcquisition as number)}</td><td className="num chiffres">{n(b.cumulAmortissements as number)}</td><td>{String(b.statut)}</td><td>{String(b.detenteur)}</td></tr>)}</tbody></table>}
+          <td>{fr(String(b.dateAcquisition))}</td><td className="num chiffres">{n(b.prixAcquisition as number)}</td><td className="num chiffres">{n(b.cumulAmortissements as number)}</td><td>{String(b.statut)}</td><td>{String(b.detenteur)}</td></tr>)}</tbody>
+        <tfoot><tr><th scope="row" colSpan={4}>Total</th><td className="num chiffres"><strong>{n(lignes.reduce((t, b) => t + Number(b.prixAcquisition ?? 0), 0))}</strong></td>
+          <td className="num chiffres"><strong>{n(lignes.reduce((t, b) => t + Number(b.cumulAmortissements ?? 0), 0))}</strong></td><td colSpan={2}></td></tr></tfoot></table>}
       {r && page === "inventaires" && <table className="grille"><thead><tr><th scope="col">Date</th><th scope="col">Code</th><th scope="col">Libellé</th><th scope="col">État</th><th scope="col">Observation</th><th scope="col">Par</th></tr></thead>
         <tbody>{lignes.length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}{lignes.map((x, i) => <tr key={i}><td>{fr(String(x.date))}</td><td className="code">{String(x.codification)}</td><td>{String(x.libelle)}</td><td>{String(x.etat)}</td><td>{String(x.observation)}</td><td>{String(x.par)}</td></tr>)}</tbody></table>}
       {r && page === "suivi" && <table className="grille"><thead><tr><th scope="col">Date</th><th scope="col">Code</th><th scope="col">Libellé</th><th scope="col">Ancien détenteur</th><th scope="col">Nouveau détenteur</th><th scope="col">Ancienne localisation</th><th scope="col">Nouvelle localisation</th></tr></thead>

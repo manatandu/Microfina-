@@ -27,7 +27,6 @@ const BARRE_PRINCIPALE: { id: string; libelle: string; ecrans: (e: Ecran) => boo
   { id: "credit", libelle: "Crédit", ecrans: (e) => e.module === "credit" },
   { id: "comptabilite", libelle: "Comptabilité", ecrans: (e) => e.module === "comptabilite" },
   { id: "budget", libelle: "Budget", ecrans: (e) => e.acces.startsWith("Budget") },
-  { id: "autres", libelle: "Autres", ecrans: (e) => e.acces.startsWith("Autres") },
   { id: "parametrage", libelle: "Paramétrage", ecrans: (e) => e.module === "parametrage" },
   { id: "administration", libelle: "Administration", ecrans: (e) => e.module === "administration" && e.id !== "S01" && e.id !== "S02" },
 ];
@@ -41,7 +40,7 @@ function sousMenu(e: Ecran, libelleMenu: string): string {
 
 /** Menu Crédit dans l'ordre de la vie du crédit (plan d'allègement, point 6.16) : Simulation, Analyse, Demande, Portefeuille, Déblocage, Remboursement, Garanties,
  *  Prorogation et contentieux, Liste rouge, Affectation, Balance âgée et provisions, Engagements par signature, Rapports ; les écrans hors menu ensuite */
-const ORDRE_CREDIT = ["S84", "S85", "S86", "S93", "S105", "S106", "S94", "SL01", "S97", "S96", "S99", "S100", "S101"];
+const ORDRE_CREDIT = ["S84", "S85", "S86", "S93", "S105", "S106", "S94", "SL01", "S97", "S96", "S99", "S128", "S100", "S101"];
 const ordreCredit = (l: Ecran[]) => [...l].sort((a, b) => (ORDRE_CREDIT.indexOf(a.id) + 1 || 99) - (ORDRE_CREDIT.indexOf(b.id) + 1 || 99));
 
 function construire(id: string, libelle: string, ecrans: Ecran[], tous: boolean): Menu {
@@ -78,7 +77,7 @@ export function applicationDe(chemin: string): IdApplication {
 /** Page des modules (manuel, p. 6). GRH et Stocks sont hors du périmètre retenu (ARCHITECTURE § 4). */
 export const APPLICATIONS: { id: IdApplication | "administration" | "grh" | "stocks"; libelle: string; but: string; chemin?: string }[] = [
   { id: "principal", libelle: "Exofina", but: "Clients, épargne, caisse, crédit, banque, comptabilité, budget", chemin: "/principal" },
-  { id: "paie", libelle: "Paie", but: "Paie du personnel et retenues sur salaire", chemin: "/paie" },
+  { id: "paie", libelle: "Personnel", but: "Employés et retenues sur salaire", chemin: "/paie" },   // plan d'allègement, point 9.5 : ancien Paie
   { id: "immobilisations", libelle: "Immobilisations", but: "Biens, amortissements, inventaire", chemin: "/immobilisations" },
   { id: "administration", libelle: "Administration", but: "Utilisateurs, profils, guichets, exercices, journées", chemin: "/administration" },
   { id: "grh", libelle: "GRH", but: "Hors du périmètre retenu" },
@@ -87,6 +86,6 @@ export const APPLICATIONS: { id: IdApplication | "administration" | "grh" | "sto
 
 export const NOMS_MODULES: Record<Module, string> = {
   clients: "Client", banque: "Banque", epargne: "Épargne", caisse: "Caisse", credit: "Crédit", comptabilite: "Comptabilité",
-  budget: "Budget et autres", parametrage: "Paramétrage", administration: "Administration", paie: "Paie", immobilisations: "Immobilisations",
+  budget: "Budget", parametrage: "Paramétrage", administration: "Administration", paie: "Personnel", immobilisations: "Immobilisations",
 };
 export const MODULES = (Object.keys(NOMS_MODULES) as Module[]).map((id) => ({ id, nom: NOMS_MODULES[id] }));

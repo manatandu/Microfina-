@@ -142,7 +142,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/comptabilite/operations/\d+/validation", ["S114"]),
     (r"/caisse/operations-compta/\d+/validation", ["S82"]),
     (r"/referentiels/tiers/.*", ["S103"]),
-    (r"/referentiels/financement/.*", ["S126"]),
+    (r"/referentiels/financement/.*", ["S19"]),   # le bailleur rejoint les paramètres du budget (plan d'allègement, point 9.4)
     (r"/referentiels/paie/.*", ["S131"]),
     (r"/referentiels/paie_structure/.*", ["S132"]),
     (r"/referentiels/paie_rubriques/.*", ["S134"]),
@@ -179,9 +179,10 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/listes/motif_depart.*", ["S14"]),
     (r"/listes/.*", ["S14"]),
     (r"/budget/valeurs", ["S124", "S125"]),
-    (r"/budget/valeurs/\d+", ["S125"]),
-    (r"/budget/suppression", ["S125"]),
+    (r"/budget/valeurs/\d+", ["S124", "S125"]),
+    (r"/budget/suppression", ["S124", "S125"]),
     (r"/budget/reconduction", ["S124"]),
+    (r"/budget/plans", ["S19", "S124"]),   # point 9.4 : un budget se crée dans l'écran Budgets
     (r"/budget-referentiels.*", ["S19"]),
     (r"/autres/calculs/(tenue|interets-dav|interets-et-frais)", ["SE02"]),   # plan d'allègement, point 5.6 : Épargne > Fin de mois
     (r"/autres/calculs/.*", ["S128"]),

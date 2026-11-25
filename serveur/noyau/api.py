@@ -1959,6 +1959,11 @@ def budget_supprimer(request, corps: dict = Body(...)):
     return budgets.supprimer(u(request), corps)
 
 
+@api.post("/budget/plans")
+def budget_creer(request, corps: dict = Body(...)):
+    return bu.enregistrer(u(request), "plans", corps)
+
+
 @api.post("/budget/reconduction")
 def budget_reconduire(request, corps: dict = Body(...)):
     from . import budgets

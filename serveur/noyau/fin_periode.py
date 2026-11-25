@@ -633,11 +633,18 @@ def controles(u, annee: int, mois: int | None) -> list[dict]:
     ajouter("Incidents et dépassements régularisés", no == 0, f"{no} incident(s) ou dépassement(s) à traiter (Client > Conformité > Incidents et dépassements)")
     reste = sum(max(couru(x, fin) - x["interets_courus"], 0) for x in lignes(
         "select * from depot_terme where institution_id = %s and statut = 'valide' and date_depot <= %s", (i, fin)))
-    ajouter("Intérêts courus des dépôts à terme", reste == 0, "À passer : Autres > Calculs > Calcul des intérêts sur DAT")
+    ajouter("Intérêts courus des dépôts à terme", reste == 0, "À passer : Épargne > Dépôts à terme")
     # B8 : intérêts courus non échus des crédits sains aux créances rattachées (PCCI § 4.1.3 et § 6.4)
     ecart = sum(abs(couru_credit(c, fin) - c["interets_courus"]) for c in lignes(
         "select * from credit where institution_id = %s and debloque_le <= %s and (statut = 'debloque' or interets_courus > 0)", (i, fin)))
-    ajouter("Intérêts courus des crédits sains", ecart == 0, "À passer : Autres > Calculs > Intérêts courus sur crédits")
+    ajouter("Intérêts courus des crédits sains", ecart == 0, "À passer : Crédit > Intérêts courus")
+    if not mois:
+        # Plan d'allègement, point 9.2 : les dotations de l'exercice des immobilisations amortissables sont passées avant la clôture (PCCI, classe 2 et compte 68)
+        from .immobilisations import tableau
+        biens = [b["codification"] for b in lignes("""select id, codification from immo_bien where institution_id = %s and actif and amortissable
+                                                       and statut <> 'SORTI' order by codification""", (i,))
+                 if any(x["exercice"] == annee and not x["passe"] for x in tableau(u, b["id"]))]
+        ajouter("Amortissements de l'exercice passés", not biens, "À passer (Immobilisations > Amortissement) : " + ", ".join(biens))
     return out
 
 

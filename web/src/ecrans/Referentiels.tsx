@@ -20,10 +20,10 @@ type Saisie = Record<string, string>;
 export function Referentiels({ facade, pages, sources, menu }: { facade: FacadeReferentiel; pages: string[]; sources: Record<string, string[]>; menu?: string }) {
   const [params, setParams] = useSearchParams();
   const page = pages.includes(params.get("page") ?? "") ? params.get("page")! : pages[0]!;
-  return <PageReferentiel key={page} facade={facade} page={page} sources={sources[page] ?? []} menu={pages.length > 1 ? menu : undefined} changer={(p) => setParams(p === pages[0] ? {} : { page: p })} />;
+  return <PageReferentiel key={page} facade={facade} page={page} pages={pages} sources={sources[page] ?? []} menu={pages.length > 1 ? menu : undefined} changer={(p) => setParams(p === pages[0] ? {} : { page: p })} />;
 }
 
-function PageReferentiel({ facade, page, sources, menu, changer }: { facade: FacadeReferentiel; page: string; sources: string[]; menu?: string; changer: (p: string) => void }) {
+function PageReferentiel({ facade, page, pages, sources, menu, changer }: { facade: FacadeReferentiel; page: string; pages: string[]; sources: string[]; menu?: string; changer: (p: string) => void }) {
   const [f, setF] = useState<Saisie>({});
   const [choisi, setChoisi] = useState<number | null>(null);
   const [filtres, setFiltres] = useState<Saisie>({});
@@ -84,13 +84,13 @@ function PageReferentiel({ facade, page, sources, menu, changer }: { facade: Fac
       <div className={menu ? "page-liste-gauche" : undefined}>
         {menu && <nav className="liste-gauche" aria-label={menu}><ul>
           {/* « groupe » : plusieurs pages sous une seule entrée de la liste, en onglets (capture p. 271 : Catégorie, Classe, Echelon) */}
-          {donnees.catalogue.filter((x, i, t) => !x.groupe || t.findIndex((y) => y.groupe === x.groupe) === i).map((x) => {
+          {donnees.catalogue.filter((x) => pages.includes(x.page)).filter((x, i, t) => !x.groupe || t.findIndex((y) => y.groupe === x.groupe) === i).map((x) => {
             const actif = x.groupe ? donnees.catalogue.find((y) => y.page === page)?.groupe === x.groupe : x.page === page;
             return <li key={x.page} aria-current={actif ? "page" : undefined}><button type="button" onClick={() => changer(x.page)}>{x.groupe ?? x.menu}</button></li>;
           })}
         </ul></nav>}
         <section className="bloc pile" aria-label={fiche.entete ?? fiche.menu}>
-          {fiche.groupe && <div className="onglets" role="tablist" aria-label={fiche.groupe}>{donnees.catalogue.filter((x) => x.groupe === fiche.groupe).map((x) =>
+          {fiche.groupe && <div className="onglets" role="tablist" aria-label={fiche.groupe}>{donnees.catalogue.filter((x) => x.groupe === fiche.groupe && pages.includes(x.page)).map((x) =>
             <button key={x.page} type="button" role="tab" aria-selected={x.page === page} onClick={() => changer(x.page)}>{x.onglet}</button>)}</div>}
           <Formulaire className="pile" envoyer={() => faire(() => facade.enregistrer(page, envoi(), choisi ?? undefined))}>{cadres.map((k) => <fieldset key={k || "saisie"} className="cadre-champs formulaire"><legend className={k || fiche.cadre ? undefined : "sr-only"}>{k || fiche.cadre || "Saisie"}</legend>
             {fiche.champs.filter((c) => (c.cadre ?? "") === k).map(champ)}</fieldset>)}

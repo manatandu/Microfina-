@@ -4,13 +4,13 @@
 // Liste des employés. S135 : Traitement retenues : Mise en place retenue, Liste des retenues sur salaire, Visa de retenue.
 // Registre S131 à S135. Les montants de la paie sont en francs entiers, comme les listes de la capture p. 273 (250 000).
 import { enClair } from "../lib/enclair";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr } from "../lib/dates";
+import { aujourdhui, fr } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Paginee, Textes, type Boite, Recherche, Formulaire } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Paginee, Textes, type Boite, Recherche, Formulaire } from "../composants";
 import { Referentiels, type FacadeReferentiel } from "./Referentiels";
 
 const entier = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
@@ -19,8 +19,9 @@ type Ctx = Awaited<ReturnType<typeof api.paie.contexte>>;
 type Employe = Awaited<ReturnType<typeof api.paie.fiche>>;
 type Ligne = Awaited<ReturnType<typeof api.paie.liste>>[number];
 
-const PAGES_BASE = ["allocations", "baremes", "categories", "classes", "echelons", "grandes_familles", "grandes_rubriques", "grilles_salariales", "types_avance",
-  "types_heure_sup", "types_grille", "types_retenue"];
+// Plan d'allègement, point 9.5 : le module ne calcule aucune paie ; jusqu'à ce que le calcul soit décidé avec le porteur, seules restent catégorie, classe,
+// échelon, grille salariale et type de retenue. La grande rubrique disparaît ; le barème de l'IPR se lira dans la loi fiscale avant toute saisie.
+const PAGES_BASE = ["categories", "classes", "echelons", "grilles_salariales", "types_retenue"];
 const P = (p: string) => `Manuel Microfina++, ${p}`;
 const SOURCES_BASE: Record<string, string[]> = {
   allocations: [P("p. 269 et 270 : capture « Création et mise à jour d'allocations familiales » (Nombre personne *, Taux *, Limite assurance *, Montant *)")],
@@ -64,13 +65,30 @@ function RechercheEmploye({ ouverte, fermer, choisir }: { ouverte: boolean; ferm
 
 type Saisie = Record<string, string> & { grilles?: never };
 const VIDE: Record<string, string> = {};
-const ONGLETS = ["Informations générales", "Classification", "Affectation", "Contrat"] as const;
+const ONGLETS = ["Informations générales", "Classification", "Affectation et contrat"] as const;   // point 9.5 : Affectation et Contrat, un onglet
 const CHAMPS_ENTIERS = ["personnesACharge", "salaireBase", "surSalaire", "dureeAnciennete", "montantAnciennete", "congesDus"];
 const CHAMPS_IDS = ["agenceId", "categorieId", "classeId", "echelonId", "centreId"];
 type Personne = Employe["personnes"][number];
 
-/** S133 : « Enregistrement d'un employé » (captures p. 201 à 206) */
+/** S133 : Employés (plan d'allègement, point 9.5) : la liste du personnel d'abord ; Nouvel employé ou un clic sur une ligne ouvre « Enregistrement d'un employé »
+ *  (captures p. 201 à 206) */
 export function NouvelEmploye() {
+  const [vue, setVue] = useState<"liste" | number | "nouveau">("liste");
+  const [relu, setRelu] = useState(0);
+  const { donnees: liste } = useDonnees(() => api.paie.liste({}), [relu]);
+  if (vue !== "liste") return <FicheEmploye key={String(vue)} depart={typeof vue === "number" ? vue : null} retour={() => { setVue("liste"); setRelu((x) => x + 1); }} />;
+  return <section className="bloc pile" aria-label="Liste du personnel">
+    <div className="actions-onglets"><button className="bouton" type="button" onClick={() => setVue("nouveau")}>Nouvel employé</button></div>
+    {!liste ? <Chargement /> : <Paginee lignes={liste}>{(vis) => <div className="defile-x"><table className="grille"><caption>Liste du personnel</caption>
+      <thead><tr><th scope="col">Matricule</th><th scope="col">Nom et Prénoms</th><th scope="col">Fonction</th><th scope="col">Date d'embauche</th></tr></thead>
+      <tbody>{liste.length === 0 && <tr><td colSpan={4}>Aucun employé.</td></tr>}
+        {vis.map((l) => <tr key={l.id} className="ligne-choix" tabIndex={0} onClick={() => setVue(l.id)} onKeyDown={(e) => { if (e.key === "Enter") setVue(l.id); }}>
+          <td className="code">{l.matricule}</td><td>{l.nomPrenoms}</td><td>{l.fonction}</td><td className="chiffres">{fr(l.dateEmbauche)}</td></tr>)}</tbody></table></div>}</Paginee>}
+    <Textes sources={["Plan d'allègement, point 9.5 : « Employés » s'ouvre sur la liste du personnel", P("p. 277 : Liste des employés")]} />
+  </section>;
+}
+
+function FicheEmploye({ depart, retour }: { depart: number | null; retour: () => void }) {
   const { donnees: ctx } = useDonnees(() => api.paie.contexte());
   const [f, setF] = useState<Saisie>(VIDE as Saisie);
   const [id, setId] = useState<number | null>(null);
@@ -81,17 +99,6 @@ export function NouvelEmploye() {
   const [p, setP] = useState<Record<string, string>>({});
   const [ajout, setAjout] = useState("");
   const [boite, setBoite] = useState<Boite | null>(null);
-  if (!ctx) return <Chargement />;
-  const v = (k: string) => f[k] ?? "";
-  const maj = (k: string, x: string) => {
-    const g = { ...f, [k]: x };
-    if (["categorieId", "classeId", "echelonId", "salairePredefini"].includes(k)) {      // salaire de base proposé par la grille salariale (p. 273)
-      const gs = ctx.grillesSalariales.find((y) => String(y.categorieId) === g.categorieId && String(y.classeId) === g.classeId && String(y.echelonId) === g.echelonId);
-      const val = gs ? (g.salairePredefini === "Régime indiciaire" ? gs.points : gs.salaire) : null;
-      if (val !== null && val !== undefined) g.salaireBase = String(val);
-    }
-    setF(g as Saisie);
-  };
   const charger = async (eid: number) => {
     try {
       const e = await api.paie.fiche(eid);
@@ -99,8 +106,27 @@ export function NouvelEmploye() {
       setF(Object.fromEntries(Object.entries(e).filter(([k]) => !["personnes", "grilles", "id", "creePar", "creeLe"].includes(k)).map(([k, x]) => [k, x === null || x === undefined ? "" : String(x)])) as Saisie);
     } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   };
+  useEffect(() => { if (depart !== null) void charger(depart); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  if (!ctx) return <Chargement />;
+  const v = (k: string) => f[k] ?? "";
+  const maj = (k: string, x: string) => {
+    const g = { ...f, [k]: x };
+    if (k === "dateEmbauche" && x) {   // point 9.5 : la date d'embauche se reprend comme début du contrat et date d'ancienneté
+      if (!g.dateDebutContrat) g.dateDebutContrat = x;
+      if (!g.dateReferenceAnciennete) g.dateReferenceAnciennete = x;
+    }
+    if (["categorieId", "classeId", "echelonId", "salairePredefini"].includes(k)) {      // salaire de base proposé par la grille salariale (p. 273)
+      const gs = ctx.grillesSalariales.find((y) => String(y.categorieId) === g.categorieId && String(y.classeId) === g.classeId && String(y.echelonId) === g.echelonId);
+      const val = gs ? (g.salairePredefini === "Régime indiciaire" ? gs.points : gs.salaire) : null;
+      if (val !== null && val !== undefined) g.salaireBase = String(val);
+    }
+    setF(g as Saisie);
+  };
   const nouveau = () => { setF(VIDE as Saisie); setId(null); setPersonnes([]); setGrilles([]); setOnglet(0); };
-  const envoi = () => ({ ...Object.fromEntries(Object.entries(f).map(([k, x]) => [k, CHAMPS_IDS.includes(k) ? (x ? Number(x) : null) : CHAMPS_ENTIERS.includes(k) ? (x === "" ? null : x) : x])),
+  // Point 9.5 : l'ancienneté se calcule, en années révolues depuis la date de référence
+  const anciennete = (() => { const d = v("dateReferenceAnciennete"); if (!d) return ""; const j = aujourdhui();
+    return String(Math.max(0, Number(j.slice(0, 4)) - Number(d.slice(0, 4)) - (j.slice(5) < d.slice(5) ? 1 : 0))); })();
+  const envoi = () => ({ ...Object.fromEntries(Object.entries({ ...f, dureeAnciennete: anciennete }).map(([k, x]) => [k, CHAMPS_IDS.includes(k) ? (x ? Number(x) : null) : CHAMPS_ENTIERS.includes(k) ? (x === "" ? null : x) : x])),
     personnes, grilles });
   const enregistrer = () => setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
     try { const e = await api.paie.enregistrer(envoi(), id ?? undefined); setId(e.id); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
@@ -113,7 +139,7 @@ export function NouvelEmploye() {
   const date = (k: string, l: string, requis = false) => <ChampDate libelle={`${l}${requis ? " *" : ""}`} valeur={v(k)} onChange={(x) => maj(k, x)} />;
   const nombre = (k: string, l: string, suffixe = "") => <Champ libelle={l}>{(pp) => <span className="avec-unite"><input {...pp} className="saisie montant" inputMode="numeric" value={v(k)} onChange={(e) => maj(k, e.target.value.replace(/\D/g, ""))} />{suffixe && <span>{suffixe}</span>}</span>}</Champ>;
   const suivant = <div className="actions-onglets">{onglet > 0 && <button className="bouton secondaire" type="button" onClick={() => setOnglet(onglet - 1)}>Précédent</button>}
-    {(onglet === 0 || onglet === ONGLETS.length - 1) && <button className="bouton" type="submit">Enregistrer</button>}
+    <button className="bouton" type="submit">Enregistrer</button>
     {onglet < ONGLETS.length - 1 && <button className="bouton secondaire" type="button" onClick={() => setOnglet(onglet + 1)}>Suivant</button>}</div>;
   const grillesVues = ctx.grilles.filter((g) => grilles.includes(g.id));
   const ajouterPersonne = () => {
@@ -124,25 +150,26 @@ export function NouvelEmploye() {
   const ouiNon = (k: string, l: string) => <fieldset className="choix-radio"><legend>{l} *</legend>{["oui", "non"].map((x) =>
     <label key={x} className="case"><input type="radio" name={k} checked={p[k] === x} onChange={() => setP({ ...p, [k]: x })} /><span>{x === "oui" ? "Oui" : "Non"}</span></label>)}</fieldset>;
   return (
-    <Formulaire className="bloc pile" label="Enregistrement d'un employé" envoyer={() => (onglet === 0 || onglet === ONGLETS.length - 1 ? enregistrer() : setOnglet(onglet + 1))}>
+    <Formulaire className="bloc pile" label="Enregistrement d'un employé" envoyer={enregistrer}>
       <h2>Enregistrement d'un employé</h2>
       <div className="actions-onglets">
         <button className="bouton secondaire" type="button" disabled={!v("typeContrat")} onClick={() => setFenetre("contrat")}>Visualiser le contrat</button>
         <button className="bouton secondaire" type="button" aria-label="Rechercher un employé" onClick={() => setFenetre("recherche")}>Rechercher</button>
         <button className="bouton secondaire" type="button" onClick={nouveau}>Annuler</button>
+        <button className="bouton secondaire" type="button" onClick={retour}>Liste du personnel</button>
       </div>
       <div className="onglets" role="tablist" aria-label="Employé">{ONGLETS.map((o, i) => <button key={o} type="button" role="tab" aria-selected={onglet === i} onClick={() => setOnglet(i)}>{o}</button>)}</div>
       {onglet === 0 && <div className="deux-colonnes">
         <fieldset className="cadre-champs formulaire"><legend className="sr-only">Identité</legend>
           {texte("matricule", "Matricule :", { requis: true })}{texte("numeroSecuriteSociale", "N° Sécurité sociale :")}
           {choix("sexe", "Sexe :", ctx.sexes, true)}
-          {texte("nom", "Nom :", { requis: true })}{texte("prenoms", "Prénom(s) :", { requis: true })}{texte("nomJeuneFille", "Nom de jeune fille :")}
+          {texte("nom", "Nom :", { requis: true })}{texte("prenoms", "Prénom(s) :", { requis: true })}{v("sexe") === "Féminin" && texte("nomJeuneFille", "Nom de jeune fille :")}
           {choix("situationMatrimoniale", "Situation matrimoniale :", ctx.situations)}{date("dateNaissance", "Date de naissance :", true)}
           {texte("lieuNaissance", "Lieu de naissance :")}{texte("nationalite", "Nationalité :")}
         </fieldset>
         <fieldset className="cadre-champs formulaire"><legend className="sr-only">Contacts et carrière</legend>
           {choix("groupeSanguin", "Groupe sanguin :", ctx.groupesSanguins)}{texte("contact1", "Contact 1 :")}{texte("contact2", "Contact 2 :")}{texte("adresse", "Adresse :")}
-          {texte("email", "Email :", { type: "email" })}{texte("bp", "BP :")}{texte("profession", "Profession :")}
+          {texte("email", "Email :", { type: "email" })}{texte("bp", "BP :")}
           {texte("personneAPrevenir", "Personne à prévenir et Contacts :")}{date("dateDebutCarriere", "Date de début de carrière :")}{date("dateEmbauche", "Date d'embauche :", true)}
           <Champ libelle="Personne(s) à charge :">{(pp) => <span className="avec-unite"><input {...pp} className="saisie montant" inputMode="numeric" value={v("personnesACharge")}
             onChange={(e) => maj("personnesACharge", e.target.value.replace(/\D/g, ""))} /><button className="bouton secondaire" type="button" aria-label="Personnes à charge" onClick={() => setFenetre("personnes")}>+</button></span>}</Champ>
@@ -158,7 +185,7 @@ export function NouvelEmploye() {
           <fieldset className="cadre-champs formulaire"><legend>Ancienneté acquise</legend>
             {date("dateReferenceAnciennete", "Date référence de prime d'ancienneté :", true)}
             <Champ libelle="Taux de prime d'ancienneté : *">{(pp) => <input {...pp} className="saisie montant" inputMode="decimal" value={v("tauxAnciennete")} onChange={(e) => maj("tauxAnciennete", e.target.value)} />}</Champ>
-            {nombre("dureeAnciennete", "Durée(ans) :")}{nombre("montantAnciennete", "Montant :")}{nombre("congesDus", "Congés dus :")}
+            <Champ libelle="Durée(ans) :">{(pp) => <Lecture {...pp} value={anciennete} />}</Champ>{nombre("montantAnciennete", "Montant :")}{nombre("congesDus", "Congés dus :")}
           </fieldset>
         </div>
         <fieldset className="cadre-champs"><legend>Grilles</legend>
@@ -173,13 +200,13 @@ export function NouvelEmploye() {
           </div>
         </fieldset>
       </>}
-      {onglet === 2 && <fieldset className="cadre-champs formulaire"><legend className="sr-only">Affectation</legend>
-        {choix("agenceId", "Agence :", ctx.agences)}{choix("centreId", "Centre de coût :", ctx.centres)}{texte("poste", "Poste :")}{texte("fonction", "Fonction :")}
-      </fieldset>}
-      {onglet === 3 && <fieldset className="cadre-champs formulaire"><legend className="sr-only">Contrat</legend>
+      {onglet === 2 && <div className="deux-colonnes"><fieldset className="cadre-champs formulaire"><legend>Affectation</legend>
+        {choix("agenceId", "Agence :", ctx.agences)}{choix("centreId", "Centre de coût :", ctx.centres)}{texte("fonction", "Fonction :")}
+      </fieldset>
+      <fieldset className="cadre-champs formulaire"><legend>Contrat</legend>
         {choix("typeContrat", "Type de contrat :", ctx.typesContrat)}{texte("typeEmploye", "Type d'employé :")}
         {date("dateDebutContrat", "Date début :")}{date("dateFinContrat", "Date fin :")}{texte("modeleContrat", "Modèle de contrat :")}
-      </fieldset>}
+      </fieldset></div>}
       {suivant}
       <Textes sources={[P("p. 276 et 277 : « Renseigner tous les champs de l'onglet [Information général] et cliquez sur le bouton [Enregistrer] » ; [Classification] : Grilles fiscales et ou sociales ; [Affectation] : centres et poste ; [Contrat] : type de contrat, type d'employé, date début et fin, modèle de contrat"),
         P("p. 201 à 206 (module GRH) : captures « Enregistrement d'un employé », « Recherche d'un employé », « Enregistrement de personne à charge »"),
@@ -301,10 +328,9 @@ export function PersonnelPaie() {
     {page === "maquette" && <Maquette ctx={ctx} />}{page === "liste" && <ListeEmployes ctx={ctx} />}</>;
 }
 
-/** S135 : Traitement retenues : Mise en place retenue (bouton « Liste des retenues sur salaire »), Visa de retenue (p. 277 et 278) */
+/** S135 : Retenues sur salaire (plan d'allègement, point 9.5) : un écran, la mise en place en haut, la liste à viser dessous (p. 277 et 278 ;
+ *  Instr. BCC 008, art. 66 : celui qui met en place ne vise pas) */
 export function RetenuesSalaire() {
-  const [params, setParams] = useSearchParams();
-  const visa = params.get("page") === "visa";
   const { donnees: ctx } = useDonnees(() => api.paie.contexte());
   const [emp, setEmp] = useState<number | null>(null);
   const [recherche, setRecherche] = useState(false);
@@ -317,7 +343,7 @@ export function RetenuesSalaire() {
   if (!ctx) return <Chargement />;
   const confirmer = (t: string, faire: () => Promise<unknown>) => setBoite({ type: "confirmation", message: t, oui: async () => {
     try { await faire(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } } });
-  const aViser = (toutes ?? []).filter((r) => r.employeId === emp && r.statut === "saisie");
+  const aViser = (toutes ?? []).filter((r) => r.statut === "saisie");
   const grille = (l: NonNullable<typeof toutes>, viser: boolean) => <table className="grille">
     <thead><tr><th scope="col">Matricule</th><th scope="col">Employé</th><th scope="col">Type de retenue</th><th scope="col">Session</th><th scope="col" className="num">Montant</th>
       <th scope="col" className="num">Durée</th><th scope="col" className="num">Par session</th><th scope="col">État</th>{viser && <th scope="col"><span className="sr-only">Viser</span></th>}</tr></thead>
@@ -328,10 +354,7 @@ export function RetenuesSalaire() {
   const employe = <Champ libelle="Matricule *">{(pp) => <span className="avec-unite"><input {...pp} className="saisie" readOnly value={fiche ? `${fiche.matricule} ${fiche.nom} ${fiche.prenoms}` : ""} />
     <button className="bouton secondaire" type="button" aria-label="Rechercher un employé" onClick={() => setRecherche(true)}>Rechercher</button></span>}</Champ>;
   return <>
-    <div className="onglets" role="tablist" aria-label="Traitement retenues">
-      <button type="button" role="tab" aria-selected={!visa} onClick={() => setParams({})}>Mise en place retenue</button>
-      <button type="button" role="tab" aria-selected={visa} onClick={() => setParams({ page: "visa" })}>Visa de retenue</button></div>
-    {!visa && <Formulaire className="bloc pile" label="Retenues sur salaire" envoyer={() => confirmer("Voulez-vous vraiment enregistrer ?", async () => {
+    <Formulaire className="bloc pile" label="Retenues sur salaire" envoyer={() => confirmer("Voulez-vous vraiment enregistrer ?", async () => {
         await api.paie.mettreEnPlace({ employeId: emp, typeId: f.typeId ? Number(f.typeId) : null, session: f.session, montant: f.montant ? Number(f.montant) : null, duree: f.duree ? Number(f.duree) : null });
         setF({ typeId: "", session: "", montant: "", duree: "" }); })}><h2>Retenues sur salaire</h2>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setListe(true)}>Liste des retenues sur salaire</button></div>
@@ -344,12 +367,11 @@ export function RetenuesSalaire() {
       </fieldset>
       <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button></div>
       <Textes sources={[P("p. 277 : « préciser le type de retenue et la session correspondante, le montant de la retenue et la durée du prélèvement »"), "Code du travail, art. 112 (retenues permises), art. 114 (quotité cessible)"]} />
-    </Formulaire>}
-    {visa && <section className="bloc pile" aria-label="Visa de retenue"><h2>Visa de retenue</h2>
-      <fieldset className="cadre-champs formulaire"><legend className="sr-only">Employé</legend>{employe}</fieldset>
-      {emp && grille(aViser, true)}
-      <Textes sources={[P("p. 278 : « Pour viser une retenue mise en place, … Recherche l'employé par le bouton recherche du champ [Matricule] »"), "Instr. BCC 008, art. 66 : séparation des tâches"]} />
-    </section>}
+    </Formulaire>
+    <section className="bloc pile" aria-label="Retenues à viser"><h2>Retenues à viser</h2>
+      {grille(aViser, true)}
+      <Textes sources={[P("p. 278 : visa de retenue"), "Plan d'allègement, point 9.5 : la liste à viser sous la mise en place", "Instr. BCC 008, art. 66 : séparation des tâches"]} />
+    </section>
     <Fiche titre="Liste des retenues sur salaire" ouverte={liste} fermer={() => setListe(false)}>{grille(toutes ?? [], false)}</Fiche>
     <RechercheEmploye ouverte={recherche} fermer={() => setRecherche(false)} choisir={setEmp} />
     <Dialogue boite={boite} fermer={() => setBoite(null)} />

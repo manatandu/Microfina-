@@ -3760,10 +3760,10 @@ describe("journée de guichet", () => {
     const tb = id(await api.budget.enregistrer("types_budget", { code: "FONC", libelle: "Fonctionnement", paramCompte: "6*" }), "code", "FONC");
     const tp = id(await api.budget.enregistrer("types_periode", { code: "ANN", libelle: "Annuel", dureeMois: 12 }), "code", "ANN");
     const pe = id(await api.budget.enregistrer("periodes", { code: "A", libelle: "Année", typeId: tp, debut: "01/01", fin: "31/12" }), "code", "A");
-    await api.budget.enregistrer("plans", { annee: 2026, code: "B26", libelle: "Budget 2026" });
+    await api.budgets.creer({ annee: 2026, code: "B26", libelle: "Budget 2026" });
     const plans = await api.budget.enregistrer("plans", { annee: 2025, code: "B25", libelle: "Budget 2025" }), b26 = id(plans, "code", "B26"), b25 = id(plans, "code", "B25");
-    // S126 : listes
-    await connecter("plumbala");
+    // S126 : listes ; le bailleur rejoint le référentiel du budget (S19, plan d'allègement, point 9.4)
+    await connecter("jpmukendi");
     const t = await api.refFinancement.enregistrer("types_financement", { code: "RES_AFFECT", libelle: "Ressources affectées" }), ta = t.lignes[0]!.id;
     expect([t.fiche.entete, t.catalogue.map((x) => x.menu)]).toEqual(["Types de lignes de financement", ["Lignes de financement", "Types de financement", "Bailleur"]]);
     await expect(api.refFinancement.enregistrer("types_financement", { code: "res_affect", libelle: "Autre" })).rejects.toThrow("existe déjà");
@@ -3776,8 +3776,8 @@ describe("journée de guichet", () => {
     await connecter("jpmukendi");
     await api.budget.enregistrer("lignes", { numero: "L1", libelle: "Loyers", planId: b26, centreId: ce, bailleurId: bid });
     const lg = await api.budget.enregistrer("lignes", { numero: "L2", libelle: "Fournitures", planId: b26, centreId: ce }), l1 = id(lg, "numero", "L1"), l2 = id(lg, "numero", "L2");
-    await connecter("plumbala");
     await expect(api.refFinancement.supprimer("bailleurs", bid)).rejects.toThrow("Ligne de plan budgétaire");
+    await connecter("plumbala");
     // S124 : définir le budget
     const ctx = await api.budgets.contexte();
     expect([ctx.lignes.find((x) => x.numero === "L1")!.financement, ctx.plans[0]!.code]).toEqual(["Fonds Exemple", "B26"]);

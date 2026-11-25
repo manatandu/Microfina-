@@ -4792,19 +4792,19 @@ def test_budget_et_financement(clients, journee):
     def ok(c, url, corps):
         r = c.post(url, corps, **H); assert r.status_code == 200, r.content; return r.json()
     msg = lambda c, url, corps: c.post(url, corps, **H).json()["message"]
-    # S126 : listes
-    t = ok(compta, f"{F}/types_financement", {"code": "RES_AFFECT", "libelle": "Ressources affectées"})
+    # S126 : listes ; le bailleur rejoint le référentiel du budget (S19, plan d'allègement, point 9.4) : le chef les tient
+    t = ok(chef, f"{F}/types_financement", {"code": "RES_AFFECT", "libelle": "Ressources affectées"})
     assert t["fiche"]["entete"] == "Types de lignes de financement" and [x["menu"] for x in t["catalogue"]] == ["Lignes de financement", "Types de financement", "Bailleur"]
     ta = t["lignes"][0]["id"]
-    assert "existe déjà" in msg(compta, f"{F}/types_financement", {"code": "res_affect", "libelle": "Autre"})
-    b = ok(compta, f"{F}/bailleurs", {"typeBailleur": "Institutions sans but lucratif", "code": "B0000001", "nom": "Fonds Exemple"})
+    assert "existe déjà" in msg(chef, f"{F}/types_financement", {"code": "res_affect", "libelle": "Autre"})
+    b = ok(chef, f"{F}/bailleurs", {"typeBailleur": "Institutions sans but lucratif", "code": "B0000001", "nom": "Fonds Exemple"})
     bid = b["lignes"][0]["id"]
-    assert "inconnu" in msg(compta, f"{F}/bailleurs", {"typeBailleur": "Autre", "code": "B2", "nom": "X"})
+    assert "inconnu" in msg(chef, f"{F}/bailleurs", {"typeBailleur": "Autre", "code": "B2", "nom": "X"})
     for _ in range(2):                                               # deux lignes peuvent porter le même libellé (capture p. 144)
-        lf = ok(compta, f"{F}/lignes_financement", {"libelle": "Fonds Exemple", "montant": 0, "typeId": ta})
+        lf = ok(chef, f"{F}/lignes_financement", {"libelle": "Fonds Exemple", "montant": 0, "typeId": ta})
     assert [x["affichage"]["typeId"] for x in lf["lignes"]] == ["Ressources affectées", "Ressources affectées"]
-    assert "Type" in msg(compta, f"{F}/lignes_financement", {"libelle": "Sans type", "montant": 0})
-    assert "Lignes de financement" in msg(compta, f"{F}/types_financement/{ta}/suppression", {})
+    assert "Type" in msg(chef, f"{F}/lignes_financement", {"libelle": "Sans type", "montant": 0})
+    assert "Lignes de financement" in msg(chef, f"{F}/types_financement/{ta}/suppression", {})
     assert caisse.post(f"{F}/bailleurs", {"code": "B9", "nom": "X"}, **H).status_code == 403
     # S19 : plans, types, période, centre, lignes (le bailleur vient de S126)
     tc = {x["code"]: x["id"] for x in chef.get(f"{B}/types_centre", **H).json()["lignes"]}
@@ -4812,11 +4812,12 @@ def test_budget_et_financement(clients, journee):
     tb = {x["code"]: x["id"] for x in ok(chef, f"{B}/types_budget", {"code": "FONC", "libelle": "Fonctionnement", "paramCompte": "6*"})["lignes"]}
     tp = next(x["id"] for x in ok(chef, f"{B}/types_periode", {"code": "ANN", "libelle": "Annuel", "dureeMois": 12})["lignes"] if x["code"] == "ANN")
     pe = next(x["id"] for x in ok(chef, f"{B}/periodes", {"code": "A", "libelle": "Année", "typeId": tp, "debut": "01/01", "fin": "31/12"})["lignes"] if x["code"] == "A")
-    ok(chef, f"{B}/plans", {"annee": 2026, "code": "B26", "libelle": "Budget 2026"})
+    assert compta.post(f"{B}/plans", {"annee": 2026, "code": "B26", "libelle": "Budget 2026"}, **H).status_code == 403
+    ok(compta, "/api/budget/plans", {"annee": 2026, "code": "B26", "libelle": "Budget 2026"})   # point 9.4 : le budget se crée dans l'écran Budgets
     pl = {x["code"]: x["id"] for x in ok(chef, f"{B}/plans", {"annee": 2025, "code": "B25", "libelle": "Budget 2025"})["lignes"]}
     ok(chef, f"{B}/lignes", {"numero": "L1", "libelle": "Loyers", "planId": pl["B26"], "centreId": ce, "bailleurId": bid})
     lg = {x["numero"]: x["id"] for x in ok(chef, f"{B}/lignes", {"numero": "L2", "libelle": "Fournitures", "planId": pl["B26"], "centreId": ce})["lignes"] if x["planId"] == pl["B26"]}
-    assert "Ligne de plan budgétaire" in msg(compta, f"{F}/bailleurs/{bid}/suppression", {})
+    assert "Ligne de plan budgétaire" in msg(chef, f"{F}/bailleurs/{bid}/suppression", {})
     # S124 : définir le budget
     ctx = compta.get(f"{BG}/contexte", **H).json()
     assert next(x for x in ctx["lignes"] if x["numero"] == "L1")["financement"] == "Fonds Exemple" and ctx["plans"][0]["code"] == "B26"

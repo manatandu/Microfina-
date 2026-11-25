@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { api, CATALOGUE_BUDGET, type ChampBudget, type LigneBudgetVue } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee, Formulaire } from "../composants";
+import { Referentiels, type FacadeReferentiel } from "./Referentiels";
 
 const PAGES_MANUEL: Record<string, string> = {
   types_centre: "p. 27 : 2-1 Types de centre de coût, Création et mise à jour des types de centre de coût, Code*, Libellé*, Parent, Enregistrer, Effacer, Supprimer, Liste des types de centres de coût (Code, Libellé, Parent), Rafraichir ; « Remplir les champs obligatoires code, et libelle puis préciser le parent »",
@@ -17,10 +18,27 @@ const PAGES_MANUEL: Record<string, string> = {
 
 /** S19 : Info de base > Budget, huit référentiels (manuel Microfina++, p. 27 à 30). La liste de gauche ouvre les huit pages du menu (registre S19-6) ;
  * Enregistrer, Effacer, Supprimer des captures ; un clic sur une ligne la charge pour la modifier (registre S19-2). */
+// Plan d'allègement, point 9.4 : les périodes du calendrier sont proposées d'office (Types de période et Périodes disparaissent) ; un budget se crée dans
+// Budget > Budgets (Plan budgétaire) ; le bailleur rejoint les paramètres du budget (venu de Financement, dont les lignes et les types disparaissent)
+const RETIREES = new Set(["types_periode", "periodes", "plans"]);
+const PAGES_BUDGET = [...CATALOGUE_BUDGET.filter((c) => !RETIREES.has(c.page)).map((c) => ({ page: c.page, menu: c.menu })), { page: "bailleurs", menu: "Bailleurs" }];
+const SOURCES_BAILLEURS = { bailleurs: ["Manuel Microfina++, p. 144 et 145 : « Paramétrage du bailleur » : « Saisir le Type de bailleur, le Code et le Nom du bailleur puis cliquez sur le bouton [Enregistrer] ou [Effacer] en cas d'erreur »",
+  "PCCI § 10.2 : nature des agents économiques (financiers et non financiers), reprise pour le Type de bailleur ; plan d'allègement, point 9.4 : le bailleur rejoint les paramètres du budget"] };
+
 export default function ReferentielsBudget() {
   const [params, setParams] = useSearchParams();
-  const page = CATALOGUE_BUDGET.some((c) => c.page === params.get("page")) ? params.get("page")! : "types_centre";
-  return <PageBudget key={page} page={page} changer={(p) => setParams(p === "types_centre" ? {} : { page: p })} />;
+  const page = PAGES_BUDGET.some((c) => c.page === params.get("page")) ? params.get("page")! : "types_centre";
+  const changer = (p: string) => setParams(p === "types_centre" ? {} : { page: p });
+  if (page === "bailleurs") return <>
+    <div className="page-liste-gauche"><NavBudget page={page} changer={changer} />
+      <div className="pile"><Referentiels facade={api.refFinancement as unknown as FacadeReferentiel} pages={["bailleurs"]} sources={SOURCES_BAILLEURS} /></div></div></>;
+  return <PageBudget key={page} page={page} changer={changer} />;
+}
+
+function NavBudget({ page, changer }: { page: string; changer: (p: string) => void }) {
+  return <nav className="liste-gauche" aria-label="Budget"><ul>
+    {PAGES_BUDGET.map((x) => <li key={x.page} aria-current={x.page === page ? "page" : undefined}><button type="button" onClick={() => changer(x.page)}>{x.menu}</button></li>)}
+  </ul></nav>;
 }
 
 type Saisie = Record<string, string>;
@@ -79,15 +97,7 @@ function PageBudget({ page, changer }: { page: string; changer: (p: string) => v
     <>
       <h2>{fiche.entete}</h2>
       <div className="page-liste-gauche">
-        <nav className="liste-gauche" aria-label="Budget">
-          <ul>
-            {donnees.catalogue.map((x) => (
-              <li key={x.page} aria-current={x.page === page ? "page" : undefined}>
-                <button type="button" onClick={() => changer(x.page)}>{x.menu}</button>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <NavBudget page={page} changer={changer} />
         <section className="bloc pile" aria-label={fiche.entete}>
           <fieldset className="pile cadre-champs">
             {fiche.cadre && <legend>{fiche.cadre}</legend>}

@@ -1451,23 +1451,6 @@
       "grille": false
      },
      {
-      "cle": "periodicite",
-      "col": "periodicite",
-      "libelle": "Périodicité :",
-      "type": "texte",
-      "obligatoire": true,
-      "ref": null,
-      "aide": null,
-      "colonne": "Périodicité",
-      "defaut": null,
-      "cadre": "Normes",
-      "grille": false,
-      "valeurs": [
-       "Annuelle",
-       "Mensuelle"
-      ]
-     },
-     {
       "cle": "compteAcquisition",
       "col": "compte_acquisition",
       "libelle": "Compte d'acquisition",
@@ -1533,66 +1516,27 @@
       "grille": false
      },
      {
-      "cle": "immatriculation",
-      "col": "immatriculation",
-      "libelle": "Immatriculation",
+      "cle": "vehicule",
+      "col": "vehicule",
+      "libelle": "Véhicule",
       "type": "ouiNon",
       "obligatoire": false,
       "ref": null,
       "aide": null,
-      "colonne": "Immatriculation",
+      "colonne": "Véhicule",
       "defaut": false,
       "cadre": "Option supplémentaire",
       "grille": false
      },
      {
-      "cle": "chassis",
-      "col": "chassis",
-      "libelle": "N°chassis",
+      "cle": "terrainBatiment",
+      "col": "terrain_batiment",
+      "libelle": "Terrain ou bâtiment",
       "type": "ouiNon",
       "obligatoire": false,
       "ref": null,
       "aide": null,
-      "colonne": "N°chassis",
-      "defaut": false,
-      "cadre": "Option supplémentaire",
-      "grille": false
-     },
-     {
-      "cle": "carburant",
-      "col": "carburant",
-      "libelle": "Carburant",
-      "type": "ouiNon",
-      "obligatoire": false,
-      "ref": null,
-      "aide": null,
-      "colonne": "Carburant",
-      "defaut": false,
-      "cadre": "Option supplémentaire",
-      "grille": false
-     },
-     {
-      "cle": "titreFoncier",
-      "col": "titre_foncier",
-      "libelle": "Ref. titre foncier",
-      "type": "ouiNon",
-      "obligatoire": false,
-      "ref": null,
-      "aide": null,
-      "colonne": "Ref. titre foncier",
-      "defaut": false,
-      "cadre": "Option supplémentaire",
-      "grille": false
-     },
-     {
-      "cle": "description",
-      "col": "description",
-      "libelle": "Description",
-      "type": "ouiNon",
-      "obligatoire": false,
-      "ref": null,
-      "aide": null,
-      "colonne": "Description",
+      "colonne": "Terrain ou bâtiment",
       "defaut": false,
       "cadre": "Option supplémentaire",
       "grille": false

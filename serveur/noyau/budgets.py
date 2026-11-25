@@ -62,12 +62,38 @@ def comptes_du_type(u, tid: int) -> list[dict]:
                                  order by numero""", (u["institution_id"],)) if permis(t["param_compte"], c["numero"])]
 
 
+# Plan d'allègement, point 9.4 : les « Types de période » disparaissent ; les périodes du calendrier sont proposées d'office
+PERIODES_CALENDRIER = ([("M", "Mensuel", 1, f"{m:02d}", nom, f"01/{m:02d}", None) for m, nom in enumerate(
+    ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"], 1)]
+    + [("TRIM", "Trimestriel", 3, f"TR{k}", f"{'1er' if k == 1 else f'{k}e'} trimestre", f"01/{3 * k - 2:02d}", f"{(31, 30, 30, 31)[k - 1]}/{3 * k:02d}") for k in (1, 2, 3, 4)]
+    + [("SEM", "Semestriel", 6, "S1", "1er semestre", "01/01", "30/06"), ("SEM", "Semestriel", 6, "S2", "2e semestre", "01/07", "31/12"),
+       ("AN", "Annuel", 12, "AN", "Année", "01/01", "31/12")])
+FIN_MOIS = {1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30, 7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}   # le 28/02 vaut le 29 une année bissextile (dates())
+
+
+def assurer_periodes(i: int):
+    """Crée les périodes du calendrier qui manquent (une période de mêmes dates déjà saisie est gardée)"""
+    for code_t, lib_t, mois, code, libelle, debut, fin in PERIODES_CALENDRIER:
+        fin = fin or f"{FIN_MOIS[int(debut[3:])]:02d}/{debut[3:]}"
+        if une("select 1 from budget_periode where institution_id = %s and actif and debut = %s and fin = %s", (i, debut, fin)):
+            continue
+        t = valeur("select id from budget_type_periode where institution_id = %s and code = %s", (i, code_t)) or valeur(
+            "insert into budget_type_periode (institution_id, code, libelle, duree_mois, duree_jours) values (%s, %s, %s, %s, 0) returning id", (i, code_t, lib_t, mois))
+        if une("select 1 from budget_periode where institution_id = %s and code = %s", (i, code)):
+            code = f"{code_t}-{code}"
+        executer("insert into budget_periode (institution_id, code, libelle, type_id, debut, fin) values (%s, %s, %s, %s, %s, %s)", (i, code, libelle, t, debut, fin))
+
+
 def contexte(u) -> dict:
     exiger(u)
     i = u["institution_id"]
-    return {"plans": lignes("select id, code, libelle, annee from budget_plan where institution_id = %s and actif order by annee desc, code", (i,)),
+    assurer_periodes(i)
+    return {"plans": lignes("""select p.id, p.code, p.libelle, p.annee, coalesce((select sum(v.valeur) from budget_valeur v where v.plan_id = p.id and v.actif), 0)::bigint as total
+                               from budget_plan p where p.institution_id = %s and p.actif order by p.annee desc, p.code""", (i,)),
             "types": lignes("""select id, code, libelle, param_compte as "paramCompte" from budget_type where institution_id = %s and actif order by code""", (i,)),
-            "periodes": lignes("select id, code, libelle, debut, fin from budget_periode where institution_id = %s and actif order by debut, fin, code", (i,)),
+            # mois, trimestres, semestres, année : dans l'ordre du calendrier, les plus courtes d'abord
+            "periodes": lignes("""select id, code, libelle, debut, fin from budget_periode where institution_id = %s and actif
+                                  order by (substr(fin, 4, 2)::int - substr(debut, 4, 2)::int), substr(debut, 4, 2), debut, code""", (i,)),
             "lignes": lignes("""select l.id, l.numero, l.libelle, l.plan_id as "planId", l.centre_id as "centreId", c.libelle as centre, coalesce(b.nom, '') as financement
                                 from budget_ligne l join budget_centre c on c.id = l.centre_id left join bailleur b on b.id = l.bailleur_id
                                 where l.institution_id = %s and l.actif order by l.numero""", (i,)),
@@ -120,6 +146,11 @@ def ajouter(u, d) -> dict:
     v = entier(d, "valeur")
     if v is None or v <= 0:
         raise ErreurMetier("À remplir : Valeur.")
+    # Plan d'allègement, point 9.4 : un compte n'entre que dans un seul type de budget
+    autre = valeur("""select t.libelle from budget_valeur v join budget_type t on t.id = v.type_id where v.actif and v.plan_id = %s and v.compte = %s
+                      and v.type_id <> %s limit 1""", (pl["id"], compte, t["id"]))
+    if autre:
+        raise ErreurMetier(f"Compte : {compte} est déjà budgété dans le type « {autre} » de ce budget ; un compte n'entre que dans un seul type de budget.")
     if une("select 1 from budget_valeur where actif and plan_id = %s and type_id = %s and periode_id = %s and ligne_id = %s and compte = %s",
            (pl["id"], t["id"], pe["id"], lg["id"], compte)):
         raise ErreurMetier("Cette ligne budgétaire a déjà une valeur pour ce compte : la choisir dans la liste puis Modifier.")
@@ -177,12 +208,27 @@ def reconduire(u, d) -> dict:
 
 
 # ---------- Réalisé ----------
+# Liaison des éléments du budget aux opérations (S19, page Opérations, manuel p. 30), branchée (décision du porteur, 25/11/2026) : l'événement de
+# l'écriture donne le type d'opération, la page Opérations donne son type de budget
+EVENEMENT_OPERATION = {"adhesion": "ADHESION", "depot": "DEPOT", "retrait": "RETRAIT", "frais_tenue": "TENUE_COMPTE", "part_sociale": "PART_SOCIALE"}
+
+
 def realise(u, annee: int, du: date, au: date) -> list[dict]:
-    """Mouvements définitifs de la période, par compte et ligne budgétaire : débit moins crédit, en CDF"""
-    return lignes("""select c.numero as compte, l.budget_ligne_id as ligne, sum(case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end)::bigint as s
-                     from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join journee_comptable jc on jc.id = e.journee_id join compte c on c.id = l.compte_id
-                     where e.institution_id = %s and jc.statut = 'fermee' and e.type <> 'vidage' and e.date_valeur between %s and %s
-                     group by 1, 2""", (u["institution_id"], du, au))
+    """Mouvements définitifs de la période, par compte, ligne budgétaire et type de budget lié à l'opération : débit moins crédit, en CDF"""
+    liens = {r["type_operation"]: r["type_budget_id"] for r in lignes("select type_operation, type_budget_id from budget_operation where institution_id = %s and actif",
+                                                                       (u["institution_id"],))}
+    out: dict = {}
+    for r in lignes("""select c.numero as compte, l.budget_ligne_id as ligne, sc.type_evenement as evenement,
+                              sum(case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end)::bigint as s
+                       from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join journee_comptable jc on jc.id = e.journee_id join compte c on c.id = l.compte_id
+                       left join schema_comptable sc on sc.id = e.schema_id
+                       where e.institution_id = %s and jc.statut = 'fermee' and e.type <> 'vidage' and e.date_valeur between %s and %s
+                       group by 1, 2, 3""", (u["institution_id"], du, au)):
+        tb = liens.get(EVENEMENT_OPERATION.get(r["evenement"] or ""))
+        k = (r["compte"], r["ligne"], tb)
+        x = out.setdefault(k, {"compte": r["compte"], "ligne": r["ligne"], "type": tb, "s": 0})
+        x["s"] += int(r["s"])
+    return list(out.values())
 
 
 def sens(compte: str, s: int) -> int:
@@ -201,6 +247,8 @@ def affecter(rows: list[dict], mouvements: list[dict]) -> tuple[dict, list[dict]
             continue
         lg = max(len(r["compte"]) for r in cands)
         cands = [r for r in cands if len(r["compte"]) == lg]
+        if not m["ligne"] and m.get("type"):
+            cands = [r for r in cands if r["typeId"] == m["type"]] or cands     # type de budget de l'opération (page Opérations)
         cible = next((r for r in cands if r["ligneId"] == m["ligne"]), None) if m["ligne"] else (cands[0] if len(cands) == 1 else None)
         if cible:
             fait[cible["id"]] += sens(m["compte"], int(m["s"]))

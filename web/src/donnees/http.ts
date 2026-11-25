@@ -239,6 +239,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       modifier: (id: number, d: unknown) => post(`/budget/valeurs/${id}`, d),
       supprimer: (d: unknown) => post("/budget/suppression", d),
       reconduire: (d: unknown) => post("/budget/reconduction", d),
+      creer: (d: unknown) => post("/budget/plans", d),
       suivi: (p: Record<string, unknown>) => get(`/budget/suivi?${requete(p)}`),
       consommation: (p: Record<string, unknown>) => get(`/budget/consommation?${requete(p)}`),
     },

@@ -33,18 +33,32 @@ def opts(u, table, champ="libelle") -> list[dict]:
             for r in lignes(f"select * from {table} where institution_id = %s and actif order by id", (u["institution_id"],))]
 
 
+def seuil_autorisation(u) -> int:
+    """10 % des fonds propres de base, au-delà duquel l'acquisition ou la cession d'un actif patrimonial demande l'autorisation préalable de la BCC
+    (Instr. BCC 41, art. 33) ; fonds propres nuls ou négatifs : toute opération"""
+    from .etats_financiers import soldes
+    from .normes import fonds_propres
+    j = journee_courante(u)
+    jd = date.fromisoformat(j["date"]) if j else jour_agence(u)
+    s, res, ant = soldes(u, jd, jd.year, vidage=True)
+    return max(fonds_propres(s, res + ant)["base"], 0) // 10
+
+
 def contexte(u) -> dict:
     exiger(u)
     i = u["institution_id"]
     return {"categories": opts(u, "immo_categorie"), "utilisations": opts(u, "immo_utilisation"), "localisations": opts(u, "immo_localisation"), "types": opts(u, "immo_type"),
             "familles": lignes("""select id, code, libelle, categorie_id as "categorieId", type_id as "typeId", systeme, duree_min as "dureeMin", duree_max as "dureeMax", periodicite,
                                          compte_acquisition as "compteAcquisition", compte_dotation as "compteDotation", compte_amortissement as "compteAmortissement",
-                                         compte_produits as "compteProduits", compte_charge_vcn as "compteChargeVcn", immatriculation, chassis, carburant,
-                                         titre_foncier as "titreFoncier", description from immo_famille where institution_id = %s and actif order by id""", (i,)),
+                                         compte_produits as "compteProduits", compte_charge_vcn as "compteChargeVcn", vehicule, terrain_batiment as "terrainBatiment"
+                                  from immo_famille where institution_id = %s and actif order by id""", (i,)),
             "utilisationsTva": {r["id"]: (r["tva"] if r["tva_applicable"] else "") for r in lignes("select * from immo_utilisation where institution_id = %s and actif", (i,))},
             "fournisseurs": [{"id": r["id"], "libelle": f"{r['compte']} {r['intitule']}"} for r in lignes(
                 "select id, compte, intitule from tiers_comptable where institution_id = %s and actif and type_tiers = 'FOURNISSEUR' order by intitule", (i,))],
-            "factures": lignes("""select id, fournisseur_id as "fournisseurId", numero, ttc as "montant" from facture_fournisseur where institution_id = %s order by id""", (i,)),
+            # point 9.6 : la facture se choisit d'abord ; son fournisseur, son montant et sa date remplissent le bien
+            "factures": lignes("""select f.id, f.fournisseur_id as "fournisseurId", f.numero, f.ttc as "montant", f.date_facture::text as "date", t.intitule as fournisseur
+                                  from facture_fournisseur f join tiers_comptable t on t.id = f.fournisseur_id where f.institution_id = %s order by f.id""", (i,)),
+            "seuilAutorisationBcc": seuil_autorisation(u),
             "employes": [{"id": r["id"], "matricule": r["matricule"], "nom": f"{r['nom']} {r['prenoms']}", "departement": r["fonction"]}
                          for r in lignes("select id, matricule, nom, prenoms, fonction from paie_employe where institution_id = %s order by matricule", (i,))],
             "etats": ETATS, "sorties": SORTIES, "systemes": ["Linéaire", "Dégressif"], "periodicites": ["Annuelle", "Mensuelle"],
@@ -120,7 +134,7 @@ def valider(u, d: dict, bid: int | None) -> dict:
     t = lambda k: d.get(k).strip() if isinstance(d.get(k), str) else ""
     ent = lambda k: d.get(k) if isinstance(d.get(k), int) and not isinstance(d.get(k), bool) else None
     manque = [n for k, n in (("codification", "Codification"), ("libelle", "Libellé Bien")) if not t(k)] + \
-             [n for k, n in (("categorieId", "Catégorie"), ("familleId", "Famille"), ("dureeVie", "Durée de vie"), ("utilisationId", "Utilisation"),
+             [n for k, n in (("familleId", "Famille"), ("dureeVie", "Durée de vie"), ("utilisationId", "Utilisation"),
                              ("localisationId", "Localisation"), ("montantTtc", "Montant TTC")) if ent(k) is None]
     if manque:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
@@ -131,8 +145,8 @@ def valider(u, d: dict, bid: int | None) -> dict:
     f = une("select * from immo_famille where id = %s and institution_id = %s and actif", (ent("familleId"), i))
     if not f:
         raise ErreurMetier("Famille inconnue.")
-    if f["categorie_id"] != ent("categorieId"):
-        raise ErreurMetier("Famille : elle n'est pas de cette catégorie.")
+    if ent("categorieId") is not None and f["categorie_id"] != ent("categorieId"):
+        raise ErreurMetier("Famille : elle n'est pas de cette catégorie.")      # point 9.6 : la famille suffit, elle donne la catégorie
     if not f["duree_min"] <= ent("dureeVie") <= f["duree_max"]:
         raise ErreurMetier(f"Durée de vie : entre {f['duree_min']} et {f['duree_max']} ans pour cette famille (Normes).")
     ut = une("select * from immo_utilisation where id = %s and institution_id = %s and actif", (ent("utilisationId"), i))
@@ -152,21 +166,18 @@ def valider(u, d: dict, bid: int | None) -> dict:
     ttc = ent("montantTtc")
     taux = float(ut["tva"].replace(",", ".")) if ut["tva_applicable"] and ut["tva"] else 0.0
     tva = round(ttc * taux / (100 + taux))                     # registre S137-3 : TVA comprise dans le TTC
-    v = {"codification": t("codification"), "ref_constructeur": t("refConstructeur"), "categorie_id": ent("categorieId"), "famille_id": f["id"], "libelle": t("libelle"),
+    v = {"codification": t("codification"), "ref_constructeur": t("refConstructeur"), "categorie_id": f["categorie_id"], "famille_id": f["id"], "libelle": t("libelle"),
          "date_acquisition": da, "duree_vie": ent("dureeVie"), "utilisation_id": ut["id"], "localisation_id": ent("localisationId"), "date_mise_service": ds,
          "fournisseur_id": ent("fournisseurId"), "facture_id": ent("factureId"), "montant_ttc": ttc, "tva": tva, "prix_acquisition": ttc - tva,
          "amortissable": d.get("amortissable") is not False, "subventionne": d.get("subventionne") is True}
-    for k, c in (("immatriculation", "immatriculation"), ("chassis", "chassis"), ("carburant", "carburant"), ("titreFoncier", "titre_foncier"), ("description", "description")):
-        v[c] = t(k) if f[c] else ""
+    # Point 9.6 : la famille dit « Véhicule » (immatriculation, châssis, carburant) ou « Terrain ou bâtiment » (titre foncier) ; la description toujours
+    for k, c, oui in (("immatriculation", "immatriculation", f["vehicule"]), ("chassis", "chassis", f["vehicule"]), ("carburant", "carburant", f["vehicule"]),
+                      ("titreFoncier", "titre_foncier", f["terrain_batiment"]), ("description", "description", True)):
+        v[c] = t(k) if oui else ""
     # Acquisition d'un actif patrimonial au-delà de 10 % des fonds propres de base : autorisation préalable de la BCC (Instr. BCC 41, art. 33), comme la cession
     v["autorisation_bcc"] = t("autorisationBcc")
     if not v["autorisation_bcc"]:
-        from .etats_financiers import soldes
-        from .normes import fonds_propres
-        j = journee_courante(u)
-        jd = date.fromisoformat(j["date"]) if j else jour_agence(u)
-        s, res, ant = soldes(u, jd, jd.year, vidage=True)
-        if v["prix_acquisition"] * 10 > max(fonds_propres(s, res + ant)["base"], 0):
+        if v["prix_acquisition"] * 10 > seuil_autorisation(u) * 10:
             raise ErreurMetier("Acquisition au-delà de 10 % des fonds propres de base : à remplir, Autorisation BCC (Instr. BCC 41, art. 33).")
     return v
 

@@ -435,7 +435,9 @@
      "chassis": false,
      "carburant": false,
      "titreFoncier": false,
-     "description": false
+     "description": false,
+     "vehicule": false,
+     "terrainBatiment": false
     },
     {
      "code": "MAB",
@@ -455,7 +457,9 @@
      "chassis": false,
      "carburant": false,
      "titreFoncier": false,
-     "description": false
+     "description": false,
+     "vehicule": false,
+     "terrainBatiment": false
     },
     {
      "code": "MIN",
@@ -475,7 +479,9 @@
      "chassis": false,
      "carburant": false,
      "titreFoncier": false,
-     "description": false
+     "description": false,
+     "vehicule": false,
+     "terrainBatiment": false
     },
     {
      "code": "MOB",
@@ -495,7 +501,9 @@
      "chassis": false,
      "carburant": false,
      "titreFoncier": false,
-     "description": false
+     "description": false,
+     "vehicule": false,
+     "terrainBatiment": false
     },
     {
      "code": "TER",
@@ -515,7 +523,9 @@
      "chassis": false,
      "carburant": false,
      "titreFoncier": true,
-     "description": false
+     "description": false,
+     "vehicule": false,
+     "terrainBatiment": true
     }
    ],
    "localisations": [

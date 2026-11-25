@@ -81,15 +81,15 @@ const OUT = process.argv[2];
   await p.getByLabel('Libellé Motif : *').fill('Mutation professionnelle'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: 'Mutation professionnelle' }).waitFor(); await etape('02f2-motifs-depart');
   // Chef : référentiels du budget (S19, p. 27 à 30) : types de centre de coût, centres, périodes, plan
-  await aller('/parametrage/s19'); await p.getByRole('heading', { name: 'Création et mise à jour des types de centre de coût' }).waitFor(); await etape('02f3-budget-types-centre');
+  await aller('/budget/s19'); await p.getByRole('heading', { name: 'Création et mise à jour des types de centre de coût' }).waitFor(); await etape('02f3-budget-types-centre');
   const budget = (nom) => p.getByRole('navigation', { name: 'Budget' }).getByRole('button', { name: nom, exact: true }).click();
   await budget('Centres de coût'); await p.getByRole('heading', { name: 'Création et mise à jour des centres de coût' }).waitFor();
   await p.getByLabel('Code : *').fill('AGM'); await p.getByLabel('Libellé: *').fill('Agence de Matete'); await p.getByLabel('Type : *').selectOption({ label: 'Service' });
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Agence de Matete' }).waitFor(); await etape('02f4-budget-centres');
-  await budget('Périodes'); await p.getByRole('cell', { name: '1er Trimestre' }).waitFor(); await etape('02f5-budget-periodes');
-  await budget('Plan budgétaire'); await p.getByLabel('Année *').selectOption({ label: '2026' }); await p.getByLabel('Code *').fill('2026-PL');
-  await p.getByLabel('Libellé Plan *').fill('PLAN BUDGETAIRE ANNEE 2026'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await p.getByRole('cell', { name: 'PLAN BUDGETAIRE ANNEE 2026' }).waitFor(); await etape('02f6-budget-plan');
+  // Plan 9.4 : plus de Types de période, Périodes ni Plan budgétaire au référentiel ; le bailleur y entre
+  for (const x of ['Périodes', 'Types de période', 'Plan budgétaire']) if (await p.getByRole('navigation', { name: 'Budget' }).getByRole('button', { name: x, exact: true }).count()) throw new Error(`9.4 : ${x} encore au référentiel`);
+  await budget('Bailleurs'); await p.getByLabel('Nom : *').fill('Fonds Exemple'); if (!/^B\d{7}$/.test(await p.getByLabel('Code : *').inputValue())) throw new Error('S19 : code du bailleur non proposé');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Fonds Exemple' }).waitFor(); await etape('02f5-budget-bailleurs');
   // Chef : localisation, liste de référence (S20, registre S20-10, S20-11) : Nord-Ubangi, territoire de Businga et ses quatre entités ; un quartier ajouté à Matete
   await aller('/parametrage/s20'); await p.getByLabel('Province :').selectOption({ label: 'Nord-Ubangi' });
   await p.getByLabel('Ville ou territoire :').selectOption({ label: 'Businga' });
@@ -1235,7 +1235,7 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: 'Rapport annulation' }).click(); await p.getByLabel('Du :').fill('01112026'); await p.getByLabel('Au :').fill('30112026');
   await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('cell', { name: /Kalala/ }).first().waitFor(); await etape('26c-rapport-annulation');
   await p.getByRole('tab', { name: 'État des revenus' }).click(); await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('columnheader', { name: 'RECETTES' }).waitFor(); await etape('26d-etat-revenus');
-  await aller('/budget/s143'); await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByText(/^Solde des banques au/).waitFor(); await etape('26e-tresorerie');
+  await aller('/comptabilite/s143'); await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByText(/^Solde des banques au/).waitFor(); await etape('26e-tresorerie');
   // Etats financiers (S122, p. 140 et 141 ; PCCI, chap. 14) et indicateurs financiers (S123, p. 142 ; Instr. BCC 004)
   await aller('/comptabilite/s122'); await p.getByRole('heading', { name: 'Edition du bilan' }).waitFor(); await etape('27a-bilan-criteres');
   await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: 'TOTAL ACTIF' }).waitFor();
@@ -1266,36 +1266,27 @@ const OUT = process.argv[2];
   await aller('/comptabilite/s123'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('cell', { name: 'Portefeuille à Risque' }).waitFor(); await etape('27h-indicateurs-financiers');
   // Normes prudentielles (SN01 ; Instr. BCC 002 ; loi 002/2002, art. 59) : état à la date de la journée
   await aller('/comptabilite/sn01'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('cell', { name: /Liquidité immédiate/ }).waitFor(); await etape('27h2-normes-prudentielles');
-  // Budget : financement (S126, p. 143 à 145), par le comptable
-  await aller('/budget/s126'); await p.getByRole('heading', { name: 'Ligne financement' }).waitFor(); await etape('28a-lignes-financement');
-  const fin = (nom) => p.getByRole('navigation', { name: 'Financement' }).getByRole('button', { name: nom, exact: true }).click();
-  await fin('Types de financement'); await p.getByLabel('Code: *').fill('RES_AFFECT'); await p.getByLabel('Libellé: *').fill('Ressources affectées');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Ressources affectées' }).waitFor(); await etape('28b-types-financement');
-  await fin('Bailleur'); await p.getByLabel('Nom : *').fill('Fonds Exemple'); if (!/^B\d{7}$/.test(await p.getByLabel('Code : *').inputValue())) throw new Error('S126 : code du bailleur non proposé');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Fonds Exemple' }).waitFor(); await etape('28c-bailleurs');
-  await fin('Lignes de financement'); await p.getByRole('button', { name: 'Nouveau' }).click(); const lf = p.getByRole('dialog', { name: 'Ligne financement' });
-  await lf.getByLabel('Libellé *').fill('Fonds Exemple'); await lf.getByLabel('Type *').selectOption({ label: 'Ressources affectées' }); await etape('28d-ligne-financement-nouveau');
-  await lf.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Fonds Exemple' }).waitFor();
-  // Chef : une ligne du plan budgétaire, avec son bailleur (S19, p. 29)
-  await login('J.-P. Mukendi'); await aller('/parametrage/s19?page=lignes'); await p.getByLabel('N° de ligne').fill('L1'); await p.getByLabel('Libellé Ligne').fill('Loyers');
+  // Budgets (S124, plan 9.4) : la liste, Nouveau, Reconduire, Ouvrir ; le comptable crée le budget 2026
+  await aller('/budget/s124'); await p.getByRole('button', { name: 'Nouveau' }).click(); const nbu = p.getByRole('dialog', { name: 'Nouveau budget' });
+  await nbu.getByLabel('Année *').selectOption({ label: '2026' }); await nbu.getByLabel('Code *').fill('2026-PL'); await nbu.getByLabel('Libellé *').fill('PLAN BUDGETAIRE ANNEE 2026');
+  await etape('28a-nouveau-budget'); await nbu.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'PLAN BUDGETAIRE ANNEE 2026' }).waitFor();
+  // Chef : une ligne du budget, avec son bailleur (S19, p. 29)
+  await login('J.-P. Mukendi'); await aller('/budget/s19?page=lignes'); await p.getByLabel('N° de ligne').fill('L1'); await p.getByLabel('Libellé Ligne').fill('Loyers');
   await p.getByLabel('Plan Budgétaire', { exact: true }).selectOption({ label: 'PLAN BUDGETAIRE ANNEE 2026' }); await p.getByLabel('Centre de coût', { exact: true }).selectOption({ label: 'Agence de Matete' });
   await p.getByLabel('Bailleur', { exact: true }).selectOption({ label: 'Fonds Exemple' }); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: 'Loyers' }).waitFor(); await etape('28e-ligne-plan-budgetaire');
-  // Comptable : nouveau budget (S124, p. 142), consultation, suivi et consommation (S125, p. 143)
-  await login('Patrick Lumbala'); await aller('/budget/s124'); const nb = p.getByRole('dialog', { name: 'Nouveau budget' }); await nb.getByRole('radio', { name: 'Définir nouveau budget' }).check();
-  await etape('29a-nouveau-budget'); await nb.getByRole('button', { name: 'OK' }).click();
-  const choisirBudget = async () => { await p.getByRole('button', { name: 'Rechercher un budget' }).click(); await p.getByRole('dialog', { name: "Recherche d'un budget" }).getByRole('row').filter({ hasText: '2026-PL' }).click(); };
-  await choisirBudget(); await p.getByLabel('Type budget *').selectOption({ label: 'Budget de fonctionnement' }); await p.getByLabel('Période *').selectOption({ label: '1er Trimestre' });
+  // Comptable : ouvrir le budget, ses valeurs ; puis le suivi, regroupé par ligne, par bailleur, par centre de coût (S125, plan 9.4)
+  await login('Patrick Lumbala'); await aller('/budget/s124'); await p.getByRole('cell', { name: '2026-PL' }).click(); await p.getByRole('button', { name: 'Ouvrir' }).click();
+  await p.getByLabel('Type budget *').selectOption({ label: 'Budget de fonctionnement' }); await p.getByLabel('Période *').selectOption({ label: '1er Trimestre' });
   await p.getByLabel('Ligne budgétaire:').selectOption({ label: 'L1 Loyers' }); if ((await p.getByLabel('Financement:').inputValue()) !== 'Fonds Exemple') throw new Error('S124 : financement de la ligne non affiché');
   await p.getByLabel('Compte:').locator('option[value="640"]').waitFor({ state: 'attached' }); await p.getByLabel('Compte:').selectOption('640'); await p.getByLabel('Valeur:').fill('1000000');
   await etape('29b-definir-budget'); await p.getByRole('button', { name: 'Ajouter' }).click(); await oui(); await p.getByRole('cell', { name: '1 000 000,00' }).first().waitFor(); await etape('29c-budget-defini');
-  await aller('/budget/s125'); await choisirBudget(); await p.getByLabel('Type budget *').selectOption({ label: 'Budget de fonctionnement' }); await p.getByLabel('Période *').selectOption({ label: '1er Trimestre' });
-  await p.getByRole('button', { name: 'Détails' }).click(); await p.getByRole('cell', { name: 'Loyers' }).waitFor(); await etape('29d-consultation-budget');
-  await p.getByRole('tab', { name: 'Suivi budgétaire' }).click(); await p.getByRole('heading', { name: 'Suivi budgétaire' }).waitFor(); await p.getByLabel('Budget :', { exact: true }).selectOption({ index: 1 }); await p.getByLabel('Période :').selectOption({ label: '1er Trimestre' });
+  await p.getByRole('button', { name: 'Supprimer les valeurs « Budget de fonctionnement », 1er Trimestre' }).waitFor();   // un Supprimer écrit en toutes lettres
+  await p.getByRole('button', { name: 'Afficher', exact: true }).click(); await p.getByRole('cell', { name: 'Loyers' }).waitFor(); await etape('29d-consultation-budget');
+  await aller('/budget/s125'); await p.getByLabel('Budget :', { exact: true }).selectOption({ index: 1 }); await p.getByLabel('Période :').selectOption({ label: '1er Trimestre' });
   await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('columnheader', { name: 'Réalisé' }).waitFor(); await etape('29e-suivi-budgetaire');
-  await p.getByRole('button', { name: 'Financement' }).click(); await p.getByRole('cell', { name: 'Fonds Exemple' }).waitFor(); await etape('29f-suivi-financement');
-  await p.getByRole('tab', { name: 'Consommation par centre de cout' }).click(); await p.getByRole('heading', { name: 'Consommation par centre de coût' }).waitFor(); await p.getByLabel('Période :').selectOption({ label: '1er Trimestre' });
-  await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('cell', { name: 'Agence de Matete' }).waitFor(); await etape('29g-consommation-centre');
+  await p.getByLabel('Regrouper par :').selectOption({ label: 'Bailleur' }); await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('cell', { name: 'Fonds Exemple' }).waitFor(); await etape('29f-suivi-financement');
+  await p.getByLabel('Regrouper par :').selectOption({ label: 'Centre de coût' }); await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('cell', { name: 'Agence de Matete' }).waitFor(); await etape('29g-consommation-centre');
   // Comptable : calculs (S128, p. 163) et clôtures (S127)
   // Fin de mois de l'épargne (point 5.6) : intérêts des comptes à vue et frais de tenue, deux listes, un seul Valider
   await aller('/epargne/se02'); await p.getByRole('heading', { name: "Fin de mois de l'épargne" }).waitFor();
@@ -1304,13 +1295,16 @@ const OUT = process.argv[2];
   await aller('/epargne/s68'); await p.getByRole('button', { name: 'Intérêts courus' }).click(); const dic = p.getByRole('dialog', { name: 'Intérêts courus sur dépôts à terme' });
   await dic.getByRole('button', { name: 'Calculer' }).click(); await dic.getByText('Intérêts courus au').waitFor(); await dic.getByRole('button', { name: 'Valider' }).waitFor(); await etape('30b-interets-dat');
   await dic.getByRole('button', { name: 'Fermer' }).click();
-  await aller('/budget/s127'); await p.getByRole('heading', { name: 'Clôture comptable' }).waitFor();   // l'état des provisions est au Crédit (plan 6.13)
+  await aller('/comptabilite/s127'); await p.getByRole('heading', { name: 'Clôture comptable' }).waitFor();   // l'état des provisions est au Crédit (plan 6.13)
   await p.getByRole('region', { name: 'Clôture comptable' }).getByRole('button', { name: 'Afficher' }).click(); await p.getByText('Soldes de gestion de l\'exercice').waitFor(); await etape('30d-cloture-comptable');
-  // Affectation du résultat (A1 ; loi 002/2002, art. 59, 1° ; Instr. BCC 002, art. 19 à 21) : l'exercice 2026 n'est pas encore clôturé
-  await p.getByRole('region', { name: 'Affectation du résultat' }).getByRole('button', { name: 'Afficher' }).click();
-  await p.getByText("Clôturer d'abord l'exercice 2026.").waitFor(); await etape('30d2-affectation-resultat');
+  // Affectation du résultat (A1 ; loi 002/2002, art. 59, 1° ; Instr. BCC 002, art. 19 à 21) : sous la clôture, même exercice (plan 9.2) ; 2026 n'est pas encore clôturé
+  await p.getByRole('region', { name: 'Affectation du résultat' }).getByText("Clôturer d'abord l'exercice 2026.").waitFor(); await etape('30d2-affectation-resultat');
+  // Plan 9.2 : un contrôle non satisfait mène à l'écran qui le règle
+  await p.getByRole('table', { name: "Contrôles de l'exercice" }).getByRole('link', { name: 'Période terminée' }).waitFor();
   // Comptable : paie (S131 à S135, manuel p. 269 à 278)
-  await aller('/paie/s131'); await p.getByRole('heading', { name: "Création et mise à jour d'allocations familiales" }).waitFor(); await etape('31a-paie-donnees-base');
+  // Plan 9.5 : cinq listes restent (catégorie, classe, échelon, grille salariale, type de retenue)
+  await aller('/paie/s131'); await p.getByRole('tab', { name: 'Catégorie' }).waitFor(); await etape('31a-paie-donnees-base');
+  if (await p.getByRole('button', { name: 'Grande rubrique' }).count()) throw new Error('9.5 : la grande rubrique doit disparaître');
   const listePaie = (nom) => p.getByRole('navigation', { name: 'Traitement de la paie' }).getByRole('button', { name: nom }).click();
   // Les listes de la graine (décret SMIG : 17 classes, 17 lignes de grille) passent la page de dix lignes : la valeur ajoutée est sur la dernière page
   const dernierePage = async () => { const b = p.getByRole('button', { name: 'Dernière page' }); if (await b.count() && await b.isEnabled()) await b.click(); };
@@ -1325,24 +1319,25 @@ const OUT = process.argv[2];
   await p.getByLabel('Echelon *').selectOption({ label: '1' }); await p.getByLabel('Salaire', { exact: true }).fill('250000'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await dernierePage(); await p.getByRole('cell', { name: '250000' }).waitFor(); await etape('31c-grille-salariale');
   await listePaie('Type de retenue'); await p.getByRole('heading', { name: 'Création et mise à jour des types de retenue' }).waitFor(); await p.getByLabel('Libellé *').fill('Acompte sur salaire'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await aller('/paie/s133'); await p.getByRole('heading', { name: "Enregistrement d'un employé" }).waitFor();
+  await aller('/paie/s133'); await p.getByRole('table', { name: 'Liste du personnel' }).waitFor(); await p.getByRole('button', { name: 'Nouvel employé' }).click();   // plan 9.5 : la liste d'abord
+  await p.getByRole('heading', { name: "Enregistrement d'un employé" }).waitFor();
   await p.getByLabel('Matricule : *').fill('EMP/001/26'); await p.getByLabel('Sexe : *').selectOption('Féminin');
   await p.getByLabel('Nom : *').fill('MUJINGA'); await p.getByLabel('Prénom(s) : *').fill('Rose'); await p.getByLabel('Date de naissance : *').fill('02041990');
-  await p.getByLabel("Date d'embauche : *").fill('01022024'); await etape('31d-employe');
+  await p.getByLabel("Date d'embauche : *").fill('01022024'); await p.getByLabel('Nom de jeune fille :').waitFor(); await etape('31d-employe');   // plan 9.5 : pour une femme
   await p.getByRole('tab', { name: 'Classification' }).click(); await p.getByLabel('Catégorie :').selectOption({ label: 'A' }); await p.getByLabel('Classe :').selectOption({ label: 'I' });
   await p.getByLabel('Echelon :').selectOption({ label: '1' }); await p.getByLabel('Salaire de base prédéfini :').selectOption('Régime catégoriel');
   if ((await p.getByLabel('Salaire de base :').inputValue()) !== '250000') throw new Error('S133 : salaire de base non proposé par la grille salariale');
   await etape('31e-employe-classification');
-  await p.getByRole('tab', { name: 'Contrat' }).click(); await p.getByLabel('Type de contrat :').selectOption('Contrat à durée indéterminée'); await p.getByLabel('Date début :').fill('01022024');
+  await p.getByRole('tab', { name: 'Affectation et contrat' }).click(); await p.getByLabel('Type de contrat :').selectOption('Contrat à durée indéterminée');
+  if ((await p.getByLabel('Date début :').inputValue()) !== '01/02/2024') throw new Error("9.5 : la date d'embauche reprise comme début du contrat");
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('31f-employe-contrat');
   await aller('/paie/s135'); await p.getByRole('button', { name: 'Rechercher un employé' }).click();
   await p.getByRole('dialog', { name: "Recherche d'un employé" }).getByRole('cell', { name: 'EMP/001/26' }).click();
   await p.getByLabel('Type de retenue *').selectOption({ label: 'Avance sur salaire' }); await p.getByLabel('Session *').fill('2026-11');
   await p.getByLabel('Montant *').fill('300000'); await p.getByLabel('Durée (sessions) *').fill('3'); await etape('31g-retenue');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await login('J.-P. Mukendi'); await aller('/paie/s135?page=visa'); await p.getByRole('button', { name: 'Rechercher un employé' }).click();
-  await p.getByRole('dialog', { name: "Recherche d'un employé" }).getByRole('cell', { name: 'EMP/001/26' }).click();
-  await p.getByRole('cell', { name: '100 000' }).waitFor(); await etape('31h-visa-retenue'); await p.getByRole('button', { name: 'Viser' }).click(); await oui();
+  await login('J.-P. Mukendi'); await aller('/paie/s135');   // plan 9.5 : la liste à viser sous la mise en place
+  await p.getByRole('region', { name: 'Retenues à viser' }).getByRole('cell', { name: '100 000' }).waitFor(); await etape('31h-visa-retenue'); await p.getByRole('button', { name: 'Viser' }).click(); await oui();
   // Comptable : immobilisations (S136 à S140, manuel chap. 7)
   await login('Patrick Lumbala'); await aller('/immobilisations/s136'); await p.getByRole('heading', { name: 'Type Immobilisation' }).waitFor();
   const listeImmo = async (nom, titre) => { await p.getByRole('navigation', { name: 'Données de base' }).getByRole('button', { name: nom }).click(); await p.getByRole('heading', { name: titre }).waitFor(); };
@@ -1353,11 +1348,11 @@ const OUT = process.argv[2];
   await listeImmo('Localisation de biens', 'Localisation des biens'); await p.getByLabel('Code *').fill('10.DG.10'); await p.getByLabel('Libellé localisation *').fill('Salle de réunion'); await enreg('10.DG.10');
   await listeImmo('Famille de biens', 'Famille de Biens'); await p.getByLabel('Code *').fill('FAM1'); await p.getByLabel('Type immo *').selectOption({ label: 'Immobilisation corporelle' });
   await p.getByLabel('Catégorie : *').selectOption({ label: 'MATERIEL DE BUREAU' }); await p.getByLabel('Libellé *').fill('Petit matériel de bureau'); await p.getByLabel('Système : *').selectOption('Linéaire');
-  await p.getByLabel('Durée Min. (ans) *').fill('1'); await p.getByLabel('Durée Max. (ans) *').fill('10'); await p.getByLabel('Périodicité : *').selectOption('Annuelle');
+  await p.getByLabel('Durée Min. (ans) *').fill('1'); await p.getByLabel('Durée Max. (ans) *').fill('10');   // plan 9.6 : plus de périodicité
   await p.getByLabel("Compte d'acquisition *").fill('220'); await p.getByLabel('Compte dotation *').fill('6810'); await p.getByLabel('Compte Amor. *').fill('2810'); await p.getByLabel('Compte charge VCN *').fill('673');
   await enreg('FAM1'); await etape('32b-immo-famille');
-  await aller('/immobilisations/s137'); await p.getByRole('heading', { name: 'Création de Bien immobilier' }).waitFor();
-  await p.getByLabel('Codification *').fill('MAB-001'); await p.getByLabel('Catégorie : *').selectOption({ label: 'MAB MATERIEL DE BUREAU' }); await p.getByLabel('Famille *').selectOption({ label: 'Petit matériel de bureau' });
+  await aller('/immobilisations/s137'); await p.getByRole('heading', { name: "Création d'une immobilisation" }).waitFor();   // plan 9.6 : la famille suffit
+  await p.getByLabel('Codification *').fill('MAB-001'); await p.getByLabel('Famille *').selectOption({ label: 'Petit matériel de bureau' });
   await p.getByLabel('Libellé Bien *').fill('Ordinateur'); await p.getByLabel('Date Acquisition *').fill('01072026'); await p.getByLabel('Durée de vie *').fill('3');
   await p.getByLabel('Utilisation *').selectOption({ label: 'ENT ENTREPRISE' }); await p.getByLabel('Localisation *').selectOption({ label: '10.DG.01 Bureau Directeur Général' });
   await p.getByLabel('Montant TTC *').fill('1000000'); await p.getByLabel('Date mise en service *').fill('15072026');
