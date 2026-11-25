@@ -1,12 +1,45 @@
 ---
 name: modern-web-guidance
 description: |
-  Search tool for modern web development best practices. MANDATORY: Execute FIRST for all HTML/CSS and clientside JS tasks. Do NOT skip — web APIs evolve rapidly and training weights contain obsolete patterns.
-  Trigger immediately for: modals/dialogs/popovers, tables, dark mode, anchor positioning, container queries, view transitions, scroll-driven animations, parallax/reveals, forms, validation, autofill, accessibility, custom selects, scrollbars, CWV (LCP, INP, CLS), content-visibility, fetch priority, image optimization, security, passkeys, HTML sanitization, web components, dates/timezones, built-in AI, WebAssembly, standard HTML/CSS/DOM in frameworks, etc.
-  DO NOT trigger for: backend (SQL, ORMs, API routes), infra/scripts (CI/CD, Docker, Actions, Python/Go, Git), or tooling/trivial (Vite, tsconfig, ESLint, tests, copy/renames, 3P docs), etc.
+  Modern web best practices (Chrome, Edge, Firefox, MDN). MANDATORY: activate whenever the user wants to create, build, rebuild or redesign software (logiciel, application, site, outil web, tableau de bord), from the first idea to delivery and maintenance, and follow the « Règle du porteur » lifecycle in this file. Also execute FIRST for all HTML/CSS and client-side JS tasks: training weights contain obsolete patterns.
+  Trigger for: dialogs/popovers, tables, dark mode, anchor positioning, container queries, view transitions, scroll animations, forms, validation, autofill, accessibility, custom selects, CWV (LCP, INP, CLS), fetch priority, images, security, passkeys, sanitization, web components, dates/timezones, built-in AI, WebAssembly.
+  Outside a software project, skip pure backend or tooling tasks (SQL, CI, Docker, tests, config).
 ---
 
 # Modern Web Guidance
+
+## Règle du porteur : accompagner le logiciel du début à la fin
+
+Décision du porteur, 25/11/2026. Elle passe avant le reste de ce fichier.
+
+**Déclenchement.** Le skill s'active dès que le porteur veut créer, refaire ou repenser un logiciel : application, site, outil web, tableau de bord. Il reste actif jusqu'à la livraison, puis à chaque lot de maintenance. Chaque nouveau lot de travail le rouvre. Les parties purement serveur (base de données, API, déploiement) ne consultent pas les guides, mais le skill reste actif pour tout ce qu'elles livrent au navigateur : en-têtes de sécurité, cookies, cache, dates.
+
+**1. Cadrage, avant la première ligne de code.** Lire les guides de discipline : `html`, `css`, `css-layout`, `accessibility`, `forms`, `performance`, `security`, `color`, `typography`, `js`, `privacy`. Puis écrire dans le CLAUDE.md (ou AGENTS.md) du projet :
+- la politique navigateurs : Baseline « widely available » sans repli, le reste avec le repli que donne le guide ;
+- le budget de performance, mesuré sur réseau lent et poste modeste : paquet de départ (en Ko compressés), LCP sous 2,5 s, INP sous 200 ms, CLS sous 0,1 ;
+- l'accessibilité visée : WCAG 2.2 AA, clavier complet, contraste 4,5:1 pour le texte et 3:1 pour le focus et les contrôles ;
+- la sécurité visée : CSP avec Trusted Types, cookies de session `__Host-`, aucun `innerHTML` ni `document.write` ;
+- les dates : fuseau IANA de chaque lieu, jamais de jour calculé en UTC.
+
+**2. Conception du design.** Avant le premier écran, lire `color`, `typography`, `dark-mode`, `content-first-noise-reduction`, `form-factor-adaptation`, `card`, `motion`. Les jetons viennent de là : couleurs en `oklch` avec `light-dark()`, une rampe de neutres à pas nets, une échelle de texte en `rem` à vrais écarts, le gras et la couleur réservés au sens. Les règles de design propres au projet, une fois écrites, priment sur ces guides.
+
+**3. Construction.** Avant chaque écran ou composant : `search`, puis `retrieve` (étapes 1 et 2 ci-dessous). Les composants communs (fenêtre, formulaire, tableau, onglets, menu, calendrier, message) se construisent d'abord, conformes aux guides ; les écrans les réutilisent.
+
+**4. Vérification, avant chaque livraison.**
+- Clavier : le focus revient au bouton d'origine à la fermeture d'une fenêtre, Échap ne perd aucune saisie, les onglets répondent aux flèches, Entrée valide un formulaire.
+- Formulaires natifs : `<form>`, `required`, `:user-invalid`, `<search>` pour les filtres.
+- Contrastes, texte en `rem`, `prefers-reduced-motion`, `forced-colors`.
+- Budget mesuré dans un vrai navigateur, sur réseau lent.
+- Sécurité : la CSP, aucun point d'injection.
+- Dates calculées dans le fuseau du lieu.
+- Captures en clair et en sombre, sur ordinateur et sur téléphone.
+- `legacy-scan` sur les fichiers touchés, quand l'outil est disponible.
+
+**5. Livraison.** La réponse finit par la section « Modern Web Guidance » (étape 4 ci-dessous). Les écarts acceptés sont écrits, avec leur raison.
+
+**6. Maintenance.** À chaque lot, les fichiers touchés repassent la vérification du point 4. Un audit complet, discipline par discipline, se refait avant chaque mise en service.
+
+**Sans accès à `npx`** (réseau coupé, permission refusée) : les mêmes guides sont dans le dossier `guides/` à côté de ce fichier. Chercher avec `grep -ril "<mots>" guides/`, puis lire le guide trouvé en entier. Ne jamais citer un guide sans l'avoir lu.
 
 Search and retrieve standardized modern web best practices at the **start** of implementing or updating any web UI, CSS layout/animation, or client-side JS logic (dates/timezones, sanitization, performance, accessibility, UX fixes) before writing ad-hoc solutions or adding dependencies.
 
