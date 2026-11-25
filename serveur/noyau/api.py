@@ -434,8 +434,8 @@ def deblocage_caisse(request, cid: int, corps: dict = Body(...)):
 
 @api.post("/banque/deblocage/{cid}")
 def deblocage_banque(request, cid: int, corps: dict = Body(...)):
-    from . import deblocage as db
-    return db.debloquer_banque(u(request), cid, corps)
+    from . import differees                                # plan d'allègement, point 7.2 : par la file « Opérations en attente »
+    return differees.saisir(u(request), "deblocage_banque", cid, corps)
 
 
 @api.get("/credit/credits/{cid}/contrat")
@@ -471,8 +471,8 @@ def remboursement_caisse(request, cid: int, corps: dict = Body(...)):
 
 @api.post("/banque/remboursement/{cid}")
 def remboursement_banque(request, cid: int, corps: dict = Body(...)):
-    from . import remboursements as rb
-    return rb.rembourser_banque(u(request), cid, corps)
+    from . import differees                                # plan d'allègement, point 7.2 : par la file « Opérations en attente »
+    return differees.saisir(u(request), "remboursement_banque", cid, corps)
 
 
 @api.get("/credit/consultation/clients/{tid}")
@@ -985,6 +985,18 @@ def attente_refuser(request, corps: dict = Body(...)):
     return attente.refuser(u(request), corps)
 
 
+@api.get("/attente/differees")
+def attente_differees(request, etape: str):
+    from . import differees
+    return differees.lister(u(request), etape)
+
+
+@api.post("/attente/differees/{oid}/{etape}")
+def attente_differee_suivre(request, oid: int, etape: str):
+    from . import differees
+    return differees.faire_suivre(u(request), oid, etape)
+
+
 @api.get("/attente/nombre")
 def attente_nombre(request):
     from . import attente
@@ -1010,8 +1022,8 @@ def operation_refuser(request, oid: int):
 # ---------- S105 : déblocage sur compte d'épargne (p. 124 et 157) ; S106 : remboursement par prélèvement (p. 125 et 157) ----------
 @api.post("/comptabilite/deblocage/{cid}")
 def deblocage_epargne(request, cid: int, corps: dict = Body(...)):
-    from . import deblocage as db
-    return db.debloquer_epargne(u(request), cid, corps)
+    from . import differees                                # plan d'allègement, point 7.2 : par la file « Opérations en attente »
+    return differees.saisir(u(request), "deblocage_epargne", cid, corps)
 
 
 @api.get("/credit/remboursement/comptes/{tid}")
@@ -1022,8 +1034,8 @@ def remboursement_comptes(request, tid: int):
 
 @api.post("/comptabilite/remboursement/{cid}")
 def remboursement_epargne(request, cid: int, corps: dict = Body(...)):
-    from . import remboursements as rb
-    return rb.rembourser_epargne(u(request), cid, corps)
+    from . import differees                                # plan d'allègement, point 7.2 : par la file « Opérations en attente »
+    return differees.saisir(u(request), "remboursement_epargne", cid, corps)
 
 
 # ---------- S109 Saisie d'écriture, S116 Autres opérations, S117 Virements mensuels, S113 Visa, S114 Validation, S82 validation en caisse ----------

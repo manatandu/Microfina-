@@ -220,6 +220,9 @@ const OUT = process.argv[2];
   await aller('/administration/s04'); await p.getByRole('button', { name: 'AUDITEUR', exact: true }).click();
   await p.getByRole('checkbox', { name: 'Tout le menu : Client' }).check();
   await etape('02f32-droits'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  // Plan d'allègement, point 7.2 (registre T138) : une troisième personne valide ce qui est saisi hors guichet ; le profil de l'agent de crédit reçoit la validation
+  await p.getByRole('button', { name: 'AGENT DE CRÉDIT', exact: true }).click(); await p.getByLabel('Rechercher un écran').fill('Opérations en attente');
+  await p.getByRole('checkbox', { name: 'Opérations en attente : validation' }).check(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await login('J.-P. Mukendi');
   // Chef : facture (S36, p. 46) : un élément de facture, la retenue sur les loyers au compte 433 (O.-L. 69/009, art. 10 et 11 ; PCCI), désactivé ensuite :
   // un élément actif s'applique à toutes les factures ; puis un type de commande (p. 125)
@@ -1135,10 +1138,14 @@ const OUT = process.argv[2];
   await p.getByLabel('Montant à payer: *').fill('1000');
   await p.getByLabel('Ordre du client : *').fill('Ordre écrit du client, 14/11/2026');
   await etape('15d-remboursement-prelevement');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await p.getByRole('button', { name: 'Imprimer' }).click(); await p.getByRole('dialog', { name: 'Avis de remboursement' }).getByRole('button', { name: 'Fermer' }).click();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await succes('Opérations en attente');
   await aller('/credit/s105'); await p.getByRole('heading', { name: 'Déblocage' }).waitFor(); await p.getByRole('button', { name: 'Rechercher un crédit' }).click();
   await p.getByRole('dialog', { name: 'Crédits à débloquer' }).waitFor(); await etape('15e-deblocage-epargne');
+  // Plan d'allègement, point 7.2 : le remboursement saisi hors guichet attend dans la file ; visé par le chef, validé par l'agent de crédit (Instr. BCC 008, art. 66)
+  await login('J.-P. Mukendi'); await aller('/comptabilite/s113');
+  await p.getByRole('button', { name: /^Viser Remboursement de crédit par prélèvement/ }).click(); await oui(); await etape('15f-visa-remboursement');
+  await login('Bijou Kasongo'); await aller('/comptabilite/s114');
+  await p.getByRole('button', { name: /^Valider Remboursement de crédit par prélèvement/ }).click(); await oui(); await etape('15g-validation-remboursement');
   await login('J.-P. Mukendi'); await aller('/administration/s13');
   await p.getByLabel('DU:').fill('05112026'); await p.getByLabel('AU:').fill('05112026'); await p.getByRole('button', { name: 'Afficher' }).click();
   await p.getByRole('cell', { name: 'Esther Ngalula' }).waitFor(); await etape('15c-rapport-transactions');

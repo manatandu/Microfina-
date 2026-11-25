@@ -17,6 +17,10 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "S114",
 "S57"
 ],
+"attente.suivre": [
+"S113",
+"S114"
+],
 "balanceAgee.lancer": [
 "S98",
 "S99"

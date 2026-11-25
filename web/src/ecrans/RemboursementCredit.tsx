@@ -274,10 +274,11 @@ export function Remboursement() {
     if (manque) { setBoite({ type: "erreur", message: `À remplir : ${manque}.` }); return; }
     setBoite({ type: "confirmation", message: `Voulez-vous vraiment enregistrer ? Remboursement : ${montant(e.m!, d!.devise as Devise)}, crédit ${d!.numero}, ${d!.client}.`, oui: async () => {
       try {
-        const x = m === "banque"
-          ? await api.remboursementsCredit.rembourserBanque(d!.id, { compteBancaireId: cb!.id, montant: e.m!, dateReglement: date || undefined, repartition: e.modifie })
-          : await api.remboursementsCredit.rembourserEpargne(d!.id, { mandataire: e.mandataire, compteId: k!.id, montant: e.m!, ordreClient: ordre, dateReglement: date || undefined, repartition: e.modifie });
-        setFait(x as NonNullable<typeof fait>); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" });
+        // Plan d'allègement, point 7.2 : hors guichet, le remboursement attend son visa et sa validation (registre T138 ; Instr. BCC 008, art. 66) ; l'avis s'imprime ensuite
+        await (m === "banque"
+          ? api.remboursementsCredit.rembourserBanque(d!.id, { compteBancaireId: cb!.id, montant: e.m!, dateReglement: date || undefined, repartition: e.modifie })
+          : api.remboursementsCredit.rembourserEpargne(d!.id, { mandataire: e.mandataire, compteId: k!.id, montant: e.m!, ordreClient: ordre, dateReglement: date || undefined, repartition: e.modifie }));
+        effacer(); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Remboursement enregistré : il attend son visa et sa validation dans « Opérations en attente »." });
       } catch (y) { setBoite({ type: "erreur", message: message(y) }); }
     } });
   }

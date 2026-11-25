@@ -14,6 +14,7 @@ SOURCES = {
     "reglement": ("reglement_fournisseur", True, "S113", "S114"),
     "commande": ("commande_fournisseur", True, None, "S114"),
     "retrait": ("operation", False, "S113", None),
+    "differee": ("operation_differee", True, "S113", "S114"),   # plan d'allègement, point 7.2 : déblocages et remboursements hors guichet
 }
 CAISSE = ("diverse", "deplacee")   # visées, elles se paient en caisse (S82) : elles n'ont pas d'étape de validation
 
@@ -74,9 +75,11 @@ def nombre(u: dict) -> int:
         n += valeur("select count(*) from facture_fournisseur where institution_id = %s and agence_id = %s and statut = 'saisie'", (i, a))
         n += valeur("select count(*) from reglement_fournisseur where institution_id = %s and agence_id = %s and statut = 'saisie'", (i, a))
         n += valeur("select count(*) from operation where institution_id = %s and type = 'retrait' and statut = 'saisie'", (i,))
+        n += valeur("select count(*) from operation_differee where institution_id = %s and agence_id = %s and statut = 'saisie'", (i, a))
     if "S114" in dr:
         n += valeur("select count(*) from operation_comptable where institution_id = %s and agence_id = %s and statut = 'visee' and type <> all(%s)", (i, a, list(CAISSE)))
         n += valeur("select count(*) from facture_fournisseur where institution_id = %s and agence_id = %s and statut = 'visee'", (i, a))
         n += valeur("select count(*) from reglement_fournisseur where institution_id = %s and agence_id = %s and statut = 'visee'", (i, a))
         n += valeur("select count(*) from commande_fournisseur where institution_id = %s and agence_id = %s and statut = 'saisie'", (i, a))
+        n += valeur("select count(*) from operation_differee where institution_id = %s and agence_id = %s and statut = 'visee'", (i, a))
     return int(n)

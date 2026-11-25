@@ -357,8 +357,14 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
+/** Plan d'allègement, point 7.2 (registre T138) : une opération saisie hors guichet, gardée jusqu'à sa validation (comme noyau/differees.py) */
+export interface OperationDifferee {
+  id: number; action: "deblocage_banque" | "deblocage_epargne" | "remboursement_banque" | "remboursement_epargne"; objetId: number; payload: Record<string, unknown>;
+  libelle: string; montant: number | null; devise: string; statut: "saisie" | "visee" | "validee" | "refusee"; saisiPar: number; saisiLe: string;
+  visePar?: number; valideePar?: number; resultat?: unknown;
+}
 export interface Etat {
-  version: 85;
+  version: 86;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -429,6 +435,7 @@ export interface Etat {
   reversementsRetenues: ReversementRetenue[];   // écart E16
   reversementsTaxes: (ReversementRetenue & { taxeId: number })[];
   motifsRefus: { source: string; objetId: number; etape: "visa" | "validation"; motif: string; refusePar: number; refuseLe: string }[];   // plan d'allègement 7.1   // plan d'allègement 7.10 : déclaration ou quittance d'une taxe du mois (S108)
+  operationsDifferees: OperationDifferee[];   // plan d'allègement, point 7.2 : déblocages et remboursements saisis hors guichet, en attente
   journalSecurite: EvenementSecurite[];   // écart E17
   declarationsCip: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // écart E06   // S46, S42, S43
   banques: { id: number; code: string; libelle: string; compteLiaison: string; adresse: string }[];   // S58

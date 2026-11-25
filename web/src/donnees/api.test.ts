@@ -21,6 +21,17 @@ const adm = new Proxy(api, { get: (o, k) => new Proxy((o as unknown as Record<st
   get: (m, f) => async (...a: unknown[]) => { const avant = _etat().session; await connecter("gmbuyi"); try { return await m[f as string]!(...a); } finally { _etat().session = avant; } } }) }) as typeof api;
 let n = 0;
 const cle = () => `cle-${++n}`;
+/** Plan d'allègement, point 7.2 (registre T138) : la saisie attend dans « Opérations en attente » ; visée par le chef, validée par une troisième personne
+ *  (le droit S114 donné au profil de l'agent de crédit par l'administrateur sécurité) ; rend ce que l'opération a produit, la session d'avant revenue */
+async function parLaFile<T>(o: { id: number; differee: true; statut: string }): Promise<T> {
+  expect([o.differee, o.statut]).toEqual([true, "saisie"]);
+  const avant = _etat().session;
+  const id = (await adm.droits.lire()).profils.find((p) => p.nom === "AGENT DE CRÉDIT")!.id;
+  await adm.droits.enregistrer(id, { droits: [...new Set([...(await adm.droits.lire(id)).octroyes, "S114"])] });
+  await connecter("jpmukendi"); await api.attente.suivre(o.id, "visa");
+  await connecter("bkasongo");
+  try { return ((await api.attente.suivre(o.id, "validation")) as { resultat?: unknown }).resultat as T; } finally { _etat().session = avant; }
+}
 
 async function journeeOuverte() {
   await connecter("jpmukendi");
@@ -2376,7 +2387,11 @@ describe("journée de guichet", () => {
     await expect(api.deblocage.debloquerBanque(cid, { compteBancaireId: cdf, cheque: " " })).rejects.toThrow("N° chèque");
     await expect(api.deblocage.debloquerBanque(cid, { compteBancaireId: cdf, cheque: "0000001" })).rejects.toThrow("aucun chéquier");
     await api.chequiers.generer({ cle: cle(), compteBancaireId: cdf, nbFeuillets: 25, debut: "0000001", barre: true });
-    expect((await api.deblocage.debloquerBanque(cid, { compteBancaireId: cdf, cheque: "0000001" })).statut).toBe("debloque");
+    const o = await api.deblocage.debloquerBanque(cid, { compteBancaireId: cdf, cheque: "0000001" });
+    expect(_etat().credits.find((x) => x.id === cid)!.statut).not.toBe("debloque");   // rien ne se passe avant la validation (point 7.2)
+    await expect(api.deblocage.debloquerBanque(cid, { compteBancaireId: cdf, cheque: "0000001" })).rejects.toThrow("déjà une opération");
+    await expect(api.attente.suivre(o.id, "visa")).rejects.toThrow("Quatre yeux");
+    expect((await parLaFile<{ statut: string }>(o)).statut).toBe("debloque");
   });
 
   /** Coupures (en unités) prises dans le stock pour un montant en centimes */
@@ -2511,7 +2526,7 @@ describe("journée de guichet", () => {
     const p = { mandataire: "Moi-même", compteBancaireId: cdf, montant: 1000000 };
     await expect(api.remboursementsCredit.rembourserBanque(cid, { ...p, compteBancaireId: usd })).rejects.toThrow("devise du crédit");
     await expect(api.remboursementsCredit.rembourserBanque(cid, { ...p, dateReglement: "2026-11-06" })).rejects.toThrow("pas après");
-    const r = await api.remboursementsCredit.rembourserBanque(cid, p);
+    const r = await parLaFile<{ mode: string; repartition: Record<string, number> }>(await api.remboursementsCredit.rembourserBanque(cid, p));
     expect([r.mode, r.repartition.capitalAnticipe]).toEqual(["banque", 1000000]);
     expect(await soldeCdfGrandLivre()).toBe(0);
   });
@@ -2522,7 +2537,7 @@ describe("journée de guichet", () => {
     const d = await api.deblocage.detail(cid);
     const tid = d.tiersId, compteDe = async () => (await api.remboursementsCredit.comptesClient(tid)).find((x) => x.numero === d.comptePositionnement)!;
     const avant = (await compteDe()).solde;
-    const x = await api.deblocage.debloquerEpargne(cid);   // un seul Débloquer (plan 6.7)
+    const x = await parLaFile<{ statut: string; compteCredite: string; piece: string }>(await api.deblocage.debloquerEpargne(cid));   // un seul Débloquer (plan 6.7)
     expect([x.statut, x.compteCredite, x.piece.includes("OD")]).toEqual(["debloque", d.comptePositionnement, true]);
     const k = await compteDe();
     expect(k.solde - avant).toBeGreaterThanOrEqual(d.retenues.net);
@@ -2531,7 +2546,7 @@ describe("journée de guichet", () => {
     await expect(api.remboursementsCredit.rembourserEpargne(cid, { ...p, ordreClient: " " })).rejects.toThrow("Ordre du client");
     await expect(api.remboursementsCredit.rembourserEpargne(cid, { ...p, montant: k.disponible + 100 })).rejects.toThrow("solde disponible");
     await expect(api.remboursementsCredit.rembourserEpargne(cid, { ...p, dateReglement: "2026-11-06" })).rejects.toThrow("pas après");
-    const r = await api.remboursementsCredit.rembourserEpargne(cid, p);
+    const r = await parLaFile<{ mode: string; piece: string; montant: number }>(await api.remboursementsCredit.rembourserEpargne(cid, p));
     expect([r.mode, r.piece.includes("OD"), r.montant]).toEqual(["epargne", true, 1000000]);
     expect(k.solde - (await compteDe()).solde).toBe(1000000);
     expect(await soldeCdfGrandLivre()).toBe(0);
@@ -3449,7 +3464,7 @@ describe("journée de guichet", () => {
     await connecter("plumbala");
     const tid = _etat().credits.find((x) => x.id === cid)!.tiersId, ech0 = JSON.stringify(_etat().credits.find((x) => x.id === cid)!.echeancier.map((e) => [e.rang, e.capital, e.interet]));
     const k = (await api.remboursementsCredit.comptesClient(tid)).find((x) => x.devise === "CDF" && x.disponible >= 1000000)!;
-    await api.remboursementsCredit.rembourserEpargne(cid, { mandataire: "Moi-même", compteId: k.id, montant: 1000000, ordreClient: "Ordre écrit" });
+    await parLaFile(await api.remboursementsCredit.rembourserEpargne(cid, { mandataire: "Moi-même", compteId: k.id, montant: 1000000, ordreClient: "Ordre écrit" }));
     expect(JSON.stringify(_etat().credits.find((x) => x.id === cid)!.echeancier.map((e) => [e.rang, e.capital, e.interet])) === ech0).toBe(false);
     const l = await api.controlesCompta.reglementsAnnulables();
     expect(l.map((x) => [x.montant, x.compteClient])).toEqual([[1000000, k.numero]]);

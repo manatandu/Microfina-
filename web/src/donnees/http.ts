@@ -546,6 +546,8 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     attente: {   // plan d'allègement 7.1
       refuser: (d: object) => post("/attente/refus", d),
       nombre: () => get("/attente/nombre"),
+      differees: (etape: string) => get(`/attente/differees?etape=${etape}`),   // plan d'allègement, point 7.2
+      suivre: (id: number, etape: string) => post(`/attente/differees/${id}/${etape}`),
     },
     emprunts: {
       mettreEnPlace: (d: object) => post("/banque/emprunts", d),

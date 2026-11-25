@@ -1887,6 +1887,18 @@ def test_deblocage_caisse(clients, journee):
     assert c["credit"]["numero"] == "0412/L001/00001" and c["retenues"]["net"] == 99000000 and c["penaliteAnticipation"] <= 50
 
 
+def par_la_file(clients, r):
+    """Plan d'allègement, point 7.2 (registre T138) : la saisie attend dans « Opérations en attente » ; visée par le chef, validée par une troisième
+    personne (le droit S114 donné au profil de l'agent de crédit, comme S57 dans test_visa_validation_banque) ; rend ce que l'opération a produit"""
+    from noyau.bd import executer
+    assert r.status_code == 200, r.content
+    o = r.json(); assert (o["differee"], o["statut"]) == (True, "saisie"), o
+    executer("insert into profil_droit (profil_id, droit_code) select id, 'S114' from profil where code = 'agent_credit' on conflict do nothing")
+    v = clients["chef"].post(f"/api/attente/differees/{o['id']}/visa", {}, **H); assert v.status_code == 200, v.content
+    v = clients["agent"].post(f"/api/attente/differees/{o['id']}/validation", {}, **H); assert v.status_code == 200, v.content
+    return v.json()["resultat"]
+
+
 def test_deblocage_banque(clients, journee):
     """S54 (p. 62) : Prélever les frais, puis Débloquer par un chèque du chéquier du compte bancaire (registre S54-2 à S54-5, S60-5)"""
     chef, compta = clients["chef"], clients["compta"]
@@ -1900,8 +1912,11 @@ def test_deblocage_banque(clients, journee):
     assert "aucun chéquier" in refus({"compteBancaireId": ids["R-CDF-1"], "cheque": "0000001"})
     compta.post("/api/banque/chequiers", {"cle": cle(), "compteBancaireId": ids["R-CDF-1"], "nbFeuillets": 25, "debut": "0000001", "barre": True}, **H)
     r = compta.post(f"/api/banque/deblocage/{cid}", {"compteBancaireId": ids["R-CDF-1"], "cheque": "0000001"}, **H)
-    assert r.status_code == 200, r.content
-    assert r.json()["statut"] == "debloque"
+    assert ident("select statut from credit where id = %s", (cid,)) != "debloque"            # rien ne se passe avant la validation (point 7.2)
+    assert "déjà une opération" in refus({"compteBancaireId": ids["R-CDF-1"], "cheque": "0000001"})
+    oid = r.json()["id"]
+    v = compta.post(f"/api/attente/differees/{oid}/visa", {}, **H); assert v.status_code == 422 and "Quatre yeux" in v.json()["message"]
+    assert par_la_file(clients, r)["statut"] == "debloque"
     assert ident("select (mode_deblocage, cheque_deblocage) from credit where id = %s", (cid,)) == ("banque", "0000001")
     assert balance_equilibree(compta)
 
@@ -1983,9 +1998,8 @@ def test_remboursement_banque(clients, journee):
     b = {"compteBancaireId": ids["R-CDF-1"], "montant": 1000000}
     assert "devise du crédit" in refus({**b, "compteBancaireId": ids["R-USD-1"]})
     assert "pas après" in refus({**b, "dateReglement": "2026-11-06"})
-    r = compta.post(f"/api/banque/remboursement/{cid}", b, **H)
-    assert r.status_code == 200, r.content
-    assert (r.json()["mode"], r.json()["repartition"]["capitalAnticipe"]) == ("banque", 1000000)
+    x = par_la_file(clients, compta.post(f"/api/banque/remboursement/{cid}", b, **H))
+    assert (x["mode"], x["repartition"]["capitalAnticipe"]) == ("banque", 1000000)
     assert balance_equilibree(compta)
 
 
@@ -1999,13 +2013,29 @@ def test_deblocage_epargne(clients, journee):
     solde = lambda: next(x for x in compta.get(f"/api/credit/remboursement/comptes/{tid}", **H).json() if x["numero"] == d["comptePositionnement"])
     k, avant = solde()["id"], solde()["solde"]
     assert caisse.post(f"/api/comptabilite/deblocage/{cid}", {}, **H).status_code == 403
-    r = compta.post(f"/api/comptabilite/deblocage/{cid}", {}, **H)        # un seul Débloquer (plan 6.7)
-    assert r.status_code == 200, r.content
-    assert (r.json()["statut"], r.json()["compteCredite"], "OD" in r.json()["piece"]) == ("debloque", d["comptePositionnement"], True)
+    x = par_la_file(clients, compta.post(f"/api/comptabilite/deblocage/{cid}", {}, **H))        # un seul Débloquer (plan 6.7)
+    assert (x["statut"], x["compteCredite"], "OD" in x["piece"]) == ("debloque", d["comptePositionnement"], True)
     assert ident("select mode_deblocage from credit where id = %s", (cid,)) == "epargne"
     apres = solde()["solde"]
     assert apres - avant == d["retenues"]["net"]        # l'épargne obligatoire n'est pas versée par le prêt (Instr. BCC 40, art. 10 ; T136)
     assert balance_equilibree(compta)
+
+
+def test_differee_refus(clients, journee):
+    """Plan d'allègement, point 7.2 : un déblocage saisi hors guichet attend dans la file ; refusé avec motif par une autre personne, il ne se passe pas ;
+    le crédit peut être saisi de nouveau"""
+    compta, chef = clients["compta"], clients["chef"]
+    cid = credit_vise(clients)
+    n = lambda: chef.get("/api/attente/nombre", **H).json()["nombre"]
+    avant = n()
+    o = compta.post(f"/api/comptabilite/deblocage/{cid}", {}, **H).json()
+    assert n() == avant + 1 and [x["id"] for x in chef.get("/api/attente/differees?etape=visa", **H).json()] == [o["id"]]
+    assert compta.get("/api/attente/differees?etape=validation", **H).json() == []
+    r = compta.post("/api/attente/refus", {"source": "differee", "id": o["id"], "motif": "x"}, **H); assert "Quatre yeux" in r.json()["message"]
+    r = chef.post("/api/attente/refus", {"source": "differee", "id": o["id"], "motif": "Pièces du dossier incomplètes"}, **H); assert r.status_code == 200, r.content
+    assert ident("select statut from operation_differee where id = %s", (o["id"],)) == "refusee" and n() == avant
+    assert ident("select statut from credit where id = %s", (cid,)) != "debloque"
+    assert compta.post(f"/api/comptabilite/deblocage/{cid}", {}, **H).status_code == 200
 
 
 def test_remboursement_prelevement(clients, journee):
@@ -2027,9 +2057,8 @@ def test_remboursement_prelevement(clients, journee):
     usd = next((x for x in comptes if x["devise"] == "USD"), None)
     if usd:
         assert "devise du crédit" in refus({**b, "compteId": usd["id"]})
-    r = compta.post(f"/api/comptabilite/remboursement/{cid}", b, **H)
-    assert r.status_code == 200, r.content
-    assert (r.json()["mode"], "OD" in r.json()["piece"], r.json()["montant"], r.json()["ordreClient"]) == ("epargne", True, 1000000, "Ordre écrit du 14/11/2026")
+    x = par_la_file(clients, compta.post(f"/api/comptabilite/remboursement/{cid}", b, **H))
+    assert (x["mode"], "OD" in x["piece"], x["montant"], x["ordreClient"]) == ("epargne", True, 1000000, "Ordre écrit du 14/11/2026")
     apres = next(x for x in compta.get(f"/api/credit/remboursement/comptes/{tid}", **H).json() if x["id"] == k["id"])
     assert k["solde"] - apres["solde"] == 1000000
     assert balance_equilibree(compta)
@@ -4785,7 +4814,7 @@ def test_annulation_reglement_credit(clients, journee):
     k = next(x for x in compta.get(f"/api/credit/remboursement/comptes/{tid}", **H).json() if x["devise"] == "CDF" and x["disponible"] >= 1000000)
     echeances = lambda: lignes_bd("select rang, capital, interet from echeance where credit_id = %s order by rang", (cid,))
     ech0 = echeances()
-    compta.post(f"/api/comptabilite/remboursement/{cid}", {"mandataire": "Moi-même", "compteId": k["id"], "montant": 1000000, "ordreClient": "Ordre écrit"}, **H)
+    par_la_file(clients, compta.post(f"/api/comptabilite/remboursement/{cid}", {"mandataire": "Moi-même", "compteId": k["id"], "montant": 1000000, "ordreClient": "Ordre écrit"}, **H))
     assert echeances() != ech0                                                                       # remboursement anticipé : l'échéancier est recalculé
     avant_cap = ident("select coalesce(sum(case sens when 'D' then montant_devise else -montant_devise end), 0) from ligne_ecriture where contrat_ref = %s", (f"credit:{cid}",))
     A = "/api/comptabilite/annulation-reglement"

@@ -179,8 +179,9 @@ export function Deblocage() {
       ["Retenues", montant(d.montant - d.retenues.net, dv)], ["Montant remis", montant(d.retenues.net, dv)],
       m === "banque" ? ["Chèque", f.cheque.trim()] : ["Porté au compte", d.comptePositionnement]]), oui: async () => {
       try {
-        const x = m === "banque" ? await api.deblocage.debloquerBanque(d.id, { compteBancaireId: cb!.id, cheque: f.cheque }) : await api.deblocage.debloquerEpargne(d.id);
-        setFait({ piece: (x as { piece?: string }).piece ?? "" }); setBoite({ type: "succes", message: "Crédit débloqué avec succès !" });
+        // Plan d'allègement, point 7.2 : hors guichet, le déblocage attend son visa et sa validation (registre T138 ; Instr. BCC 008, art. 66)
+        await (m === "banque" ? api.deblocage.debloquerBanque(d.id, { compteBancaireId: cb!.id, cheque: f.cheque }) : api.deblocage.debloquerEpargne(d.id));
+        setFait({ piece: "" }); setBoite({ type: "succes", message: "Déblocage enregistré : il attend son visa et sa validation dans « Opérations en attente »." });
       } catch (x) { erreur(x); }
     } });
   }

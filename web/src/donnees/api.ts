@@ -6,7 +6,7 @@
 import { feriesLegaux, graine } from "./graine";
 import { creerApiHttp } from "./http";
 import {
-  ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
+  ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type OperationDifferee, type Journee, type Ligne,
   type ChequeClient, type ChequeInstitution, type Chequier, type DepotTerme, type ImmoBien, type PaieEmploye, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type OperationCompta, type LigneOc, type ChargeFacture, type CommandeFournisseur, type FactureFournisseur, type ReglementFournisseur, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
@@ -36,7 +36,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 85) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 86) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return miseEnService(graine());
@@ -10785,12 +10785,12 @@ function etapeAttente(source: string, o: ObjetAttente): "visa" | "validation" | 
   return null;
 }
 const DROITS_ATTENTE: Record<string, [string | null, string | null]> = { banque: ["S57", "S57"], compta: ["S113", "S114"], facture: ["S113", "S114"], reglement: ["S113", "S114"],
-  commande: [null, "S114"], retrait: ["S113", null] };
+  commande: [null, "S114"], retrait: ["S113", null], differee: ["S113", "S114"] };
 const attente = {
   refuser(d: { source: string; id: number; motif: string }) {
     const u = exiger(), motif = (d.motif ?? "").trim();
     const listes: Record<string, ObjetAttente[]> = { banque: E.operationsBanque, compta: E.operationsCompta, facture: E.facturesFournisseurs, reglement: E.reglementsFournisseurs,
-      commande: E.commandesFournisseurs, retrait: E.operations as unknown as ObjetAttente[] };
+      commande: E.commandesFournisseurs, retrait: E.operations as unknown as ObjetAttente[], differee: E.operationsDifferees };
     if (!listes[d.source]) throw new ErreurMetier("Opération inconnue.");
     const o = (listes[d.source] as (ObjetAttente & { id: number })[]).find((x) => x.id === d.id), etape = o ? etapeAttente(d.source, o) : null;
     if (!o || !etape) throw new ErreurMetier("Rien à refuser.");
@@ -10810,11 +10810,70 @@ const attente = {
     let n = 0;
     if (dr.includes("S57")) n += E.operationsBanque.filter((o) => o.statut === "saisie" || o.statut === "visee").length;
     if (dr.includes("S113")) n += E.operationsCompta.filter((o) => o.statut === "saisie").length + E.facturesFournisseurs.filter((o) => o.statut === "saisie").length
-      + E.reglementsFournisseurs.filter((o) => o.statut === "saisie").length + E.operations.filter((o) => o.type === "retrait" && o.statut === "visa_requis").length;
+      + E.reglementsFournisseurs.filter((o) => o.statut === "saisie").length + E.operations.filter((o) => o.type === "retrait" && o.statut === "visa_requis").length
+      + E.operationsDifferees.filter((o) => o.statut === "saisie").length;
     if (dr.includes("S114")) n += E.operationsCompta.filter((o) => o.statut === "visee" && !(CAISSE_OC as readonly string[]).includes(o.type)).length
       + E.facturesFournisseurs.filter((o) => o.statut === "visee").length + E.reglementsFournisseurs.filter((o) => o.statut === "visee").length
-      + E.commandesFournisseurs.filter((o) => o.statut === "saisie").length;
+      + E.commandesFournisseurs.filter((o) => o.statut === "saisie").length + E.operationsDifferees.filter((o) => o.statut === "visee").length;
     return { nombre: n };
+  },
+  /** Plan d'allègement, point 7.2 : les déblocages et remboursements saisis hors guichet, à viser (S113) ou à valider (S114). Comme differees.lister */
+  differees(etape: string) {
+    const u = exiger();
+    const statut = etape === "visa" ? "saisie" : etape === "validation" ? "visee" : null;
+    if (!statut) throw new ErreurMetier("Étape inconnue.");
+    if (!droitsDe(u).includes(etape === "visa" ? "S113" : "S114")) return [];
+    return E.operationsDifferees.filter((o) => o.statut === statut).sort((a, b) => a.saisiLe.localeCompare(b.saisiLe) || a.id - b.id).map(vueDifferee);
+  },
+  /** Viser ou Valider ; à la validation, l'opération se passe au nom de celui qui l'a saisie. Comme differees.faire_suivre */
+  suivre(id: number, etape: string) {
+    const u = exiger();
+    if (etape !== "visa" && etape !== "validation") throw new ErreurMetier("Étape inconnue.");
+    if (!droitsDe(u).includes(etape === "visa" ? "S113" : "S114")) throw new ErreurMetier("Droit manquant : Opérations en attente.");
+    const o = E.operationsDifferees.find((x) => x.id === id);
+    if (!o || o.statut !== (etape === "visa" ? "saisie" : "visee")) throw new ErreurMetier(etape === "visa" ? "Rien à viser." : "Rien à valider.");
+    if (o.saisiPar === u.id) throw new ErreurMetier(`Quatre yeux : ${etape === "visa" ? "pas de visa sur sa propre saisie." : "pas de validation sur sa propre saisie."}`);
+    if (etape === "visa") { Object.assign(o, { statut: "visee", visePar: u.id }); enregistrer(); return vueDifferee(o); }
+    if (o.visePar === u.id) throw new ErreurMetier("Quatre yeux : la validation vient d'une autre personne que celle qui a visé.");
+    const auteur = E.utilisateurs.find((x) => x.id === o.saisiPar && x.actif !== false);
+    if (!auteur) throw new ErreurMetier("Celui qui a saisi l'opération n'est plus actif : la refuser.");
+    const session = E.session;
+    let r: unknown;
+    try { E.session = auteur.id; r = ACTIONS_DIFFEREES[o.action][0](o.objetId, o.payload); } finally { E.session = session; }
+    const x = E.operationsDifferees.find((y) => y.id === id)!;
+    Object.assign(x, { statut: "validee", valideePar: u.id, resultat: r }); enregistrer();
+    return { ...vueDifferee(x), resultat: r };
+  },
+};
+// ---------- Plan d'allègement, point 7.2 (registre T138) : tout mouvement saisi hors guichet sur un compte bancaire ou un compte de client passe par la file ;
+// celui qui l'enregistre ne le vise ni ne le valide (Instr. BCC 008, art. 66). Règles identiques côté serveur (noyau/differees.py). ----------
+type ActionDifferee = OperationDifferee["action"];
+const ACTIONS_DIFFEREES: Record<ActionDifferee, [(id: number, p: Record<string, unknown>) => unknown, string]> = {
+  deblocage_banque: [(id, p) => deblocage.debloquerBanque(id, p as { compteBancaireId: number; cheque: string }), "Déblocage de crédit par banque"],
+  deblocage_epargne: [(id) => deblocage.debloquerEpargne(id), "Déblocage de crédit sur compte d'épargne"],
+  remboursement_banque: [(id, p) => remboursementsCredit.rembourserBanque(id, p as Parameters<typeof remboursementsCredit.rembourserBanque>[1]), "Remboursement de crédit reçu en banque"],
+  remboursement_epargne: [(id, p) => remboursementsCredit.rembourserEpargne(id, p as Parameters<typeof remboursementsCredit.rembourserEpargne>[1]), "Remboursement de crédit par prélèvement"],
+};
+const vueDifferee = (o: OperationDifferee) => ({ id: o.id, differee: true as const, action: o.action, creditId: o.objetId, libelle: o.libelle, montant: o.montant, devise: o.devise,
+  statut: o.statut, date: jourDe(o.saisiLe), saisiPar: nomUtilisateur(o.saisiPar), visePar: o.visePar ? nomUtilisateur(o.visePar) : "" });
+/** Les règles de l'opération jouent sur une copie de l'état, remise ensuite : un refus remonte tel quel, rien ne reste écrit (comme differees.essayer) */
+function essayer(f: () => unknown) {
+  const avant = JSON.stringify(E);
+  try { f(); } finally { E = JSON.parse(avant) as Etat; sauver(); }
+}
+const differees = {
+  saisir(action: ActionDifferee, id: number, p: Record<string, unknown>) {
+    const u = exiger();
+    const c = E.credits.find((x) => x.id === id);
+    if (!c) throw new ErreurMetier("Crédit introuvable.");
+    const genre = action.split("_")[0];
+    if (E.operationsDifferees.some((o) => o.objetId === id && o.action.split("_")[0] === genre && (o.statut === "saisie" || o.statut === "visee")))
+      throw new ErreurMetier(`Le crédit ${c.numero} a déjà une opération de ce genre dans « Opérations en attente ».`);
+    essayer(() => ACTIONS_DIFFEREES[action][0](id, p));
+    const m = action.startsWith("remboursement") && Number.isInteger(p.montant) ? (p.montant as number) : c.montant;
+    const o: OperationDifferee = { id: prochain(E.operationsDifferees), action, objetId: id, payload: p, libelle: `${ACTIONS_DIFFEREES[action][1]} ${c.numero}`, montant: m,
+      devise: c.devise, statut: "saisie", saisiPar: u.id, saisiLe: new Date().toISOString() };
+    E.operationsDifferees.push(o); enregistrer(); return vueDifferee(o);
   },
 };
 
@@ -11096,8 +11155,12 @@ const construireLocale = () => ({
   dossiers: asynchrone(dossiers, "dossiers"),
   miseEnPlace: asynchrone(miseEnPlace, "miseEnPlace"),
   visasCredit: asynchrone(visasCredit, "visasCredit"),
-  deblocage: asynchrone(deblocage, "deblocage"),
-  remboursementsCredit: asynchrone(remboursementsCredit, "remboursementsCredit"),
+  // Plan d'allègement, point 7.2 : déblocage et remboursement hors guichet par la file « Opérations en attente »
+  deblocage: asynchrone({ ...deblocage, debloquerBanque: (id: number, p: { compteBancaireId: number; cheque: string }) => differees.saisir("deblocage_banque", id, p),
+    debloquerEpargne: (id: number) => differees.saisir("deblocage_epargne", id, {}) }, "deblocage"),
+  remboursementsCredit: asynchrone({ ...remboursementsCredit,
+    rembourserBanque: (id: number, p: Parameters<typeof remboursementsCredit.rembourserBanque>[1]) => differees.saisir("remboursement_banque", id, p),
+    rembourserEpargne: (id: number, p: Parameters<typeof remboursementsCredit.rembourserEpargne>[1]) => differees.saisir("remboursement_epargne", id, p) }, "remboursementsCredit"),
   etatCredits: asynchrone(etatCredits, "etatCredits"),
   garanties: asynchrone(garanties, "garanties"),
   affectation: asynchrone(affectation, "affectation"),

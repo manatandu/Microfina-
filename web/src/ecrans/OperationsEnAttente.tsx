@@ -9,14 +9,14 @@ import { montant, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Formulaire, Paginee, Textes, type Boite } from "../composants";
 import { BonCommande, FicheImputation } from "./Factures";
 
-type Source = "banque" | "compta" | "facture" | "reglement" | "commande" | "retrait";
+type Source = "banque" | "compta" | "facture" | "reglement" | "commande" | "retrait" | "differee";
 type Etape = "visa" | "validation";
 type Ligne = { cle: string; source: Source; id: number; type: string; origine: string; date: string; piece: string; libelle: string; montant: number; devise: Devise;
   saisiPar: string; visePar: string; etape: Etape; cheque: boolean; ecriture?: LigneOperationCompta };
 const LISTES_BANQUE = ["enc_dec", "banque_caisse", "banque_banque", "virement"] as const;
 const LISTES_COMPTA: Record<Etape, readonly string[]> = { visa: ["virement", "ecriture", "compte_a_compte", "diverse", "deplacee"], validation: ["virement", "ecriture", "compte_a_compte"] };
 const ETAPES: Etape[] = ["visa", "validation"];
-const ORIGINES = ["Banque", "Comptabilité", "Factures", "Guichet"];
+const ORIGINES = ["Banque", "Comptabilité", "Crédit", "Factures", "Guichet"];
 /** Une liste fermée par les droits de l'utilisateur répond « Droit manquant » : elle n'entre simplement pas dans la file */
 const sur = async <T,>(f: () => Promise<T[]>): Promise<T[]> => { try { return await f(); } catch { return []; } };
 
@@ -35,6 +35,10 @@ async function charger(): Promise<Ligne[]> {
     for (const x of await sur(async () => (await api.facturesFournisseurs.visas(etape, "reglement")) as LigneReglementF[]))
       l.push({ cle: `reglement-${x.id}`, source: "reglement", id: x.id, type: `Règlement de facture (${x.modeLibelle})`, origine: "Factures", date: x.date, piece: x.reference,
         libelle: x.fournisseur, montant: x.aPayer, devise: "CDF", saisiPar: x.saisiPar, visePar: x.visePar, etape, cheque: etape === "validation" && x.mode !== "ESPECE" });
+    // Plan d'allègement, point 7.2 : déblocages et remboursements de crédit saisis hors guichet
+    for (const x of await sur(() => api.attente.differees(etape)))
+      l.push({ cle: `differee-${x.id}`, source: "differee", id: x.id, type: x.libelle.replace(/ \S+$/, ""), origine: "Crédit", date: x.date, piece: "", libelle: x.libelle,
+        montant: x.montant ?? 0, devise: x.devise as Devise, saisiPar: x.saisiPar, visePar: x.visePar, etape, cheque: false });
   }
   for (const x of await sur(() => api.facturesFournisseurs.commandes("saisie")))
     l.push({ cle: `commande-${x.id}`, source: "commande", id: x.id, type: "Commande fournisseur", origine: "Factures", date: x.date, piece: x.numero, libelle: x.fournisseur,
@@ -68,11 +72,13 @@ export default function OperationsEnAttente() {
         else if (x.source === "compta") await api.operationsCompta.viser(x.id);
         else if (x.source === "facture" || x.source === "reglement") await api.facturesFournisseurs.viser(x.source, x.id);
         else if (x.source === "retrait") await api.operations.viser(x.id);
+        else if (x.source === "differee") await api.attente.suivre(x.id, "visa");
       } else {
         if (x.source === "banque") await api.banqueOperations.suivre(x.id, "validation", { date });
         else if (x.source === "compta") await api.operationsCompta.valider(x.id, { date });
         else if (x.source === "facture" || x.source === "reglement") await api.facturesFournisseurs.valider(x.source, x.id, d);
         else if (x.source === "commande") await api.facturesFournisseurs.validerCommande(x.id);
+        else if (x.source === "differee") await api.attente.suivre(x.id, "validation");
       }
       setDetail(null); setCheque(null); fait();
       if (x.source === "reglement" && x.etape === "validation") setFiche({ quoi: "imputation", id: x.id });   // la fiche d'imputation suit la validation (p. 153)
