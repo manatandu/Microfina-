@@ -154,7 +154,7 @@ function EncaissementsDecaissements({ ctx, poser }: { ctx: Ctx; poser: Poser }) 
   const ligne = ctx.lignesBudget.find((l) => String(l.id) === f.ligneBudget);
   const comptes = banque ? [g.s.compte] : [g.s.compte, ...g.l.map((x) => x.compte)];
   const budget = blocBudget(ctx.lignesBudget, comptes);
-  const annuler = () => { g.vider(); setF(VIDE); setCle(nouvelleCle()); };
+  const annuler = () => { g.vider(); setF((v) => ({ ...VIDE, par: v.par })); setCle(nouvelleCle()); };   // « Par » reste choisi
   function enregistrer() {
     const imputation = budget ? { typeBudgetId: f.typeBudget ? Number(f.typeBudget) : null, ligneBudgetId: f.ligneBudget ? Number(f.ligneBudget) : null } : { typeBudgetId: null, ligneBudgetId: null };
     const date = f.date || ctx.date;
