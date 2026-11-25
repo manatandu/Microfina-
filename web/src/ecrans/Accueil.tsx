@@ -42,6 +42,8 @@ export function PageModules() {
   const { donnees } = useDonnees(() => api.session.courante());
   if (donnees === null) return <Navigate to="/connexion" replace />;
   if (!donnees) return <main className="page-modules" aria-busy="true" />;
+  // Registre T207 : le mot de passe donné par l'administrateur se remplace avant toute autre action ; le cadre de l'application montre le changement
+  if ((donnees as { motDePasseAChanger?: boolean }).motDePasseAChanger) return <Navigate to="/principal" replace />;
   const liees = applicationsLiees((donnees as { droits?: string[] }).droits ?? []);
   const symbole = <svg className="symbole" viewBox={SYMBOLE_CADRE} aria-hidden="true"><path fill="var(--marque-rouge)" d={LOGO_SYMBOLE} /></svg>;
   return (
