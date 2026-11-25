@@ -46,32 +46,33 @@ const OUT = process.argv[2];
     if (await b.waitFor({ timeout: 2000 }).then(() => true, () => false)) await b.click(); await succes(); };
   // Ouverture de journée (S12, p. 21)
   await p.getByLabel('Date à ouvrir').fill('05112026'); await etape('02-chef-avant-ouverture');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await p.getByRole('cell', { name: '05/11/2026' }).waitFor(); await etape('02-journee-ouverte');
-  // Chef : créer un guichet (S08, p. 18)
-  await aller('/administration/s08');
-  await p.getByLabel('Code guichet *').fill('G3'); await p.getByLabel('Désignation *').fill('Caisse 3');
-  await p.getByLabel('Type de guichet *').selectOption('SECONDAIRE'); await p.getByLabel('Journal *').selectOption({ label: 'Caisse' });
-  await p.getByLabel('Guichet Actif').check();
-  await etape('02a-gestion-guichets'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('button', { name: 'Enregistrer', exact: true }).click(); await oui();
+  await p.getByRole('cell', { name: '05/11/2026', exact: true }).first().waitFor(); await etape('02-journee-ouverte');
+  // Journée du jour (plan d'allègement, point 8.5) : le cours du jour se saisit sur le même écran, juste après l'ouverture
+  await p.getByLabel('Cours USD (CDF pour une unité) *').fill('2850'); await p.getByRole('button', { name: 'Enregistrer les cours' }).click(); await oui(); await etape('02f28-cours');
+  // Chef : créer un guichet (plan d'allègement, point 8.4 : Guichets, « Nouveau guichet »)
+  await aller('/administration/s08'); await p.getByRole('button', { name: 'Nouveau guichet' }).click();
+  const fg = p.getByRole('dialog', { name: 'Nouveau guichet' });
+  await fg.getByLabel('Code guichet *').fill('G3'); await fg.getByLabel('Désignation *').fill('Caisse 3');
+  await fg.getByLabel('Type de guichet *').selectOption('SECONDAIRE'); await fg.getByLabel('Journal *').selectOption({ label: 'Caisse' });
+  await fg.getByLabel('Guichet Actif').check();
+  await etape('02a-gestion-guichets'); await fg.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   // Plafonds de la Caisse 2 : retrait plafonné 1 000 USD (registre S08-5), maximum 1 000 CDF (S08-4)
-  await p.getByRole('cell', { name: 'Caisse 2' }).click();
-  await p.getByLabel('Retrait plafonné (USD) *').fill('1 000'); await p.getByLabel('Maximum autorisé en caisse (CDF) *').fill('1 000');
-  await p.getByRole('button', { name: 'Modifier' }).click(); await oui();
+  await p.getByRole('button', { name: 'Modifier : Caisse 2' }).click(); const fg2 = p.getByRole('dialog', { name: 'Guichet Caisse 2' });
+  await fg2.getByLabel('Retrait plafonné (USD) *').fill('1 000'); await fg2.getByLabel('Maximum autorisé en caisse (CDF) *').fill('1 000');
+  await fg2.getByRole('button', { name: 'Modifier' }).click(); await oui();
   // Chef : affecter la Caisse 3 à Bijou Kasongo, puis la retirer (S10, p. 20 et 96)
   await aller('/administration/s10'); await p.getByRole('button', { name: 'Ajouter un guichet : bkasongo' }).click();
   await p.getByRole('cell', { name: 'Caisse 3' }).click(); await p.getByLabel('Voir solde client', { exact: true }).check(); await etape('02a1-ajout-guichet');
   await p.getByRole('button', { name: 'Ajouter', exact: true }).click(); await oui();
   await p.getByRole('row').filter({ hasText: 'bkasongo' }).getByRole('cell', { name: 'Caisse 3' }).waitFor(); await etape('02a2-affectation-guichets');
   await p.getByRole('button', { name: 'Retirer le guichet : bkasongo' }).click(); await oui();
-  // Chef : exercices (S11, p. 20 et 21)
-  await aller('/administration/s11'); await p.getByLabel('Année : *').fill('2027'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await p.getByLabel('Actif : 2026').uncheck(); await p.getByLabel('Actif : 2027').check(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02c-nouvel-exercice');
-  await aller('/administration/s11b'); await p.getByLabel('Exercice à ouvrir').fill('2027'); await p.getByRole('button', { name: 'Ouvrir', exact: true }).click(); await oui();
-  await p.getByRole('cell', { name: 'Journal Banque', exact: true }).waitFor(); await etape('02d-ouverture-exercice');
-  await aller('/administration/s11c'); await p.getByRole('cell', { name: 'Aucune ligne.' }).waitFor(); await etape('02e-completer-journal-detail');
-  // Remettre 2026 en cours pour la suite de la journée (un seul exercice actif, registre S11-1)
-  await aller('/administration/s11'); await p.getByLabel('Actif : 2027').uncheck(); await p.getByLabel('Actif : 2026').check(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  // Chef : exercices (plan d'allègement, point 8.6 : S11, S11b et S11c en un écran) ; 2026 reste en cours, 2027 s'ouvre à côté
+  await aller('/administration/s11'); await p.getByRole('button', { name: "Créer l'exercice 2027" }).click(); await oui();
+  await p.getByRole('row').filter({ hasText: '2027' }).getByRole('cell', { name: 'Préparé' }).waitFor(); await etape('02c-nouvel-exercice');
+  await p.getByRole('button', { name: 'Ouvrir 2027' }).click(); await oui();
+  await p.getByRole('row').filter({ hasText: '2027' }).getByRole('cell', { name: 'Ouvert', exact: true }).waitFor();
+  await p.getByRole('row').filter({ hasText: '2026' }).getByRole('cell', { name: 'En cours' }).waitFor(); await etape('02d-ouverture-exercice');
   // Chef : listes de la fiche du membre (S14, p. 23) : secteur et activité sur une page (plan d'allègement, point 2.12)
   await aller('/parametrage/s14'); await p.getByRole('heading', { name: "Information de base: Activité" }).waitFor(); await etape('02f-secteurs-activite');
   await p.getByLabel("Secteur d'activité : *").selectOption({ label: 'Primaire' }); await p.getByLabel('Code : *').fill('A1'); await p.getByLabel("Activité : *", { exact: true }).fill('Pisciculture');
@@ -160,8 +161,8 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f19-numero-piece');
   // Chef : journal (S30, p. 41 et 42) : un journal des opérations diverses, avec son détail dans l'exercice
   await aller('/parametrage/s30'); await p.getByLabel('Type Journal *').selectOption({ label: 'Journal des Opérations diverses' });
-  await p.getByLabel('Libellé : *').fill('Opérations diverses 2'); await p.getByLabel('Code :').fill('O2');
-  await p.getByRole('checkbox', { name: 'Actif', exact: true }).check(); await p.getByRole('checkbox', { name: 'Détail journal' }).check();
+  await p.getByLabel('Libellé : *').fill('Opérations diverses 2'); await p.getByLabel('Code du journal *').fill('O2');
+  await p.getByRole('checkbox', { name: 'Actif', exact: true }).check();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'O2', exact: true }).waitFor(); await etape('02f20-journaux');
   // Chef : ED divers (S31, p. 42) : une opération de produit, au compte 7790
   await aller('/parametrage/s31'); await p.getByLabel('Nature : *').selectOption('PRODUIT'); await p.getByLabel('Compte *').fill('77900000');
@@ -195,31 +196,29 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: 'Coupures', exact: true }).click(); await p.getByLabel('Billet ou pièce :').selectOption('Pièce'); await p.getByLabel('Valeur fiduciaire:').fill('0,50');
   await p.getByLabel('Devise :').selectOption('CDF');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Pièce de 0,5 CDF' }).waitFor(); await etape('02f27-monnaies');
-  await p.getByRole('tab', { name: 'Cours', exact: true }).click(); await p.getByLabel('Cours (CDF pour une unité) :').waitFor(); await p.getByLabel('Devise :').selectOption('USD'); await p.getByLabel('Date :').fill('05/11/2026');
-  await p.getByLabel('Cours (CDF pour une unité) :').fill('2850'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await p.getByRole('cell', { name: '05/11/2026' }).waitFor(); await etape('02f28-cours');
   // Administrateur sécurité (Instr. BCC 008, art. 16 ; registre T29) : profils (S03, p. 15) : le profil AUDITEUR de la capture
   await login('Grâce Mbuyi');
-  await aller('/administration/s03'); await p.getByLabel('Nom Droit *').fill('AUDITEUR'); await p.getByLabel('Description').fill('PROFIL DES AUDITEURS');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'AUDITEUR', exact: true }).waitFor(); await etape('02f31-profils');
-  // Administrateur sécurité : un utilisateur (S05, p. 17)
-  await aller('/administration/s05'); await p.getByLabel('Nom et prénoms *').fill('Mbala Joseph');
-  await p.getByLabel('Identifiant de connexion *').fill('jmbala'); await p.getByLabel('Mot de passe *').fill('secret-1'); await p.getByLabel('Confirmation *').fill('secret-1');
-  await p.getByLabel('Portable : *').fill('+243 810 000 444'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await p.getByRole('cell', { name: 'Mbala Joseph', exact: true }).waitFor(); await etape('02f33-utilisateurs');
-  // Administrateur sécurité : le profil AUDITEUR donné à cet utilisateur (S06, p. 17)
-  await aller('/administration/s06'); await p.getByRole('button', { name: 'Rechercher un utilisateur' }).click();
-  await p.getByRole('dialog', { name: "Recherche d'un utilisateur" }).getByRole('cell', { name: 'jmbala' }).click();
-  await p.getByRole('button', { name: 'Rechercher un profil' }).click(); await p.getByRole('dialog', { name: "Recherche d'un profil" }).getByRole('cell', { name: 'AUDITEUR', exact: true }).click();
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f34-profils-utilisateur');
-  // Administrateur sécurité : utilisateurs connectés et déconnexion (S07, p. 18)
-  await aller('/administration/s07'); await p.getByRole('cell', { name: 'gmbuyi' }).waitFor(); await etape('02f35-connexions');
-  await p.getByRole('tab', { name: 'Déconnecter utilisateurs' }).click(); await p.getByRole('button', { name: 'Déconnecter gmbuyi' }).click();
+  // Plan d'allègement, point 8.2 : profils et droits sur une page
+  await aller('/administration/s03'); await p.getByRole('button', { name: 'Nouveau profil' }).click();
+  await p.getByLabel('Nom Droit *').fill('AUDITEUR'); await p.getByLabel('Description').fill('PROFIL DES AUDITEURS');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('button', { name: 'AUDITEUR', exact: true }).waitFor(); await etape('02f31-profils');
+  // Administrateur sécurité : un utilisateur (plan d'allègement, point 8.3 : Utilisateurs, « Nouvel utilisateur » ; Nom et Prénoms séparés)
+  await aller('/administration/s05'); await p.getByRole('button', { name: 'Nouvel utilisateur' }).click(); const fu = p.getByRole('dialog', { name: 'Nouvel utilisateur' });
+  await fu.getByLabel('Nom *').fill('Mbala'); await fu.getByLabel('Prénoms').fill('Joseph');
+  await fu.getByLabel('Identifiant de connexion *').fill('jmbala'); await fu.getByLabel('Mot de passe *').fill('secret-1'); await fu.getByLabel('Confirmation *').fill('secret-1');
+  await fu.getByLabel('Portable : *').fill('+243 810 000 444'); await fu.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('row').filter({ hasText: 'jmbala' }).getByRole('cell', { name: 'Joseph', exact: true }).waitFor(); await etape('02f33-utilisateurs');
+  // Administrateur sécurité : le profil AUDITEUR donné à cet utilisateur, depuis sa ligne (S06, p. 17)
+  await p.getByRole('button', { name: 'Changer de profil : jmbala' }).click(); const fp = p.getByRole('dialog', { name: 'Changer de profil : jmbala' });
+  await fp.getByLabel('Nouveau profil *').selectOption({ label: 'AUDITEUR' }); await fp.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f34-profils-utilisateur');
+  // Administrateur sécurité : utilisateurs connectés et déconnexion, sur la même liste (S07, p. 18)
+  await p.getByRole('row').filter({ hasText: 'gmbuyi' }).getByRole('cell', { name: /^Oui/ }).first().waitFor(); await etape('02f35-connexions');
+  await p.getByRole('button', { name: 'Déconnecter gmbuyi' }).click();
   await p.getByRole('dialog', { name: 'Confirmation' }).getByText('Voulez-vous déconnecter cet utilisateur').waitFor(); await etape('02f36-deconnexion');
   await p.getByRole('button', { name: 'Oui' }).click(); await p.getByText('bouton de sortie').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
   // Administrateur sécurité : droits du profil AUDITEUR (S04, p. 15 et 16) : le menu Client lui est octroyé
-  await aller('/administration/s04'); await p.getByLabel('Libellé du Profil *').selectOption({ label: 'AUDITEUR' });
-  await p.getByRole('checkbox', { name: 'LISTE DES DROITS RESTANTS : Client' }).check(); await p.getByRole('button', { name: 'Octroyer les droits cochés' }).click();
+  await aller('/administration/s04'); await p.getByRole('button', { name: 'AUDITEUR', exact: true }).click();
+  await p.getByRole('checkbox', { name: 'Tout le menu : Client' }).check();
   await etape('02f32-droits'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await login('J.-P. Mukendi');
   // Chef : facture (S36, p. 46) : un élément de facture, la retenue sur les loyers au compte 433 (O.-L. 69/009, art. 10 et 11 ; PCCI), désactivé ensuite :
@@ -235,10 +234,9 @@ const OUT = process.argv[2];
   // Caissière : ouvrir la caisse (sans comptage : Microfina++ ne compte qu'à l'arrêté, p. 90 et 91)
   await login('Esther Ngalula');
   await aller('/principal'); await etape('01c-menu-general');
-  await aller('/administration/s09');
-  await p.getByRole('row').filter({ hasText: 'Caisse 2' }).click(); await etape('02b-ouverture-caisse');
-  await p.getByRole('button', { name: 'Ouverture' }).click(); await oui();
-  await p.getByRole('checkbox', { name: 'Ouvert : Caisse 2' }).and(p.locator(':checked')).waitFor();
+  await aller('/administration/s09'); await etape('02b-ouverture-caisse');
+  await p.getByRole('button', { name: 'Ouvrir : Caisse 2' }).click(); await oui();
+  await p.getByRole('row').filter({ hasText: 'Caisse 2' }).getByText(/^Ouvert le/).waitFor();
   // Agent : enrôler
   await login('Bijou Kasongo'); await aller('/clients/s37');
   await p.getByLabel('Type de compte à créer *').selectOption('EAV-CDF');
@@ -1125,8 +1123,7 @@ const OUT = process.argv[2];
   await etape('16a-billetage-saisie');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await etape('15-arrete');
-  await aller('/administration/s09'); await p.getByRole('row').filter({ hasText: 'Caisse 2' }).click();
-  await p.getByRole('button', { name: 'Fermeture' }).click(); await oui(); await etape('15b-fermeture-guichet');
+  await aller('/administration/s09'); await p.getByRole('button', { name: 'Fermer : Caisse 2' }).click(); await oui(); await etape('15b-fermeture-guichet');
   // Comptable : remboursement par prélèvement sur compte (S106, p. 125 et 157) et déblocage sur compte d'épargne (S105, p. 124)
   await login('Patrick Lumbala'); await aller('/credit/s106');
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
@@ -1206,9 +1203,9 @@ const OUT = process.argv[2];
   // Journées en attente de comptabilisation (registre T14, S12-2, S12-5) : Journée Maxi ouvert à 2, deux journées ouvertes, la troisième refusée
   await aller('/parametrage/s32'); await p.getByLabel('Journée Maxi ouvert : *').fill('2'); await p.getByRole('tabpanel', { name: 'Information Société' }).getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await aller('/administration/s12');
-  for (const d of ['06112026', '09112026']) { await p.getByLabel('Date à ouvrir').fill(d); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-    await p.getByRole('cell', { name: `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}` }).waitFor(); await p.getByLabel('Date à ouvrir').and(p.locator('[value=""]')).waitFor(); }
-  await p.getByLabel('Date à ouvrir').fill('10112026'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  for (const d of ['06112026', '09112026']) { await p.getByLabel('Date à ouvrir').fill(d); await p.getByRole('button', { name: 'Enregistrer', exact: true }).click(); await oui();
+    await p.getByRole('cell', { name: `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`, exact: true }).first().waitFor(); }
+  await p.getByLabel('Date à ouvrir').fill('10112026'); await p.getByRole('button', { name: 'Enregistrer', exact: true }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Erreur' }).getByText(/Journée Maxi ouvert atteinte \(2\)/).waitFor(); await etape('21-journee-maxi-atteinte'); await p.getByRole('button', { name: 'Ok' }).click();
   await aller('/comptabilite/s111'); await p.getByLabel('Journée non comptabilisée :').waitFor();
   if ((await p.getByLabel('Journée non comptabilisée :').locator('option').count()) !== 2) throw new Error('deux journées en attente attendues');

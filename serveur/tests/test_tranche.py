@@ -1267,8 +1267,11 @@ def test_exercices(clients):
     r = chef.post("/api/exercices/2027/ouverture", **H); assert r.status_code == 422 and "déjà ouvert" in r.json()["message"]
     # Compléter journal détail (registre S11-8) : un journal ajouté à l'exercice en cours
     jid = l["journaux"][0]["id"]
-    chef.post("/api/exercices", {"annee": "2028", "lignes": [{"annee": 2027, "actif": False, "ouvert": True, "valide": False}]}, **H)
-    l = chef.post("/api/exercices", {"lignes": [{"annee": 2028, "actif": True, "ouvert": True, "valide": False}]}, **H).json()
+    # Plan d'allègement, point 8.6 : sans exercice en cours, le plus ancien exercice ouvert et non clôturé le devient
+    l = chef.post("/api/exercices", {"annee": "2028", "lignes": [{"annee": 2027, "actif": False, "ouvert": True, "valide": False}]}, **H).json()
+    assert l["enCours"] == 2026
+    l = chef.post("/api/exercices", {"lignes": [{"annee": 2026, "actif": False, "ouvert": True, "valide": False},
+                                                {"annee": 2028, "actif": True, "ouvert": True, "valide": False}]}, **H).json()
     assert l["enCours"] == 2028 and not [d for d in l["details"] if d["annee"] == 2028]
     r = chef.post("/api/exercices/completer", {"journalIds": []}, **H); assert r.status_code == 422
     l = chef.post("/api/exercices/completer", {"journalIds": [jid]}, **H).json()

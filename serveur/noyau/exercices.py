@@ -1,4 +1,4 @@
-"""S11 : Administration > Exercice (manuel Microfina++, p. 20 et 21). Mêmes règles que web/src/donnees/api.ts (exercices)."""
+"""S11 : Administration > Exercices (manuel Microfina++, p. 20 et 21). Mêmes règles que web/src/donnees/api.ts (exercices)."""
 from .bd import ErreurMetier, executer, lignes, une
 from .services import exiger
 
@@ -70,7 +70,17 @@ def enregistrer(u, d) -> dict:
     for a in maj:
         e = voulu[a]
         executer("update exercice set actif = %s, ouvert = %s, valide = %s where institution_id = %s and annee = %s", (e["actif"], e["ouvert"], e["valide"], i, a))
+    suite(i)
     return lire(u)
+
+
+def suite(i: int) -> None:
+    """Plan d'allègement, point 8.6 : l'exercice clôturé n'est plus en cours ; le plus ancien exercice ouvert et non clôturé prend la suite"""
+    if une("select 1 from exercice where institution_id = %s and actif and not valide", (i,)):
+        return
+    executer("update exercice set actif = false where institution_id = %s and actif", (i,))
+    executer("""update exercice set actif = true where institution_id = %s and annee = (select min(annee) from exercice
+                where institution_id = %s and ouvert and not valide)""", (i, i))
 
 
 def ouvrir(u, annee) -> dict:
@@ -84,6 +94,7 @@ def ouvrir(u, annee) -> dict:
         raise ErreurMetier("Cet exercice est déjà ouvert.")
     executer("""insert into journal_detail (institution_id, annee, journal_id) select %s, %s, id from journal where institution_id = %s""", (i, a, i))
     executer("update exercice set ouvert = true where institution_id = %s and annee = %s", (i, a))
+    suite(i)   # point 8.6 : sans autre exercice en cours, celui-ci le devient
     return lire(u)
 
 

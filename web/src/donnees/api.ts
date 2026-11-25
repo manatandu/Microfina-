@@ -209,7 +209,7 @@ const journees = {
     exiger("chef_agence");
     // Registre S12-4 : pas de journée suivante tant qu'un guichet d'une journée précédente est ouvert ; le message nomme les guichets
     const restes = E.sessions.filter((x) => x.statut === "ouverte");
-    if (restes.length) throw new ErreurMetier(`Guichet encore ouvert : ${restes.map((x) => `${E.guichets.find((g) => g.id === x.guichetId)?.nom ?? ""} (${fr(E.journees.find((j) => j.id === x.journeeId)?.date ?? "")})`).join(", ")}. Le fermer d'abord (Administration > Guichet > Ouverture/Fermeture).`);
+    if (restes.length) throw new ErreurMetier(`Guichet encore ouvert : ${restes.map((x) => `${E.guichets.find((g) => g.id === x.guichetId)?.nom ?? ""} (${fr(E.journees.find((j) => j.id === x.journeeId)?.date ?? "")})`).join(", ")}. Le fermer d'abord (Administration > Guichets).`);
     // Registre T14, S12-2, S12-5 : des journées peuvent attendre leur comptabilisation, au plus « Journée Maxi ouvert » à la fois (Information société)
     const ouvertes = E.journees.filter((j) => j.statut !== "fermee").sort((a, b) => a.date.localeCompare(b.date));
     const maxi = E.institution.journeeMax ?? 1;
@@ -217,7 +217,7 @@ const journees = {
       throw new ErreurMetier(`Journée Maxi ouvert atteinte (${maxi}) : comptabiliser d'abord la journée du ${fr(ouvertes[0]!.date)} (Comptabilité > Comptabilisation).`);
     const ex = E.exercices.find((e) => e.annee === Number(date.slice(0, 4)));
     // Registre S11-2 et S12-1 : une journée ne s'ouvre que dans un exercice ouvert et non validé (S11)
-    if (!ex || !ex.ouvert || ex.valide) throw new ErreurMetier(`L'exercice ${date.slice(0, 4)} n'est pas ouvert (Administration > Exercice).`);
+    if (!ex || !ex.ouvert || ex.valide) throw new ErreurMetier(`L'exercice ${date.slice(0, 4)} n'est pas ouvert (Administration > Exercices).`);
     const derniere = E.journees.at(-1);
     if (derniere && date <= derniere.date) throw new ErreurMetier(`La date doit suivre la dernière journée (${fr(derniere.date)}).`);
     // Registre S34-4 : pas de journée un jour férié saisi, ni un jour que l'agence n'a pas coché (loi 22/069, art. 186) ; aucun jour coché : pas de contrôle
@@ -391,7 +391,7 @@ const caisses = {
     }
     if (E.sessions.some((s) => s.journeeId === j.id && s.caissierId === u.id && s.statut === "ouverte")) throw new ErreurMetier("Vous tenez déjà une caisse ouverte.");
     if (!E.affectations.some((f) => f.utilisateurId === u.id && f.guichetId === guichetId && !f.fin))
-      throw new ErreurMetier("Ce guichet ne vous est pas affecté (Administration > Guichet > Affectation).");   // registre S09-4
+      throw new ErreurMetier("Ce guichet ne vous est pas affecté (Administration > Guichets, Affecter un caissier).");   // registre S09-4
     const s: SessionCaisse = { id: prochain(E.sessions), guichetId, journeeId: j.id, caissierId: u.id, statut: "ouverte" };
     E.sessions.push(s); enregistrer(); return s;
   },
@@ -3001,7 +3001,7 @@ function piece(journal = "CA") {
   const j = journauxActifs().find((x) => x.code === journal);
   if (!j) throw new ErreurMetier(`Le journal ${journal} n'est pas actif (Comptabilité > Journal).`);   // avant le compteur : pas de trou (S30-2)
   const d = E.journauxDetail.find((x) => x.annee === annee && x.journalId === j.id);
-  if (!d) throw new ErreurMetier(`Le journal ${journal} n'est pas ouvert sur l'exercice ${annee} (Administration > Exercice, Compléter journal détail).`);
+  if (!d) throw new ErreurMetier(`Le journal ${journal} n'est pas ouvert sur l'exercice ${annee} (Administration > Exercices).`);
   d.compteur += 1;
   return composerPiece(E.numerotationPiece, { EXERCICE: annee, INSTITUTION: E.institution.sigle ?? "", AGENCE: E.agence.code, JOURNAL: journal, COMPTEUR: d.compteur });
 }
@@ -3011,7 +3011,7 @@ function pieceJournee(journal: string, j: Journee) {
   const jr = journauxActifs().find((x) => x.code === journal);
   if (!jr) throw new ErreurMetier(`Le journal ${journal} n'est pas actif (Comptabilité > Journal).`);
   const d = E.journauxDetail.find((x) => x.annee === annee && x.journalId === jr.id);
-  if (!d) throw new ErreurMetier(`Le journal ${journal} n'est pas ouvert sur l'exercice ${annee} (Administration > Exercice, Compléter journal détail).`);
+  if (!d) throw new ErreurMetier(`Le journal ${journal} n'est pas ouvert sur l'exercice ${annee} (Administration > Exercices).`);
   d.compteur += 1;
   return composerPiece(E.numerotationPiece, { EXERCICE: annee, INSTITUTION: E.institution.sigle ?? "", AGENCE: E.agence.code, JOURNAL: journal, COMPTEUR: d.compteur });
 }
@@ -6635,6 +6635,13 @@ function anneeDe(v: unknown): number {
   if (!/^\d+$/.test(String(v ?? "").trim()) || a < 1900 || a > 2999) throw new ErreurMetier("Année invalide.");
   return a;
 }
+/** Plan d'allègement, point 8.6 : l'exercice clôturé n'est plus en cours ; le plus ancien exercice ouvert et non clôturé prend la suite. Comme le serveur (exercices.suite). */
+function suiteExercice() {
+  if (E.exercices.some((e) => e.actif && !e.valide)) return;
+  for (const e of E.exercices) e.actif = false;
+  const suivant = [...E.exercices].filter((e) => e.ouvert && !e.valide).sort((a, b) => a.annee - b.annee)[0];
+  if (suivant) suivant.actif = true;
+}
 const exercices = {
   lire() {
     exiger();
@@ -6669,7 +6676,7 @@ const exercices = {
       E.exercices.push({ annee: nouvelle, actif: false, ouvert: false, valide: false });
       for (const f of feriesLegaux(nouvelle)) if (!E.feries.some((x) => x.date === f.date)) E.feries.push(f);   // jours fériés légaux repris chaque année (plan 2.22)
     }
-    enregistrer(); return exercices.lire();
+    suiteExercice(); enregistrer(); return exercices.lire();
   },
   /** « Ouverture d'un Exercice » (p. 21) : Exercice à ouvrir, Ouvrir ; la Liste Détails Journal reçoit les journaux de l'institution */
   ouvrir(annee: number | string) {
@@ -6679,7 +6686,7 @@ const exercices = {
     if (!e) throw new ErreurMetier("Exercice introuvable.");
     if (E.journauxDetail.some((x) => x.annee === a)) throw new ErreurMetier("Cet exercice est déjà ouvert.");
     for (const j of tousJournaux()) E.journauxDetail.push({ id: prochain(E.journauxDetail), annee: a, journalId: j.id, actif: true, ouvert: true, compteur: 0 });
-    e.ouvert = true; enregistrer(); return exercices.lire();
+    e.ouvert = true; suiteExercice(); enregistrer(); return exercices.lire();   // point 8.6 : sans autre exercice en cours, celui-ci le devient
   },
   /** « Completer journal detail de l'exercice encours » (p. 21) : bouton Enregistrer et confirmation (bas coupé ; registre S11-8) */
   completer(journalIds: number[]) {
@@ -7056,9 +7063,9 @@ function journalPeriodeOc(d: { journalId?: unknown; periode?: unknown }) {
   const m = /^(\d{2})\/(\d{4})$/.exec(texteOc(d.periode));
   if (!m || Number(m[1]) < 1 || Number(m[1]) > 12) throw new ErreurMetier("À remplir : Période.");
   const mois = Number(m[1]), annee = Number(m[2]);
-  if (!E.exercices.some((x) => x.annee === annee && x.ouvert && !x.valide)) throw new ErreurMetier(`Période : l'exercice ${annee} n'est pas ouvert (Administration > Exercice).`);
+  if (!E.exercices.some((x) => x.annee === annee && x.ouvert && !x.valide)) throw new ErreurMetier(`Période : l'exercice ${annee} n'est pas ouvert (Administration > Exercices).`);
   if (!E.journauxDetail.some((x) => x.annee === annee && x.journalId === j.id && x.actif && x.ouvert))
-    throw new ErreurMetier(`Le journal ${j.code} n'est pas ouvert sur l'exercice ${annee} (Administration > Exercice, Compléter journal détail).`);
+    throw new ErreurMetier(`Le journal ${j.code} n'est pas ouvert sur l'exercice ${annee} (Administration > Exercices).`);
   if (`${annee}-${m[1]}` > jourOuvertOc().slice(0, 7)) throw new ErreurMetier("Période : pas après la journée ouverte.");
   return { j, annee, mois, periode: texteOc(d.periode) };
 }
@@ -10298,25 +10305,19 @@ const journaux = {
   enregistrer(d: { type?: string; libelle?: string; code?: string; actif?: boolean; detail?: boolean }, id?: number) {
     exiger("chef_agence");   // profil habilité : registre T07, en attendant S03 à S06
     const type = d.type?.trim() ?? "", libelle = d.libelle?.trim() ?? "", code = (d.code ?? "").trim().toUpperCase();
-    const manque = manquants([["Type Journal", type], ["Libellé", libelle], ["Code", code]]);
+    const manque = manquants([["Type Journal", type], ["Libellé", libelle], ["Code du journal", code]]);
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     if (!(type in TYPES_JOURNAL)) throw new ErreurMetier("Type Journal inconnu.");
     const actuel = id === undefined ? undefined : E.journaux.find((j) => j.id === id && !j.supprime);
     if (id !== undefined && !actuel) throw new ErreurMetier("Journal introuvable.");
     if (actuel) { const pourquoi = journaux.utilise(actuel.id); if (pourquoi && (code !== actuel.code || type !== actuel.type)) throw new ErreurMetier(`Le code et le type ne se changent plus : ${pourquoi}.`); }
     if (E.journaux.some((j) => j.code === code && j.id !== id)) throw new ErreurMetier("Ce Code existe déjà.");
-    const ex = E.exercices.find((e) => e.actif)?.annee ?? null;
-    if (d.detail && ex === null) throw new ErreurMetier("Détail journal : aucun exercice en cours (Administration > Exercice).");
-    if (!d.detail && actuel && ex !== null && (E.journauxDetail.find((x) => x.journalId === actuel.id && x.annee === ex)?.compteur ?? 0) > 0)
-      throw new ErreurMetier(`Détail journal : des pièces sont numérotées sur l'exercice ${ex}, le détail reste.`);
     let jid = id;
     if (actuel) Object.assign(actuel, { code, libelle, type, actif: !!d.actif });
     else { jid = prochain(E.journaux); E.journaux.push({ id: jid, code, libelle, type, actif: !!d.actif, supprime: false }); }
-    if (ex !== null) {
-      const det = E.journauxDetail.find((x) => x.journalId === jid && x.annee === ex);
-      if (d.detail && !det) E.journauxDetail.push({ id: prochain(E.journauxDetail), annee: ex, journalId: jid!, actif: true, ouvert: true, compteur: 0 });
-      if (!d.detail && det && det.compteur === 0) E.journauxDetail = E.journauxDetail.filter((x) => x !== det);
-    }
+    // Plan d'allègement, point 8.6 : tout journal se rattache d'office aux exercices ouverts et non clôturés (« Compléter journal détail » disparaît)
+    for (const e of E.exercices.filter((x) => x.ouvert && !x.valide))
+      if (!E.journauxDetail.some((x) => x.journalId === jid && x.annee === e.annee)) E.journauxDetail.push({ id: prochain(E.journauxDetail), annee: e.annee, journalId: jid!, actif: true, ouvert: true, compteur: 0 });
     enregistrer(); return journaux.lire();
   },
   /** Supprimer (p. 12) : logique (T02) ; un journal qui a servi ne se supprime pas : décocher Actif (registre S30-3) */

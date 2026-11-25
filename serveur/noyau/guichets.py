@@ -159,7 +159,7 @@ def fermer(u, gid: int) -> dict:
     return lire(u)
 
 
-# ---------- S10 : Administration > Guichet > Affectation (manuel Microfina++, p. 20, 96 et 110) ----------
+# ---------- S10 : Administration > Guichets, Affecter un caissier (manuel Microfina++, p. 20, 96 et 110) ----------
 
 def affectations(u) -> dict:
     """« Ajout et Retrait de Guichet à un utilisateur » (p. 96) : Login utilisateur, Nom utilisateur, Guichet, Agence ; fenêtre d'ajout (p. 20)"""

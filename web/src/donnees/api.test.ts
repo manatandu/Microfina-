@@ -652,8 +652,10 @@ describe("journée de guichet", () => {
     expect([l.details.filter((d) => d.annee === 2027).length, l.enCours]).toEqual([l.journaux.length, 2027]);
     await expect(api.exercices.ouvrir(2027)).rejects.toThrow("déjà ouvert");
     // Compléter journal détail (registre S11-8)
-    await api.exercices.enregistrer({ annee: "2028", lignes: [{ annee: 2027, actif: false, ouvert: true, valide: false }] });
-    l = await api.exercices.enregistrer({ annee: "", lignes: [{ annee: 2028, actif: true, ouvert: true, valide: false }] });
+    // Plan d'allègement, point 8.6 : sans exercice en cours, le plus ancien exercice ouvert et non clôturé le devient
+    l = await api.exercices.enregistrer({ annee: "2028", lignes: [{ annee: 2027, actif: false, ouvert: true, valide: false }] });
+    expect(l.enCours).toBe(2026);
+    l = await api.exercices.enregistrer({ annee: "", lignes: [{ annee: 2026, actif: false, ouvert: true, valide: false }, { annee: 2028, actif: true, ouvert: true, valide: false }] });
     l = await api.exercices.completer([1]);
     expect(l.details.filter((d) => d.annee === 2028).map((d) => d.journalId)).toEqual([1]);
     await connecter("bkasongo");

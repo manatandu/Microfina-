@@ -176,9 +176,9 @@ def journal_periode(u, d) -> tuple:
         raise ErreurMetier("À remplir : Période.")
     mois, annee = int(m.group(1)), int(m.group(2))
     if not une("select 1 from exercice where institution_id = %s and annee = %s and ouvert and not valide", (i, annee)):
-        raise ErreurMetier(f"Période : l'exercice {annee} n'est pas ouvert (Administration > Exercice).")
+        raise ErreurMetier(f"Période : l'exercice {annee} n'est pas ouvert (Administration > Exercices).")
     if not une("select 1 from journal_detail where institution_id = %s and annee = %s and journal_id = %s and actif and ouvert", (i, annee, j["id"])):
-        raise ErreurMetier(f"Le journal {j['code']} n'est pas ouvert sur l'exercice {annee} (Administration > Exercice, Compléter journal détail).")
+        raise ErreurMetier(f"Le journal {j['code']} n'est pas ouvert sur l'exercice {annee} (Administration > Exercices).")
     if f"{annee}-{mois:02d}" > jour_ouvert(u)[:7]:
         raise ErreurMetier("Période : pas après la journée ouverte.")
     return j, annee, mois

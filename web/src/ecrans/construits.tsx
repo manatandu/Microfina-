@@ -85,10 +85,7 @@ const FICHIERS: (() => Promise<unknown>)[] = [
   () => import("./Devises"),
   () => import("./Facture"),
   () => import("./Profils"),
-  () => import("./Droits"),
   () => import("./Utilisateurs"),
-  () => import("./ProfilsUtilisateurs"),
-  () => import("./Connexions"),
   () => import("./Numerotation"),
   () => import("./Journee"),
   () => import("./Visa"),
@@ -196,12 +193,8 @@ const BalanceComptes = paresseux(() => import("./EtatsCompta"), "BalanceComptes"
 const GrandLivre = paresseux(() => import("./EtatsCompta"), "GrandLivre");
 const BilletageCaisse = paresseux(() => import("./Caisse"), "BilletageCaisse");
 const ValidationBilletage = paresseux(() => import("./Caisse"), "ValidationBilletage");
-const AffectationGuichets = paresseux(() => import("./Guichets"), "AffectationGuichets");
-const GestionGuichets = paresseux(() => import("./Guichets"), "GestionGuichets");
-const OuvertureFermetureGuichets = paresseux(() => import("./Guichets"), "OuvertureFermetureGuichets");
-const CompleterJournalDetail = paresseux(() => import("./Exercices"), "CompleterJournalDetail");
-const NouvelExercice = paresseux(() => import("./Exercices"), "NouvelExercice");
-const OuvertureExercice = paresseux(() => import("./Exercices"), "OuvertureExercice");
+const Guichets = paresseux(() => import("./Guichets"), "Guichets");   // plan d'allègement, point 8.4 : S08 et S09
+const Exercices = paresseux(() => import("./Exercices"), "Exercices");   // plan d'allègement, point 8.6 : S11, S11b et S11c
 const NouveauMembre = paresseux(() => import("./Membres"), "NouveauMembre");
 const MiseAJourClient = paresseux(() => import("./Membres"), "MiseAJourClient");
 const RapportTransactions = paresseux(() => import("./Transactions"), "default");
@@ -223,10 +216,7 @@ const JoursTravail = paresseux(() => import("./JoursTravail"), "default");
 const Devises = paresseux(() => import("./Devises"), "default");
 const Facture = paresseux(() => import("./Facture"), "default");
 const GestionProfils = paresseux(() => import("./Profils"), "default");
-const DroitsProfil = paresseux(() => import("./Droits"), "default");
-const EnregistrementUtilisateurs = paresseux(() => import("./Utilisateurs"), "default");
-const GestionProfilsUtilisateur = paresseux(() => import("./ProfilsUtilisateurs"), "default");
-const Connexions = paresseux(() => import("./Connexions"), "default");
+const Utilisateurs = paresseux(() => import("./Utilisateurs"), "default");   // plan d'allègement, point 8.3 : S05, S06, S07 et S10
 const Numerotations = paresseux(() => import("./Numerotation"), "Numerotations");
 const EcranJournee = paresseux(() => import("./Journee"), "EcranJournee");
 const InformationsClient = paresseux(() => import("./Visa"), "InformationsClient");
@@ -244,12 +234,12 @@ const CreationBanque = paresseux(() => import("./Banques"), "CreationBanque");
 
 /** Écrans de l'inventaire déjà construits. Les autres affichent « pas encore construit ». */
 export const CONSTRUITS: Record<string, ComponentType> = {
-  S08: GestionGuichets,
-  S09: OuvertureFermetureGuichets,
-  S10: AffectationGuichets,
-  S11: NouvelExercice,
-  S11b: OuvertureExercice,
-  S11c: CompleterJournalDetail,
+  S08: Guichets,
+  S09: Guichets,
+  S10: Utilisateurs,
+  S11: Exercices,
+  S11b: Exercices,
+  S11c: Exercices,
   S12: EcranJournee,
   S13: RapportTransactions,
   S14: ListesGenerales,
@@ -270,10 +260,10 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S35: Devises,
   S36: Facture,
   S03: GestionProfils,
-  S04: DroitsProfil,
-  S05: EnregistrementUtilisateurs,
-  S06: GestionProfilsUtilisateur,
-  S07: Connexions,
+  S04: GestionProfils,   // plan d'allègement, point 8.2 : S03 et S04 sur une page
+  S05: Utilisateurs,
+  S06: Utilisateurs,
+  S07: Utilisateurs,
   S16: FraisOperations,
   S37: NouveauMembre,
   S40: MembresAViser,

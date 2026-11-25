@@ -1,91 +1,214 @@
+// Administration > Sécurité > Utilisateurs (plan d'allègement, point 8.3) : S05 (création, p. 16 et 17), S06 (profils, p. 17), S07 (connexions, p. 18) et S10
+// (affectation d'un guichet, p. 20, 96 et 110) sur un écran. La liste et, sur la ligne : Modifier, Changer de profil, Affecter un guichet, Déconnecter, Désactiver ;
+// chaque action garde son droit (Instr. BCC 008, art. 16 ; registre T29). La fiche sépare Nom et Prénoms (registre S05-2) ; adresse, BP et téléphone fixe disparaissent.
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { fr, jourDe } from "../lib/dates";
+import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
+import { TableFiltree } from "./Groupes";
 
-type Ligne = { id: number; nom: string; login: string; agenceId: number | null; controleConnecte: boolean; rue: string; adresse: string; bp: string;
-  telephoneFixe: string; portable: string; email: string; agence: string; actif: boolean; derniereActivation: string };
-const VIDE = { nom: "", agenceId: "", controleConnecte: false, login: "", motDePasse: "", confirmation: "", rue: "", adresse: "", bp: "", telephoneFixe: "", portable: "", email: "" };
-/** Grille : Nom user, le premier mot ; Prenoms user, la suite (registre S05-2) */
+type Fichier = { id: number; nom: string; login: string; agenceId: number | null; controleConnecte: boolean; rue: string; adresse: string; bp: string;
+  telephoneFixe: string; portable: string; email: string; agence: string; actif: boolean };
+type Connexion = { id: number; login: string; nom: string; agence: string; connecte: boolean; machine: string; actif: boolean };
+type Affectation = { id: number; login: string; nom: string; agenceId: number; agence: string; guichetId: number | null; guichet: string };
+type Ligne = { id: number; nom: string; login: string; agence: string; f?: Fichier; c?: Connexion; a?: Affectation };
+const jour = (iso: string) => (iso ? fr(jourDe(iso)) : "");   // jour de l'agence (point 11.4)
+/** Nom : le premier mot ; Prénoms : la suite (registre S05-2) */
+const decouper = (n: string) => { const [premier = "", ...reste] = n.trim().split(/\s+/); return { nom: premier, prenoms: reste.join(" ") }; };
 
-/** S05 : Administration > Utilisateur > Création (manuel Microfina++, p. 16 et 17) */
-export default function EnregistrementUtilisateurs() {
-  const [f, setF] = useState(VIDE);
-  const [choisi, setChoisi] = useState<number | null>(null);
+export default function Utilisateurs() {
+  const [fiche, setFiche] = useState<Fichier | "nouveau" | null>(null);
+  const [profil, setProfil] = useState<Ligne | null>(null);
+  const [guichet, setGuichet] = useState<Ligne | null>(null);
+  const [desactiver, setDesactiver] = useState<Fichier | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
-  const [motif, setMotif] = useState("");
-  const { donnees } = useDonnees(() => api.comptesUtilisateurs.lire(), [relu]);
+  const { donnees } = useDonnees(async () => {
+    const u = await api.session.courante();
+    const d = new Set((u as { droits?: string[] } | null)?.droits ?? []);
+    const [g, c, a] = await Promise.all([d.has("S05") ? api.comptesUtilisateurs.lire() : null, d.has("S07") ? api.connexions.lire() : null, d.has("S10") ? api.guichets.affectations() : null]);
+    const p = d.has("S06") ? await api.profilsUtilisateurs.lire() : null;
+    return { d, g, c, a, p };
+  }, [relu]);
   if (!donnees) return <Chargement />;
-  const effacer = () => { setF(VIDE); setChoisi(null); setMotif(""); };
-  const ligne = (donnees.utilisateurs as Ligne[]).find((x) => x.id === choisi);
-  // Désactiver l'utilisateur qui quitte l'institution, ou le réactiver : motif, date et auteur gardés (Instr. BCC 008, art. 16 ; registre S05-4)
-  const activer = (actif: boolean) => setBoite({ type: "confirmation", message: actif ? `Réactiver ${ligne?.nom} ?` : `Désactiver ${ligne?.nom} ? Il ne pourra plus se connecter.`, oui: async () => {
-    try { await api.comptesUtilisateurs.activer(choisi!, { actif, motif }); effacer(); setRelu((x) => x + 1); setBoite({ type: "succes", message: actif ? "Utilisateur réactivé." : "Utilisateur désactivé." }); }
+  const { d, g, c, a, p } = donnees;
+  // Une ligne par utilisateur, d'après ce que les droits laissent lire
+  const parId = new Map<number, Ligne>();
+  const ajouter = (x: { id: number; nom: string; login: string; agence: string }, k: "f" | "c" | "a", v: Fichier | Connexion | Affectation) =>
+    parId.set(x.id, { ...(parId.get(x.id) ?? { id: x.id, nom: x.nom, login: x.login, agence: x.agence }), [k]: v });
+  for (const x of (g?.utilisateurs ?? []) as Fichier[]) ajouter(x, "f", x);
+  for (const x of (c?.utilisateurs ?? []) as Connexion[]) ajouter(x, "c", x);
+  for (const x of (a?.utilisateurs ?? []) as Affectation[]) ajouter(x, "a", x);
+  for (const x of (p?.utilisateurs ?? []) as { id: number; nom: string; login: string; agence: string }[]) if (!parId.has(x.id)) parId.set(x.id, { ...x });
+  const lignes = [...parId.values()].sort((x, y) => x.nom.localeCompare(y.nom));
+  const relire = () => setRelu((x) => x + 1);
+  const confirmer = (texte: string, faire: () => Promise<unknown>, succes = "Enregistré avec succès !") => setBoite({ type: "confirmation", message: texte, oui: async () => {
+    try { await faire(); relire(); setBoite({ type: "succes", message: succes }); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   } });
-  const choisir = (x: Ligne) => { setChoisi(x.id); setF({ ...VIDE, nom: x.nom, agenceId: x.agenceId ? String(x.agenceId) : "", controleConnecte: x.controleConnecte, login: x.login,
-    rue: x.rue, adresse: x.adresse, bp: x.bp, telephoneFixe: x.telephoneFixe, portable: x.portable, email: x.email }); };
-  const enregistrer = () => setBoite({ type: "confirmation", message: choisi === null ? "Voulez-vous vraiment enregistrer ?" : "Voulez-vous vraiment modifier ?", oui: async () => {
-    try { await api.comptesUtilisateurs.enregistrer({ ...f, agenceId: f.agenceId ? Number(f.agenceId) : donnees!.agences.length === 1 ? donnees!.agences[0]!.id : null }, choisi ?? undefined); effacer(); setRelu((x) => x + 1);
-      setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
-    catch (x) { setBoite({ type: "erreur", message: message(x) }); }
-  } });
-  const texte = (k: keyof typeof VIDE, libelle: string, type = "text") => (
-    <Champ libelle={libelle}>{(p) => <input {...p} type={type} className="saisie" autoComplete={type === "password" ? "new-password" : "off"} value={String(f[k])}
-      onChange={(e) => setF({ ...f, [k]: e.target.value })} />}</Champ>);
+  const ok = (texte: string) => { relire(); setBoite({ type: "succes", message: texte }); };
   return (
     <>
-      <h2>Enregistrement des utilisateurs</h2>
-      <section className="bloc pile" aria-label="Enregistrement des utilisateurs">
-        <div className="grille-deux">
-          <fieldset className="cadre-champs pile champs-a-gauche">
-            <legend>Informations</legend>
-            {texte("nom", "Nom et prénoms *")}
-            {donnees.agences.length > 1 && <Champ libelle="Agence *">{(p) => <select {...p} className="saisie" value={f.agenceId} onChange={(e) => setF({ ...f, agenceId: e.target.value })}>
-              <option value=""></option>{donnees.agences.map((a: { id: number; nom: string }) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>}
-            <label className="case-jour"><input type="checkbox" checked={f.controleConnecte} onChange={(e) => setF({ ...f, controleConnecte: e.target.checked })} /> Control utilisateur connecté</label>
-          </fieldset>
-          <fieldset className="cadre-champs pile champs-a-gauche">
-            <legend>Authentification</legend>
-            {texte("login", "Identifiant de connexion *")}
-            {texte("motDePasse", choisi === null ? "Mot de passe *" : "Mot de passe", "password")}
-            {texte("confirmation", choisi === null ? "Confirmation *" : "Confirmation", "password")}
-          </fieldset>
-        </div>
-        <fieldset className="cadre-champs">
-          <legend>Info Adresse</legend>
-          <div className="grille-trois-champs">
-            {texte("rue", "Rue / Maison :")}{texte("adresse", "Adresse :")}{texte("bp", "BP :")}
-            {texte("telephoneFixe", "Tél fix :")}{texte("portable", "Portable : *")}{texte("email", "Email :")}
-          </div>
-        </fieldset>
-        <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={ligne?.actif === false} onClick={enregistrer}>{choisi === null ? "Enregistrer" : "Modifier"}</button>
-          <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
-        </div>
-        {ligne && <fieldset className="cadre-champs pile champs-a-gauche">
-          <legend>{ligne.actif ? "Désactiver cet utilisateur" : "Réactiver cet utilisateur"}</legend>
-          <Champ libelle="Motif *">{(p) => <input {...p} className="saisie" autoComplete="off" value={motif} onChange={(e) => setMotif(e.target.value)} />}</Champ>
-          <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => activer(!ligne.actif)}>{ligne.actif ? "Désactiver" : "Réactiver"}</button></div>
-        </fieldset>}
-        <table className="grille">
-          <thead><tr><th scope="col">Nom et prénoms</th><th scope="col">Identifiant de connexion</th><th scope="col">Agence</th><th scope="col">Téléphone</th><th scope="col">Actif</th></tr></thead>
-          <tbody>
-            {(donnees.utilisateurs as Ligne[]).map((x) => {
-              return (
-                <tr key={x.id} className="ligne-choix" tabIndex={0} aria-selected={x.id === choisi} onClick={() => choisir(x)} onKeyDown={(e) => { if (e.key === "Enter") choisir(x); }}>
-                  <td>{x.nom}</td><td>{x.login}</td><td>{x.agence}</td><td>{x.portable}</td><td>{x.actif ? "Oui" : "Non"}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        <Textes sources={["Manuel Microfina++, p. 16 : « Renseigner obligatoirement les champs marqués (*) avant d'enregistrer » ; capture p. 17 : Informations (Nom et prénom(s)*, Agence*, Control utilisateur connecté), Authentification (Nom utilisateur*, Mot de passe*, Confirmation*), Info Adresse (Rue / Maison, Adresse, BP, Tél fix, Portable*, Email), Enregistrer, Effacer ; grille Nom user, Prenoms user, Agence, Telephone",
-          "Instr. BCC 008, art. 16 : gestion des accès et authentification des usagers maîtrisées ; règles internes de sécurité édictées par l'institution",
-          "Instr. BCC 008, art. 16 : l'utilisateur qui quitte l'institution est désactivé, avec motif, date et auteur ; il ne se connecte plus et reste nommé dans les historiques (registre S05-4)"]} />
-        <Dialogue boite={boite} fermer={() => setBoite(null)} />
+      <section className="bloc pile" aria-label="Utilisateurs">
+        {d.has("S05") && <div className="actions-onglets"><button className="bouton" type="button" onClick={() => setFiche("nouveau")}>Nouvel utilisateur</button></div>}
+        <TableFiltree lignes={lignes} cle={(x) => x.id} colonnes={[
+          { titre: "Nom", valeur: (x) => decouper(x.nom).nom },
+          { titre: "Prénoms", valeur: (x) => decouper(x.nom).prenoms },
+          { titre: "Identifiant de connexion", valeur: (x) => x.login },
+          { titre: "Agence", valeur: (x) => x.agence },
+          ...(a ? [{ titre: "Guichet", valeur: (x: Ligne) => x.a?.guichet ?? "" }] : []),
+          ...(c ? [{ titre: "Connecté", valeur: (x: Ligne) => (x.c?.connecte ? `Oui${x.c.machine ? `, ${x.c.machine}` : ""}` : "Non") }] : []),
+          ...(g ? [{ titre: "Actif", valeur: (x: Ligne) => (x.f?.actif === false ? "Non" : "Oui") }] : []),
+        ]} apres={{ titre: "Actions", cellule: (x) => (
+          <span className="actions-ligne">
+            {x.f && <button className="bouton secondaire petit" type="button" aria-label={`Modifier : ${x.login}`} disabled={!x.f.actif} onClick={() => setFiche(x.f!)}>Modifier</button>}
+            {p && <button className="bouton secondaire petit" type="button" aria-label={`Changer de profil : ${x.login}`} onClick={() => setProfil(x)}>Changer de profil</button>}
+            {x.a && !x.a.guichetId && <button className="bouton secondaire petit" type="button" aria-label={`Ajouter un guichet : ${x.login}`} onClick={() => setGuichet(x)}>Affecter un guichet</button>}
+            {x.a?.guichetId ? <button className="bouton secondaire petit" type="button" aria-label={`Retirer le guichet : ${x.login}`}
+              onClick={() => confirmer("Voulez-vous retirer le guichet à cet utilisateur", () => api.guichets.retirer(x.id))}>Retirer le guichet</button> : null}
+            {x.c?.connecte && <button className="bouton secondaire petit" type="button" aria-label={`Déconnecter ${x.login}`}
+              onClick={() => confirmer("Voulez-vous déconnecter cet utilisateur", () => api.connexions.deconnecter(x.id))}>Déconnecter</button>}
+            {x.f && <button className="bouton secondaire petit" type="button" aria-label={`${x.f.actif ? "Désactiver" : "Réactiver"} : ${x.login}`} onClick={() => setDesactiver(x.f!)}>
+              {x.f.actif ? "Désactiver" : "Réactiver"}</button>}
+          </span>
+        ) }} />
+        <Textes sources={["Manuel Microfina++, p. 16 et 17 (création, gestion des profils), p. 18 (connexions, déconnecter), p. 20, 96 et 110 (ajout de guichet) ; plan d'allègement, point 8.3",
+          "Instr. BCC 008, art. 16 : gestion des accès et authentification maîtrisées ; l'utilisateur qui part est désactivé, avec motif, date et auteur (registre S05-4) ; art. 66 : séparation des tâches"]} />
       </section>
+      <Fiche titre={fiche === "nouveau" ? "Nouvel utilisateur" : fiche ? `Utilisateur ${fiche.login}` : ""} ouverte={!!fiche} fermer={() => setFiche(null)}>
+        {fiche && g && <FicheUtilisateur f={fiche === "nouveau" ? null : fiche} agences={g.agences} fermer={() => setFiche(null)} fait={() => { setFiche(null); ok("Enregistré avec succès !"); }} />}
+      </Fiche>
+      <Fiche titre={profil ? `Changer de profil : ${profil.login}` : ""} ouverte={!!profil} fermer={() => setProfil(null)}>
+        {profil && <ChangerProfil l={profil} fermer={() => setProfil(null)} fait={() => { setProfil(null); ok("Enregistré avec succès !"); }} />}
+      </Fiche>
+      <Fiche titre="Ajout de Guichet à un utilisateur" ouverte={!!guichet && !boite} fermer={() => setGuichet(null)}>
+        {guichet && a && <AjoutGuichet l={guichet} guichets={a.guichets} fermer={() => setGuichet(null)} poser={setBoite} fait={() => { setGuichet(null); relire(); }} />}
+      </Fiche>
+      <Fiche titre={desactiver ? `${desactiver.actif ? "Désactiver" : "Réactiver"} ${desactiver.nom}` : ""} ouverte={!!desactiver && !boite} fermer={() => setDesactiver(null)}>
+        {desactiver && <Activation f={desactiver} fermer={() => setDesactiver(null)} poser={setBoite} fait={(t) => { setDesactiver(null); ok(t); }} />}
+      </Fiche>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
+  );
+}
+
+/** Fiche (S05, capture p. 17) : Informations, Authentification ; portable et adresse électronique restent */
+function FicheUtilisateur({ f, agences, fermer, fait }: { f: Fichier | null; agences: { id: number; nom: string }[]; fermer: () => void; fait: () => void }) {
+  const [v, setV] = useState(() => ({ ...decouper(f?.nom ?? ""), agenceId: f?.agenceId ? String(f.agenceId) : "", controleConnecte: f?.controleConnecte ?? false, login: f?.login ?? "",
+    motDePasse: "", confirmation: "", portable: f?.portable ?? "", email: f?.email ?? "" }));
+  const [boite, setBoite] = useState<Boite | null>(null);
+  const texte = (k: "nom" | "prenoms" | "login" | "motDePasse" | "confirmation" | "portable" | "email", libelle: string, type = "text") => (
+    <Champ libelle={libelle}>{(p) => <input {...p} type={type} className="saisie" autoComplete={type === "password" ? "new-password" : "off"} value={v[k]}
+      onChange={(e) => setV({ ...v, [k]: e.target.value })} />}</Champ>);
+  const enregistrer = () => setBoite({ type: "confirmation", message: f ? "Voulez-vous vraiment modifier ?" : "Voulez-vous vraiment enregistrer ?", oui: async () => {
+    try {
+      await api.comptesUtilisateurs.enregistrer({ nom: [v.nom.trim(), v.prenoms.trim()].filter(Boolean).join(" "), agenceId: v.agenceId ? Number(v.agenceId) : agences.length === 1 ? agences[0]!.id : null,
+        controleConnecte: v.controleConnecte, login: v.login, motDePasse: v.motDePasse, confirmation: v.confirmation,
+        rue: f?.rue ?? "", adresse: f?.adresse ?? "", bp: f?.bp ?? "", telephoneFixe: f?.telephoneFixe ?? "", portable: v.portable, email: v.email }, f?.id);
+      fait();
+    } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  } });
+  return (
+    <div className="pile">
+      <div className="grille-deux">
+        <fieldset className="cadre-champs pile champs-a-gauche">
+          <legend>Informations</legend>
+          {texte("nom", "Nom *")}{texte("prenoms", "Prénoms")}
+          {agences.length > 1 && <Champ libelle="Agence *">{(p) => <select {...p} className="saisie" value={v.agenceId} onChange={(e) => setV({ ...v, agenceId: e.target.value })}>
+            <option value=""></option>{agences.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>}
+          {texte("portable", "Portable : *")}{texte("email", "Email :")}
+          <label className="case-jour"><input type="checkbox" checked={v.controleConnecte} onChange={(e) => setV({ ...v, controleConnecte: e.target.checked })} /> Control utilisateur connecté</label>
+        </fieldset>
+        <fieldset className="cadre-champs pile champs-a-gauche">
+          <legend>Authentification</legend>
+          {texte("login", "Identifiant de connexion *")}
+          {texte("motDePasse", f ? "Mot de passe" : "Mot de passe *", "password")}
+          {texte("confirmation", f ? "Confirmation" : "Confirmation *", "password")}
+        </fieldset>
+      </div>
+      <div className="actions-onglets">
+        <button className="bouton" type="button" onClick={enregistrer}>{f ? "Modifier" : "Enregistrer"}</button>
+        <button className="bouton secondaire" type="button" onClick={fermer}>Annuler</button>
+      </div>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </div>
+  );
+}
+
+/** Changer de profil (S06, p. 17) : on ne change pas son propre profil ; l'historique reste */
+function ChangerProfil({ l, fermer, fait }: { l: Ligne; fermer: () => void; fait: () => void }) {
+  const [pid, setPid] = useState("");
+  const [boite, setBoite] = useState<Boite | null>(null);
+  const { donnees } = useDonnees(() => api.profilsUtilisateurs.lire(l.id), [l.id]);
+  if (!donnees) return <Chargement />;
+  const profils = donnees.profils as { id: number; nom: string; description: string }[];
+  const actuel = profils.find((x) => x.id === donnees.profilId);
+  const enregistrer = () => setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+    try { await api.profilsUtilisateurs.enregistrer({ utilisateurId: l.id, profilId: Number(pid) }); fait(); }
+    catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  } });
+  return (
+    <div className="pile">
+      <p>Profil actuel : <strong>{actuel?.nom ?? "aucun"}</strong></p>
+      <Champ libelle="Nouveau profil *">{(p) => <select {...p} className="saisie" value={pid} onChange={(e) => setPid(e.target.value)}>
+        <option value=""></option>{profils.filter((x) => x.id !== donnees.profilId).map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>
+      <div className="actions-onglets">
+        <button className="bouton" type="button" disabled={!pid} onClick={enregistrer}>Enregistrer</button>
+        <button className="bouton secondaire" type="button" onClick={fermer}>Annuler</button>
+      </div>
+      <table className="grille" aria-label="Historique profil">
+        <thead><tr><th scope="col">Profil</th><th scope="col">Début</th><th scope="col">Fin</th><th scope="col">Attribué par</th></tr></thead>
+        <tbody>
+          {donnees.historique.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
+          {donnees.historique.map((h, i) => <tr key={i}><td>{h.profil}</td><td>{jour(h.debut)}</td><td>{jour(h.fin)}</td><td>{h.attribuePar}</td></tr>)}
+        </tbody>
+      </table>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </div>
+  );
+}
+
+/** Ajout de Guichet à un utilisateur (S10, fenêtre p. 20) : Code Guichet, Nom Guichet, Voir solde client, Voir solde client VIP, Ajouter, Fermer */
+function AjoutGuichet({ l, guichets, fermer, poser, fait }: { l: Ligne; guichets: { id: number; code: string; nom: string; agenceId: number }[]; fermer: () => void; poser: (b: Boite | null) => void; fait: () => void }) {
+  const [choisi, setChoisi] = useState(0);
+  const [voirSolde, setVoirSolde] = useState(false);
+  const [voirSoldeVip, setVoirSoldeVip] = useState(false);
+  const ajouter = () => {
+    if (!choisi) { poser({ type: "erreur", message: "À remplir : guichet." }); return; }
+    poser({ type: "confirmation", message: "Voulez-vous attribuer ce guichet à l'utilisateur ?", oui: async () => {
+      try { await api.guichets.affecter({ utilisateurId: l.id, guichetId: choisi, voirSolde, voirSoldeVip }); fait(); poser({ type: "succes", message: "Enregistré avec succès !" }); }
+      catch (x) { poser({ type: "erreur", message: message(x) }); }
+    } });
+  };
+  return (
+    <div className="pile">
+      <TableFiltree sansFiltres lignes={guichets.filter((x) => x.agenceId === l.a?.agenceId)} cle={(x) => x.id} choisir={(x) => setChoisi(x.id)} choisi={choisi} colonnes={[
+        { titre: "Code Guichet", valeur: (x) => x.code }, { titre: "Nom Guichet", valeur: (x) => x.nom }]} />
+      <label className="case"><span>Voir solde client</span><input type="checkbox" checked={voirSolde} onChange={(e) => setVoirSolde(e.target.checked)} /></label>
+      <label className="case"><span>Voir solde client VIP</span><input type="checkbox" checked={voirSoldeVip} onChange={(e) => setVoirSoldeVip(e.target.checked)} /></label>
+      <div className="actions-onglets">
+        <button className="bouton" type="button" onClick={ajouter}>Ajouter</button>
+        <button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button>
+      </div>
+    </div>
+  );
+}
+
+/** Désactiver l'utilisateur qui quitte l'institution, ou le réactiver : motif, date et auteur gardés (Instr. BCC 008, art. 16 ; registre S05-4) */
+function Activation({ f, fermer, poser, fait }: { f: Fichier; fermer: () => void; poser: (b: Boite | null) => void; fait: (t: string) => void }) {
+  const [motif, setMotif] = useState("");
+  const agir = () => poser({ type: "confirmation", message: f.actif ? `Désactiver ${f.nom} ? Il ne pourra plus se connecter.` : `Réactiver ${f.nom} ?`, oui: async () => {
+    try { await api.comptesUtilisateurs.activer(f.id, { actif: !f.actif, motif }); fait(f.actif ? "Utilisateur désactivé." : "Utilisateur réactivé."); }
+    catch (x) { poser({ type: "erreur", message: message(x) }); }
+  } });
+  return (
+    <div className="pile">
+      <Champ libelle="Motif *">{(p) => <input {...p} className="saisie" autoComplete="off" value={motif} onChange={(e) => setMotif(e.target.value)} />}</Champ>
+      <div className="actions-onglets">
+        <button className="bouton" type="button" onClick={agir}>{f.actif ? "Désactiver" : "Réactiver"}</button>
+        <button className="bouton secondaire" type="button" onClick={fermer}>Annuler</button>
+      </div>
+    </div>
   );
 }

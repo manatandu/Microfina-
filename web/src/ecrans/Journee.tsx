@@ -6,48 +6,88 @@ import { montant, totalComptage } from "@design/montant.js";
 import { Bloquant, Champ, Chargement, ChampDate, Dialogue, Textes, type Boite, Formulaire } from "../composants";
 import { TableFiltree } from "./Groupes";
 import { mots } from "../lib/vocabulaire";
+import { OuvertureFermetureGuichets } from "./Guichets";
 
-/** S12 : Administration > Ouverture de journée (manuel Microfina++, p. 21) */
+/** Jour ouvré suivant d'après le calendrier de l'agence (S34) : ni férié, ni jour non coché ; aucun jour coché : tous ouvrés (registre S34-4) */
+function jourOuvreSuivant(apres: string, jours: boolean[], feries: string[]): string {
+  let x = apres;
+  for (let i = 0; i < 31; i++) {
+    x = new Date(Date.parse(`${x}T00:00:00Z`) + 86400000).toISOString().slice(0, 10);
+    if (!feries.includes(x) && !(jours.some(Boolean) && !jours[new Date(`${x}T00:00:00Z`).getUTCDay()])) return x;
+  }
+  return x;
+}
+
+/** S12 : Administration > Journée > Journée du jour (plan d'allègement, point 8.5). Trois étapes sur un écran : ouvrir la journée (manuel p. 21 ; le jour ouvré
+ *  suivant est proposé), cours du jour de chaque devise (le dernier cours est proposé ; PCCI § 7.1), ouvrir les guichets (S09, p. 19). Chaque étape avec son droit. */
 export function EcranJournee() {
   const [date, setDate] = useState("");
+  const [cours, setCours] = useState<Record<string, string>>({});
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
-  const { donnees } = useDonnees(async () => ({ liste: await api.journees.liste(), ctx: await api.referentiel.contexte() }), [relu]);
+  const { donnees } = useDonnees(async () => {
+    const [liste, ctx, u, cal] = await Promise.all([api.journees.liste(), api.referentiel.contexte(), api.session.courante(), api.jours.lire()]);
+    const droits = new Set((u as { droits?: string[] } | null)?.droits ?? []);
+    return { liste, ctx, cal, droits, dv: droits.has("S35") ? await api.devises.lire() : null };
+  }, [relu]);
   if (!donnees) return <Chargement />;
-  const { liste, ctx } = donnees;
+  const { liste, ctx, cal, droits, dv } = donnees;
   const nom = (id?: number) => ctx.utilisateurs.find((u) => u.id === id)?.nom ?? "";
-  const heure = (iso?: string) => (iso ? heureDe(iso) : "");   // heure et jour de l'agence (point 11.4)
-  const jour = (iso?: string) => (iso ? fr(jourDe(iso)) : "");
-  function enregistrer() {
-    if (!date) { setBoite({ type: "erreur", message: "À remplir : date à ouvrir." }); return; }
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
-      try { await api.journees.ouvrir(date); setDate(""); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
-      catch (x) { setBoite({ type: "erreur", message: message(x) }); }
-    } });
+  const quand = (iso?: string) => (iso ? `${fr(jourDe(iso))} ${heureDe(iso)}` : "");   // jour et heure de l'agence (point 11.4)
+  const derniere = liste[0];
+  const jours = cal.agences.find((a) => a.id === cal.agenceDefaut)?.jours ?? [];
+  const proposee = derniere ? jourOuvreSuivant(derniere.date, jours, cal.feries.map((f) => f.date)) : "";
+  const ouverte = derniere && derniere.statut !== "fermee" ? derniere : null;
+  const etrangeres = (dv?.devises ?? []).filter((d) => d.code !== "CDF");
+  const veille = (code: string) => [...(dv?.cours ?? [])].filter((c) => c.devise === code).sort((a, b) => b.jour.localeCompare(a.jour))[0];
+  const valeurCours = (code: string) => cours[code] ?? (veille(code) ? String(veille(code)!.cours).replace(".", ",") : "");
+  const agir = (faire: () => Promise<unknown>, apres: () => void) => setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+    try { await faire(); apres(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+    catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  } });
+  function ouvrir() {
+    const d = date || proposee;
+    if (!d) { setBoite({ type: "erreur", message: "À remplir : date à ouvrir." }); return; }
+    agir(() => api.journees.ouvrir(d), () => setDate(""));
+  }
+  function enregistrerCours() {
+    if (!ouverte) return;
+    agir(async () => { for (const d of etrangeres) await api.devises.enregistrerCours({ devise: d.code, jour: ouverte.date, cours: valeurCours(d.code) }); }, () => setCours({}));
   }
   return (
     <>
-      
-      <Formulaire className="bloc pile" label="Ouverture de journée" envoyer={enregistrer}>
+      <Formulaire className="bloc pile" label="Ouvrir la journée" envoyer={ouvrir}>
+        <h2>Ouvrir la journée</h2>
         <div className="grille-cadres quatre">
-          <Champ libelle="Dernière journée ouverte">{(p) => <input {...p} className="saisie date" readOnly value={liste[0] ? fr(liste[0].date) : ""} />}</Champ>
-          <ChampDate libelle="Date à ouvrir" valeur={date} onChange={setDate} aide="" />
+          <Champ libelle="Dernière journée ouverte">{(p) => <input {...p} className="saisie date" readOnly value={derniere ? fr(derniere.date) : ""} />}</Champ>
+          <ChampDate libelle="Date à ouvrir" valeur={date || proposee} onChange={setDate} aide="" />
         </div>
         <div className="actions-onglets">
           <button className="bouton" type="submit">Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={() => setDate("")}>Annuler</button>
         </div>
+      </Formulaire>
+      {dv && ouverte && etrangeres.length > 0 && <Formulaire className="bloc pile" label="Cours du jour" envoyer={enregistrerCours}>
+        <h2>Cours du jour : {fr(ouverte.date)}</h2>
+        <div className="grille-cadres quatre">
+          {etrangeres.map((d) => <Champ key={d.code} libelle={`Cours ${d.code} (CDF pour une unité) *`}>{(p) => <input {...p} className="saisie code" inputMode="decimal" autoComplete="off"
+            value={valeurCours(d.code)} onChange={(e) => setCours({ ...cours, [d.code]: e.target.value })} />}</Champ>)}
+        </div>
+        <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer les cours</button></div>
+      </Formulaire>}
+      {droits.has("S09") && <OuvertureFermetureGuichets dansJournee />}
+      <section className="bloc pile" aria-label="Journées">
         <TableFiltree sansFiltres lignes={liste} cle={(j) => j.id} colonnes={[
           { titre: "Journée", valeur: (j) => fr(j.date), classe: "chiffres" },
-          { titre: "Ouverte par", valeur: (j) => nom(j.ouvertePar) },
-          { titre: "Heure ouverture", valeur: (j) => heure(j.ouverteLe), classe: "chiffres" },
-          { titre: "Date fermeture", valeur: (j) => jour(j.fermeeLe), classe: "chiffres" },
-          { titre: "Fermée par", valeur: (j) => nom(j.fermeePar) },
+          { titre: "Ouverte le", valeur: (j) => quand(j.ouverteLe), classe: "chiffres" },
+          { titre: "par", valeur: (j) => nom(j.ouvertePar) },
+          { titre: "Fermée le", valeur: (j) => quand(j.fermeeLe), classe: "chiffres" },
+          { titre: "par", valeur: (j) => nom(j.fermeePar) },
+          { titre: "État", valeur: (j) => (j.statut === "fermee" ? "Fermée" : "Ouverte") },
         ]} />
-        <Textes sources={["Manuel Microfina++, p. 21 : Ouverture de journée, Dernière journée ouverte, Date à ouvrir, Enregistrer, Annuler, liste Journée, Ouverte par, Heure ouverture, Date fermeture, Fermée par ; « Renseigner le champ de la date à ouvrir avant d'enregistrer »",
-          "Manuel Microfina++, chapitre Comptabilité : « la comptabilisation ou clôture des journées »",
-          "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
-      </Formulaire>
+        <Textes sources={["Manuel Microfina++, p. 21 : Ouverture de journée ; p. 19 : Ouverture/Fermeture de guichets ; p. 45 et 46 : cours ; plan d'allègement, point 8.5",
+          "PCCI § 7.1 : opérations en devises converties au cours du jour de la transaction ; calendrier de l'agence (S34 ; loi 22/069, art. 186)"]} />
+      </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );

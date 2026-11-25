@@ -24,7 +24,7 @@ export default function Journaux() {
     try { await faire(); effacer(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   } });
-  const exporter = () => exporterExcel("Liste des Journaux", ["N° Journal", "Libellé", "Type Journal", "Actif"], liste.map((j) => [j.code, j.libelle, j.typeLibelle, j.actif ? "Oui" : "Non"]));
+  const exporter = () => exporterExcel("Liste des Journaux", ["Code du journal", "Libellé", "Type Journal", "Actif"], liste.map((j) => [j.code, j.libelle, j.typeLibelle, j.actif ? "Oui" : "Non"]));
   return (
     <>
       <h2>Journal</h2>
@@ -36,10 +36,9 @@ export default function Journaux() {
             <Champ libelle="Type Journal *">{(p) => <select {...p} className="saisie" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>
               <option value=""></option>{donnees.types.map((t: { code: string; libelle: string }) => <option key={t.code} value={t.code}>{t.libelle}</option>)}</select>}</Champ>
             <Champ libelle="Libellé : *">{(p) => <input {...p} className="saisie" value={f.libelle} onChange={(e) => setF({ ...f, libelle: e.target.value })} />}</Champ>
-            <Champ libelle="Code :">{(p) => <input {...p} className="saisie code" value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} />}</Champ>
+            <Champ libelle="Code du journal *">{(p) => <input {...p} className="saisie code" value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} />}</Champ>
             <label className="case"><input type="checkbox" checked={f.actif} onChange={(e) => setF({ ...f, actif: e.target.checked })} /><span>Actif</span></label>
           </div>
-          <label className="case"><input type="checkbox" checked={f.detail} onChange={(e) => setF({ ...f, detail: e.target.checked })} /><span>Détail journal</span></label>
         </fieldset>
         <div className="actions-onglets">
           <button className="bouton" type="submit">Enregistrer</button>
@@ -51,7 +50,7 @@ export default function Journaux() {
           <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={exporter}>Exporter</button>
             <SchemasComptables exercice={aujourdhui().slice(0, 4)} /></div>
           <Paginee lignes={liste}>{(visibles) => (<table className="grille">
-            <thead><tr><th scope="col">N° Journal</th><th scope="col">Libellé</th><th scope="col">Type Journal</th><th scope="col">Actif</th></tr></thead>
+            <thead><tr><th scope="col">Code du journal</th><th scope="col">Libellé</th><th scope="col">Type Journal</th><th scope="col">Actif</th></tr></thead>
             <tbody>
               {liste.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
               {visibles.map((j) => (

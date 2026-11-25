@@ -41,8 +41,8 @@ def enregistrer(u, d, jid: int | None = None) -> dict:
     i = u["institution_id"]
     texte = lambda k: d.get(k).strip() if isinstance(d.get(k), str) else ""
     type_, libelle, code = texte("type"), texte("libelle"), texte("code").upper()
-    actif, detail = bool(d.get("actif")), bool(d.get("detail"))
-    manque = [n for n, v in (("Type Journal", type_), ("Libellé", libelle), ("Code", code)) if not v]
+    actif = bool(d.get("actif"))
+    manque = [n for n, v in (("Type Journal", type_), ("Libellé", libelle), ("Code du journal", code)) if not v]
     if manque:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
     if type_ not in TYPES:
@@ -57,21 +57,13 @@ def enregistrer(u, d, jid: int | None = None) -> dict:
             raise ErreurMetier(f"Le code et le type ne se changent plus : {pourquoi}.")
     if une("select 1 from journal where institution_id = %s and code = %s and id is distinct from %s", (i, code, jid)):
         raise ErreurMetier("Ce Code existe déjà.")
-    ex = exercice_en_cours(i)
-    if detail and ex is None:
-        raise ErreurMetier("Détail journal : aucun exercice en cours (Administration > Exercice).")
-    if not detail and jid is not None and ex is not None and \
-            valeur("select compteur from journal_detail where journal_id = %s and annee = %s", (jid, ex)):
-        raise ErreurMetier(f"Détail journal : des pièces sont numérotées sur l'exercice {ex}, le détail reste.")
     if jid is None:
         jid = valeur("insert into journal (institution_id, code, libelle, type, actif) values (%s, %s, %s, %s, %s) returning id", (i, code, libelle, type_, actif))
     else:
         executer("update journal set code = %s, libelle = %s, type = %s, actif = %s where id = %s", (code, libelle, type_, actif, jid))
-    if ex is not None:
-        if detail:
-            executer("insert into journal_detail (institution_id, annee, journal_id) values (%s, %s, %s) on conflict do nothing", (i, ex, jid))
-        else:
-            executer("delete from journal_detail where journal_id = %s and annee = %s and compteur = 0", (jid, ex))
+    # Plan d'allègement, point 8.6 : tout journal se rattache d'office aux exercices ouverts et non clôturés (« Compléter journal détail » disparaît)
+    executer("""insert into journal_detail (institution_id, annee, journal_id) select %s, annee, %s from exercice
+                where institution_id = %s and ouvert and not valide on conflict do nothing""", (i, jid, i))
     return lire(u)
 
 

@@ -19,8 +19,8 @@
   },
   {
     "id": "S03",
-    "nom": "Profils : création et modification",
-    "acces": "Administration > Profil",
+    "nom": "Profils et droits",
+    "acces": "Administration > Sécurité > Profils et droits",
     "but": "Créer un profil",
     "module": "administration",
     "priorite": "must",
@@ -29,7 +29,8 @@
   {
     "id": "S04",
     "nom": "Profils : droits",
-    "acces": "Administration > Profil > Assigner / modifier droit",
+    "acces": "Administration > Sécurité > Profils : droits",
+    "menu": false,
     "but": "Cocher les tâches permises à un profil",
     "module": "administration",
     "priorite": "must",
@@ -37,8 +38,8 @@
   },
   {
     "id": "S05",
-    "nom": "Utilisateurs : création",
-    "acces": "Administration > Utilisateur",
+    "nom": "Utilisateurs",
+    "acces": "Administration > Sécurité > Utilisateurs",
     "but": "Créer un utilisateur",
     "module": "administration",
     "priorite": "must",
@@ -47,7 +48,8 @@
   {
     "id": "S06",
     "nom": "Utilisateurs : profils",
-    "acces": "Administration > Utilisateur > Gestion des profils",
+    "acces": "Administration > Sécurité > Utilisateurs : profils",
+    "menu": false,
     "but": "Lier utilisateur, agence et profil",
     "module": "administration",
     "priorite": "must",
@@ -56,7 +58,8 @@
   {
     "id": "S07",
     "nom": "Utilisateurs : liste et déconnexion",
-    "acces": "Administration > Utilisateur > Autres fonctions, Déconnecter",
+    "acces": "Administration > Sécurité > Utilisateurs : liste et déconnexion",
+    "menu": false,
     "but": "Voir qui est connecté, depuis quelle machine ; déconnecter",
     "module": "administration",
     "priorite": "should",
@@ -64,8 +67,8 @@
   },
   {
     "id": "S08",
-    "nom": "Guichets : gestion",
-    "acces": "Administration > Guichet",
+    "nom": "Guichets",
+    "acces": "Administration > Journée > Guichets",
     "but": "Créer un guichet, ses comptes, l'option billetage, l'activer",
     "module": "administration",
     "priorite": "must",
@@ -74,7 +77,8 @@
   {
     "id": "S09",
     "nom": "Guichets : ouverture et fermeture",
-    "acces": "Administration > Guichet > Ouverture/Fermeture",
+    "acces": "Administration > Journée > Guichets : ouverture et fermeture",
+    "menu": false,
     "but": "Ouvrir ou fermer un guichet",
     "module": "administration",
     "priorite": "must",
@@ -83,7 +87,8 @@
   {
     "id": "S10",
     "nom": "Guichets : affectation",
-    "acces": "Administration > Guichet > Affectation",
+    "acces": "Administration > Journée > Guichets : affectation",
+    "menu": false,
     "but": "Ajouter ou retirer un guichet à un utilisateur",
     "module": "administration",
     "priorite": "must",
@@ -91,8 +96,8 @@
   },
   {
     "id": "S11",
-    "nom": "Exercice : création",
-    "acces": "Administration > Exercice > Création",
+    "nom": "Exercices",
+    "acces": "Administration > Journée > Exercices",
     "but": "Créer un exercice, cocher Actif, Ouvert, Validé (p. 20)",
     "module": "administration",
     "priorite": "must",
@@ -101,7 +106,8 @@
   {
     "id": "S11b",
     "nom": "Exercice : ouverture",
-    "acces": "Administration > Exercice > Ouverture",
+    "acces": "Administration > Journée > Exercice : ouverture",
+    "menu": false,
     "but": "Ouvrir un exercice (p. 21)",
     "module": "administration",
     "priorite": "must",
@@ -110,7 +116,8 @@
   {
     "id": "S11c",
     "nom": "Exercice : compléter journal détail",
-    "acces": "Administration > Exercice > Compléter journal détail",
+    "acces": "Administration > Journée > Exercice : compléter journal détail",
+    "menu": false,
     "but": "Compléter le journal détail de l'exercice en cours (p. 21)",
     "module": "administration",
     "priorite": "must",
@@ -118,8 +125,8 @@
   },
   {
     "id": "S12",
-    "nom": "Ouverture de journée",
-    "acces": "Administration > Ouverture de journée",
+    "nom": "Journée du jour",
+    "acces": "Administration > Journée > Journée du jour",
     "but": "Ouvrir une journée comptable",
     "module": "administration",
     "priorite": "must",
@@ -128,7 +135,7 @@
   {
     "id": "S13",
     "nom": "Rapport des transactions",
-    "acces": "Administration > Rapport des transactions",
+    "acces": "Administration > Sécurité > Rapport des transactions",
     "but": "Lister les opérations d'une période",
     "module": "administration",
     "priorite": "should",
@@ -137,7 +144,7 @@
   {
     "id": "SA01",
     "nom": "Journal de sécurité",
-    "acces": "Administration > Journal de sécurité",
+    "acces": "Administration > Sécurité > Journal de sécurité",
     "but": "Consulter les connexions, refus, blocages et accès refusés pour détecter les actions anormales ; écran du responsable de la sécurité informatique (écart E17 ; Instr. BCC 008, art. 16)",
     "module": "administration",
     "priorite": "must",
@@ -146,7 +153,7 @@
   {
     "id": "S14",
     "nom": "Listes de la fiche du membre",
-    "acces": "Info de base > Client > Général",
+    "acces": "Paramétrage > Fiche du membre > Listes de la fiche du membre",
     "but": "Listes que lit la fiche du membre",
     "module": "parametrage",
     "priorite": "must",
@@ -155,7 +162,7 @@
   {
     "id": "S15",
     "nom": "Numérotation",
-    "acces": "Info de base > Client > Numérotation",
+    "acces": "Paramétrage > Comptabilité > Numérotation",
     "but": "Numéros des membres, des comptes et des pièces",
     "module": "parametrage",
     "priorite": "must",
@@ -164,7 +171,7 @@
   {
     "id": "S16",
     "nom": "Frais et opérations",
-    "acces": "Info de base > Client > Opération",
+    "acces": "Paramétrage > Produits > Frais et opérations",
     "but": "Définir les frais, les rattacher aux opérations et à l'adhésion par type de client",
     "module": "parametrage",
     "priorite": "must",
@@ -182,7 +189,7 @@
   {
     "id": "S20",
     "nom": "Localisation",
-    "acces": "Info de base > Localisation",
+    "acces": "Paramétrage > Fiche du membre > Localisation",
     "but": "Pays, département, commune, arrondissement, quartier",
     "module": "parametrage",
     "priorite": "must",
@@ -191,7 +198,7 @@
   {
     "id": "S21",
     "nom": "Référentiel crédit",
-    "acces": "Produits > Crédits > Général",
+    "acces": "Paramétrage > Produits > Référentiel crédit",
     "but": "Types et objets de crédit, type de produit, cycles, zones, degrés, termes, périodicités, types d'assurance, assureurs, gestionnaires de portefeuille",
     "module": "parametrage",
     "priorite": "must",
@@ -200,7 +207,7 @@
   {
     "id": "S22",
     "nom": "Ordre de remboursement",
-    "acces": "Paramétrage > Produit > Crédit",
+    "acces": "Paramétrage > Produits > Ordre de remboursement",
     "but": "Ordre d'imputation d'un remboursement entre intérêt, capital, pénalité, épargne, solidarité",
     "module": "parametrage",
     "priorite": "must",
@@ -209,7 +216,7 @@
   {
     "id": "S23",
     "nom": "Produits de crédit",
-    "acces": "Paramétrage > Produit > Crédit > Produit crédit",
+    "acces": "Paramétrage > Produits > Produits de crédit",
     "but": "Liste des produits, activation, fiche du produit",
     "module": "parametrage",
     "priorite": "must",
@@ -218,7 +225,7 @@
   {
     "id": "S26",
     "nom": "Modèle de produit crédit",
-    "acces": "Produits > Crédits > Modèle pour crédit",
+    "acces": "Paramétrage > Produits > Modèle de produit crédit",
     "but": "Comptes capital, interne, intérêt ; table des degrés de classement (taux de provision, jours) ; table des termes (durées)",
     "module": "parametrage",
     "priorite": "must",
@@ -227,7 +234,7 @@
   {
     "id": "S27",
     "nom": "Produit épargne",
-    "acces": "Paramétrage > Produit > Épargne",
+    "acces": "Paramétrage > Produits > Produit épargne",
     "but": "Définir un produit d'épargne",
     "module": "parametrage",
     "priorite": "must",
@@ -236,7 +243,7 @@
   {
     "id": "SP01",
     "nom": "Conditions de banque",
-    "acces": "Paramétrage > Produit > Conditions de banque",
+    "acces": "Paramétrage > Produits > Conditions de banque",
     "but": "Imprimer les conditions de banque paramétrées (taux, prélèvements, commissions, frais, dates de valeur) pour l'affichage trimestriel et la transmission à la BCC (écart E15 ; Instr. BCC 40, art. 2 à 6)",
     "module": "parametrage",
     "priorite": "must",
@@ -244,8 +251,8 @@
   },
   {
     "id": "S30",
-    "nom": "Journaux",
-    "acces": "Paramétrage > Comptabilité > Journal",
+    "nom": "Journaux : création",
+    "acces": "Paramétrage > Comptabilité > Journaux",
     "but": "Créer les journaux",
     "module": "parametrage",
     "priorite": "must",
@@ -254,7 +261,7 @@
   {
     "id": "S31",
     "nom": "Encaissements et décaissements divers : référentiel",
-    "acces": "Paramétrage > Comptabilité > ED divers",
+    "acces": "Paramétrage > Comptabilité > Encaissements et décaissements divers : référentiel",
     "but": "Opérations diverses autorisées et leur compte",
     "module": "parametrage",
     "priorite": "must",
@@ -263,7 +270,7 @@
   {
     "id": "S32",
     "nom": "Société, agences, zones",
-    "acces": "Paramétrage > Info société",
+    "acces": "Paramétrage > Institution > Société, agences, zones",
     "but": "Identité de l'institution, logo, agences, zones",
     "module": "parametrage",
     "priorite": "must",
@@ -272,7 +279,7 @@
   {
     "id": "S33",
     "nom": "Agents et zones",
-    "acces": "Agence > Paramètre",
+    "acces": "Paramétrage > Agents et zones > Agents et zones",
     "but": "Gestionnaires, sensibilisateurs, commerciaux",
     "module": "parametrage",
     "priorite": "must",
@@ -281,7 +288,7 @@
   {
     "id": "S34",
     "nom": "Agence : jours de travail et fériés",
-    "acces": "Agence > Journée de travail ; Jours fériés",
+    "acces": "Paramétrage > Institution > Agence : jours de travail et fériés",
     "but": "Calendrier",
     "module": "parametrage",
     "priorite": "should",
@@ -290,7 +297,7 @@
   {
     "id": "S35",
     "nom": "Devises et coupures",
-    "acces": "Préférences > Devise ; Types de coupures ; Coupures",
+    "acces": "Paramétrage > Institution > Devises et coupures",
     "but": "Devises, types de monnaie, coupures",
     "module": "parametrage",
     "priorite": "must",
@@ -421,7 +428,7 @@
   {
     "id": "SC06",
     "nom": "Incidents et dépassements",
-    "acces": "Administration > Incidents et dépassements",
+    "acces": "Administration > Sécurité > Incidents et dépassements",
     "but": "Garder les incidents (dépassements de limites notés par le logiciel, incidents opérationnels et déficits de trésorerie déclarés), alerter et tracer leur traitement (confrontation du 21/11/2026, B17 ; Instr. BCC 008, art. 43 et 49)",
     "module": "administration",
     "priorite": "must",
@@ -1063,7 +1070,7 @@
   },
   {
     "id": "S115",
-    "nom": "Journaux",
+    "nom": "Journaux : consultation",
     "acces": "Comptabilité > Consultation > Journaux",
     "but": "Journaux comptables",
     "module": "comptabilite",

@@ -284,7 +284,7 @@ def ouvrir_journee(u: dict, jour: str) -> dict:
                        where j.agence_id = %s and s.statut = 'ouverte' and s.fermee_le is null order by g.code""", (u["agence_id"],))
     if restes:
         raise ErreurMetier("Guichet encore ouvert : " + ", ".join(f"{r['nom']} ({fr(r['date_comptable'].isoformat())})" for r in restes)
-                           + ". Le fermer d'abord (Administration > Guichet > Ouverture/Fermeture).")
+                           + ". Le fermer d'abord (Administration > Guichets).")
     # Registre T14, S12-2, S12-5 : des journées peuvent attendre leur comptabilisation, au plus « Journée Maxi ouvert » à la fois (Information société)
     ouvertes = lignes("select date_comptable from journee_comptable where agence_id = %s and statut <> 'fermee' order by date_comptable", (u["agence_id"],))
     maxi = valeur("select journee_max from institution where id = %s", (u["institution_id"],)) or 1
@@ -294,7 +294,7 @@ def ouvrir_journee(u: dict, jour: str) -> dict:
     e = une("select * from exercice where institution_id = %s and annee = %s", (u["institution_id"], int(str(jour)[:4])))
     if not e or not e["ouvert"] or e["valide"]:
         # Registre S11-2 et S12-1 : une journée ne s'ouvre que dans un exercice ouvert et non validé (S11)
-        raise ErreurMetier(f"L'exercice {str(jour)[:4]} n'est pas ouvert (Administration > Exercice).")
+        raise ErreurMetier(f"L'exercice {str(jour)[:4]} n'est pas ouvert (Administration > Exercices).")
     derniere = journee_courante(u)
     if derniere and jour <= derniere["date"]:
         raise ErreurMetier(f"La date doit suivre la dernière journée ({fr(derniere['date'])}).")
@@ -435,7 +435,7 @@ def ouvrir_caisse(u: dict, guichet_id: int, journee_id: int | None = None) -> di
     if une("select 1 from session_caisse where journee_id = %s and caissier_id = %s and statut = 'ouverte' and fermee_le is null", (j["id"], u["id"])):
         raise ErreurMetier("Vous tenez déjà une caisse ouverte.")
     if not une("select 1 from affectation_guichet where utilisateur_id = %s and guichet_id = %s and fin is null", (u["id"], guichet_id)):
-        raise ErreurMetier("Ce guichet ne vous est pas affecté (Administration > Guichet > Affectation).")   # registre S09-4
+        raise ErreurMetier("Ce guichet ne vous est pas affecté (Administration > Guichets, Affecter un caissier).")   # registre S09-4
     sid = valeur("insert into session_caisse (guichet_id, journee_id, caissier_id, statut) values (%s, %s, %s, 'ouverte') returning id", (guichet_id, j["id"], u["id"]))
     return vue_session(une("select * from session_caisse where id = %s", (sid,)))
 
@@ -1838,7 +1838,7 @@ def nouvelle_piece(u: dict, journal: str, journee_date) -> str:
     n = valeur("""update journal_detail d set compteur = compteur + 1 from journal j
                   where j.id = d.journal_id and d.institution_id = %s and d.annee = %s and j.code = %s returning d.compteur""", (i, journee_date.year, journal))
     if n is None:
-        raise ErreurMetier(f"Le journal {journal} n'est pas ouvert sur l'exercice {journee_date.year} (Administration > Exercice, Compléter journal détail).")
+        raise ErreurMetier(f"Le journal {journal} n'est pas ouvert sur l'exercice {journee_date.year} (Administration > Exercices).")
     r = une("select regle from numerotation_piece where institution_id = %s", (i,))
     ag = une("select a.code, i.sigle from agence a join institution i on i.id = a.institution_id where a.id = %s", (u["agence_id"],))
     return composer_piece(json_lu(r["regle"]) if r else None,

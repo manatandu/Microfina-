@@ -41,7 +41,12 @@ function sousMenu(e: Ecran, libelleMenu: string): string {
 /** Menu Crédit dans l'ordre de la vie du crédit (plan d'allègement, point 6.16) : Simulation, Analyse, Demande, Portefeuille, Déblocage, Remboursement, Garanties,
  *  Prorogation et contentieux, Liste rouge, Affectation, Balance âgée et provisions, Engagements par signature, Rapports ; les écrans hors menu ensuite */
 const ORDRE_CREDIT = ["S84", "S85", "S86", "S93", "S105", "S106", "S142", "S94", "SL01", "S97", "S96", "S99", "S128", "S100", "S101"];
-const ordreCredit = (l: Ecran[]) => [...l].sort((a, b) => (ORDRE_CREDIT.indexOf(a.id) + 1 || 99) - (ORDRE_CREDIT.indexOf(b.id) + 1 || 99));
+/** Menu Paramétrage en cinq groupes, dans l'ordre de mise en route (plan d'allègement, point 8.8) : Institution, Comptabilité, Produits, Fiche du membre, Agents et zones */
+const ORDRE_PARAMETRAGE = ["S32", "S34", "S35", "S30", "S15", "S31", "S27", "S23", "S26", "S22", "S21", "S16", "SP01", "S14", "S20", "S33"];
+/** Menu Administration en deux groupes, dans l'ordre du travail (plan d'allègement, point 8.1 ; Instr. BCC 008, art. 16, registre T29) : Sécurité, puis Journée */
+const ORDRE_ADMINISTRATION = ["S03", "S04", "S05", "S06", "S07", "SA01", "S13", "SC06", "S11", "S11b", "S11c", "S12", "S08", "S09", "S10"];
+const ORDRES: Record<string, string[]> = { credit: ORDRE_CREDIT, parametrage: ORDRE_PARAMETRAGE, administration: ORDRE_ADMINISTRATION };
+const trier = (id: string, l: Ecran[]) => { const o = ORDRES[id]; return o ? [...l].sort((a, b) => (o.indexOf(a.id) + 1 || 99) - (o.indexOf(b.id) + 1 || 99)) : l; };
 
 function construire(id: string, libelle: string, ecrans: Ecran[], tous: boolean): Menu {
   const groupes: { titre: string; ecrans: Ecran[] }[] = [];
@@ -58,7 +63,7 @@ function construire(id: string, libelle: string, ecrans: Ecran[], tous: boolean)
 }
 
 export function menus(application: IdApplication, tous = false): Menu[] {
-  if (application === "principal") return BARRE_PRINCIPALE.map((m) => construire(m.id, m.libelle, m.id === "credit" ? ordreCredit(ECRANS.filter(m.ecrans)) : ECRANS.filter(m.ecrans), tous));
+  if (application === "principal") return BARRE_PRINCIPALE.map((m) => construire(m.id, m.libelle, trier(m.id, ECRANS.filter(m.ecrans)), tous));
   // Paie et Immobilisations : un menu par entrée du manuel (« Structure de base », « Personnel »…)
   const parEntree = new Map<string, Ecran[]>();
   for (const e of ECRANS.filter((x) => x.module === application)) {

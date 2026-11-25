@@ -2,12 +2,11 @@ import { useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Formulaire } from "../composants";
-import { fr } from "../lib/dates";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Formulaire } from "../composants";
 import { definirMonnaies } from "@design/montant.js";
 
-const PAGES = [["devise", "Devise", "Enregistrement des devises"], ["sous", "Coupures", "Enregistrement de monnaies"],
-  ["cours", "Cours", "Cours du jour"]] as const;
+// Le cours du jour se saisit dans Administration > Journée du jour (plan d'allègement, points 8.5 et 8.8)
+const PAGES = [["devise", "Devise", "Enregistrement des devises"], ["sous", "Coupures", "Enregistrement de monnaies"]] as const;
 type Devise = { code: string; libelle: string; unite: string; subdivision: number };
 type Monnaie = { devise: string; valeur: number; typeId: number; libelle: string };
 type Donnees = { devises: Devise[]; types: { id: number; libelle: string }[]; monnaies: Monnaie[]; cours: { devise: string; jour: string; cours: number }[] };
@@ -27,7 +26,6 @@ export default function Devises() {
       </div>
       {page[0] === "devise" && <PageDevise />}
       {page[0] === "sous" && <PageSous />}
-      {page[0] === "cours" && <PageCours />}
     </>
   );
 }
@@ -120,28 +118,3 @@ function PageSous() {
   );
 }
 
-/** Page Cours : registre S35-6 */
-function PageCours() {
-  const VIDE = { devise: "", jour: "", cours: "" };
-  const [f, setF] = useState(VIDE);
-  const { donnees, boite, fermer, confirmer } = useVolet();
-  if (!donnees) return <Chargement />;
-  const annuler = () => setF(VIDE);
-  const deja = donnees.cours.some((c) => c.devise === f.devise && c.jour === f.jour);
-  return (
-    <Volet id="cours" boite={boite} fermer={fermer} annuler={annuler}
-      champs={<>
-        <Champ libelle="Devise :">{(p) => <select {...p} className="saisie" value={f.devise} onChange={(e) => { const x = e.target.value; setF((g) => ({ ...g, devise: x })); }}>
-          <option value=""></option>{donnees.devises.filter((d) => d.code !== "CDF").map((d) => <option key={d.code} value={d.code}>{d.code}</option>)}</select>}</Champ>
-        <ChampDate libelle="Date :" valeur={f.jour} onChange={(v) => setF((g) => ({ ...g, jour: v }))} />
-        <Champ libelle="Cours (CDF pour une unité) :">{(p) => <input {...p} className="saisie code" inputMode="decimal" value={f.cours} onChange={(e) => { const x = e.target.value; setF((g) => ({ ...g, cours: x })); }} />}</Champ></>}
-      enregistrer={() => confirmer(deja, () => api.devises.enregistrerCours(f), annuler)}
-      grille={<table className="grille">
-        <thead><tr><th scope="col">Date</th><th scope="col">Devise</th><th scope="col">Cours</th></tr></thead>
-        <tbody>{donnees.cours.map((c) => ligne(`${c.devise}-${c.jour}`, c.devise === f.devise && c.jour === f.jour,
-          () => setF({ devise: c.devise, jour: c.jour, cours: valeurFr(c.cours) }),
-          <><td>{fr(c.jour)}</td><td>{c.devise}</td><td className="chiffres">{valeurFr(c.cours)}</td></>))}</tbody>
-      </table>}
-      sources={["PCCI § 3.2 : comptabilité tenue en monnaie nationale ; § 7.1 : opérations en devises converties en monnaie nationale au cours de change du jour de la transaction"]} />
-  );
-}

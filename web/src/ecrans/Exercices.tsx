@@ -1,175 +1,57 @@
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee, Formulaire } from "../composants";
+import { Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
 
-const SOURCES_P20 = ["Manuel Microfina++, p. 20 : Nouvel Exercice, Exercice (Année*), Enregistrer, Effacer, liste Annee, Actif ?, Ouvert ?, Validé ? ; « préciser obligatoirement l'Année puis cocher la case d'activation, d'ouverture et valider avant d'enregistrer »",
+const SOURCES_P20 = ["Manuel Microfina++, p. 20 et 21 : Nouvel Exercice, Ouverture d'un Exercice, Compléter journal détail ; plan d'allègement, point 8.6",
   "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
   "PCCI § 3.4 : irréversibilité, validation des enregistrements ; § 4.3.1 : exercice de 12 mois, du 1er janvier au 31 décembre ; § 4.3.6 : intangibilité du bilan d'ouverture"];
 
-function Case({ coche, libelle, onChange }: { coche: boolean; libelle: string; onChange?: (v: boolean) => void }) {
-  return <input type="checkbox" checked={coche} disabled={!onChange} aria-label={libelle} onChange={(e) => onChange?.(e.target.checked)} />;
-}
-
-/** S11 : Administration > Exercice > Création (manuel Microfina++, p. 20) */
-export function NouvelExercice() {
-  const [annee, setAnnee] = useState("");
-  const [cases, setCases] = useState<Record<number, { actif: boolean; ouvert: boolean; valide: boolean }>>({});
+/** Administration > Journée > Exercices (plan d'allègement, point 8.6) : S11 (création, p. 20), S11b (ouverture, p. 21) et S11c (compléter journal détail, p. 21)
+ *  en un écran. La liste des années avec leur état ; Créer l'exercice suivant, Ouvrir, Clôturer. Tout journal se rattache d'office aux exercices ouverts. */
+export function Exercices() {
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
-  const { donnees } = useDonnees(() => api.exercices.lire(), [relu]);
+  const { donnees } = useDonnees(async () => {
+    const [l, u] = await Promise.all([api.exercices.lire(), api.session.courante()]);
+    return { l, droits: new Set((u as { droits?: string[] } | null)?.droits ?? []) };
+  }, [relu]);
   if (!donnees) return <Chargement />;
-  const ligne = (a: number) => cases[a] ?? donnees.exercices.find((e) => e.annee === a)!;
-  const cocher = (a: number, k: "actif" | "ouvert") => (v: boolean) => setCases({ ...cases, [a]: { ...ligne(a), [k]: v } });
-  // Clôturer l'exercice : un bouton et un message qui dit que c'est définitif, au lieu d'une case (PCCI § 3.4, irréversibilité ; plan d'allègement 0.17, registre S11-3)
-  const cloturer = (a: number) => setBoite({ type: "confirmation", message: `Clôturer l'exercice ${a} ? C'est définitif : aucune écriture ne pourra plus être passée sur ${a}.`, oui: async () => {
-    try {
-      const e = donnees.exercices.find((x) => x.annee === a)!;
-      await api.exercices.enregistrer({ annee: "", lignes: [{ annee: a, actif: e.actif, ouvert: e.ouvert, valide: true }] });
-      setCases({}); setRelu((x) => x + 1); setBoite({ type: "succes", message: `Exercice ${a} clôturé.` });
-    } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  const { l, droits } = donnees;
+  const suivante = l.exercices.length ? Math.max(...l.exercices.map((e) => e.annee)) + 1 : new Date().getFullYear();
+  const etat = (e: (typeof l.exercices)[number]) => (e.valide ? "Clôturé" : e.actif ? "En cours" : e.ouvert ? "Ouvert" : "Préparé");
+  const agir = (question: string, faire: () => Promise<unknown>, succes: string) => setBoite({ type: "confirmation", message: question, oui: async () => {
+    try { await faire(); setRelu((x) => x + 1); setBoite({ type: "succes", message: succes }); }
+    catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   } });
-  function enregistrer() {
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
-      try {
-        await api.exercices.enregistrer({ annee, lignes: Object.entries(cases).map(([a, c]) => ({ annee: Number(a), ...c })) });
-        setAnnee(""); setCases({}); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" });
-      } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
-    } });
-  }
+  // Clôturer : un bouton et un message qui dit que c'est définitif (PCCI § 3.4, irréversibilité ; plan d'allègement 0.17, registre S11-3)
+  const cloturer = (a: number) => agir(`Clôturer l'exercice ${a} ? C'est définitif : aucune écriture ne pourra plus être passée sur ${a}.`, () => {
+    const e = l.exercices.find((x) => x.annee === a)!;
+    return api.exercices.enregistrer({ annee: "", lignes: [{ annee: a, actif: e.actif, ouvert: e.ouvert, valide: true }] });
+  }, `Exercice ${a} clôturé.`);
   return (
     <>
-      <h2>Nouvel Exercice</h2>
-      <Formulaire className="bloc pile" label="Nouvel Exercice" envoyer={enregistrer}>
-        <fieldset className="pile cadre-champs">
-          <legend>Exercice</legend>
-          <div className="ligne-champ">
-            <Champ libelle="Année : *">{(p) => <input {...p} className="saisie code" inputMode="numeric" value={annee} onChange={(e) => setAnnee(e.target.value)} />}</Champ>
-          </div>
-        </fieldset>
+      <section className="bloc pile" aria-label="Exercices">
         <div className="actions-onglets">
-          <button className="bouton" type="submit">Enregistrer</button>
-          <button className="bouton secondaire" type="button" onClick={() => { setAnnee(""); setCases({}); }}>Effacer</button>
+          <button className="bouton" type="button" onClick={() => agir(`Créer l'exercice ${suivante} ?`, () => api.exercices.enregistrer({ annee: String(suivante), lignes: [] }), "Enregistré avec succès !")}>
+            Créer l'exercice {suivante}</button>
         </div>
-        <Paginee lignes={donnees.exercices}>{(visibles) => (<table className="grille">
-          <thead><tr><th scope="col">Annee</th><th scope="col">Actif ?</th><th scope="col">Ouvert ?</th><th scope="col">État</th></tr></thead>
+        <Paginee lignes={l.exercices}>{(visibles) => (<table className="grille">
+          <thead><tr><th scope="col">Année</th><th scope="col">État</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
           <tbody>
-            {visibles.map((e) => {
-              const c = ligne(e.annee);
-              return (
-                <tr key={e.annee}>
-                  <td className="chiffres">{e.annee}</td>
-                  <td><Case coche={c.actif} libelle={`Actif : ${e.annee}`} onChange={cocher(e.annee, "actif")} /></td>
-                  <td><Case coche={c.ouvert} libelle={`Ouvert : ${e.annee}`} onChange={cocher(e.annee, "ouvert")} /></td>
-                  <td>{e.valide ? "Clôturé" : <>{e.actif ? "En cours" : "Préparé"} <button className="bouton secondaire" type="button" onClick={() => cloturer(e.annee)}>Clôturer l'exercice {e.annee}</button></>}</td>
-                </tr>
-              );
-            })}
+            {visibles.map((e) => (
+              <tr key={e.annee}>
+                <td className="chiffres">{e.annee}</td>
+                <td>{etat(e)}</td>
+                <td>{!e.ouvert && !e.valide && droits.has("S11b") && <button className="bouton secondaire petit" type="button" aria-label={`Ouvrir ${e.annee}`}
+                      onClick={() => agir(`Ouvrir l'exercice ${e.annee} ?`, () => api.exercices.ouvrir(e.annee), "Enregistré avec succès !")}>Ouvrir</button>}
+                  {e.ouvert && !e.valide && <button className="bouton secondaire petit" type="button" aria-label={`Clôturer ${e.annee}`} onClick={() => cloturer(e.annee)}>Clôturer</button>}</td>
+              </tr>
+            ))}
           </tbody>
         </table>)}</Paginee>
         <Textes sources={SOURCES_P20} />
-      </Formulaire>
-      <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </>
-  );
-}
-
-const TYPES_JOURNAL: Record<string, string> = { caisse: "Caisse", banque: "Banque", operations_diverses: "Opérations diverses", credit: "Crédit", epargne: "Épargne",
-  provisions: "Provisions", paie: "Paie", immobilisations: "Immobilisations", a_nouveaux: "À-nouveaux" };
-
-type Detail = { id: number; annee: number; journalId: number; libelle: string; code: string; type: string; actif: boolean; ouvert: boolean; compteur: number };
-
-function ListeDetails({ lignes, vide, coches, cocher }: { lignes: Detail[]; vide: string; coches?: number[]; cocher?: (journalId: number, v: boolean) => void }) {
-  const choix = !!cocher;
-  return (
-    <table className="grille">
-      <thead><tr>{choix && <th scope="col"><span className="sr-only">Choisir</span></th>}<th scope="col">Libellé</th><th scope="col">ID</th><th scope="col">Exercice</th><th scope="col">Actif?</th>
-        <th scope="col">Ouvert?</th><th scope="col">Compteur</th><th scope="col">N° Journal</th><th scope="col">Type Journal</th></tr></thead>
-      <tbody>
-        {lignes.length === 0 && <tr><td colSpan={choix ? 9 : 8}>{vide}</td></tr>}
-        {lignes.map((d) => (
-          <tr key={`${d.annee}-${d.journalId}`}>
-            {choix && <td><input type="checkbox" aria-label={`Choisir : ${d.libelle}`} checked={coches?.includes(d.journalId) ?? false} onChange={(e) => cocher?.(d.journalId, e.target.checked)} /></td>}
-            <td>{d.libelle}</td><td className="chiffres">{d.id || ""}</td><td className="chiffres">{d.annee}</td>
-            <td><Case coche={d.actif} libelle={`Actif : ${d.libelle}`} /></td><td><Case coche={d.ouvert} libelle={`Ouvert : ${d.libelle}`} /></td>
-            <td className="chiffres">{d.compteur}</td><td className="chiffres">{d.code}</td><td>{TYPES_JOURNAL[d.type] ?? d.type}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-/** S11b : Administration > Exercice > Ouverture (manuel Microfina++, p. 21) */
-export function OuvertureExercice() {
-  const [saisie, setSaisie] = useState("");
-  const [choisi, setChoisi] = useState("");
-  const [boite, setBoite] = useState<Boite | null>(null);
-  const [relu, setRelu] = useState(0);
-  const { donnees } = useDonnees(() => api.exercices.lire(), [relu]);
-  if (!donnees) return <Chargement />;
-  const lignes = choisi ? donnees.details.filter((d) => String(d.annee) === choisi) : [];
-  function ouvrir() {
-    if (!saisie.trim()) { setBoite({ type: "erreur", message: "À remplir : exercice à ouvrir." }); return; }
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
-      try { await api.exercices.ouvrir(saisie.trim()); setChoisi(saisie.trim()); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
-      catch (x) { setBoite({ type: "erreur", message: message(x) }); }
-    } });
-  }
-  return (
-    <>
-      <h2>Ouverture d'un Exercice</h2>
-      <section className="bloc pile" aria-label="Ouverture d'un Exercice">
-        <div className="ligne-champ">
-          <Champ libelle="Exercice à ouvrir">{(p) => <input {...p} className="saisie code" inputMode="numeric" value={saisie} onChange={(e) => setSaisie(e.target.value)} />}</Champ>
-          <button className="bouton secondaire" type="button" onClick={() => setChoisi(saisie.trim())}>Exercice à ouvrir</button>
-        </div>
-        <fieldset className="pile cadre-champs">
-          <legend>Liste Détails Journal</legend>
-          <ListeDetails lignes={lignes} vide="Aucune ligne." />
-        </fieldset>
-        <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={ouvrir}>Ouvrir</button>
-          <button className="bouton secondaire" type="button" onClick={() => { setSaisie(""); setChoisi(""); }}>Annuler</button>
-        </div>
-        <Textes sources={["Manuel Microfina++, p. 21 : Ouverture d'un Exercice, Exerice à ouvrir, Liste Détails Journal (Libellé, ID, Exercice, Actif?, Ouvert?, Compteur, N° Journal, Type Journal), Ouvrir, Annuler ; « Cliquer sur Exercice à ouvrir »"]} />
       </section>
-      <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </>
-  );
-}
-
-/** S11c : Administration > Exercice > Compléter journal détail (manuel Microfina++, p. 21) */
-export function CompleterJournalDetail() {
-  const [coches, setCoches] = useState<number[]>([]);
-  const [boite, setBoite] = useState<Boite | null>(null);
-  const [relu, setRelu] = useState(0);
-  const { donnees } = useDonnees(() => api.exercices.lire(), [relu]);
-  if (!donnees) return <Chargement />;
-  const a = donnees.enCours;
-  // Journaux de l'institution qui n'ont pas encore de ligne pour l'exercice en cours
-  const manquants: Detail[] = a === null ? [] : donnees.journaux.filter((j) => !donnees.details.some((d) => d.annee === a && d.journalId === j.id))
-    .map((j) => ({ id: 0, annee: a, journalId: j.id, libelle: j.libelle, code: j.code, type: j.type, actif: false, ouvert: false, compteur: 0 }));
-  function enregistrer() {
-    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
-      try { await api.exercices.completer(coches); setCoches([]); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
-      catch (x) { setBoite({ type: "erreur", message: message(x) }); }
-    } });
-  }
-  return (
-    <>
-      <h2>Completer journal detail de l'exercice encours</h2>
-      <Formulaire className="bloc pile" label="Compléter journal détail" envoyer={enregistrer}>
-        <div className="ligne-champ">
-          <Champ libelle="Exercice encours">{(p) => <input {...p} className="saisie code" readOnly value={a ?? ""} />}</Champ>
-        </div>
-        <ListeDetails lignes={manquants} vide="Aucune ligne." coches={coches} cocher={(id, v) => setCoches(v ? [...coches, id] : coches.filter((x) => x !== id))} />
-        <div className="actions-onglets">
-          <button className="bouton" type="submit">Enregistrer</button>
-        </div>
-        <Textes sources={["Manuel Microfina++, p. 21 : Completer journal detail de l'exercice encours, Exerice encours, liste (case, Libellé, ID, Exercice, Actif?, Ouvert?, Compteur, N° Journal, Type Journal), « Liste vide »",
-          "Manuel Microfina++, p. 10 et 11 : enregistrer une information, boîtes de confirmation, de succès et d'erreur"]} />
-      </Formulaire>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );
