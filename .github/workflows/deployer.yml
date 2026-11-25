@@ -101,7 +101,7 @@ jobs:
             --service-account "likelemba-run@$PROJET.iam.gserviceaccount.com" \
             --set-env-vars "^@^LIKELEMBA_HOTES=.run.app@LIKELEMBA_COOKIE=__session@PG_BASE=$BD_BASE@PG_UTILISATEUR=$BD_UTILISATEUR@PG_HOTE=$BD_HOTE@PG_PORT=5432@PG_SSL=require" \
             --set-secrets "LIKELEMBA_SECRET=likelemba-secret:latest,PG_MOT_DE_PASSE=likelemba-bd-mdp:latest,LIKELEMBA_MOT_DE_PASSE=likelemba-mdp-initial:latest" \
-            --command sh --args="-c,python manage.py migrate --noinput && python manage.py graine && python manage.py exemples && python manage.py definir_mot_de_passe jpmukendi --si-absent && for l in engalula bkasongo stshibanda plumbala gmbuyi; do python manage.py definir_mot_de_passe \$l --si-absent || exit 1; done" \
+            --command sh --args="-c,python manage.py migrate --noinput && python manage.py graine && python manage.py exemples && python manage.py definir_mot_de_passe jpmukendi --si-absent && for l in engalula bkasongo stshibanda plumbala gmbuyi; do python manage.py definir_mot_de_passe \$l --si-absent || echo \"compte \$l absent : ignoré\"; done" \
             --max-retries 0 --task-timeout 600 \
             --execute-now --wait
       - name: Journal de la tâche (si elle a échoué)

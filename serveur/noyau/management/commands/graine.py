@@ -103,6 +103,15 @@ def completer(ins: int) -> int:
             executer("insert into utilisateur_profil_historique (utilisateur_id, profil_id) values (%s, %s)", (u, pid))
             ajouts += 1
     # Validation de ce qui est saisi hors guichet par une troisième personne (plan d'allègement, point 7.2 ; décision du porteur du 25/11/2026, registre T203)
+    # Sarah Tshibanda, responsable crédit (registre CR-28), pour une base installée avant qu'elle n'entre dans la graine : la démonstration en a besoin
+    if not login("stshibanda"):
+        pa = valeur("select id from profil where institution_id = %s and code = 'agent_credit' and not supprime order by id limit 1", (ins,))
+        ag = valeur("select min(id) from agence where institution_id = %s", (ins,))
+        if pa and ag:
+            u = valeur("insert into utilisateur (institution_id, agence_id, login, nom, mot_de_passe_hash) values (%s, %s, 'stshibanda', 'Sarah Tshibanda', '!') returning id", (ins, ag))
+            executer("insert into utilisateur_profil values (%s, %s)", (u, pa))
+            executer("insert into utilisateur_profil_historique (utilisateur_id, profil_id) values (%s, %s)", (u, pa))
+            ajouts += 1
     # Plan d'allègement, point 8.9 : profils de départ tirés de l'organigramme courant d'une COOPEC (décision du porteur du 25/11/2026)
     for code in ("chef_comptable", "raf", "responsable_operations", "agent_recouvrement", "auditeur"):   # auditeur : lecture seule (registre T209)
         if not valeur("select count(*) from profil where institution_id = %s and code = %s", (ins, code)):
