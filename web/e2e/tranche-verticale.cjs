@@ -52,11 +52,11 @@ const OUT = process.argv[2];
   await p.getByLabel('Cours USD (CDF pour une unité) *').fill('2850'); await p.getByRole('button', { name: 'Enregistrer les cours' }).click(); await oui(); await etape('02f28-cours');
   // Chef : créer un guichet (plan d'allègement, point 8.4 : Guichets, « Nouveau guichet »)
   await aller('/administration/s08'); await p.getByRole('button', { name: 'Nouveau guichet' }).click();
-  const fg = p.getByRole('dialog', { name: 'Nouveau guichet' });
-  await fg.getByLabel('Code guichet *').fill('G3'); await fg.getByLabel('Désignation *').fill('Caisse 3');
-  await fg.getByLabel('Type de guichet *').selectOption('SECONDAIRE'); await fg.getByLabel('Journal *').selectOption({ label: 'Caisse' });
-  await fg.getByLabel('Guichet Actif').check();
-  await etape('02a-gestion-guichets'); await fg.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  const fgu = p.getByRole('dialog', { name: 'Nouveau guichet' });
+  await fgu.getByLabel('Code guichet *').fill('G3'); await fgu.getByLabel('Désignation *').fill('Caisse 3');
+  await fgu.getByLabel('Type de guichet *').selectOption('SECONDAIRE'); await fgu.getByLabel('Journal *').selectOption({ label: 'Caisse' });
+  await fgu.getByLabel('Guichet Actif').check();
+  await etape('02a-gestion-guichets'); await fgu.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   // Plafonds de la Caisse 2 : retrait plafonné 1 000 USD (registre S08-5), maximum 1 000 CDF (S08-4)
   await p.getByRole('button', { name: 'Modifier : Caisse 2' }).click(); const fg2 = p.getByRole('dialog', { name: 'Guichet Caisse 2' });
   await fg2.getByLabel('Retrait plafonné (USD) *').fill('1 000'); await fg2.getByLabel('Maximum autorisé en caisse (CDF) *').fill('1 000');
@@ -209,8 +209,8 @@ const OUT = process.argv[2];
   await fu.getByLabel('Portable : *').fill('+243 810 000 444'); await fu.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('row').filter({ hasText: 'jmbala' }).getByRole('cell', { name: 'Joseph', exact: true }).waitFor(); await etape('02f33-utilisateurs');
   // Administrateur sécurité : le profil AUDITEUR donné à cet utilisateur, depuis sa ligne (S06, p. 17)
-  await p.getByRole('button', { name: 'Changer de profil : jmbala' }).click(); const fp = p.getByRole('dialog', { name: 'Changer de profil : jmbala' });
-  await fp.getByLabel('Nouveau profil *').selectOption({ label: 'AUDITEUR' }); await fp.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f34-profils-utilisateur');
+  await p.getByRole('button', { name: 'Changer de profil : jmbala' }).click(); const fpr = p.getByRole('dialog', { name: 'Changer de profil : jmbala' });
+  await fpr.getByLabel('Nouveau profil *').selectOption({ label: 'AUDITEUR' }); await fpr.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('02f34-profils-utilisateur');
   // Administrateur sécurité : utilisateurs connectés et déconnexion, sur la même liste (S07, p. 18)
   await p.getByRole('row').filter({ hasText: 'gmbuyi' }).getByRole('cell', { name: /^Oui/ }).first().waitFor(); await etape('02f35-connexions');
   await p.getByRole('button', { name: 'Déconnecter gmbuyi' }).click();
