@@ -1156,7 +1156,7 @@ const OUT = process.argv[2];
   await login('Lucie Kabeya');
   // Registre T207 : sur le serveur, le mot de passe donné par l'administrateur se remplace à la première connexion, avant toute autre action
   const imposeMdp = p.getByRole('heading', { name: 'Changer mon mot de passe' });
-  await imposeMdp.or(p.getByRole('navigation', { name: 'Menus' }).getByRole('button')).first().waitFor();
+  await imposeMdp.or(p.locator('main.page-modules:not([aria-busy])')).first().waitFor();   // en local, la démonstration ne garde pas de mot de passe : la page des modules
   if (await imposeMdp.isVisible()) {
     await etape('15g0-mot-de-passe-impose');
     await p.getByLabel('Mot de passe actuel *').fill('secret-2'); await p.getByLabel('Nouveau mot de passe *').fill('lucie-2026');
