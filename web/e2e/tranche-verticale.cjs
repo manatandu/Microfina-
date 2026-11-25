@@ -1412,7 +1412,7 @@ const OUT = process.argv[2];
   await p.locator('button[aria-controls="menu-langue"]').click(); await p.locator('#menu-langue').getByRole('button', { name: 'English' }).click();
   await p.getByRole('heading', { name: 'Accounting Journals' }).waitFor(); await p.getByText('Accounting', { exact: true }).first().waitFor();
   await p.getByRole('button', { name: 'Display' }).click(); await p.getByRole('cell', { name: /^CA / }).first().waitFor();   // les données restent telles quelles
-  await p.getByRole('button', { name: 'Online Help' }).click(); await p.getByRole('heading', { name: 'Online Help: Journals' }).waitFor();
+  await p.getByRole('button', { name: 'Online Help' }).click(); await p.getByRole('heading', { name: 'Online Help: Journals: consultation' }).waitFor();
   await p.getByRole('heading', { name: 'Rules applied by this screen' }).waitFor(); await etape('40-anglais');
   await p.getByRole('button', { name: 'Close Help' }).click();
   await p.locator('button[aria-controls="menu-langue"]').click(); await p.locator('#menu-langue').getByRole('button', { name: 'Français' }).click();   // le menu des langues ne se traduit pas
