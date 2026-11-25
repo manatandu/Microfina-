@@ -33,7 +33,7 @@ async function journeeOuverte() {
 const PRODUIT_CREDIT = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,
   montantMin: 100000, montantMax: 5000000, dureeMin: 3, dureeMax: 12, differeMin: 0, differeMax: 2, interetMin: 1, interetMax: 4, clientPhysique: true, periodicite: "M",
   modeDiffere: "Réparti", paiementInteret: "Normal", interetAnticipation: false, ageMax: 65, epargneNature: "Taux", epargneValeur: 10, categorie: "Prêt commercial",
-  penaliteAnticipation: 50, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "7152" }] };
+  penaliteAnticipation: 50, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "71520000" }] };
 // Plan d'allègement, point 6.1 : vérification (montant ressaisi sans le voir, Centrale des risques, avis) et décision (commission de crédit d'une COOPEC)
 const VERIF = { avis: "accepte", montant: 100000000, consultationCrLe: "2026-11-05", consultationCrRef: "CR-1" };
 const DECISION = { membres: ["Mbala", "Ilunga", "Kabeya"].map((nom) => ({ nom, avis: "accepte" })), referencePv: "PV-1" };
@@ -80,7 +80,7 @@ function sansDonneesDemo() { _etat().referentiels = {}; }
 describe("graine", () => {
   it("la caisse contient exactement l'épargne et les parts reprises", async () => {
     const b = await api.etats.balance();
-    const s = (c: string, d: string) => b.filter((x) => x.compte === c && x.devise === d).reduce((t, x) => t + x.debit - x.credit, 0);
+    const s = (c: string, d: string) => b.filter((x) => x.compte.startsWith(c) && x.devise === d).reduce((t, x) => t + x.debit - x.credit, 0);
     expect(s("570", "USD")).toBe(-(s("330", "USD")));
     expect(s("570", "CDF")).toBe(-(s("330", "CDF") + s("1030", "CDF")));
     expect(await soldeCdfGrandLivre()).toBe(0);
@@ -168,7 +168,7 @@ describe("journée de guichet", () => {
     const p = api.parametrage;
     expect((await p.lireFrais()).adhesion.some((x) => x.compte?.startsWith("103"))).toBe(false);   // la part suit la fiche Société (plan 2.18 ; T134)
     expect((await api.referentiel.contexte()).valeurPart).toBe(400000);
-    await expect(p.modifierParametrage("adhesion", 1, { nature: "Montant", valeur: 500000, compte: "1030" })).rejects.toThrow("Info société");
+    await expect(p.modifierParametrage("adhesion", 1, { nature: "Montant", valeur: 500000, compte: "10300000" })).rejects.toThrow("Info société");
     await expect(p.creerFrais({ typeOperation: "ADHESION", libelle: "Autre part", fondement: "part_sociale" })).rejects.toThrow("Info société");
     const s = (await api.societe.lire()).institution;
     await expect(api.societe.enregistrer({ ...s, valeurPart: 500000, partEffet: "" })).rejects.toThrow("date d'effet");
@@ -394,7 +394,7 @@ describe("journée de guichet", () => {
     const ligne = (compte: string, sens: "D" | "C", montant: number, montantCdf: number) => ({ compte, sens, devise: "USD" as const, montant, montantCdf });
     const e = _poster({ journal: "OD", journeeId: j.id, libelle: "Essai d'arrondi", piece: "ESSAI-1", saisiPar: 1, validePar: 2,
       lignes: [ligne("570", "D", 100, 284735), ligne("330", "C", 50, 142368), ligne("330", "C", 50, 142368)] });
-    expect(e.lignes.at(-1)).toEqual({ compte: "474", sens: "D", devise: "USD", montant: 0, montantCdf: 1 });
+    expect(e.lignes.at(-1)).toEqual({ compte: "47400000", sens: "D", devise: "USD", montant: 0, montantCdf: 1 });
     expect(e.lignes.reduce((t, x) => t + (x.sens === "D" ? x.montantCdf : -x.montantCdf), 0)).toBe(0);
     // un vrai déséquilibre n'est pas un arrondi : il reste refusé
     expect(() => _poster({ journal: "OD", journeeId: j.id, libelle: "Essai", piece: "ESSAI-2", saisiPar: 1, validePar: 2,
@@ -663,7 +663,7 @@ describe("journée de guichet", () => {
   it("guichets (S08 p. 18, S09 p. 19) : champs obligatoires, code unique, ouverture d'un guichet actif, fermeture", async () => {
     await connecter("jpmukendi"); await api.journees.ouvrir("2026-11-05");
     const d = { agenceId: 1, code: "G3", designation: "Caisse 3", typeGuichet: "SECONDAIRE", journalId: 1,
-      plafonds: { CDF: { maximum: 0, retrait: 0 }, USD: { maximum: 0, retrait: 0 } } as Record<string, { maximum: number | null; retrait: number | null }>, compteGuichet: "570", compteLiaison: "579", compteSurplus: "", compteManquant: "", actif: false };
+      plafonds: { CDF: { maximum: 0, retrait: 0 }, USD: { maximum: 0, retrait: 0 } } as Record<string, { maximum: number | null; retrait: number | null }>, compteGuichet: "57000000", compteLiaison: "57900000", compteSurplus: "", compteManquant: "", actif: false };
     await expect(api.guichets.enregistrer({ ...d, designation: "" })).rejects.toThrow("désignation");
     await expect(api.guichets.enregistrer({ ...d, compteSurplus: "57A" })).rejects.toThrow("chiffres");
     await expect(api.guichets.enregistrer({ ...d, compteSurplus: "5799" })).rejects.toThrow("plan de comptes");   // règle T16
@@ -842,15 +842,15 @@ describe("journée de guichet", () => {
     await expect(p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 500000, compte: "70A", typesMembre: ["Physique"] })).rejects.toThrow("Compte");
     // Règle T16 : 70291 (exemple du manuel) n'est pas dans le plan de comptes ; S16-2 : un frais d'adhésion est un Montant
     await expect(p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 500000, compte: "70291", typesMembre: ["Physique"] })).rejects.toThrow("plan de comptes");
-    await expect(p.parametrerAdhesion({ fraisId: f.id, nature: "Taux", valeur: 500, compte: "727", typesMembre: ["Physique"] })).rejects.toThrow("Montant");
-    const pid = (await p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 500000, compte: "727", typesMembre: ["Physique"] }))[0]!;
+    await expect(p.parametrerAdhesion({ fraisId: f.id, nature: "Taux", valeur: 500, compte: "72700000", typesMembre: ["Physique"] })).rejects.toThrow("Montant");
+    const pid = (await p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 500000, compte: "72700000", typesMembre: ["Physique"] }))[0]!;
     await expect(p.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: null, compte: "", typesMembre: ["Physique"] })).rejects.toThrow("Déjà paramétré");
     await expect(p.supprimerFrais(f.id)).rejects.toThrow("paramétré");
-    await p.modifierParametrage("adhesion", pid, { nature: "Montant", valeur: 200000, compte: "727" });
+    await p.modifierParametrage("adhesion", pid, { nature: "Montant", valeur: 200000, compte: "72700000" });
     expect(await p.fraisLies(1)).toEqual([{ fraisId: 1, libelle: "Part sociale standard", compte: "1030", montant: 400000, part: true },
-      { fraisId: f.id, libelle: "Droit d'entrée", compte: "727", montant: 200000, part: false }]);
+      { fraisId: f.id, libelle: "Droit d'entrée", compte: "72700000", montant: 200000, part: false }]);
     const lu = await p.lireFrais();
-    expect([lu.compteAdhesion, lu.sousTypes.includes("Personne physique"), lu.natures]).toEqual(["727", true, ["Montant", "Taux"]]);   // S16-4, S16-8, S16-2
+    expect([lu.compteAdhesion, lu.sousTypes.includes("Personne physique"), lu.natures]).toEqual(["72700000", true, ["Montant", "Taux"]]);   // S16-4, S16-8, S16-2
     await p.modifierCategorie(pid, "Personne morale");                                                                         // S16-6
     expect((await p.lireFrais()).adhesion.find((x) => x.id === pid)!.typeMembre).toBe("Personne morale");
     await p.modifierCategorie(pid, "Physique");
@@ -859,8 +859,8 @@ describe("journée de guichet", () => {
     await expect(p.creerFrais({ typeOperation: "PART_SOCIALE", libelle: "Frais de part", fondement: "droit_adhesion" })).rejects.toThrow("droit d'adhésion se perçoit");
     const fp = await p.creerFrais({ typeOperation: "PART_SOCIALE", libelle: "Frais de part", fondement: "autorisation_bcc", autorisationBcc: "BCC/DSIF/2026/031" });   // S16-1
     expect((await p.lireFrais()).frais.find((x) => x.id === fp.id)!.autorisationBcc).toBe("BCC/DSIF/2026/031");
-    await expect(p.parametrerOperation({ fraisId: fp.id, nature: "Taux", valeur: 20000, compte: "727", sousTypes: ["Personne physique"] })).rejects.toThrow("Taux invalide");
-    const [po] = await p.parametrerOperation({ fraisId: fp.id, nature: "Taux", valeur: 150, compte: "727", sousTypes: ["Personne physique"] });
+    await expect(p.parametrerOperation({ fraisId: fp.id, nature: "Taux", valeur: 20000, compte: "72700000", sousTypes: ["Personne physique"] })).rejects.toThrow("Taux invalide");
+    const [po] = await p.parametrerOperation({ fraisId: fp.id, nature: "Taux", valeur: 150, compte: "72700000", sousTypes: ["Personne physique"] });
     expect((await p.lireFrais()).operations[0]!.nature).toBe("Taux");
     await p.supprimerParametrage("operation", po!); await p.supprimerFrais(fp.id);
     // S41 : montant propre au client
@@ -1060,8 +1060,8 @@ describe("journée de guichet", () => {
 
   it("ED Divers (S78, p. 89 et 90) : opération du référentiel selon le sens, montant par devise avec billetage, écriture 570 contre le compte", async () => {
     await connecter("jpmukendi");
-    const p = (await api.edDivers.enregistrer({ sens: "PRODUIT", compte: "7790", statut: "ACTIF", libelle: "Vente de livret d'épargne" })).operations[0]!;
-    const c = (await api.edDivers.enregistrer({ sens: "CHARGE", compte: "671", statut: "ACTIF", libelle: "Frais de transport" })).operations.find((x) => x.sens === "CHARGE")!;
+    const p = (await api.edDivers.enregistrer({ sens: "PRODUIT", compte: "77900000", statut: "ACTIF", libelle: "Vente de livret d'épargne" })).operations[0]!;
+    const c = (await api.edDivers.enregistrer({ sens: "CHARGE", compte: "67100000", statut: "ACTIF", libelle: "Frais de transport" })).operations.find((x) => x.sens === "CHARGE")!;
     await journeeOuverte();
     const ed = (typeOperation: "ENCAISSEMENT" | "DECAISSEMENT", operationId: number, montants: Partial<Record<Devise, number>>, coupures: Partial<Record<Devise, Comptage>>, libelle = "") =>
       api.guichet.edDivers({ cle: cle(), typeOperation, operationId, montants, coupures, libelle });
@@ -1073,7 +1073,7 @@ describe("journée de guichet", () => {
     const o = await ed("ENCAISSEMENT", p.id, { CDF: 200000 }, { CDF: { 1000: 2 } }, "Livret Kalala");
     expect([o.type, o.tiersId, o.statut]).toEqual(["ed_encaissement", null, "validee"]);
     const r = await api.operations.recu(o.id);
-    expect(r.lignes.map((l) => [l.compte, l.sens, l.montant])).toEqual([["570", "D", 200000], ["7790", "C", 200000]]);
+    expect(r.lignes.map((l) => [l.compte, l.sens, l.montant])).toEqual([["57001000", "D", 200000], ["77900000", "C", 200000]]);
     const avant = (await api.caisses.theorique(o.sessionId, "CDF"))[1000] ?? 0;
     expect((await ed("DECAISSEMENT", c.id, { CDF: 100000 }, { CDF: { 1000: 1 } })).type).toBe("ed_decaissement");
     expect((await api.caisses.theorique(o.sessionId, "CDF"))[1000]).toBe(avant - 1);
@@ -1085,7 +1085,7 @@ describe("journée de guichet", () => {
     await connecter("jpmukendi");
     await api.guichets.affecter({ utilisateurId: 2, guichetId: 1, voirSolde: true, voirSoldeVip: false });
     const s1 = await api.caisses.ouvrir(1);
-    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "56010000", adresse: "" });
     const cb = (await api.banques.enregistrerCompte({ banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "",
       compte: "56010003", numeroBancaire: "R-CDF-1", devise: "CDF" })).comptes.find((c) => c.compte === "56010003")!;
     await connecter("engalula");
@@ -1099,7 +1099,7 @@ describe("journée de guichet", () => {
     expect(o.type).toBe("transfert_sortie");
     expect([await n(s.id), await n(s1.id)]).toEqual([a2 - 2, a1 + 2]);
     const r = await api.operations.recu(o.id);
-    const net = (c: string) => r.lignes.filter((x) => x.compte === c).reduce((v, x) => v + (x.sens === "D" ? x.montant : -x.montant), 0);
+    const net = (c: string) => r.lignes.filter((x) => x.compte.startsWith(c)).reduce((v, x) => v + (x.sens === "D" ? x.montant : -x.montant), 0);
     expect([net("579"), net("570")]).toEqual([0, 0]);
     await expect(t.caisseVersBanque({ cle: cle(), sessionId: s.id, compteBancaireId: cb.id, montant: 100000, cheque: "", coupures: { 1000: 1 } })).rejects.toThrow("bordereau");
     const avant = (await t.contexte()).comptes.find((c) => c.id === cb.id)!.solde;
@@ -1125,7 +1125,7 @@ describe("journée de guichet", () => {
   it("opérations de banque (S52) : saisie en attente du visa, contrôles des trois onglets (registre S52-2 à S52-6)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");
-    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "56010000", adresse: "" });
     const c = { banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "" };
     await api.banques.enregistrerCompte({ ...c, compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
     await api.banques.enregistrerCompte({ ...c, compte: "56010002", numeroBancaire: "R-USD-2", devise: "USD" });
@@ -1134,9 +1134,9 @@ describe("journée de guichet", () => {
     const lu = await api.banqueOperations.lire();
     const id = (n: string) => lu.comptes.find((x) => x.numero === n)!.id;
     expect([lu.date, lu.comptes.map((x) => x.solde)]).toEqual(["2026-11-05", [0, 0, 0]]);
-    const enc = { type: "encaissement" as const, date: "2026-11-05", compteBancaireId: id("R-USD-1"), compte: "727", libelle: "Commission reçue", montant: 50000 };
+    const enc = { type: "encaissement" as const, date: "2026-11-05", compteBancaireId: id("R-USD-1"), compte: "72700000", libelle: "Commission reçue", montant: 50000 };
     await expect(api.banqueOperations.enregistrer({ ...enc, cle: cle(), compte: "7" })).rejects.toThrow("n'est pas un compte du plan");
-    await expect(api.banqueOperations.enregistrer({ ...enc, cle: cle(), compte: "5601" })).rejects.toThrow("onglets de virement");
+    await expect(api.banqueOperations.enregistrer({ ...enc, cle: cle(), compte: "56010000" })).rejects.toThrow("onglets de virement");
     await expect(api.banqueOperations.enregistrer({ ...enc, cle: cle(), montant: 0 })).rejects.toThrow("Montant");
     await expect(api.banqueOperations.enregistrer({ ...enc, cle: cle(), date: "2026-11-06" })).rejects.toThrow("dépasser la journée");
     const k = cle(), o = await api.banqueOperations.enregistrer({ ...enc, cle: k });
@@ -1154,7 +1154,7 @@ describe("journée de guichet", () => {
   it("virement et prélèvement (S53) : compte du client et compte bancaire, disponible, même devise (registre S53-1 à S53-4)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");
-    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "56010000", adresse: "" });
     await api.banques.enregistrerCompte({ banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "",
       compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
     await connecter("plumbala");
@@ -1176,7 +1176,7 @@ describe("journée de guichet", () => {
   it("visa puis validation des opérations de banque (S57) : quatre yeux, quatre listes (registre S57-1 à S57-3)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");
-    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "56010000", adresse: "" });
     await api.banques.enregistrerCompte({ banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "",
       compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
     // le chef d'agence et le profil de bkasongo reçoivent le droit S57 (Administration > Profil), pour que trois personnes distinctes passent la chaîne
@@ -1189,7 +1189,7 @@ describe("journée de guichet", () => {
     const usd = (await api.banqueOperations.lire()).comptes[0]!.id;
     const comptes = await api.tiers.comptes(1);
     const cusd = comptes.find((c) => c.devise === "USD")!;
-    const enc = await api.banqueOperations.enregistrer({ cle: cle(), type: "encaissement", date: "2026-11-05", compteBancaireId: usd, compte: "727", libelle: "Commission", montant: 50000 });
+    const enc = await api.banqueOperations.enregistrer({ cle: cle(), type: "encaissement", date: "2026-11-05", compteBancaireId: usd, compte: "72700000", libelle: "Commission", montant: 50000 });
     const vir = await api.banqueOperations.enregistrerVirement({ cle: cle(), type: "virement_client", date: "2026-11-05", compteBancaireId: usd, compteDepotId: cusd.id, libelle: "Salaire", montant: 30000, ...PARTIES });
     expect((await api.banqueOperations.visas("visa", "enc_dec")).map((x) => x.id)).toEqual([enc.id]);
     const v = (await api.banqueOperations.visas("visa", "virement"))[0]!;
@@ -1215,7 +1215,7 @@ describe("journée de guichet", () => {
   it("chèques clients (S59) : dépôt, encaissement, retour, historique (registre S59-1 à S59-4)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");
-    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "56010000", adresse: "" });
     const c = { banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "" };
     await api.banques.enregistrerCompte({ ...c, compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
     await api.banques.enregistrerCompte({ ...c, compte: "56010003", numeroBancaire: "R-CDF-1", devise: "CDF" });
@@ -1260,7 +1260,7 @@ describe("journée de guichet", () => {
   it("chéquier de l'institution (S60) : génération, numéros sur 8 chiffres, chèque utilisé une fois dans S52 (registre S60-1 à S60-4)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");
-    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "56010000", adresse: "" });
     const c = { banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "" };
     await api.banques.enregistrerCompte({ ...c, compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
     await api.banques.enregistrerCompte({ ...c, compte: "56010002", numeroBancaire: "R-USD-2", devise: "USD" });
@@ -1278,7 +1278,7 @@ describe("journée de guichet", () => {
     await api.chequiers.generer({ ...base, cle: cle(), compteBancaireId: b2 });          // mêmes numéros, autre compte : permis
     const lu = await api.banqueOperations.lire();
     expect(lu.cheques.filter((q) => q.compteBancaireId === b1)).toHaveLength(25);
-    const dec = { type: "decaissement" as const, date: "2026-11-05", compteBancaireId: b1, compte: "671", libelle: "Frais", montant: 1000 };
+    const dec = { type: "decaissement" as const, date: "2026-11-05", compteBancaireId: b1, compte: "67100000", libelle: "Frais", montant: 1000 };
     await expect(api.banqueOperations.enregistrer({ ...dec, cle: cle(), cheque: "0009999" })).rejects.toThrow("aucun chéquier");
     expect((await api.banqueOperations.enregistrer({ ...dec, cle: cle(), cheque: "0001001" })).cheque).toBe("0001001");
     await expect(api.banqueOperations.enregistrer({ ...dec, cle: cle(), cheque: "0001001" })).rejects.toThrow("déjà servi");
@@ -1290,17 +1290,17 @@ describe("journée de guichet", () => {
   it("emprunts bancaires (S61) : mise en place au compte 533, remboursement plafonné au capital restant (registre S61-1 à S61-7)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");
-    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "56010000", adresse: "" });
     await api.banques.enregistrerCompte({ banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "",
       compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
     await connecter("plumbala");
     const cb = (await api.banqueOperations.lire()).comptes[0]!.id;
     const base = { compteBancaireId: cb, reference: "RAW-2026-01", montant: 1000000, duree: 24, dateEmprunt: "2026-11-05", taux: "12,5", totalInteret: 125000,
-      totalCommission: 5000, totalFrais: 0, commentaire: "", compteEmprunt: "533", decisionConseil: "CA du 30/10/2026, résolution 3" };
-    await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle(), compteEmprunt: "1619" })).rejects.toThrow("compte 533");
+      totalCommission: 5000, totalFrais: 0, commentaire: "", compteEmprunt: "53300000", decisionConseil: "CA du 30/10/2026, résolution 3" };
+    await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle(), compteEmprunt: "16190000" })).rejects.toThrow("compte 533");
     await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle(), taux: "1e2" })).rejects.toThrow("Taux annuel");
     await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle(), decisionConseil: " " })).rejects.toThrow("Décision du Conseil");
-    await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle(), compteEmprunt: "1622" })).rejects.toThrow("au moins cinq ans");
+    await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle(), compteEmprunt: "16220000" })).rejects.toThrow("au moins cinq ans");
     await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle(), duree: 0 })).rejects.toThrow("Durée");
     await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle(), dateEmprunt: "2026-11-06" })).rejects.toThrow("dépasser la journée");
     const k = cle(), e = await api.emprunts.mettreEnPlace({ ...base, cle: k });
@@ -1321,18 +1321,18 @@ describe("journée de guichet", () => {
   it("rapport banque (S62) : journal des opérations de la banque sur la période, hors refusées (registre S62-1 à S62-3)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");
-    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "56010000", adresse: "" });
     const c = { banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "" };
     await api.banques.enregistrerCompte({ ...c, compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
     await api.banques.enregistrerCompte({ ...c, compte: "56010002", numeroBancaire: "R-USD-2", devise: "USD" });
     await connecter("plumbala");
     const lu = await api.banqueOperations.lire(), b = lu.banques[0]!.id, [c1, c2] = lu.comptes.map((x) => x.id) as [number, number];
-    await api.banqueOperations.enregistrer({ cle: cle(), type: "encaissement", date: "2026-11-05", compteBancaireId: c1, compte: "727", libelle: "Commission", montant: 50000 });
+    await api.banqueOperations.enregistrer({ cle: cle(), type: "encaissement", date: "2026-11-05", compteBancaireId: c1, compte: "72700000", libelle: "Commission", montant: 50000 });
     await api.banqueOperations.enregistrer({ cle: cle(), type: "banque_banque", date: "2026-11-05", compteBancaireId: c1, compteBancaireDestId: c2, montant: 20000 });
     const cx = await api.banqueOperations.rapportContexte();
     expect(cx.agences.length).toBeGreaterThan(0);
     const r = await api.banqueOperations.rapport("2026-01-01", "2026-11-05", b);
-    expect(r.map((x) => [x.operation, x.numeroComptable, x.agence])).toEqual([["Encaissement divers", "727", "Matete"], ["Virement banque vers banque", "", "Matete"]]);
+    expect(r.map((x) => [x.operation, x.numeroComptable, x.agence])).toEqual([["Encaissement divers", "72700000", "Matete"], ["Virement banque vers banque", "", "Matete"]]);
     expect((await api.banqueOperations.rapport("2026-01-01", "2026-11-05", b, c2)).map((x) => x.operation)).toEqual(["Virement banque vers banque"]);
     expect(await api.banqueOperations.rapport("2026-11-06", "2026-11-30", b)).toEqual([]);
     await expect(api.banqueOperations.rapport("2026-11-06", "2026-11-01", b)).rejects.toThrow("début dépasse");
@@ -1340,14 +1340,14 @@ describe("journée de guichet", () => {
 
   it("banques (S58) : compte de liaison et compte de pénalité contrôlés sur le plan, adresse du gestionnaire (registre S58-1, S58-3)", async () => {
     await connecter("jpmukendi");
-    await expect(api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "99999", adresse: "" })).rejects.toThrow("n'est pas un compte du plan");
-    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    await expect(api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "99999", adresse: "" })).rejects.toThrow("n'existe pas au plan de comptes");
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "56010000", adresse: "" });
     const c = { banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "", compte: "56010001", numeroBancaire: "R-1", devise: "USD" };
-    await expect(api.banques.enregistrerCompte({ ...c, comptePenalite: "60888" })).rejects.toThrow("pas un compte du plan");
-    await expect(api.banques.enregistrerCompte({ ...c, comptePenalite: "7791" })).rejects.toThrow("compte de charges du compte 60");
-    await expect(api.banques.enregistrerCompte({ ...c, comptePenalite: "670" })).rejects.toThrow("compte de charges du compte 60");
-    const r = await api.banques.enregistrerCompte({ ...c, comptePenalite: "607", contactAdresse: "Boulevard du 30 Juin, Gombe" });
-    expect([r.comptes[0]!.comptePenalite, r.comptes[0]!.contactAdresse]).toEqual(["607", "Boulevard du 30 Juin, Gombe"]);
+    await expect(api.banques.enregistrerCompte({ ...c, comptePenalite: "60888" })).rejects.toThrow("n'existe pas au plan");
+    await expect(api.banques.enregistrerCompte({ ...c, comptePenalite: "77910000" })).rejects.toThrow("compte de charges du compte 60");
+    await expect(api.banques.enregistrerCompte({ ...c, comptePenalite: "67000000" })).rejects.toThrow("compte de charges du compte 60");
+    const r = await api.banques.enregistrerCompte({ ...c, comptePenalite: "60720000", contactAdresse: "Boulevard du 30 Juin, Gombe" });
+    expect([r.comptes[0]!.comptePenalite, r.comptes[0]!.contactAdresse]).toEqual(["60720000", "Boulevard du 30 Juin, Gombe"]);
   });
 
   it("nouveau compte (S63) : un compte de plus pour un membre, Max compte à créer, N° selon la numérotation (registre S63-1 à S63-5)", async () => {
@@ -1485,7 +1485,7 @@ describe("journée de guichet", () => {
     await connecter("engalula");
     await expect(api.guichet.depot({ cle: cle(), compteId: luk.id, montant: 1000000, coupures: { 10000: 1 } })).rejects.toThrow("clôturé");
     await connecter("jpmukendi");
-    await api.banques.enregistrerBanque({ code: "BCC", libelle: "Banque Centrale du Congo", compteLiaison: "5601", adresse: "" });
+    await api.banques.enregistrerBanque({ code: "BCC", libelle: "Banque Centrale du Congo", compteLiaison: "56010000", adresse: "" });
     const b = (await api.banques.lire()).banques.find((x) => x.code === "BCC")!;
     await api.banques.enregistrerCompte({ banqueId: b.id, compte: "56010003", numeroBancaire: "BCC-CDF", devise: "CDF", journalId: (await api.banques.lire()).journaux[0]!.id, contactNom: "Service", contactNomComplet: "", contactTelephone: "", contactAdresse: "", comptePenalite: "" } as never);
     const cb = (await api.banques.lire()).comptes.find((c) => c.numeroBancaire === "BCC-CDF")!;
@@ -1639,7 +1639,7 @@ describe("journée de guichet", () => {
   it("adhésion par banque (S56) : payée sur un compte bancaire en CDF, saisie en attente du visa (registre S56-1 à S56-3)", async () => {
     await journeeOuverte();
     await connecter("jpmukendi");
-    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "56010000", adresse: "" });
     const c = { banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "" };
     await api.banques.enregistrerCompte({ ...c, compte: "56010001", numeroBancaire: "R-CDF-1", devise: "CDF" });
     await api.banques.enregistrerCompte({ ...c, compte: "56010002", numeroBancaire: "R-USD-1", devise: "USD" });
@@ -1666,7 +1666,7 @@ describe("journée de guichet", () => {
 
   it("banques (S58) : banque client, compte de l'institution en 560 (PCCI), suppression contrôlée", async () => {
     await connecter("bkasongo");
-    const b = { code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "Kinshasa, Gombe" };
+    const b = { code: "RAW", libelle: "Rawbank", compteLiaison: "56010000", adresse: "Kinshasa, Gombe" };
     await expect(api.banques.enregistrerBanque(b)).rejects.toThrow("Droit manquant");
     await connecter("jpmukendi");
     await expect(api.banques.enregistrerBanque({ ...b, compteLiaison: "" })).rejects.toThrow("compte liaison");
@@ -1693,7 +1693,7 @@ describe("journée de guichet", () => {
     // Frais d'adhésion (S16) : compte absent du plan, puis compte du plan
     await connecter("jpmukendi");
     const f = await api.parametrage.creerFrais({ typeOperation: "ADHESION", libelle: "Droit d'entrée", fondement: "droit_adhesion" });
-    await api.parametrage.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 200000, compte: "728", typesMembre: ["Physique"] });   // compte contrôlé dès le paramétrage (T16)
+    await api.parametrage.parametrerAdhesion({ fraisId: f.id, nature: "Montant", valeur: 200000, compte: "72890000", typesMembre: ["Physique"] });   // compte contrôlé dès le paramétrage (T16)
     await connecter("engalula");
     await expect(api.guichet.adhesion({ cle: cle(), tiersId: t.id, parts: 3, depot: 0, coupures: { 5000: 2, 1000: 2 } })).rejects.toThrow("billetage");
     await api.guichet.adhesion({ cle: cle(), tiersId: t.id, parts: 3, depot: 0, coupures: { 5000: 2, 1000: 4 } });
@@ -1933,7 +1933,7 @@ describe("journée de guichet", () => {
 
   it("facture (S36, p. 46) : éléments (compte au plan, taux de 0 à 100, Désactiver, Supprimer) ; types de commande", async () => {
     await connecter("jpmukendi");
-    const E = { libelle: "TVA", compte: "432", taux: "16", tauxA: "", tauxNA: "", retenue: false };
+    const E = { libelle: "TVA", compte: "43200000", taux: "16", tauxA: "", tauxNA: "", retenue: false };
     await expect(api.facture.enregistrerElement({})).rejects.toThrow("Libellé, Compte");
     await expect(api.facture.enregistrerElement({ ...E, compte: "4329999" })).rejects.toThrow("plan de comptes");
     await expect(api.facture.enregistrerElement({ ...E, taux: "120" })).rejects.toThrow("0 à 100");
@@ -2027,7 +2027,7 @@ describe("journée de guichet", () => {
     await expect(api.societe.enregistrer({ ...i, commune: "Lemba" })).rejects.toThrow("commune");   // Kinsaku est un quartier de Matete
     await expect(api.societe.enregistrer({ ...i, code: "", denomination: "" })).rejects.toThrow("Code Institution, Dénomination");
     await expect(api.societe.enregistrer({ ...i, quartier: "Gombe" })).rejects.toThrow("inconnu");
-    await expect(api.societe.enregistrer({ ...i, compteHorsBilan1: "570" })).rejects.toThrow("classe 0");
+    await expect(api.societe.enregistrer({ ...i, compteHorsBilan1: "57000000" })).rejects.toThrow("classe 0");
     await expect(api.societe.enregistrer({ ...i, logo: "data:text/html;base64,AAAA" })).rejects.toThrow("PNG ou JPEG");
     const r = await api.societe.enregistrer({ ...i, directeur: "J.-P. Mukendi", journeeMax: 2, logo: "data:image/png;base64,iVBORw0KGgo=", nrc: "KIN/1234", agrement: "A-77" });
     expect([r.institution.directeur, r.institution.journeeMax, r.institution.nrc]).toEqual(["J.-P. Mukendi", 2, "KIN/1234"]);
@@ -2048,13 +2048,13 @@ describe("journée de guichet", () => {
   it("opérations diverses (S31, p. 42) : obligatoires, compte du plan ouvert et saisissable hors caisse, INACTIF au lieu de supprimer", async () => {
     await connecter("jpmukendi");
     expect((await api.edDivers.lire()).operations).toEqual([]);
-    const O = { sens: "PRODUIT", compte: "7790", statut: "ACTIF", libelle: "Vente de livret d'épargne" };
+    const O = { sens: "PRODUIT", compte: "77900000", statut: "ACTIF", libelle: "Vente de livret d'épargne" };
     await expect(api.edDivers.enregistrer({})).rejects.toThrow("Type Opération, Compte, Statut, Libellé opération");
     await expect(api.edDivers.enregistrer({ ...O, compte: "6" })).rejects.toThrow("classe");
-    await expect(api.edDivers.enregistrer({ ...O, compte: "570" })).rejects.toThrow("caisse");
+    await expect(api.edDivers.enregistrer({ ...O, compte: "57000000" })).rejects.toThrow("caisse");
     const o = (await api.edDivers.enregistrer(O)).operations[0]!;
     await expect(api.edDivers.enregistrer({ ...O, libelle: "vente de livret d'épargne" })).rejects.toThrow("existe déjà");
-    await api.edDivers.enregistrer({ ...O, sens: "CHARGE", compte: "671" });
+    await api.edDivers.enregistrer({ ...O, sens: "CHARGE", compte: "67100000" });
     expect((await api.edDivers.enregistrer({ ...O, statut: "INACTIF" }, o.id)).operations[0]!.statut).toBe("INACTIF");
   });
 
@@ -2141,7 +2141,7 @@ describe("journée de guichet", () => {
     const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,
       montantMin: 100000, montantMax: 5000000, dureeMin: 3, dureeMax: 12, differeMin: 0, differeMax: 2, interetMin: 1, interetMax: 4, clientPhysique: true, periodicite: "M",
       modeDiffere: "Réparti", paiementInteret: "Normal", interetAnticipation: false, ageMax: 65, epargneNature: "Taux", epargneValeur: 10, categorie: "Prêt commercial",
-      penaliteAnticipation: 50, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "7152" }] };
+      penaliteAnticipation: 50, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "71520000" }] };
     const pid = (await api.produitsCredit.enregistrer(P)).produits[0]!.id;
     await connecter("bkasongo");
     const sim = (x: Partial<{ montant: number; duree: number; differe: number }> = {}) => api.simulationCredit.simuler({ produitId: pid, montant: 100000000, duree: 12, ...x });
@@ -2168,7 +2168,7 @@ describe("journée de guichet", () => {
     const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,
       montantMin: 100000, montantMax: 5000000, dureeMin: 3, dureeMax: 12, differeMin: 0, differeMax: 2, interetMin: 1, interetMax: 4, clientPhysique: true, periodicite: "M",
       modeDiffere: "Réparti", paiementInteret: "Normal", interetAnticipation: false, ageMax: 65, epargneNature: "Taux", epargneValeur: 10, categorie: "Prêt commercial",
-      penaliteAnticipation: 50, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "7152" }] };
+      penaliteAnticipation: 50, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "71520000" }] };
     const pid = (await api.produitsCredit.enregistrer(P)).produits[0]!.id;
     await connecter("bkasongo");
     const D = { revenus: 300000000, achats: 150000000, chargesExploitation: 50000000, chargesFamiliales: 30000000, autresEcheances: 0, tresorerie: 20000000, stocks: 80000000,
@@ -2188,7 +2188,7 @@ describe("journée de guichet", () => {
     const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,
       montantMin: 100000, montantMax: 5000000, dureeMin: 3, dureeMax: 12, differeMin: 0, differeMax: 2, interetMin: 1, interetMax: 4, clientPhysique: true, periodicite: "M",
       modeDiffere: "Réparti", paiementInteret: "Normal", interetAnticipation: false, ageMax: 65, epargneNature: "Taux", epargneValeur: 10, categorie: "Prêt commercial",
-      penaliteAnticipation: 50, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "7152" }] };
+      penaliteAnticipation: 50, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "71520000" }] };
     const pid = (await api.produitsCredit.enregistrer(P)).produits[0]!.id;
     await connecter("bkasongo");
     const ctx = await api.dossiers.contexte();
@@ -2315,10 +2315,29 @@ describe("journée de guichet", () => {
     expect([c.credit.numero, c.credit.statut, c.retenues.net]).toEqual(["0412/L001/00001", "debloque", 99000000]);
   });
 
+  it("fonds de solidarité mis en commun (plan d'allègement, point 10.4 ; registre T143) : au compte 172 de l'institution, sans compte du membre ni blocage, comme le serveur", async () => {
+    await connecter("jpmukendi");
+    const P = { ...PRODUIT_CREDIT, solidariteNature: "Taux", solidariteValeur: 1, solidariteDestination: "commun" };
+    await expect(api.produitsCredit.enregistrer({ ...P, numero: "L091" })).rejects.toThrow("172");
+    await connecter("plumbala");
+    await api.comptes.enregistrer({ parent: "172", suite: "90000", libelle: "Fonds de solidarité commun", ouvert: true, saisissable: true });
+    const cid = await creditVise({ ...P, solidariteCompte: "17290000" });
+    await connecter("engalula");
+    const d = await api.deblocage.detail(cid), net = d.retenues.net;
+    expect(d.retenues.fondsSolidarite).toBeGreaterThan(0);
+    const s = (await api.caisses.duCaissier())!, stock = await api.caisses.theorique(s.id, "CDF");
+    const cp: Comptage = {}; let reste = net / 100;
+    for (const v of Object.keys(stock).map(Number).sort((a, b) => b - a)) { const n = Math.min(stock[v] ?? 0, Math.floor(reste / v)); if (n) { cp[v] = n; reste -= n * v; } }
+    await api.deblocage.debloquerCaisse(cid, { cle: cle(), coupures: cp });
+    const c = _etat().credits.find((x) => x.id === cid)!, e = _etat().ecritures.find((x) => x.id === c.ecritureDeblocageId)!;
+    expect(c.compteSolidariteId).toBeNull();
+    expect(e.lignes.filter((l) => l.compte === "17290000" && l.sens === "C").reduce((t, l) => t + l.montant, 0)).toBe(d.retenues.fondsSolidarite);
+    expect(_etat().blocages.filter((b) => b.garantieDe === cid && b.motif.startsWith("Fonds"))).toEqual([]);
+  });
   it("déblocage par banque (S54, p. 62) : un seul Débloquer (plan 6.7), chèque du chéquier du compte bancaire (S54-2 à S54-5, S60-5)", async () => {
     const cid = await creditVise();
     await connecter("jpmukendi");
-    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "56010000", adresse: "" });
     const b = { banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "" };
     await api.banques.enregistrerCompte({ ...b, compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
     await api.banques.enregistrerCompte({ ...b, compte: "56010003", numeroBancaire: "R-CDF-1", devise: "CDF" });
@@ -2454,7 +2473,7 @@ describe("journée de guichet", () => {
   it("remboursement par banque (S55, p. 63) : compte bancaire dans la devise, date de règlement au plus la journée", async () => {
     const cid = await creditDebloque();
     await connecter("jpmukendi");
-    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "56010000", adresse: "" });
     const b = { banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "" };
     await api.banques.enregistrerCompte({ ...b, compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
     await api.banques.enregistrerCompte({ ...b, compte: "56010003", numeroBancaire: "R-CDF-1", devise: "CDF" });
@@ -2532,7 +2551,7 @@ describe("journée de guichet", () => {
     let s = await api.garanties.ajouter(cid, base);
     expect([s.total, s.garanties[0]!.reste, s.piece !== ""]).toEqual([1000000, 1000000, true]);   // comme le serveur
     expect(await dispo()).toBe(disp - 1000000);
-    const hb = () => E.ecritures.flatMap((e) => e.lignes).filter((l) => l.compte === "0112").reduce((t, l) => t + (l.sens === "C" ? l.montant : -l.montant), 0);
+    const hb = () => E.ecritures.flatMap((e) => e.lignes).filter((l) => l.compte.startsWith("0112")).reduce((t, l) => t + (l.sens === "C" ? l.montant : -l.montant), 0);
     expect(hb()).toBe(1000000);
     const gid = s.garanties[0]!.id;
     await expect(api.garanties.liberer(gid, { montant: 1000001 })).rejects.toThrow("au plus ce qui reste");
@@ -2615,7 +2634,7 @@ describe("journée de guichet", () => {
     const cid = await creditDebloque({ ...PRODUIT_CREDIT, epargneValeur: 0 });   // sans épargne obligatoire : pas de dépôt nanti à compenser (CR-21b)
     const j = (await api.journees.courante())!.date;
     const c = _etat().credits.find((x) => x.id === cid)!, cap = c.montant;
-    const solde = (n: string) => _etat().ecritures.flatMap((e) => e.lignes).filter((x) => x.compte === n).reduce((t, x) => t + (x.sens === "D" ? x.montant : -x.montant), 0);
+    const solde = (n: string) => _etat().ecritures.flatMap((e) => e.lignes).filter((x) => x.compte.startsWith(n)).reduce((t, x) => t + (x.sens === "D" ? x.montant : -x.montant), 0);
     const recule = (n: number) => { for (const e of c.echeancier) e.date = new Date(Date.parse(`${e.date}T00:00:00Z`) - n * 86400000).toISOString().slice(0, 10); };
     await connecter("bkasongo");
     await expect(api.provisions.charger(j)).rejects.toThrow("lancer d'abord");
@@ -2653,7 +2672,7 @@ describe("journée de guichet", () => {
     await expect(api.engagements.enregistrer({ ...base, garantie: ce.disponible })).rejects.toThrow("Garantie");
     const e = await api.engagements.enregistrer(base);
     expect([e.frais, e.typeLibelle]).toEqual([50000000 * 15 / 1000 + 100000, "Caution"]);   // comme le serveur
-    const solde = (n: string) => _etat().ecritures.flatMap((x) => x.lignes).filter((x) => x.compte === n).reduce((t, x) => t + (x.sens === "D" ? x.montant : -x.montant), 0);
+    const solde = (n: string) => _etat().ecritures.flatMap((x) => x.lignes).filter((x) => x.compte.startsWith(n)).reduce((t, x) => t + (x.sens === "D" ? x.montant : -x.montant), 0);
     expect([solde("0012"), solde("090"), solde("727")]).toEqual([50000000, -50000000, -e.frais]);
     expect((await api.engagements.beneficiaire(1)).comptes.find((x) => x.id === ce.id)!.disponible).toBe(ce.disponible - e.frais - 200000);
     await expect(api.engagements.enregistrer(base)).rejects.toThrow("déjà utilisée");
@@ -2720,7 +2739,7 @@ describe("journée de guichet", () => {
     const cid = await creditDebloque();
     const j = (await api.journees.courante())!.date;
     const c = _etat().credits.find((x) => x.id === cid)!, oblig = c.epargneObligatoire;
-    const solde = (n: string) => _etat().ecritures.flatMap((e) => e.lignes).filter((x) => x.compte === n).reduce((t, x) => t + (x.sens === "D" ? x.montant : -x.montant), 0);
+    const solde = (n: string) => _etat().ecritures.flatMap((e) => e.lignes).filter((x) => x.compte.startsWith(n)).reduce((t, x) => t + (x.sens === "D" ? x.montant : -x.montant), 0);
     const recule = (n: number) => { for (const e of c.echeancier) e.date = new Date(Date.parse(`${e.date}T00:00:00Z`) - n * 86400000).toISOString().slice(0, 10); };
     const ecart = () => Math.round((Date.parse(`${c.echeancier[0]!.date}T00:00:00Z`) - Date.parse(`${j}T00:00:00Z`)) / 86400000);
     await connecter("bkasongo");
@@ -2774,7 +2793,7 @@ describe("journée de guichet", () => {
     await expect(api.engagements.finir(e.id, { motif: "mise_en_jeu", montant: 100000 })).rejects.toThrow("Compte Banque");
     const f = await api.engagements.finir(e.id, { motif: "mainlevee" });
     expect([f.clotureLe, f.motifFin]).toEqual(["2026-11-05", "Mainlevée"]);
-    const solde = (n: string) => _etat().ecritures.flatMap((x) => x.lignes).filter((x) => x.compte === n).reduce((t, x) => t + (x.sens === "D" ? x.montant : -x.montant), 0);
+    const solde = (n: string) => _etat().ecritures.flatMap((x) => x.lignes).filter((x) => x.compte.startsWith(n)).reduce((t, x) => t + (x.sens === "D" ? x.montant : -x.montant), 0);
     expect([solde("0012"), solde("090")]).toEqual([0, 0]);
     expect((await api.engagements.beneficiaire(1)).comptes.find((x) => x.id === ce.id)!.disponible).toBe(ce.disponible);
     await expect(api.engagements.finir(e.id, { motif: "mainlevee" })).rejects.toThrow("déjà pris fin");
@@ -2784,12 +2803,12 @@ describe("journée de guichet", () => {
     sansDonneesDemo();
     await connecter("plumbala");
     await expect(api.refTaxes.enregistrer("taxes", {})).rejects.toThrow("Code, Désignation, Taux, Compte");
-    await expect(api.refTaxes.enregistrer("taxes", { code: "TVA", designation: "Taxe sur la valeur ajoutée", taux: "seize", compte: "432" })).rejects.toThrow("deux décimales");
-    await expect(api.refTaxes.enregistrer("taxes", { code: "TVA", designation: "Taxe sur la valeur ajoutée", taux: "16", compte: "400" })).rejects.toThrow("432");   // plan 2.26
-    const r = await api.refTaxes.enregistrer("taxes", { code: "TVA", designation: "Taxe sur la valeur ajoutée", taux: "16.00", compte: "432" });
+    await expect(api.refTaxes.enregistrer("taxes", { code: "TVA", designation: "Taxe sur la valeur ajoutée", taux: "seize", compte: "43200000" })).rejects.toThrow("deux décimales");
+    await expect(api.refTaxes.enregistrer("taxes", { code: "TVA", designation: "Taxe sur la valeur ajoutée", taux: "16", compte: "40000000" })).rejects.toThrow("432");   // plan 2.26
+    const r = await api.refTaxes.enregistrer("taxes", { code: "TVA", designation: "Taxe sur la valeur ajoutée", taux: "16.00", compte: "43200000" });
     expect([r.lignes[0]!.affichage.designation, r.lignes[0]!.taux]).toEqual(["Taxe sur la valeur ajoutée", "16,00"]);   // comme le serveur
-    await expect(api.refTaxes.enregistrer("taxes", { code: "tva", designation: "x", taux: "1", compte: "432" })).rejects.toThrow("existe déjà");
-    const base = { typeTiers: "FOURNISSEUR", intitule: "Papeterie du Fleuve", qualite: "SARL", compte: "400", pays: "RDC", dateCreation: "05/11/2026", compteBanque: "00012-34567" };
+    await expect(api.refTaxes.enregistrer("taxes", { code: "tva", designation: "x", taux: "1", compte: "43200000" })).rejects.toThrow("existe déjà");
+    const base = { typeTiers: "FOURNISSEUR", intitule: "Papeterie du Fleuve", qualite: "SARL", compte: "40000000", pays: "RDC", dateCreation: "05/11/2026", compteBanque: "00012-34567" };
     await expect(api.refTiers.enregistrer("tiers", { ...base, typeTiers: "AMI" })).rejects.toThrow("Type Tiers inconnu");
     await expect(api.refTiers.enregistrer("tiers", { ...base, compte: "999999" })).rejects.toThrow("n'existe pas au plan");
     await expect(api.refTiers.enregistrer("tiers", { ...base, dateCreation: "2026-11-05" })).rejects.toThrow("JJ/MM/AAAA");
@@ -2797,25 +2816,25 @@ describe("journée de guichet", () => {
     expect((await api.refTiers.enregistrer("tiers", base)).lignes).toHaveLength(1);
     expect((await api.comptes.lire()).typesSuivi[0]).toBe("FOURNISSEUR");
     await connecter("engalula");
-    await expect(api.refTaxes.enregistrer("taxes", { code: "X", designation: "x", taux: "1", compte: "433" })).rejects.toThrow("Droit manquant");
+    await expect(api.refTaxes.enregistrer("taxes", { code: "X", designation: "x", taux: "1", compte: "43300000" })).rejects.toThrow("Droit manquant");
   });
 
   it("comptabilisation (S111, p. 130 et 155) : la grille montre l'écriture en attente d'une opération de banque validée ; Comptabiliser la passe avec son N° de pièce et ferme la journée (S111-4)", async () => {
     const { j, s } = await journeeOuverte();
     await connecter("jpmukendi");
-    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "56010000", adresse: "" });
     await api.banques.enregistrerCompte({ banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "",
       compte: "56010001", numeroBancaire: "R-USD-1", devise: "USD" });
     const profils = Object.fromEntries((await adm.droits.lire()).profils.map((p) => [p.nom, p.id]));
     for (const nom of ["CHEF D'AGENCE", "AGENT DE CRÉDIT"]) { const id = profils[nom]; if (id) await adm.droits.enregistrer(id, { droits: [...(await adm.droits.lire(id)).octroyes, "S57"] }); }
     await connecter("plumbala");
     const usd = (await api.banqueOperations.lire()).comptes[0]!.id;
-    const enc = await api.banqueOperations.enregistrer({ cle: cle(), type: "encaissement", date: "2026-11-05", compteBancaireId: usd, compte: "727", libelle: "Commission", montant: 50000 });
+    const enc = await api.banqueOperations.enregistrer({ cle: cle(), type: "encaissement", date: "2026-11-05", compteBancaireId: usd, compte: "72700000", libelle: "Commission", montant: 50000 });
     await connecter("jpmukendi"); await api.banqueOperations.suivre(enc.id, "visa");
     await connecter("bkasongo"); await api.banqueOperations.suivre(enc.id, "validation");
     await connecter("plumbala");
     const g = await api.comptabilisation.aComptabiliser(j.id);
-    expect(g.lignes.filter((x) => !x.piece).map((x) => [x.compte, x.debit, x.credit]).sort()).toEqual([["56010001", 50000, 0], ["727", 0, 50000]]);   // comme le serveur
+    expect(g.lignes.filter((x) => !x.piece).map((x) => [x.compte, x.debit, x.credit]).sort()).toEqual([["56010001", 50000, 0], ["72700000", 0, 50000]]);   // comme le serveur
     await expect(api.comptabilisation.comptabiliser(j.id)).rejects.toThrow("caisses arrêtées");
     await connecter("engalula");
     for (const d of ["CDF", "USD"] as const) await api.caisses.saisirBilletage(s.id, d, await api.caisses.theorique(s.id, d));
@@ -2825,7 +2844,7 @@ describe("journée de guichet", () => {
     expect((await api.comptabilisation.comptabiliser(j.id)).statut).toBe("fermee");
     const o = _etat().operationsBanque.find((x) => x.id === enc.id)!;
     expect([o.statut, o.piece !== ""]).toEqual(["comptabilisee", true]);
-    expect(_etat().ecritures.flatMap((e) => e.lignes).filter((x) => x.compte === "727").reduce((t, x) => t + (x.sens === "C" ? x.montant : -x.montant), 0)).toBe(50000);
+    expect(_etat().ecritures.flatMap((e) => e.lignes).filter((x) => x.compte.startsWith("727")).reduce((t, x) => t + (x.sens === "C" ? x.montant : -x.montant), 0)).toBe(50000);
   });
 
   it("produit crédit (S23, p. 37 et 38) : méthode dégressive (Instr. BCC 38 art. 11), bornes, garanties, assurance, frais (Instr. BCC 40 art. 8)", async () => {
@@ -2833,7 +2852,7 @@ describe("journée de guichet", () => {
     const P = { typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe", tauxInteret: "2,5", tauxDiffere: 2,
       montantMin: 100000, montantMax: 5000000, dureeMin: 3, dureeMax: 12, differeMin: 0, differeMax: 2, interetMin: 1, interetMax: 4, clientPhysique: true, periodicite: "M",
       modeDiffere: "Réparti", paiementInteret: "Normal", interetAnticipation: false, ageMax: 65, epargneNature: "Taux", epargneValeur: 10, categorie: "Prêt commercial",
-      penaliteAnticipation: 50, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "7152" }] };
+      penaliteAnticipation: 50, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "71520000" }] };
     expect((await api.produitsCredit.lire()).options.modesCalcul).toEqual(["Dégressif"]);
     await expect(api.produitsCredit.enregistrer({ ...P, numero: "", nom: "" })).rejects.toThrow("Num Produit, Nom du produit");
     await expect(api.produitsCredit.enregistrer({ ...P, modeCalcul: "Linéaire" })).rejects.toThrow("dégressive");
@@ -2847,7 +2866,7 @@ describe("journée de guichet", () => {
     await expect(api.produitsCredit.enregistrer({ ...P, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "99999" }] })).rejects.toThrow("n'existe pas");
     await expect(api.produitsCredit.enregistrer({ ...P, frais: [...P.frais, ...P.frais] })).rejects.toThrow("deux fois");
     const r = await api.produitsCredit.enregistrer(P);
-    expect([r.produit.tauxInteret, r.produit.frais[0]!.compte, r.produit.assuranceNature]).toEqual([2.5, "7152", null]);
+    expect([r.produit.tauxInteret, r.produit.frais[0]!.compte, r.produit.assuranceNature]).toEqual([2.5, "71520000", null]);
     const teg = r.produit.tegIndicatif as number[];   // TEG du prêt minimum et du prêt maximum, frais compris (plan 2.16) : au-dessus du taux nominal annuel
     expect(teg).toHaveLength(2); expect(teg[0]!).toBeGreaterThan(30);
     expect(r.produits[0]!.typeClient).toBe("Physique");
@@ -3039,7 +3058,7 @@ describe("journée de guichet", () => {
     for (const id of ids) expect((await api.operationsCompta.valider(id)).statut).toBe("validee");
     await connecter("plumbala");
   }
-  const soldeCompte = (n: string) => _etat().ecritures.flatMap((e) => e.lignes).filter((x) => x.compte === n).reduce((t, x) => t + (x.sens === "D" ? x.montant : -x.montant), 0);
+  const soldeCompte = (n: string) => _etat().ecritures.flatMap((e) => e.lignes).filter((x) => x.compte.startsWith(n)).reduce((t, x) => t + (x.sens === "D" ? x.montant : -x.montant), 0);
   const compteDe = (numeroClient: string, devise: string) => { const t = _etat().tiers.find((x) => x.numero === numeroClient)!;
     return { tid: t.id, c: _etat().comptes.filter((x) => x.tiersId === t.id && x.devise === devise && !x.closLe).sort((a, b) => a.numero.localeCompare(b.numero))[0]! }; };
 
@@ -3051,11 +3070,11 @@ describe("journée de guichet", () => {
     expect([ctx.periodes.includes("11/2026"), ctx.periodes.includes("12/2026"), ctx.journaux.some((x) => x.type === "a_nouveaux")]).toEqual([true, false, false]);
     const base = { journalId: od, periode: "11/2026" };
     expect((await api.operationsCompta.ecritureOuvrir(base)).id).toBeNull();
-    const l1 = { ...base, jour: 5, reference: "FA-12", libelle: "Honoraires", compte: "461", credit: 250000 };
+    const l1 = { ...base, jour: 5, reference: "FA-12", libelle: "Honoraires", compte: "46100000", credit: 250000 };
     await expect(api.operationsCompta.ecritureAjouter({ ...l1, jour: 31 })).rejects.toThrow("Jour");
     await expect(api.operationsCompta.ecritureAjouter({ ...l1, jour: 6 })).rejects.toThrow("pas après la journée ouverte");
-    await expect(api.operationsCompta.ecritureAjouter({ ...l1, compte: "570" })).rejects.toThrow("tenu par la gestion");
-    await expect(api.operationsCompta.ecritureAjouter({ ...l1, compte: "330" })).rejects.toThrow("tenu par la gestion");
+    await expect(api.operationsCompta.ecritureAjouter({ ...l1, compte: "57000000" })).rejects.toThrow("tenu par la gestion");
+    await expect(api.operationsCompta.ecritureAjouter({ ...l1, compte: "33000000" })).rejects.toThrow("tenu par la gestion");
     await expect(api.operationsCompta.ecritureAjouter({ ...l1, debit: 5 })).rejects.toThrow("Débit ou Crédit");
     await expect(api.operationsCompta.ecritureAjouter({ ...l1, periode: "12/2026" })).rejects.toThrow("Période");
     await expect(api.operationsCompta.ecritureAjouter({ ...l1, libelle: " " })).rejects.toThrow("Libellé");
@@ -3063,21 +3082,21 @@ describe("journée de guichet", () => {
     expect([e.statut, e.credit, e.lignes.length, e.jour, e.reference]).toEqual(["brouillon", 250000, 1, 5, "FA-12"]);
     expect(await api.operationsCompta.visas("visa", "ecriture")).toEqual([]);
     const suite = { ...base, id: e.id, libelle: "Honoraires du mois" };
-    await api.operationsCompta.ecritureAjouter({ ...suite, compte: "610", debit: 200000 });
-    e = await api.operationsCompta.ecritureAjouter({ ...suite, compte: "612", debit: 50000 });
+    await api.operationsCompta.ecritureAjouter({ ...suite, compte: "61000000", debit: 200000 });
+    e = await api.operationsCompta.ecritureAjouter({ ...suite, compte: "61240000", debit: 50000 });
     expect([e.statut, e.debit, e.credit]).toEqual(["saisie", 250000, 250000]);
     e = await api.operationsCompta.ecritureSupprimer(e.id!, 3);
     expect([e.statut, e.lignes.length]).toEqual(["brouillon", 2]);
     expect((await api.operationsCompta.ecritureOuvrir(base)).id).toBe(e.id);
-    e = await api.operationsCompta.ecritureAjouter({ ...base, libelle: "Honoraires du mois", compte: "612", debit: 50000 });
+    e = await api.operationsCompta.ecritureAjouter({ ...base, libelle: "Honoraires du mois", compte: "61240000", debit: 50000 });
     expect((await api.operationsCompta.visas("visa", "ecriture")).map((x) => [x.id, x.montant, x.date, x.libelle])).toEqual([[e.id, 250000, "2026-11-05", "Honoraires"]]);
     await expect(api.operationsCompta.viser(e.id!)).rejects.toThrow("Quatre yeux");
     await viserValider(e.id!);
-    await expect(api.operationsCompta.ecritureAjouter({ ...suite, compte: "610", debit: 1 })).rejects.toThrow("déjà visée");
+    await expect(api.operationsCompta.ecritureAjouter({ ...suite, compte: "61000000", debit: 1 })).rejects.toThrow("déjà visée");
     await expect(api.operationsCompta.ecritureSupprimer(e.id!, 1)).rejects.toThrow("déjà visée");
     expect((await api.operationsCompta.ecritureOuvrir(base)).id).toBeNull();
     const att = (await api.comptabilisation.aComptabiliser(j.id)).lignes.filter((x) => !x.piece).map((x) => [x.compte, x.debit, x.credit]).sort();
-    expect(att).toEqual([["461", 0, 250000], ["610", 200000, 0], ["612", 50000, 0]]);
+    expect(att).toEqual([["46100000", 0, 250000], ["61000000", 200000, 0], ["61240000", 50000, 0]]);
     await comptabiliserJournee(j.id, s.id);
     expect([soldeCompte("461"), soldeCompte("610"), soldeCompte("612")]).toEqual([-250000, 200000, 50000]);
     const o = _etat().operationsCompta.find((x) => x.id === e.id)!;
@@ -3086,10 +3105,10 @@ describe("journée de guichet", () => {
     expect([jc.exerciceActif, jc.mois.length]).toEqual([2026, 12]);
     const q = (k: Record<string, unknown>) => api.etatsCompta.journaux({ exercice: 2026, mois: 11, ...k });
     const jr = await q({ journalId: od });
-    expect(jr.lignes.map((x) => [x.compte, x.debit, x.credit]).sort()).toEqual([["461", 0, 250000], ["610", 200000, 0], ["612", 50000, 0]]);
+    expect(jr.lignes.map((x) => [x.compte, x.debit, x.credit]).sort()).toEqual([["46100000", 0, 250000], ["61000000", 200000, 0], ["61240000", 50000, 0]]);
     expect([jr.totalDebit, jr.totalCredit]).toEqual([250000, 250000]);
-    expect((await q({ journalId: od, mouvement: "C" })).lignes.map((x) => x.compte)).toEqual(["461"]);
-    expect((await q({ journalId: od, montant: 200000 })).lignes.map((x) => x.compte)).toEqual(["610"]);
+    expect((await q({ journalId: od, mouvement: "C" })).lignes.map((x) => x.compte)).toEqual(["46100000"]);
+    expect((await q({ journalId: od, montant: 200000 })).lignes.map((x) => x.compte)).toEqual(["61000000"]);
     expect([(await q({ journalId: od, libelle: "onoraires", libelleMode: "debut" })).lignes.length, (await q({ journalId: od, libelle: "onoraires", libelleMode: "contient" })).lignes.length]).toEqual([0, 3]);
     const c = await q({ type: "operations_diverses" });
     expect([c.lignes.every((x) => x.journal.startsWith("OD")), c.totalDebit === c.totalCredit]).toEqual([true, true]);
@@ -3098,7 +3117,7 @@ describe("journée de guichet", () => {
     // B22 : schémas comptables appliqués, par évènement (Instr. BCC 008, art. 9 ; PCCI § 3.1)
     const sc = await api.etatsCompta.schemas({ exercice: 2026 });
     const em = sc.schemas.find((x) => x.evenement === "ecriture_manuelle")!;
-    expect([em.libelle, em.journaux, em.ecritures, em.debit.map((x) => x.compte), em.credit.map((x) => x.compte)]).toEqual(["Écriture saisie", ["OD"], 1, ["610", "612"], ["461"]]);   // comme le serveur
+    expect([em.libelle, em.journaux, em.ecritures, em.debit.map((x) => x.compte), em.credit.map((x) => x.compte)]).toEqual(["Écriture saisie", ["OD"], 1, ["61000000", "61240000"], ["46100000"]]);   // comme le serveur
     expect([sc.exercice, sc.edition!.numero >= 1, (await api.etatsCompta.schemas({ exercice: 2025 })).schemas]).toEqual([2026, true, []]);
     await expect(api.etatsCompta.schemas({})).rejects.toThrow("Exercice");
   });
@@ -3110,19 +3129,19 @@ describe("journée de guichet", () => {
     const comptes = async (tid: number, id: number) => (await api.operationsCompta.comptesDuClient(tid)).find((x) => x.id === id)!;
     const k = await comptes(k0.tid, k0.c.id), r = await comptes(r0.tid, r0.c.id);
     expect([k.numeroComptable, k.solde > 0]).toEqual(["330", true]);
-    const v = { cle: cle(), type: "prelevement", date: "2026-11-05", compteDepotId: k.id, lignes: [{ compte: "727", libelle: "Commission de tenue", montant: 5000 }] };
+    const v = { cle: cle(), type: "prelevement", date: "2026-11-05", compteDepotId: k.id, lignes: [{ compte: "72700000", libelle: "Commission de tenue", montant: 5000 }] };
     await expect(api.operationsCompta.enregistrerVirement({ ...v, type: "" })).rejects.toThrow("Type opération");
     await expect(api.operationsCompta.enregistrerVirement({ ...v, compteDepotId: null })).rejects.toThrow("N° Compte");
-    await expect(api.operationsCompta.enregistrerVirement({ ...v, lignes: [{ compte: "570", libelle: "x", montant: 5 }] })).rejects.toThrow("tenu par la gestion");
+    await expect(api.operationsCompta.enregistrerVirement({ ...v, lignes: [{ compte: "57000000", libelle: "x", montant: 5 }] })).rejects.toThrow("tenu par la gestion");
     await expect(api.operationsCompta.enregistrerVirement({ ...v, lignes: [...v.lignes, ...v.lignes] })).rejects.toThrow("multiligne");
-    await expect(api.operationsCompta.enregistrerVirement({ ...v, lignes: [{ compte: "727", libelle: "x", montant: k.solde + 100 }] })).rejects.toThrow("insuffisant");
+    await expect(api.operationsCompta.enregistrerVirement({ ...v, lignes: [{ compte: "72700000", libelle: "x", montant: k.solde + 100 }] })).rejects.toThrow("insuffisant");
     await expect(api.operationsCompta.enregistrerVirement({ ...v, date: "2026-11-06" })).rejects.toThrow("dépasser la journée");
     const p = await api.operationsCompta.enregistrerVirement(v);
     expect([p.statut, p.debit, p.credit, p.compteEpargne, p.numeroComptable]).toEqual(["saisie", 5000, 0, k.numero, "330"]);
     expect((await api.operationsCompta.enregistrerVirement(v)).id).toBe(p.id);
     expect((await comptes(k0.tid, k.id)).solde).toBe(k.solde - 5000);
     const vi = await api.operationsCompta.enregistrerVirement({ cle: cle(), type: "virement", compteDepotId: k.id, multiligne: true,
-      lignes: [{ compte: "610", libelle: "Intérêts du mois", montant: 300 }, { compte: "612", libelle: "Bonus", montant: 200 }] });
+      lignes: [{ compte: "61000000", libelle: "Intérêts du mois", montant: 300 }, { compte: "61240000", libelle: "Bonus", montant: 200 }] });
     expect([vi.credit, vi.debit, vi.montant]).toEqual([500, 0, 500]);
     const c = { cle: cle(), onglet: "dav", emetteurId: k.id, recepteurId: r.id, montant: 20000 };
     await expect(api.operationsCompta.enregistrerCompteACompte({ ...c, recepteurId: usd.id })).rejects.toThrow("même devise");
@@ -3146,12 +3165,12 @@ describe("journée de guichet", () => {
   it("opération diverse (S116, p. 134 et 135) visée (S113) puis payée en caisse avec son billetage (S82, p. 93 et 94) ; opération déplacée : autre agence seulement", async () => {
     const { s } = await journeeOuverte();
     await connecter("plumbala");
-    const d = { cle: cle(), sens: "DECAISSEMENT", date: "2026-11-05", lignes: [{ compte: "610", libelle: "Prime d'assurance", montant: 5000000 }] };
+    const d = { cle: cle(), sens: "DECAISSEMENT", date: "2026-11-05", lignes: [{ compte: "61000000", libelle: "Prime d'assurance", montant: 5000000 }] };
     await expect(api.operationsCompta.enregistrerDiverse({ ...d, sens: "X" })).rejects.toThrow("Type opération");
-    await expect(api.operationsCompta.enregistrerDiverse({ ...d, lignes: [{ compte: "570", libelle: "x", montant: 5 }] })).rejects.toThrow("tenu par la gestion");
+    await expect(api.operationsCompta.enregistrerDiverse({ ...d, lignes: [{ compte: "57000000", libelle: "x", montant: 5 }] })).rejects.toThrow("tenu par la gestion");
     const o = await api.operationsCompta.enregistrerDiverse(d);
     expect([o.statut, o.debit, o.credit, o.dateVisa]).toEqual(["saisie", 5000000, 0, ""]);
-    const e = await api.operationsCompta.enregistrerDiverse({ cle: cle(), sens: "ENCAISSEMENT", lignes: [{ compte: "727", libelle: "Vente de carnets", montant: 1000000 }] });
+    const e = await api.operationsCompta.enregistrerDiverse({ cle: cle(), sens: "ENCAISSEMENT", lignes: [{ compte: "72700000", libelle: "Vente de carnets", montant: 1000000 }] });
     expect((await api.operationsCompta.visas("visa", "diverse")).map((x) => x.id)).toEqual([o.id, e.id]);
     await expect(api.operationsCompta.enregistrerDeplacee({ cle: cle(), agenceId: 1, sens: "DEPOT", nom: "Mbuyi Paul", numeroCompte: "0412-000319-02", montant: 3000000 })).rejects.toThrow("autre que la vôtre");
     await expect(api.operationsCompta.enregistrerDeplacee({ cle: cle(), agenceId: null, sens: "DEPOT", nom: "x", numeroCompte: "y", montant: 5 })).rejects.toThrow("Agence");
@@ -3160,7 +3179,7 @@ describe("journée de guichet", () => {
     await connecter("jpmukendi");
     for (const x of [o, e]) expect((await api.operationsCompta.viser(x.id)).statut).toBe("visee");
     await connecter("engalula");
-    expect((await api.operationsCompta.aPayer("diverse")).map((x) => [x.id, x.debit, x.credit, x.lignes[0]!.compte])).toEqual([[o.id, 5000000, 0, "610"], [e.id, 0, 1000000, "727"]]);
+    expect((await api.operationsCompta.aPayer("diverse")).map((x) => [x.id, x.debit, x.credit, x.lignes[0]!.compte])).toEqual([[o.id, 5000000, 0, "61000000"], [e.id, 0, 1000000, "72700000"]]);
     const avant = await api.caisses.theorique(s.id, "CDF");
     await expect(api.operationsCompta.payer(o.id, { cle: cle(), coupures: {} })).rejects.toThrow("billetage");
     const pay = await api.operationsCompta.payer(o.id, { cle: cle(), coupures: billets(avant, 5000000) });
@@ -3200,7 +3219,7 @@ describe("journée de guichet", () => {
     await viserValider(o.id, pa.id, ps.id);
     await comptabiliserJournee(j.id, s.id);
     expect([(await comptes(i0.tid, inst.id)).solde, (await comptes(e0.tid, emp.id)).solde]).toEqual([inst.solde - 60000 + 1500, emp.solde + 60000 - 1500 + 40000]);
-    expect(_etat().ecritures.flatMap((e) => e.lignes).filter((l) => l.compte === "421").reduce((t, l) => t + (l.sens === "D" ? l.montant : -l.montant), 0)).toBe(40000);
+    expect(_etat().ecritures.flatMap((e) => e.lignes).filter((l) => l.compte.startsWith("421")).reduce((t, l) => t + (l.sens === "D" ? l.montant : -l.montant), 0)).toBe(40000);
     expect(await soldeCdfGrandLivre()).toBe(0);
   });
   it("factures des fournisseurs (S107, p. 124 à 128 et 147 à 153) : commande et tranches, facture, visa, validation, règlement par chèque et en espèces (S141), déclaration de taxe (S108)", async () => {
@@ -3210,20 +3229,20 @@ describe("journée de guichet", () => {
     const agent = (await adm.droits.lire()).profils.find((p) => p.nom === "AGENT DE CRÉDIT")!.id;
     await adm.droits.enregistrer(agent, { droits: [...new Set([...(await adm.droits.lire(agent)).octroyes, "S114"])] });
     await api.facture.enregistrerType({ code: "ACHA_M", libelle: "Achat de matériel" });
-    await api.facture.enregistrerElement({ libelle: "Retenue sur loyers", compte: "433", taux: "20", retenue: true });
-    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    await api.facture.enregistrerElement({ libelle: "Retenue sur loyers", compte: "43300000", taux: "20", retenue: true });
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "56010000", adresse: "" });
     await api.banques.enregistrerCompte({ banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "", compte: "56010003", numeroBancaire: "R-CDF-1", devise: "CDF" });
     await connecter("plumbala");
-    await api.refTaxes.enregistrer("taxes", { code: "TVA", designation: "Taxe sur la valeur ajoutée", taux: "16", compte: "432" });
-    await api.refTaxes.enregistrer("taxes", { code: "PNR", designation: "Prélèvement prestataires non-résidents", taux: "14", compte: "433" });
-    await api.refTiers.enregistrer("tiers", { typeTiers: "FOURNISSEUR", intitule: "Papeterie du Fleuve", compte: "400" });
+    await api.refTaxes.enregistrer("taxes", { code: "TVA", designation: "Taxe sur la valeur ajoutée", taux: "16", compte: "43200000" });
+    await api.refTaxes.enregistrer("taxes", { code: "PNR", designation: "Prélèvement prestataires non-résidents", taux: "14", compte: "43300000" });
+    await api.refTiers.enregistrer("tiers", { typeTiers: "FOURNISSEUR", intitule: "Papeterie du Fleuve", compte: "40000000" });
     const ctx = await api.facturesFournisseurs.contexte(), four = ctx.fournisseurs[0]!.id, tc = ctx.typesCommande[0]!.id, tx = Object.fromEntries(ctx.taxes.map((t) => [t.code, t.id]));
     const cb = ctx.comptesBancaires[0]!.id;
     await api.chequiers.generer({ cle: cle(), compteBancaireId: cb, nbFeuillets: 25, debut: "0000001", barre: true });
-    const ligne = { compte: "610", designation: "Rames de papier", unite: "Rame", quantite: "50", prixUnitaire: 55000, tva: true };
+    const ligne = { compte: "61000000", designation: "Rames de papier", unite: "Rame", quantite: "50", prixUnitaire: 55000, tva: true };
     const cmd = { cle: cle(), typeCommandeId: tc, fournisseurId: four, libelle: "Fournitures", lignes: [ligne], tranches: [{ date: "2026-11-05", taux: "44" }, { date: "2026-12-05", taux: "56" }] };
     await expect(api.facturesFournisseurs.enregistrerCommande({ ...cmd, typeCommandeId: null })).rejects.toThrow("Type Commande");
-    await expect(api.facturesFournisseurs.enregistrerCommande({ ...cmd, lignes: [{ ...ligne, compte: "727" }] })).rejects.toThrow("classes 2 ou 6");
+    await expect(api.facturesFournisseurs.enregistrerCommande({ ...cmd, lignes: [{ ...ligne, compte: "72700000" }] })).rejects.toThrow("classes 2 ou 6");
     await expect(api.facturesFournisseurs.enregistrerCommande({ ...cmd, tranches: [{ date: "2026-11-05", taux: "44" }] })).rejects.toThrow("100 %");
     await expect(api.facturesFournisseurs.enregistrerCommande({ ...cmd, lignes: [{ ...ligne, retenueTaxeId: tx.TVA }] })).rejects.toThrow("autre que la TVA");
     const c = await api.facturesFournisseurs.enregistrerCommande(cmd);
@@ -3238,8 +3257,8 @@ describe("journée de guichet", () => {
     const f1 = await api.facturesFournisseurs.enregistrerFacture(fa);
     expect([f1.numero, f1.statut, f1.du, f1.reste, f1.etat]).toEqual(["000001", "saisie", 1403600, 1403600, "encours"]);
     await expect(api.facturesFournisseurs.enregistrerFacture({ ...fa, cle: cle(), reference: "FA-X" })).rejects.toThrow("déjà facturée");
-    const fd = { cle: cle(), fournisseurId: four, directe: true, compte: "612", montantHt: 500000, reference: "LOY-11", libelle: "Loyer de novembre" };
-    await expect(api.facturesFournisseurs.enregistrerFacture({ ...fd, compte: "400" })).rejects.toThrow("classes 2 ou 6");
+    const fd = { cle: cle(), fournisseurId: four, directe: true, compte: "61240000", montantHt: 500000, reference: "LOY-11", libelle: "Loyer de novembre" };
+    await expect(api.facturesFournisseurs.enregistrerFacture({ ...fd, compte: "40000000" })).rejects.toThrow("classes 2 ou 6");
     const f2 = await api.facturesFournisseurs.enregistrerFacture(fd);
     expect([f2.ht, f2.tva, f2.du, f2.aPayer, f2.charges[0]!.montant]).toEqual([500000, 0, 500000, 400000, 100000]);
     await connecter("jpmukendi"); for (const f of [f1, f2]) expect((await api.facturesFournisseurs.viser("facture", f.id)).statut).toBe("visee");
@@ -3266,8 +3285,8 @@ describe("journée de guichet", () => {
     expect((await api.facturesFournisseurs.valider("reglement", r2.id)).statut).toBe("validee");
     // état de validation du règlement : la fiche d'imputation (p. 154), équilibrée, sans pièce avant la comptabilisation
     const fi = await api.facturesFournisseurs.ficheImputation(r1.id), fe = await api.facturesFournisseurs.ficheImputation(r2.id);
-    expect([fi.piece, fi.debit, fi.lignes[0]?.compte, fi.lignes[0]?.debit]).toEqual(["", fi.credit, "400", r1.montant]);
-    expect([fe.journal, fe.debit, fe.lignes.slice(0, 2).map((x) => x.compte)]).toEqual(["CA", fe.credit, ["400", "570"]]);
+    expect([fi.piece, fi.debit, fi.lignes[0]?.compte, fi.lignes[0]?.debit]).toEqual(["", fi.credit, "40000000", r1.montant]);
+    expect([fe.journal, fe.debit, fe.lignes.slice(0, 2).map((x) => x.compte)]).toEqual(["CA", fe.credit, ["40000000", "570"]]);
     await connecter("engalula");
     expect((await api.facturesFournisseurs.reglementsEspece()).map((x) => x.id)).toEqual([r2.id]);
     await expect(api.facturesFournisseurs.payerReglement(r2.id, { cle: cle(), coupures: {} })).rejects.toThrow("billetage");
@@ -3286,7 +3305,7 @@ describe("journée de guichet", () => {
     expect([dt.total, dt.totalBase, dt.lignes[0]!.reference]).toEqual([193600, 1210000, "FA-2026-118"]);
     await expect(api.facturesFournisseurs.declarationTaxes({ exercice: 2026, mois: 11 })).rejects.toThrow("Taxe");
     const ja = await api.etatsCompta.journaux({ exercice: 2026, mois: 11, achats: true });
-    expect([["400", "610", "612", "432", "433"].every((n) => ja.lignes.some((x) => x.compte === n)), ja.totalDebit === ja.totalCredit]).toEqual([true, true]);
+    expect([["400", "610", "612", "432", "433"].every((n) => ja.lignes.some((x) => x.compte.startsWith(n))), ja.totalDebit === ja.totalCredit]).toEqual([true, true]);
   });
 
   it("retenue posée sur une ligne de commande (S107) : retenue au règlement, au prorata, et déclarée (S108) ; loi 23/053, art. 142 à 144", async () => {
@@ -3296,14 +3315,14 @@ describe("journée de guichet", () => {
     const agent = (await adm.droits.lire()).profils.find((p) => p.nom === "AGENT DE CRÉDIT")!.id;
     await adm.droits.enregistrer(agent, { droits: [...new Set([...(await adm.droits.lire(agent)).octroyes, "S114"])] });
     await api.facture.enregistrerType({ code: "PREST", libelle: "Prestation" });
-    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "56010000", adresse: "" });
     await api.banques.enregistrerCompte({ banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "", compte: "56010003", numeroBancaire: "R-CDF-1", devise: "CDF" });
     await connecter("plumbala");
-    await api.refTaxes.enregistrer("taxes", { code: "PNR", designation: "Prélèvement prestataires non-résidents", taux: "14", compte: "433" });
-    await api.refTiers.enregistrer("tiers", { typeTiers: "FOURNISSEUR", intitule: "Cabinet Delta", compte: "400" });
+    await api.refTaxes.enregistrer("taxes", { code: "PNR", designation: "Prélèvement prestataires non-résidents", taux: "14", compte: "43300000" });
+    await api.refTiers.enregistrer("tiers", { typeTiers: "FOURNISSEUR", intitule: "Cabinet Delta", compte: "40000000" });
     const ctx = await api.facturesFournisseurs.contexte(), four = ctx.fournisseurs[0]!.id, pnr = ctx.taxes[0]!.id, cb = ctx.comptesBancaires[0]!.id;
     const c = await api.facturesFournisseurs.enregistrerCommande({ cle: cle(), typeCommandeId: ctx.typesCommande[0]!.id, fournisseurId: four,
-      lignes: [{ compte: "610", designation: "Audit informatique", quantite: "1", prixUnitaire: 1000000, retenueTaxeId: pnr }] });
+      lignes: [{ compte: "61000000", designation: "Audit informatique", quantite: "1", prixUnitaire: 1000000, retenueTaxeId: pnr }] });
     expect([c.ht, c.tva, c.lignes[0]!.retenue, c.tranches.length]).toEqual([1000000, 0, 140000, 1]);
     await connecter("jpmukendi"); await api.facturesFournisseurs.validerCommande(c.id);
     await connecter("plumbala");
@@ -3328,21 +3347,21 @@ describe("journée de guichet", () => {
     await connecter("jpmukendi");
     const profils = Object.fromEntries((await adm.droits.lire()).profils.map((p) => [p.nom, p.id]));
     for (const [nom, d] of [["CHEF D'AGENCE", "S57"], ["AGENT DE CRÉDIT", "S57"], ["AGENT DE CRÉDIT", "S114"]] as const) await adm.droits.enregistrer(profils[nom]!, { droits: [...new Set([...(await adm.droits.lire(profils[nom]!)).octroyes, d])] });
-    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "5601", adresse: "" });
+    const l = await api.banques.enregistrerBanque({ code: "RAW", libelle: "Rawbank", compteLiaison: "56010000", adresse: "" });
     await api.banques.enregistrerCompte({ banqueId: l.banques[0]!.id, journalId: l.journaux[0]!.id, contactNom: "Mutombo", contactNomComplet: "", contactTelephone: "", compte: "56010003", numeroBancaire: "R-CDF-1", devise: "CDF" });
     await connecter("plumbala");
     const cb = (await api.controlesCompta.rapproContexte()).comptes[0]!.id;
     const banque = async (type: "encaissement" | "decaissement", compte: string, montant: number, libelle: string) => {
       await connecter("plumbala"); const o = await api.banqueOperations.enregistrer({ cle: cle(), type, date: "2026-11-05", compteBancaireId: cb, compte, libelle, montant });
       await connecter("jpmukendi"); await api.banqueOperations.suivre(o.id, "visa"); await connecter("bkasongo"); await api.banqueOperations.suivre(o.id, "validation"); };
-    await banque("encaissement", "727", 500000, "Commission reçue"); await banque("decaissement", "610", 120000, "Frais de tenue");
+    await banque("encaissement", "72700000", 500000, "Commission reçue"); await banque("decaissement", "61000000", 120000, "Frais de tenue");
     await connecter("plumbala");
     const od = (await api.operationsCompta.lire()).journaux.find((x) => x.code === "OD")!.id, base = { journalId: od, periode: "11/2026", jour: 5, libelle: "Facture à recevoir" };
     const ecriture = async (lignes: [string, "debit" | "credit", number][]) => { await connecter("plumbala"); let e = null;
       for (const [compte, sens, m] of lignes) e = await api.operationsCompta.ecritureAjouter({ ...base, compte, [sens]: m });
       await viserValider(e!.id!); };
-    await ecriture([["611", "debit", 300000], ["461", "credit", 300000]]); await ecriture([["461", "debit", 300000], ["728", "credit", 300000]]);
-    expect((await api.controlesCompta.lettrageLignes({ compte: "461", du: "2026-11-01" })).lignes).toEqual([]);   // rien de définitif avant la comptabilisation
+    await ecriture([["61100000", "debit", 300000], ["46100000", "credit", 300000]]); await ecriture([["46100000", "debit", 300000], ["72890000", "credit", 300000]]);
+    expect((await api.controlesCompta.lettrageLignes({ compte: "46100000", du: "2026-11-01" })).lignes).toEqual([]);   // rien de définitif avant la comptabilisation
     const tr = await api.controlesCompta.tresorerie({ date: "2026-11-05" });
     expect([tr.caisses.length > 0, tr.totalCaisses.CDF === tr.caisses.filter((x) => x.devise === "CDF").reduce((t, x) => t + x.solde, 0)]).toEqual([true, true]);
     await expect(api.controlesCompta.tresorerie({})).rejects.toThrow("Date");
@@ -3362,15 +3381,15 @@ describe("journée de guichet", () => {
     const h = await api.controlesCompta.historique({ du: "2000-01-01", au: "2099-12-31" });
     expect(h.map((x) => [x.soldeReleve, x.soldeComptable, x.ecart, x.lignes])).toEqual([[500000, 380000, 0, 1]]);
     expect(await api.controlesCompta.historique({ du: "2000-01-01", au: "2099-12-31", periodeDu: "2027-01-01" })).toEqual([]);
-    const lt = await api.controlesCompta.lettrageLignes({ compte: "461", du: "2026-11-01" });
+    const lt = await api.controlesCompta.lettrageLignes({ compte: "46100000", du: "2026-11-01" });
     expect([lt.intitule, lt.lignes.map((x) => [x.debit, x.credit, x.lettre])]).toEqual(["Créditeurs divers", [[0, 300000, ""], [300000, 0, ""]]]);
     const ids = lt.lignes.map((x) => x.id);
-    await expect(api.controlesCompta.lettrer({ compte: "461", lignes: ids.slice(0, 1) })).rejects.toThrow("au moins deux");
-    expect(await api.controlesCompta.lettrer({ compte: "461", lignes: ids })).toEqual({ code: "A", montant: 300000 });
-    await expect(api.controlesCompta.lettrer({ compte: "461", lignes: ids })).rejects.toThrow("déjà lettrée");
-    expect((await api.controlesCompta.lettrageLignes({ compte: "461", du: "2026-11-01", etat: "lettrees" })).lignes.map((x) => x.lettre)).toEqual(["A", "A"]);
-    const l611 = (await api.controlesCompta.lettrageLignes({ compte: "611", du: "2026-11-01" })).lignes;
-    await expect(api.controlesCompta.lettrer({ compte: "611", lignes: [l611[0]!.id, l611[0]!.id] })).rejects.toThrow("total débit doit égaler");
+    await expect(api.controlesCompta.lettrer({ compte: "46100000", lignes: ids.slice(0, 1) })).rejects.toThrow("au moins deux");
+    expect(await api.controlesCompta.lettrer({ compte: "46100000", lignes: ids })).toEqual({ code: "A", montant: 300000 });
+    await expect(api.controlesCompta.lettrer({ compte: "46100000", lignes: ids })).rejects.toThrow("déjà lettrée");
+    expect((await api.controlesCompta.lettrageLignes({ compte: "46100000", du: "2026-11-01", etat: "lettrees" })).lignes.map((x) => x.lettre)).toEqual(["A", "A"]);
+    const l611 = (await api.controlesCompta.lettrageLignes({ compte: "61100000", du: "2026-11-01" })).lignes;
+    await expect(api.controlesCompta.lettrer({ compte: "61100000", lignes: [l611[0]!.id, l611[0]!.id] })).rejects.toThrow("total débit doit égaler");
     const rv = await api.controlesCompta.revenus({ du: "2026-11-01", au: "2026-11-30" });
     expect([rv.depenses, rv.recettes, rv.resultat, rv.lignes[0]!.date]).toEqual([420000, 800000, 380000, "2026-11-05"]);
     expect((await api.controlesCompta.revenus({ du: "2026-11-01", au: "2026-11-30", resultat: "synthese" })).lignes.map((x) => [x.date, x.depenses])).toEqual([["", 420000]]);
@@ -3485,7 +3504,7 @@ describe("journée de guichet", () => {
     await connecter("plumbala");
     const od = (await api.operationsCompta.lire()).journaux.find((x) => x.code === "OD")!.id, base = { journalId: od, periode: "11/2026", jour: 5, libelle: "Loyer du siège" };
     let e = null;
-    for (const [compte, sens, m] of [["640", "debit", 300000], ["461", "credit", 300000]] as const) e = await api.operationsCompta.ecritureAjouter({ ...base, compte, [sens]: m });
+    for (const [compte, sens, m] of [["64000000", "debit", 300000], ["46100000", "credit", 300000]] as const) e = await api.operationsCompta.ecritureAjouter({ ...base, compte, [sens]: m });
     await viserValider(e!.id!);
     await connecter("plumbala");
     const q = { du: "2026-01-01", au: "2026-11-05", exercice: 2026 };
@@ -3502,7 +3521,7 @@ describe("journée de guichet", () => {
     const b = await api.etatsFinanciers.bilan(q);
     expect([b.equilibre, b.totalActif.n === b.totalPassif.n, b.totalActif.n > 0, b.nonRattaches]).toEqual([true, true, true, []]);
     expect([b.actif.map((x) => x.code), b.passif.map((x) => x.code)]).toEqual([["1", "2", "3", "4", "5", "6", "7", "8"], Array.from({ length: 14 }, (_, i) => String(i + 1))]);
-    expect(autres(b).comptes).toContainEqual({ compte: "461", intitule: "Créditeurs divers", n: 300000, n1: 0 });
+    expect(autres(b).comptes).toContainEqual({ compte: "46100000", intitule: "Créditeurs divers", n: 300000, n1: 0 });
     expect(autres(b).n - autres(avant).n).toBe(300000);   // la journée pas encore comptabilisée ne comptait pas (T13)
     const m = await api.etatsFinanciers.bilan({ ...q, type: "masses" });   // Par masses (registre S122-14) : quatre masses, total identique
     expect([m.actif.length, m.passif.length, m.equilibre, m.totalActif.n]).toEqual([4, 4, true, b.totalActif.n]);
@@ -3512,7 +3531,7 @@ describe("journée de guichet", () => {
     const r = await api.etatsFinanciers.resultat({ ...q, sansVidage: true });
     expect([r.lignes.length, r.lignes[8]!.libelle, r.lignes.at(-1)!.libelle]).toEqual([25, "Produit Net Financier", "Résultat net de l'exercice"]);
     const charges = r.lignes.find((x) => x.libelle === "Charges générales d'exploitation")!;
-    expect(charges.comptes.map((c) => [c.compte, c.n])).toContainEqual(["640", 300000]);
+    expect(charges.comptes.map((c) => [c.compte, c.n])).toContainEqual(["64000000", 300000]);
     const formation = b.passif.at(-1)!.comptes.find((c) => c.intitule.startsWith("Résultat en formation"))?.n ?? 0;
     expect([r.lignes.at(-1)!.n, r.nonRattaches]).toEqual([formation, []]);
     const signe = (x: (typeof r.lignes)[number]) => (x.signe === "+" ? x.n : -x.n), somme = (a: number, z: number) => r.lignes.slice(a, z).reduce((t, x) => t + signe(x), 0);
@@ -3555,13 +3574,13 @@ describe("journée de guichet", () => {
     await expect(api.finPeriode.apercuTenue(q)).rejects.toThrow("Paramétrage > Frais");
     await connecter("jpmukendi");
     const f = await api.parametrage.creerFrais({ typeOperation: "TENUE_COMPTE", libelle: "Tenue de compte", fondement: "autorisation_bcc", autorisationBcc: "BCC/2026/001" });
-    await expect(api.parametrage.parametrerOperation({ fraisId: f.id, nature: "Taux", valeur: 100, compte: "720", sousTypes: ["Personne physique"] })).rejects.toThrow("Montant");
-    await api.parametrage.parametrerOperation({ fraisId: f.id, nature: "Montant", valeur: 50000, compte: "720", sousTypes: ["Personne physique"] });
+    await expect(api.parametrage.parametrerOperation({ fraisId: f.id, nature: "Taux", valeur: 100, compte: "72000000", sousTypes: ["Personne physique"] })).rejects.toThrow("Montant");
+    await api.parametrage.parametrerOperation({ fraisId: f.id, nature: "Montant", valeur: 50000, compte: "72000000", sousTypes: ["Personne physique"] });
     await connecter("plumbala");
     const a = await api.finPeriode.apercuTenue(q);
     const kal = a.lignes.find((x) => x.client.startsWith("KALALA") || x.etat === "À prélever");
     expect(kal?.etat).toBe("À prélever");
-    const solde720 = () => E0.ecritures.flatMap((e) => e.lignes).filter((x) => x.compte === "720").reduce((t, x) => t + (x.sens === "C" ? x.montant : -x.montant), 0);
+    const solde720 = () => E0.ecritures.flatMap((e) => e.lignes).filter((x) => x.compte.startsWith("720")).reduce((t, x) => t + (x.sens === "C" ? x.montant : -x.montant), 0);
     const aPrelever = a.lignes.filter((x) => x.etat === "À prélever").length;   // frais par nature du membre : toutes les personnes physiques (plan d'allègement, point 2.2)
     expect((await api.finPeriode.passerTenue(q)).passes).toBe(aPrelever);
     expect(solde720()).toBe(50000 * aPrelever);
@@ -3584,7 +3603,7 @@ describe("journée de guichet", () => {
     const d = await api.finPeriode.apercuInteretsDat({});
     expect(d.lignes.map((l) => [l.couru, l.aPasser, l.compteCharge, l.compteDette])).toEqual([[18904, 18904, "6122", "349"]]);
     expect((await api.finPeriode.passerInteretsDat({})).passes).toBe(1);
-    const solde349 = () => E0.ecritures.flatMap((e) => e.lignes).filter((y) => y.compte === "349").reduce((t, y) => t + (y.sens === "C" ? y.montant : -y.montant), 0);
+    const solde349 = () => E0.ecritures.flatMap((e) => e.lignes).filter((y) => y.compte.startsWith("349")).reduce((t, y) => t + (y.sens === "C" ? y.montant : -y.montant), 0);
     expect(solde349()).toBe(18904);
     await expect(api.finPeriode.passerInteretsDat({})).rejects.toThrow("Aucun intérêt couru");
     await connecter("jpmukendi"); await api.depotsTerme.rompre(x.id, {});
@@ -3620,7 +3639,7 @@ describe("journée de guichet", () => {
     expect(c.ecritures).toBeGreaterThanOrEqual(2);
     const lignes2026 = E0.ecritures.filter((e) => (E0.journees.find((y) => y.id === e.journeeId)?.date ?? "").startsWith("2026")).flatMap((e) => e.lignes);
     expect(lignes2026.filter((l) => "678".includes(l.compte[0]!)).reduce((t, l) => t + (l.sens === "D" ? l.montantCdf : -l.montantCdf), 0)).toBe(0);
-    expect(E0.ecritures.filter((e) => e.type === "vidage").flatMap((e) => e.lignes).filter((l) => ["130", "131"].includes(l.compte))
+    expect(E0.ecritures.filter((e) => e.type === "vidage").flatMap((e) => e.lignes).filter((l) => l.compte.startsWith("130") || l.compte.startsWith("131"))
       .reduce((t, l) => t + (l.sens === "C" ? l.montantCdf : -l.montantCdf), 0)).toBe(net);
     expect(net).not.toBe(0);
     await expect(api.finPeriode.cloturer({ exercice: 2026 })).rejects.toThrow("déjà clôturé");
@@ -3691,11 +3710,11 @@ describe("journée de guichet", () => {
     await R.enregistrer("coefficients", { coefficient: "2", de: "5", a: "6" });
     const cat = id(await R.enregistrer("categories", { code: "MAB", libelle: "MATERIEL DE BUREAU" }), "code", "MAB");
     const F = { code: "FAM1", typeId: ty, categorieId: cat, libelle: "Matériel de bureau", systeme: "Linéaire", dureeMin: "1", dureeMax: "10", periodicite: "Annuelle",
-      compteAcquisition: "220", compteDotation: "6810", compteAmortissement: "2810", compteChargeVcn: "673" };
+      compteAcquisition: "22000000", compteDotation: "68100000", compteAmortissement: "28100000", compteChargeVcn: "67300000" };
     await expect(R.enregistrer("familles", { ...F, dureeMin: "11" })).rejects.toThrow("Durée Max");
-    await expect(R.enregistrer("familles", { ...F, compteAcquisition: "2810" })).rejects.toThrow("classe 2, hors 28");   // PCCI : classe 2, compte 28, compte 68
-    await expect(R.enregistrer("familles", { ...F, compteAmortissement: "220" })).rejects.toThrow("un compte 28");
-    await expect(R.enregistrer("familles", { ...F, compteDotation: "640" })).rejects.toThrow("un compte 68");
+    await expect(R.enregistrer("familles", { ...F, compteAcquisition: "28100000" })).rejects.toThrow("classe 2, hors 28");   // PCCI : classe 2, compte 28, compte 68
+    await expect(R.enregistrer("familles", { ...F, compteAmortissement: "22000000" })).rejects.toThrow("un compte 28");
+    await expect(R.enregistrer("familles", { ...F, compteDotation: "64000000" })).rejects.toThrow("un compte 68");
     const fam = id(await R.enregistrer("familles", F), "code", "FAM1");
     const loc = id(await R.enregistrer("localisations", { code: "10.DG.01", libelle: "Bureau Directeur Général" }), "code", "10.DG.01");
     const loc2 = id(await R.enregistrer("localisations", { code: "10.DG.02", libelle: "Salle d'attente" }), "code", "10.DG.02");
@@ -3718,7 +3737,7 @@ describe("journée de guichet", () => {
     expect((await api.immobilisations.transfererEmploye({ ancienId: e2, nouveauId: e1, date: "2026-11-05T11:00", biens: [b.id] }))[0]!.detenteurId).toBe(e1);
     await expect(api.immobilisations.sortir({ type: "Mise au rebut", bienId: b.id, date: "2026-11-05" })).rejects.toThrow("libérer d'abord");
     expect((await api.immobilisations.liberer({ date: "2026-11-05T12:00", biens: [b.id] }))[0]!.statut).toBe("LIBRE");
-    const solde = (c: string) => _etat().ecritures.flatMap((e) => e.lignes).filter((l) => l.compte === c).reduce((t, l) => t + (l.sens === "D" ? l.montant : -l.montant), 0);
+    const solde = (c: string) => _etat().ecritures.flatMap((e) => e.lignes).filter((l) => l.compte.startsWith(c)).reduce((t, l) => t + (l.sens === "D" ? l.montant : -l.montant), 0);
     expect((await api.immobilisations.amortir({ par: "materiel", bienId: b.id, exercice: 2026 })).amortis).toBe(1);
     expect(solde("2810")).toBe(-166667);
     await expect(api.immobilisations.amortir({ par: "lot", exercice: 2026 })).rejects.toThrow("Rien à amortir");
@@ -3732,9 +3751,9 @@ describe("journée de guichet", () => {
     const A = { date: "2026-11-05", autorisationBcc: "BCC/DSIF/2026/051" };
     const b2 = await api.immobilisations.enregistrer({ ...B, codification: "MAB-002" }), b3 = await api.immobilisations.enregistrer({ ...B, codification: "MAB-003" });
     await expect(api.immobilisations.sortir({ ...A, type: "Cession", bienId: b2.id })).rejects.toThrow("Prix de cession");
-    await expect(api.immobilisations.sortir({ ...A, type: "Cession", bienId: b2.id, prixCession: 1200000, compteContrepartie: "673" })).rejects.toThrow("classe 5");
+    await expect(api.immobilisations.sortir({ ...A, type: "Cession", bienId: b2.id, prixCession: 1200000, compteContrepartie: "67300000" })).rejects.toThrow("classe 5");
     const c570 = solde("570"), c774 = solde("774"), c674 = solde("674");
-    const s2 = await api.immobilisations.sortir({ ...A, type: "Cession", bienId: b2.id, prixCession: 1200000, compteContrepartie: "570" });
+    const s2 = await api.immobilisations.sortir({ ...A, type: "Cession", bienId: b2.id, prixCession: 1200000, compteContrepartie: "57000000" });
     expect([s2.prixCession, s2.resultatCession, solde("570") - c570, solde("774") - c774]).toEqual([1200000, 200000, 1200000, -200000]);
     const s3 = await api.immobilisations.sortir({ ...A, type: "Cession", bienId: b3.id, prixCession: 0 });
     expect([s3.resultatCession, solde("674") - c674]).toEqual([-1000000, 1000000]);
@@ -3795,8 +3814,8 @@ describe("journée de guichet", () => {
     // S125 : suivi ; une écriture saisie sur la ligne L1, une autre sans ligne
     const od = (await api.operationsCompta.lire()).journaux.find((x) => x.code === "OD")!.id;
     const ecriture = async (libelle: string, montant: number, ligne?: number) => { await connecter("plumbala"); let e = null;
-      for (const [compte, sens] of [["640", "debit"], ["461", "credit"]] as const) e = await api.operationsCompta.ecritureAjouter({ journalId: od, periode: "11/2026", jour: 5, libelle, compte, [sens]: montant,
-        ...(ligne && compte === "640" ? { typeBudgetId: tb, ligneBudgetId: ligne } : {}) });
+      for (const [compte, sens] of [["64000000", "debit"], ["46100000", "credit"]] as const) e = await api.operationsCompta.ecritureAjouter({ journalId: od, periode: "11/2026", jour: 5, libelle, compte, [sens]: montant,
+        ...(ligne && compte === "64000000" ? { typeBudgetId: tb, ligneBudgetId: ligne } : {}) });
       await viserValider(e!.id!); };
     await ecriture("Loyer", 300000, l1); await ecriture("Divers", 40000);
     await connecter("plumbala");
@@ -3822,5 +3841,27 @@ describe("journée de guichet", () => {
     await expect(api.budgets.supprimer({ ...base, planId: b25 })).rejects.toThrow("Rien à supprimer");
     await connecter("engalula");
     await expect(api.budgets.suivi({ planId: b26, periodeId: pe })).rejects.toThrow("Droit manquant");
+  });
+});
+
+describe("plan d'allègement, lot 10 : les comptes de l'institution reçoivent les écritures (registre T167 à T172), comme le serveur", () => {
+  it("dépôts par produit et catégorie, caisse par guichet et devise, parts au compte proposé ; paramétrage et saisie à la main sur les comptes de l'institution", async () => {
+    const E0 = _etat(), lignes = E0.ecritures.flatMap((e) => e.lignes);
+    const num = (contrat: string) => lignes.find((l) => l.contrat === contrat)?.compte;
+    expect([num("depot:1"), num("depot:2"), num("parts:1")]).toEqual(["33000100", "33000200", "10300000"]);
+    expect(lignes.filter((l) => l.contrat === "guichet:2").map((l) => l.compte).sort()).toEqual(["57001000", "57001100"]);
+    const c = E0.comptesInstitution.find((x) => x.numero === "33000100")!;
+    expect([c.libelle, c.bloque]).toEqual(["Épargne à vue EAV-USD, personnes physiques", true]);
+    expect(E0.comptesInstitution.find((x) => x.numero === "57001100")!.libelle).toBe("Caisse Caisse 2 USD");
+    expect(lignes.every((l) => !/^\d{1,5}$/.test(l.compte) || l.compte.length === 8)).toBe(true);
+    await journeeOuverte(); await connecter("plumbala");
+    expect((await api.comptes.lire()).comptes.filter((x) => x.pcci && x.saisissable)).toEqual([]);   // le PCCI sert de cadre
+    const od = (await api.operationsCompta.lire()).journaux.find((x) => x.code === "OD")!.id;
+    const base = { journalId: od, periode: "11/2026", jour: 5, libelle: "Essai", credit: 1000 };
+    await expect(api.operationsCompta.ecritureAjouter({ ...base, compte: "6405" })).rejects.toThrow("64050000");
+    await api.operationsCompta.ecritureAjouter({ ...base, compte: "64050000" });
+    expect(_etat().comptesInstitution.find((x) => x.numero === "64050000")!.bloque).toBe(false);
+    await api.comptes.enregistrer({ parent: "6405", suite: "0000", libelle: "Essai", ouvert: true, bloque: true, saisissable: true }, "64050000");
+    await expect(api.operationsCompta.ecritureAjouter({ ...base, compte: "64050000", debit: 1000, credit: undefined })).rejects.toThrow("tenu par la gestion");
   });
 });

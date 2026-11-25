@@ -164,7 +164,7 @@ const OUT = process.argv[2];
   await p.getByRole('checkbox', { name: 'Actif', exact: true }).check(); await p.getByRole('checkbox', { name: 'Détail journal' }).check();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'O2', exact: true }).waitFor(); await etape('02f20-journaux');
   // Chef : ED divers (S31, p. 42) : une opération de produit, au compte 7790
-  await aller('/parametrage/s31'); await p.getByLabel('Nature : *').selectOption('PRODUIT'); await p.getByLabel('Compte *').fill('7790');
+  await aller('/parametrage/s31'); await p.getByLabel('Nature : *').selectOption('PRODUIT'); await p.getByLabel('Compte *').fill('77900000');
   await p.getByLabel('Statut *').selectOption('ACTIF'); await p.getByLabel('Libellé opération *').fill("Vente de livret d'épargne");
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: "Vente de livret d'épargne" }).waitFor(); await etape('02f21-ed-divers');
   // Chef : info société (S32, p. 42) : le directeur, Enregistrer ; la page Agence
@@ -224,7 +224,7 @@ const OUT = process.argv[2];
   await login('J.-P. Mukendi');
   // Chef : facture (S36, p. 46) : un élément de facture, la retenue sur les loyers au compte 433 (O.-L. 69/009, art. 10 et 11 ; PCCI), désactivé ensuite :
   // un élément actif s'applique à toutes les factures ; puis un type de commande (p. 125)
-  await aller('/comptabilite/s36'); await p.getByLabel('Libellé', { exact: true }).fill('Retenue sur loyers'); await p.getByLabel('Compte :').fill('433'); await p.getByLabel('Taux(%)').fill('20');
+  await aller('/comptabilite/s36'); await p.getByLabel('Libellé', { exact: true }).fill('Retenue sur loyers'); await p.getByLabel('Compte :').fill('43300000'); await p.getByLabel('Taux(%)').fill('20');
   await p.getByLabel('Retenue Taux').check();
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Retenue sur loyers', exact: true }).waitFor(); await etape('02f29-element-facture');
   await p.getByLabel('Désactiver : Retenue sur loyers').click(); await oui(); await etape('02f29b-element-desactive');
@@ -328,7 +328,7 @@ const OUT = process.argv[2];
   await login('J.-P. Mukendi');
   // Création banque (S58)
   await aller('/banque/s58');
-  await p.getByLabel('Code Banque: *').fill('RAW'); await p.getByLabel('Libellé : *').fill('Rawbank'); await p.getByLabel('Compte Liaison *').fill('5601');
+  await p.getByLabel('Code Banque: *').fill('RAW'); await p.getByLabel('Libellé : *').fill('Rawbank'); await p.getByLabel('Compte Liaison *').fill('56010000');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: 'Rawbank' }).waitFor(); await etape('06c1-banque-client');
   await p.getByRole('tab', { name: 'Banque Institution' }).click();
@@ -346,7 +346,7 @@ const OUT = process.argv[2];
   // Opérations de banque (S52), par le comptable : saisies, en attente du visa (S57)
   await login('Patrick Lumbala'); await aller('/banque/s52');
   await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte Banque *').selectOption({ index: 1 });
-  await p.getByLabel('Compte *').fill('727'); await p.getByLabel('Libellé').fill('Commission reçue'); await p.getByLabel('Montant *').fill('500');
+  await p.getByLabel('Compte *').fill('72700000'); await p.getByLabel('Libellé').fill('Commission reçue'); await p.getByLabel('Montant *').fill('500');
   await etape('06c4-banque-encaissement');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('tab', { name: 'V. Banque vers caisse' }).click();
@@ -1041,7 +1041,7 @@ const OUT = process.argv[2];
   await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
   // ED Divers (S78, p. 89 et 90 ; registre S78-1 à S78-6) : encaissement de la vente d'un livret, compte 7790 affiché, billetage
   await p.getByRole('link', { name: 'Autres encaissements et décaissements' }).click(); await p.getByLabel('Type operation').waitFor();
-  await p.getByLabel('Opérations').selectOption({ label: "Vente de livret d'épargne" }); await p.waitForFunction(() => [...document.querySelectorAll('textarea')].some((t) => t.value === '7790'));
+  await p.getByLabel('Opérations').selectOption({ label: "Vente de livret d'épargne" }); await p.waitForFunction(() => [...document.querySelectorAll('textarea')].some((t) => t.value === '77900000'));
   await p.getByLabel('Montant (CDF) *').fill('2 000');
   await p.getByLabel('Nombre de coupures de 1 000 CDF').fill('2');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
@@ -1065,17 +1065,17 @@ const OUT = process.argv[2];
   await login('Patrick Lumbala'); await aller('/comptabilite/s109');
   const cj = p.getByRole('dialog', { name: 'Choix du journal' });
   await cj.getByLabel('Journal:').selectOption({ label: 'Opérations diverses' }); await cj.getByLabel('Période:').selectOption('11/2026'); await etape('14h-choix-journal');
-  await cj.getByRole('button', { name: 'OK' }).click();
-  await p.getByLabel('Jour: *').fill('5'); await p.getByLabel('Libellé: *').fill('Honoraires'); await p.getByLabel('Compte: *').fill('461'); await p.getByLabel('Crédit: *').fill('2500');
-  await p.getByRole('button', { name: 'Ajouter' }).click(); await p.getByRole('cell', { name: '461', exact: true }).waitFor();
-  await p.getByLabel('Compte: *').fill('610'); await p.getByLabel('Débit: *').fill('2500'); await p.getByRole('button', { name: 'Ajouter' }).click();
+  await cj.getByRole('button', { name: 'OK' }).click(); await cj.waitFor({ state: 'detached' }); await p.waitForLoadState('networkidle');   // la transaction s'ouvre avant la saisie
+  await p.getByLabel('Jour: *').fill('5'); await p.getByLabel('Libellé: *').fill('Honoraires'); await p.getByLabel('Compte: *').fill('46100000'); await p.getByLabel('Crédit: *').fill('2500');
+  await p.getByRole('button', { name: 'Ajouter' }).click(); await p.getByRole('cell', { name: '46100000', exact: true }).waitFor();
+  await p.getByLabel('Compte: *').fill('61000000'); await p.getByLabel('Débit: *').fill('2500'); await p.getByRole('button', { name: 'Ajouter' }).click();
   await succes(); await etape('14i-saisie-ecriture');
   await aller('/comptabilite/s116'); await p.getByRole('heading', { name: 'Autres opérations' }).waitFor(); await etape('14j-virement-prelevement');
   await aller('/epargne/se03'); await p.getByRole('heading', { name: 'Virement entre comptes' }).waitFor(); await p.getByText('Identifiant Recepteur').waitFor(); await etape('14k-compte-a-compte');
   await aller('/comptabilite/s116'); await p.getByRole('heading', { name: 'Autres opérations' }).waitFor();
   await p.getByRole('tab', { name: 'Opérations déplacées' }).click(); await etape('14l-operations-deplacees');
   await p.getByRole('tab', { name: 'Opération diverse' }).click();
-  await p.getByLabel('Compte *').fill('610'); await p.getByLabel('Libellé *').fill("Prime d'assurance"); await p.getByLabel('Montant *').fill('10000');
+  await p.getByLabel('Compte *').fill('61000000'); await p.getByLabel('Libellé *').fill("Prime d'assurance"); await p.getByLabel('Montant *').fill('10000');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: "Prime d'assurance" }).waitFor(); await etape('14m-operation-diverse');
   await aller('/comptabilite/s117'); await p.getByRole('heading', { name: 'Virement de salaire' }).waitFor(); await etape('14n-virement-salaire');
   // Chef d'agence : visa de l'écriture et de l'opération diverse (S113, p. 130 à 132) ; il n'a pas saisi (Instr. BCC 008, art. 66)
@@ -1147,10 +1147,10 @@ const OUT = process.argv[2];
   // Grand livre (S120, p. 138) : écritures définitives de la journée comptabilisée ; taxes (S104, p. 124) et plan des tiers (S103, p. 123)
   await aller('/comptabilite/s120'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: 'Total général' }).waitFor(); await etape('18b-grand-livre');
   // La TVA à 16 % est dans la graine ; l'essai ajoute le taux réduit de 5 % (O.-L. 10/001, art. 35, modifié par la LF 25/060, art. 46)
-  await aller('/comptabilite/s104'); await p.getByRole('cell', { name: '16,00' }).waitFor(); await p.getByLabel('Code *').fill('TVA5'); await p.getByLabel('Désignation *').fill('TVA AU TAUX REDUIT'); await p.getByLabel('Taux *').fill('5'); await p.getByLabel('Compte *').fill('432');
+  await aller('/comptabilite/s104'); await p.getByRole('cell', { name: '16,00' }).waitFor(); await p.getByLabel('Code *').fill('TVA5'); await p.getByLabel('Désignation *').fill('TVA AU TAUX REDUIT'); await p.getByLabel('Taux *').fill('5'); await p.getByLabel('Compte *').fill('43200000');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok(); await p.getByRole('cell', { name: '5,00' }).waitFor(); await etape('18c-taxes');
   await aller('/comptabilite/s103'); await p.getByLabel('Type Tiers *').selectOption('FOURNISSEUR'); await p.getByLabel('Intitulé *').fill('Papeterie du Fleuve');
-  await p.getByLabel('Compte *').fill('400'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
+  await p.getByLabel('Compte *').fill('40000000'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('cell', { name: 'Papeterie du Fleuve' }).waitFor(); await etape('18d-plan-tiers');
   // Comptable : plan des comptes (S102, p. 122, 146, 147) ; ouvrir un compte divisionnaire du PCCI (PCCI § 9)
   await aller('/comptabilite/s102');
@@ -1191,7 +1191,7 @@ const OUT = process.argv[2];
   await login('Patrick Lumbala'); await aller('/comptabilite/s107'); await p.getByRole('heading', { name: 'Commandes Fournisseurs' }).waitFor(); await etape('23a-bon-de-commande');
   await p.getByRole('tab', { name: 'Enregistrement' }).click(); await p.getByRole('button', { name: 'Rechercher un fournisseur' }).click();
   await p.getByRole('dialog', { name: "Recherche d'un fournisseur" }).getByRole('row').filter({ hasText: 'Papeterie du Fleuve' }).click();
-  await p.getByLabel('Facture directe').check(); await p.getByLabel('Compte *').fill('610'); await p.getByLabel('Réf. Facture *').fill('F-2026-001');
+  await p.getByLabel('Facture directe').check(); await p.getByLabel('Compte *').fill('61000000'); await p.getByLabel('Réf. Facture *').fill('F-2026-001');
   await p.getByLabel('Libellé: *').fill('Fournitures de bureau'); await p.getByLabel('Montant (HT): *').fill('100000'); await p.getByLabel('Ajouter TVA').check();
   await p.getByText('116 000,00 CDF').first().waitFor(); await etape('23b-facture-saisie');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
@@ -1229,7 +1229,7 @@ const OUT = process.argv[2];
   await aller('/comptabilite/s112'); await p.getByLabel('Au :').fill('30112026'); await p.getByRole('button', { name: 'Rechercher' }).click();
   await p.getByRole('cell', { name: 'Rawbank' }).first().waitFor(); await etape('25d-historique-rapprochement');
   // Lettrage (S119, p. 138 et 160) ; contrôle (S118, p. 136 à 138) ; trésorerie (S143, p. 162)
-  await aller('/comptabilite/s119'); await p.getByLabel('Compte *').fill('610'); await p.getByRole('radio', { name: 'Toutes les écritures' }).check();
+  await aller('/comptabilite/s119'); await p.getByLabel('Compte *').fill('61000000'); await p.getByRole('radio', { name: 'Toutes les écritures' }).check();
   await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByLabel('Intitulé').waitFor(); await etape('26a-lettrage');
   await aller('/comptabilite/s118'); await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByText(/^Solde des caisses au/).waitFor(); await etape('26b-controle-tresorerie');
   await p.getByRole('tab', { name: 'Rapport annulation' }).click(); await p.getByLabel('Du :').fill('01112026'); await p.getByLabel('Au :').fill('30112026');
@@ -1352,7 +1352,7 @@ const OUT = process.argv[2];
   await listeImmo('Famille de biens', 'Famille de Biens'); await p.getByLabel('Code *').fill('FAM1'); await p.getByLabel('Type immo *').selectOption({ label: 'Immobilisation corporelle' });
   await p.getByLabel('Catégorie : *').selectOption({ label: 'MATERIEL DE BUREAU' }); await p.getByLabel('Libellé *').fill('Petit matériel de bureau'); await p.getByLabel('Système : *').selectOption('Linéaire');
   await p.getByLabel('Durée Min. (ans) *').fill('1'); await p.getByLabel('Durée Max. (ans) *').fill('10');   // plan 9.6 : plus de périodicité
-  await p.getByLabel("Compte d'acquisition *").fill('220'); await p.getByLabel('Compte dotation *').fill('6810'); await p.getByLabel('Compte Amor. *').fill('2810'); await p.getByLabel('Compte charge VCN *').fill('673');
+  await p.getByLabel("Compte d'acquisition *").fill('22000000'); await p.getByLabel('Compte dotation *').fill('68100000'); await p.getByLabel('Compte Amor. *').fill('28100000'); await p.getByLabel('Compte charge VCN *').fill('67300000');
   await enreg('FAM1'); await etape('32b-immo-famille');
   await aller('/immobilisations/s137'); await p.getByRole('heading', { name: "Création d'une immobilisation" }).waitFor();   // plan 9.6 : la famille suffit
   await p.getByLabel('Codification *').fill('MAB-001'); await p.getByLabel('Famille *').selectOption({ label: 'Petit matériel de bureau' });
@@ -1368,7 +1368,7 @@ const OUT = process.argv[2];
   // Sortie par cession (PCCI, classe 2 ; plan d'allègement 0.1, registre S139-5) : prix, compte qui le reçoit, plus-value au 774
   await p.getByRole('tab', { name: 'Sortie de biens' }).click(); await p.getByLabel('Type de sortie *').selectOption('Cession');
   await p.getByRole('button', { name: 'Rechercher un bien' }).click(); await p.getByRole('dialog', { name: 'Liste des biens' }).getByRole('cell', { name: 'MAB-001' }).click();
-  await p.getByLabel('Date de sortie *').fill('05112026'); await p.getByLabel('Prix de cession *').fill('800000'); await p.getByLabel('Compte qui reçoit le prix *').fill('570');
+  await p.getByLabel('Date de sortie *').fill('05112026'); await p.getByLabel('Prix de cession *').fill('800000'); await p.getByLabel('Compte qui reçoit le prix *').fill('57000000');
   await p.getByLabel('Autorisation BCC (au-delà de 10 % des fonds propres de base)').fill('BCC/DSIF/2026/051');
   await p.getByText('Plus-value (774)').waitFor(); await etape('32f-cession'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   // Langue des libellés (manuel p. 14, article XX ; registre T118) : en anglais, les menus, l'écran, les données et l'aide ; puis retour au français

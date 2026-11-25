@@ -10,7 +10,7 @@ const VIDE: Saisie = {
   montantMin: "", dureeMin: "", differeMin: "", interetMin: "", montantMax: "", dureeMax: "", differeMax: "", interetMax: "",
   clientPhysique: false, clientGroupe: false, clientEntreprise: false, maxParMembre: false,
   periodicite: "", modeDiffere: "Réparti", paiementInteret: "Normal", interetAnticipation: "OUI", ageMax: "",
-  epargneNature: "", epargneValeur: "", solidariteNature: "", solidariteValeur: "", typeAssuranceId: "", assuranceNature: "", assuranceValeur: "",
+  epargneNature: "", epargneValeur: "", solidariteNature: "", solidariteValeur: "", solidariteDestination: "membre", solidariteCompte: "", typeAssuranceId: "", assuranceNature: "", assuranceValeur: "",
   categorie: "", tauxRegle: false, penaliteRetard: "", penaliteAnticipation: "", ordreId: "", modeleId: "",
 };
 const IDS = ["typeAssuranceId", "ordreId", "modeleId"];
@@ -93,7 +93,10 @@ export default function ProduitCredit() {
     </div>,
     <div key="retenues" className="pile"><div className="grille-deux">
       {cadre("Épargne obligatoire", <>{choix("epargneNature", "Nature", natures)}{texte("epargneValeur", "Valeur", "saisie code")}</>)}
-      {cadre("Fonds de solidarité", <>{choix("solidariteNature", "Nature", natures)}{texte("solidariteValeur", "Valeur", "saisie code")}</>)}
+      {cadre("Fonds de solidarité", <>{choix("solidariteNature", "Nature", natures)}{texte("solidariteValeur", "Valeur", "saisie code")}
+        {/* registre T143 : rendu au membre (dépôt) ou mis en commun (compte 172) */}
+        {choix("solidariteDestination", "Fonds", Object.entries(o.destinations as Record<string, string>).map(([v, l]) => ({ v, l })), false)}
+        {f.solidariteDestination === "commun" && texte("solidariteCompte", "Compte du fonds commun *", "saisie code")}</>)}
       {cadre("Assurance", <>{choix("typeAssuranceId", "Type assurance", o.typesAssurance.map((t: { id: number; libelle: string }) => ({ v: String(t.id), l: t.libelle })))}
         {choix("assuranceNature", "Nature", natures)}{texte("assuranceValeur", "Valeur", "saisie code")}</>)}
     </div>

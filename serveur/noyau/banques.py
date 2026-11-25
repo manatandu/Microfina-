@@ -2,7 +2,7 @@
 import re
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import exiger
+from .services import compte_institution, exiger
 
 # PCCI, compte 560 « Comptes NOSTRI disponible » : le compte d'une banque de l'institution en est un sous-compte
 NOSTRI = {"5600": "Organe faîtier", "5601": "Banque et autres intermédiaires financiers", "5602": "Coopérative d'Epargne et de Crédit",
@@ -23,10 +23,9 @@ def intitule_pcci(compte: str) -> str:
 
 
 def compte_du_plan(u, numero: str, quoi: str):
-    """T16 : un compte saisi existe dans le plan de comptes (S102), saisissable et ouvert"""
-    c = une("select saisissable, ouvert from compte where numero = %s and (institution_id is null or institution_id = %s)", (numero, u["institution_id"]))
-    if not c:
-        raise ErreurMetier(f"{quoi} : {numero} n'est pas un compte du plan (Comptabilité > Plan des comptes).")
+    """T16 : un compte saisi existe dans le plan de comptes (S102), saisissable et ouvert ; lot 10 : un compte de l'institution (registre T172)"""
+    compte_institution(u, numero, quoi)
+    c = une("select saisissable, ouvert from compte where numero = %s and institution_id = %s", (numero, u["institution_id"]))
     if not (c["saisissable"] and c["ouvert"]):
         raise ErreurMetier(f"{quoi} : {numero} est fermé ou non saisissable.")
 
@@ -118,8 +117,11 @@ def enregistrer_compte(u, d, cid: int | None = None) -> dict:
     if actuel and actuel["compte"] != compte and valeur("select 1 from ligne_ecriture where compte_id = %s", (actuel["compte_id"],)):
         raise ErreurMetier("Ce compte a des écritures : son numéro comptable ne change plus.")
     libelle = f"{banque['nom']} {devise}"
-    compte_id = valeur("select id from compte where numero = %s", (compte,)) or \
-        valeur("insert into compte (numero, libelle, classe, nature) values (%s, %s, 5, 'actif') returning id", (compte, libelle))
+    if valeur("select 1 from compte where numero = %s and institution_id is null", (compte,)):     # lot 10 : un compte de l'institution (registre T172)
+        raise ErreurMetier(f"Compte : {compte} est un compte du PCCI ; ouvrir le compte de la banque sous lui, par exemple {compte.ljust(8, '0')}.")
+    # Lot 10 : le compte de la banque est un compte de l'institution, bloqué (registre T171, S109-4)
+    compte_id = valeur("select id from compte where numero = %s and institution_id = %s", (compte, i)) or \
+        valeur("insert into compte (institution_id, numero, libelle, classe, nature, bloque) values (%s, %s, %s, 5, 'actif', true) returning id", (i, compte, libelle))
     contact = (nom, texte(d, "contactNomComplet") or None, texte(d, "contactTelephone") or None, texte(d, "contactAdresse") or None, penalite)
     if cid is None:
         executer("""insert into compte_bancaire (institution_id, banque_id, numero, devise, compte_id, journal_id, contact_nom, contact_nom_complet, contact_telephone,

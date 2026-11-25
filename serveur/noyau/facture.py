@@ -3,7 +3,7 @@ Mêmes règles que web/src/donnees/api.ts (facture)."""
 from decimal import Decimal, InvalidOperation
 
 from .bd import ErreurMetier, executer, lignes, une
-from .services import exiger
+from .services import compte_institution, exiger
 
 
 def texte(d, k) -> str:
@@ -42,8 +42,9 @@ def enregistrer_element(u, d, eid: int | None = None) -> dict:
     if manque:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
     t = taux(d, "taux", "Taux(%)")     # « Taux A. » et « Taux N.A. » (AIB du Bénin) supprimés : registre T130
-    if not compte.isdigit() or not une("select 1 from compte where numero = %s and (institution_id is null or institution_id = %s)", (compte, i)):
+    if not compte.isdigit():
         raise ErreurMetier(f"Compte : {compte} n'est pas dans le plan de comptes.")      # règle T16
+    compte_institution(u, compte, "Compte")   # lot 10 : un compte de l'institution (registre T172)
     if eid is not None and not une("select 1 from element_facture where id = %s and institution_id = %s and not supprime for update", (eid, i)):
         raise ErreurMetier("Elément introuvable.")
     if une("select 1 from element_facture where institution_id = %s and not supprime and lower(libelle) = lower(%s) and id is distinct from %s", (i, libelle, eid)):

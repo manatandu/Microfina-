@@ -128,8 +128,8 @@ export function DemandeCredit() {
           <Champ libelle="Usage précis">{(pp) => <input {...pp} className="saisie" autoComplete="off" maxLength={200} value={g.usage} onChange={(ev) => maj({ usage: ev.target.value })} />}</Champ>
           <Champ libelle="Compte d'épargne obligatoire">{(pp) => <select {...pp} className="saisie code" value={g.epargne} onChange={(ev) => maj({ epargne: ev.target.value })}>
             <option value=""></option>{comptesDevise.map((k) => <option key={k.id} value={k.id}>{k.numero}</option>)}</select>}</Champ>
-          <Champ libelle="Compte du fonds de solidarité">{(pp) => <select {...pp} className="saisie code" value={g.solidarite} onChange={(ev) => maj({ solidarite: ev.target.value })}>
-            <option value=""></option>{comptesDevise.map((k) => <option key={k.id} value={k.id}>{k.numero}</option>)}</select>}</Champ>
+          {!produit?.fondsCommun && <Champ libelle="Compte du fonds de solidarité">{(pp) => <select {...pp} className="saisie code" value={g.solidarite} onChange={(ev) => maj({ solidarite: ev.target.value })}>
+            <option value=""></option>{comptesDevise.map((k) => <option key={k.id} value={k.id}>{k.numero}</option>)}</select>}</Champ>}
           {assureurs.length > 0 && <Champ libelle="Assureur *">{(pp) => <select {...pp} className="saisie" value={g.assureur} onChange={(ev) => maj({ assureur: ev.target.value })}>
             <option value=""></option>{assureurs.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>}
           <Champ libelle="Ligne de financement">{(pp) => <select {...pp} className="saisie" value={g.ligne} onChange={(ev) => maj({ ligne: ev.target.value })}>

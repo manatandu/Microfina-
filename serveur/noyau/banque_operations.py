@@ -9,7 +9,7 @@ from psycopg.types.json import Jsonb
 
 from .services import json_lu
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import compte_du_produit, controler_statut_actif, est_coopec, exiger, journee_courante, nom_utilisateur, numero_compte, preparer_adhesion, solde_contrat
+from .services import compte_du_produit, compte_institution, controler_statut_actif, est_coopec, exiger, journee_courante, nom_utilisateur, numero_compte, preparer_adhesion, solde_contrat
 
 TYPES = {"encaissement": "Encaissement divers", "decaissement": "Décaissement divers", "banque_caisse": "Virement banque vers caisse",
          "banque_banque": "Virement banque vers banque", "virement_client": "Virement", "prelevement_client": "Prélèvement", "adhesion_banque": "Adhésion par banque"}
@@ -141,7 +141,10 @@ def enregistrer(u, d, client: bool = False) -> dict:
         compte = texte(d, "compte")
         if not compte:
             raise ErreurMetier("À remplir : compte.")
-        c = une("select saisissable, ouvert from compte where numero = %s and (institution_id is null or institution_id = %s)", (compte, i))
+        compte_institution(u, compte, "Compte")   # lot 10 : un compte de l'institution (registre T172)
+        c = une("select saisissable, ouvert, bloque from compte where numero = %s and institution_id = %s", (compte, i))
+        if c and c["bloque"]:   # registre T171 : un compte bloqué ne reçoit que les écritures du logiciel
+            raise ErreurMetier(f"Compte : {compte} est bloqué, il ne reçoit que les écritures du logiciel.")
         if not c:
             raise ErreurMetier(f"Compte : {compte} n'est pas un compte du plan (une classe ne reçoit pas d'écriture).")      # T16
         if not (c["saisissable"] and c["ouvert"]):

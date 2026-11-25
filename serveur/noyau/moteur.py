@@ -3,7 +3,7 @@ Une page = une table ; chaque champ a un type. Mêmes règles que web/src/donnee
 import re
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import exiger
+from .services import compte_institution, exiger
 
 JJMM = re.compile(r"^(\d\d)/(\d\d)$")
 JOURS = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
@@ -130,8 +130,8 @@ class Referentiel:
                 raise ErreurMetier(f"{sans_deux(f['libelle'])} invalide.")
             if f["type"] == "compte":
                 v[f["cle"]] = param_compte(u, x)
-            if f["type"] == "compteSimple" and not compte_existe(u, x):      # T16
-                raise ErreurMetier(f"{sans_deux(f['libelle'])} : {x} n'existe pas au plan de comptes.")
+            if f["type"] == "compteSimple":      # T16 ; lot 10 : un compte de l'institution (registre T172)
+                compte_institution(u, x, sans_deux(f["libelle"]))
             if self.ref_de(f) and x not in {o["id"] for o in self.choix(u, self.ref_de(f))}:
                 raise ErreurMetier(f"{sans_deux(f['libelle'])} inconnu.")
         if self.verifier:

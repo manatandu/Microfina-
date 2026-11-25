@@ -44,7 +44,8 @@ def contexte(u) -> dict:
     i = u["institution_id"]
     return {"produits": [{"id": p["id"], "nom": p["nom"], "devise": p["devise"].strip(), "physique": p["client_physique"], "groupe": p["client_groupe"],
                           "entreprise": p["client_entreprise"], "montantMin": int(p["montant_min"] * 100), "montantMax": int(p["montant_max"] * 100),
-                          "dureeMin": p["duree_min"], "dureeMax": p["duree_max"], "typeAssuranceId": p["type_assurance_id"]}
+                          "dureeMin": p["duree_min"], "dureeMax": p["duree_max"], "typeAssuranceId": p["type_assurance_id"],
+                          "fondsCommun": p["solidarite_destination"] == "commun"}   # registre T143
                          for p in lignes("select * from produit_credit where institution_id = %s and actif order by numero", (i,))],
             "cycles": lignes("select id, code, libelle from credit_cycle where institution_id = %s and actif order by code", (i,)),
             "provinces": lignes("select id, nom from localite where niveau = 'province' and actif order by nom"),
@@ -475,7 +476,7 @@ def infos_credit(u, d, t, p, montant: int, duree: int) -> dict:
     if s["epargneObligatoire"] and ce not in ids:
         raise ErreurMetier("À remplir : compte d'épargne obligatoire du client, dans la devise du crédit.")
     fonds = charge(p["solidarite_nature"], p["solidarite_valeur"], montant)
-    if fonds and cs not in ids:
+    if fonds and p["solidarite_destination"] == "membre" and cs not in ids:     # registre T143 : mis en commun, pas de compte du membre
         raise ErreurMetier("À remplir : compte du fonds de solidarité du client, dans la devise du crédit.")
     assureur = entier_ou_rien(d, "assureurId")
     if p["type_assurance_id"]:

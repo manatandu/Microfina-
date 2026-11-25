@@ -249,7 +249,7 @@ def radier(u, p) -> dict:
 def reste_radie(c: dict) -> int:
     """Ce qui reste suivi en hors bilan (0612) d'un crédit passé en perte"""
     return int(valeur("""select coalesce(sum(case l.sens when 'D' then l.montant_devise else -l.montant_devise end), 0) from ligne_ecriture l
-                         join compte k on k.id = l.compte_id where k.numero = '0612' and l.contrat_ref = %s""", (f"credit:{c['id']}",)))
+                         join compte k on k.id = l.compte_id where k.numero like '0612%%' and l.contrat_ref = %s""", (f"credit:{c['id']}",)))
 
 
 def radies(u) -> list[dict]:

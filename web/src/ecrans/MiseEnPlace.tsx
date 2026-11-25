@@ -98,7 +98,7 @@ export default function MiseEnPlace() {
           {page === 1 && <fieldset className="cadre-champs formulaire"><legend>Comptes</legend>
             {comptes("ce", "Compte épargne obligatoire", s.epargneObligatoire)}
             <Champ libelle="Épargne obligatoire">{(p) => <Lecture {...p} value={montant(s.epargneObligatoire, dv)} />}</Champ>
-            {comptes("cs", "Compte fonds de solidarité", a.fondsSolidarite)}
+            {!a.fondsCommun && comptes("cs", "Compte fonds de solidarité", a.fondsSolidarite)}
             <Champ libelle="Fonds de solidarité">{(p) => <Lecture {...p} value={montant(a.fondsSolidarite, dv)} />}</Champ>
           </fieldset>}
           {page === 2 && <fieldset className="cadre-champs formulaire"><legend>Autres informations</legend>

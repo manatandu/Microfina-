@@ -9,7 +9,7 @@ import { Champ, ChampDate, Chargement, Dialogue, Lecture, Textes, type Boite, Fo
 
 type Vue = Awaited<ReturnType<typeof api.emprunts.lire>>;
 const ONGLETS = ["Mise en place", "Remboursement"] as const;
-const VIDE = { banque: "", reference: "", montant: "", duree: "", date: "", taux: "", interet: "", commission: "", frais: "", commentaire: "", compte: "533", decision: "", autorisation: "" };
+const VIDE = { banque: "", reference: "", montant: "", duree: "", date: "", taux: "", interet: "", commission: "", frais: "", commentaire: "", compte: "53300000", decision: "", autorisation: "" };
 const VIDE_R = { numero: "", date: "", amortissement: "", interet: "", commission: "" };
 const m0 = (v: string) => (v.trim() ? lireMontant(v) : 0);
 

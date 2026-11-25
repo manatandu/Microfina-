@@ -1734,13 +1734,35 @@ def parts_du_tiers(tid: int) -> float:
 
 # ---------- Grand livre ----------
 
-def id_compte(numero: str, institution_id: int | None = None) -> int:
-    """Compte du PCCI, sinon compte divisionnaire ouvert par l'institution (S102, PCCI § 9)"""
-    i = valeur("select id from compte where numero = %s and (institution_id is null or institution_id = %s) order by institution_id nulls first limit 1",
-               (numero, institution_id))
+def compte_ecriture(numero: str, institution_id: int, contrat: str | None = None, devise: str = "CDF") -> int:
+    """Compte qui reçoit la ligne (plan d'allègement, lot 10 ; registre T167 à T170) : un compte de l'institution tel quel ; un compte du PCCI
+    passe sur le compte d'utilisation de l'institution (produit et catégorie du membre, guichet et devise, sinon le compte proposé).
+    Même règle en base (fonction compte_ecriture, migration 0190) et dans web/src/donnees/api.ts (compteEcriture)."""
+    i = valeur("select compte_ecriture(%s, %s, %s, %s)", (institution_id, numero, contrat, devise))
     if i is None:
         raise ErreurMetier(f"Compte {numero} absent du plan de comptes.")
     return i
+
+
+def compte_institution(u: dict, numero: str, quoi: str) -> str:
+    """Registre T172 : un paramétrage de compte n'accepte qu'un compte de l'institution. Le compte proposé d'un compte du PCCI (son numéro suivi
+    de zéros, T167) s'ouvre à l'enregistrement ; un compte du PCCI est refusé, avec le compte proposé à choisir. Même règle dans web/src/donnees/api.ts."""
+    i, n = u["institution_id"], (numero or "").strip()
+    c = une("select institution_id from compte where numero = %s and (institution_id is null or institution_id = %s) order by institution_id nulls last limit 1", (n, i))
+    if c and c["institution_id"] is not None:
+        return n
+    if len(n) == 1:
+        raise ErreurMetier(f"{quoi} : {n} n'est pas un compte du plan (une classe ne reçoit pas d'écriture).")      # T16
+    if c:
+        feuille = not valeur("select 1 from compte where institution_id is null and numero like %s and numero <> %s", (n + "%", n))
+        raise ErreurMetier(f"{quoi} : {n} est un compte du PCCI ; choisir un compte de l'institution"
+                           + (f" ({n.ljust(8, '0')})." if feuille else " ouvert sous lui (Comptabilité > Plan des comptes)."))
+    x = valeur("""select numero from compte where institution_id is null and length(%s) = 8 and rpad(numero, 8, '0') = %s
+                  and not exists (select 1 from compte e where e.institution_id is null and e.numero like compte.numero || '_%%')""", (n, n))
+    if x:
+        valeur("select compte_propose(%s, %s)", (i, x))
+        return n
+    raise ErreurMetier(f"{quoi} : le compte {n} n'existe pas au plan de comptes.")   # règle T16
 
 
 def schema_valide(u: dict, evenement: str) -> int:
@@ -1786,7 +1808,7 @@ def poster(u: dict, *, journal: str, journee_id: int, libelle: str, piece: str, 
         # « budget » : la ligne budgétaire saisie avec la ligne (S109, S116, S107), lue par le suivi budgétaire (S125)
         executer("""insert into ligne_ecriture (ecriture_id, rang, compte_id, contrat_ref, sens, devise, montant_devise, montant_cdf, cours_id, budget_ligne_id)
                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-                 (eid, rang, id_compte(l["compte"], u["institution_id"]), l.get("contrat"), l["sens"], l["devise"], l["montant"], cdf, cours_id, l.get("budget")))
+                 (eid, rang, compte_ecriture(l["compte"], u["institution_id"], l.get("contrat"), l["devise"]), l.get("contrat"), l["sens"], l["devise"], l["montant"], cdf, cours_id, l.get("budget")))
     return eid
 
 

@@ -16,6 +16,7 @@ import { DROITS_METHODES } from "./droits.gen";
 import registreEcrans from "../ecrans/registre.json";
 import { coupuresDe, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import PCCI from "@pcci";
+import { compteEcriture, compteProduit, comptePropose, estComptePcci, miseEnService, pcciDuPropose } from "./utilisation";
 import MODELE_ETATS from "@etats";
 import MODELE_LCB from "@reportingLcb";
 import QUALITES_PPE from "@ppeQualites";
@@ -26,7 +27,7 @@ import { aujourdhui, FUSEAU_PAR_DEFAUT, FUSEAUX, heureDe, jourDe } from "../lib/
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
 
-const CLE = "likelemba-demo-v105";
+const CLE = "likelemba-demo-v106";
 let neuf = false;   // vrai quand la démonstration part de la graine (rien d'enregistré dans ce navigateur)
 let E: Etat = /* @__PURE__ */ charger();
 const abonnes = new Set<() => void>();
@@ -34,10 +35,10 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 82) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 83) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
-  return graine();
+  return miseEnService(graine());
 }
 function sauver() {
   try { localStorage.setItem(CLE, JSON.stringify(E)); } catch { /* sans stockage, la démonstration reste en mémoire */ }
@@ -46,11 +47,11 @@ function enregistrer() { sauver(); abonnes.forEach((f) => f()); }
 /** Registre T02 (manuel p. 12) : « Les suppressions sont généralement logiques » ; la ligne quitte les listes mais reste dans les données, datée et signée */
 function archiver(table: string, ligne: unknown) { E.supprimes.push({ table, ligne, le: new Date().toISOString(), par: E.session }); }
 export function abonner(f: () => void) { abonnes.add(f); return () => { abonnes.delete(f); }; }
-export function reinitialiser() { E = graine(); enregistrer(); }
+export function reinitialiser() { E = miseEnService(graine()); enregistrer(); }
 /** Pour les tests */
 export function _etat(): Etat { return E; }
 export function _poster(e: Omit<Ecriture, "id" | "numero">): Ecriture { return poster({ evenement: "ecriture_manuelle", ...e }); }
-export function _remplacer(e: Etat) { E = e; }
+export function _remplacer(e: Etat) { E = miseEnService(e); }   // lot 10 : comme au chargement de la démonstration
 
 const heure = () => heureDe().slice(0, 5);   // heure de l'agence (point 11.4)
 /** Montant bloqué d'un compte (S71) : tout le solde quand le compte entier est bloqué, sinon la somme des montants bloqués en cours. Comme services.montant_bloque. */
@@ -152,6 +153,8 @@ function poster(e: Omit<Ecriture, "id" | "numero"> & { evenement: string }): Ecr
   if (arrondi !== 0 && etrangeres.length && Math.abs(arrondi) <= etrangeres.length)
     l = [...l, { compte: "474", sens: arrondi > 0 ? "C" : "D", devise: etrangeres[0]!.devise, montant: 0, montantCdf: Math.abs(arrondi) }];
   if (ecart(() => true, "montantCdf") !== 0) throw new ErreurMetier("Écriture déséquilibrée en CDF (PCCI § 3.2).");
+  // Lot 10 : chaque ligne va au compte d'utilisation de l'institution (registre T167 à T170 ; comme la base, fonction compte_ecriture)
+  l = l.map((x) => { const c = compteEcriture(E, x.compte, x.contrat, x.devise); if (!c) throw new ErreurMetier(`Compte ${x.compte} absent du plan de comptes.`); return { ...x, compte: c }; });
   for (const d of new Set(l.map((x) => x.devise))) if (ecart((x) => x.devise === d, "montant") !== 0) throw new ErreurMetier(`Écriture déséquilibrée en ${d}.`);
   const j = E.journees.find((x) => x.id === e.journeeId);
   if (!j || j.statut !== "ouverte") throw new ErreurMetier("Journée fermée : aucune écriture possible.");
@@ -1201,7 +1204,7 @@ function controlerValeurs(v: ValeursFrais, adhesion = false) {
   if (v.nature === "Taux" && v.valeur !== null && v.valeur > 10000) throw new ErreurMetier("Taux invalide : 100 % au plus.");
   const c = v.compte.trim();
   if (c && !/^\d+$/.test(c)) throw new ErreurMetier("Compte : chiffres seulement.");
-  if (c && !planComptable().includes(c)) throw new ErreurMetier(`Compte : le compte ${c} n'est pas dans le plan de comptes.`);   // règle T16
+  if (c) compteInstitution(c, "Compte");   // règle T16 ; lot 10 : un compte de l'institution (registre T172)
   return { nature: v.nature, valeur: v.valeur, compte: c || null };
 }
 const sousTypes = () => valeursListe("sous_type_client").map((v) => v.libelle);   // registre S16-8 : Général > Sous type de client
@@ -1215,7 +1218,7 @@ const parametrage = {
   lireFrais() {
     exiger();
     // Dépôt et retrait ne sont pas proposés : ils sont gratuits (Instr. BCC 37, art. 2, 3 et annexe ; plan d'allègement, point 0.15)
-    return { typesOperation: TYPES_OPERATION.filter((t) => t !== "DEPOT" && t !== "RETRAIT"), natures: NATURES, typesMembre: Object.keys(TYPES_MEMBRE), sousTypes: sousTypes(), compteAdhesion: "727", fondements: FONDEMENTS_FRAIS,   // S16-4
+    return { typesOperation: TYPES_OPERATION.filter((t) => t !== "DEPOT" && t !== "RETRAIT"), natures: NATURES, typesMembre: Object.keys(TYPES_MEMBRE), sousTypes: sousTypes(), compteAdhesion: "72700000", fondements: FONDEMENTS_FRAIS,   // S16-4
       frais: E.frais.filter((f) => f.fondement !== "part_sociale"), operations: E.paramOperations, adhesion: E.paramAdhesion.filter((x) => !estPart(x.compte)) };   // la part suit la fiche Société (T134)
   },
   creerFrais(d: SaisieFrais): Frais {
@@ -1961,7 +1964,9 @@ function enregistrerOperationBanque(d: SaisieOperationBanque, client: boolean): 
     if (d.type === "encaissement" || d.type === "decaissement") {
       const compte = d.compte?.trim() ?? "";
       if (!compte) throw new ErreurMetier("À remplir : compte.");
-      const c = [...PCCI.comptes.map((x) => ({ numero: x.numero, ouvert: true, saisissable: true })), ...E.comptesInstitution].find((x) => x.numero === compte);
+      compteInstitution(compte, "Compte");   // lot 10 : un compte de l'institution (registre T172)
+      const c = E.comptesInstitution.find((x) => x.numero === compte);
+      if (c?.bloque) throw new ErreurMetier(`Compte : ${compte} est bloqué, il ne reçoit que les écritures du logiciel.`);   // registre T171
       if (!c) throw new ErreurMetier(`Compte : ${compte} n'est pas un compte du plan (une classe ne reçoit pas d'écriture).`);   // T16
       if (!(c.saisissable && c.ouvert)) throw new ErreurMetier(`Compte : ${compte} est fermé ou non saisissable, il ne reçoit pas d'écriture.`);   // S102-10
       if (compte.startsWith("56") || compte.startsWith("57")) throw new ErreurMetier("Compte : un compte de banque (56) ou de caisse (57) passe par les onglets de virement.");   // S52-4
@@ -2056,8 +2061,9 @@ const emprunts = {
     if (!/^\d+(\.\d{1,4})?$/.test(t) || Number(t) >= 1000) throw new ErreurMetier("Taux annuel : un pourcentage, par exemple 12,5.");
     for (const [v, nom] of [[d.totalInteret, "Total Intérêt"], [d.totalCommission, "Total Commis."], [d.totalFrais, "Total Frais"]] as const)
       if (!Number.isInteger(v) || v < 0) throw new ErreurMetier(`${nom} : un montant positif ou nul.`);
-    const compte = (d.compteEmprunt ?? "").trim() || "533";
-    const c = [...PCCI.comptes.map((x) => ({ numero: x.numero, ouvert: true, saisissable: true })), ...E.comptesInstitution].find((x) => x.numero === compte);
+    const compte = (d.compteEmprunt ?? "").trim() || "53300000";   // lot 10 : le compte proposé sous 533 (registre T167, T172)
+    if (compte.startsWith("533") || compte.startsWith("1622")) compteInstitution(compte, "Compte Emprunt");
+    const c = E.comptesInstitution.find((x) => x.numero === compte);
     const subordonne = compte.startsWith("1622");   // B21 : emprunts et dettes subordonnés (Instr. BCC 002, art. 9 et 10)
     if (!(compte.startsWith("533") || subordonne) || !c) throw new ErreurMetier("Compte Emprunt : un compte 533 « Emprunts à terme » du plan (PCCI, compte 53), ou 1622 pour un emprunt subordonné.");   // S61-1
     const decision = (d.decisionConseil ?? "").trim(), autorisation = (d.autorisationBcc ?? "").trim();
@@ -2102,8 +2108,8 @@ const emprunts = {
 
 /** T16 : un compte saisi existe dans le plan de comptes (S102), saisissable et ouvert ; identique côté serveur (banques.compte_du_plan) */
 function controlerCompteDuPlan(numero: string, quoi: string) {
-  const c = [...PCCI.comptes.map((x) => ({ numero: x.numero, ouvert: true, saisissable: true })), ...E.comptesInstitution,
-    ...E.comptesBancaires.map((x) => ({ numero: x.compte, ouvert: true, saisissable: true }))].find((x) => x.numero === numero);
+  compteInstitution(numero, quoi);   // lot 10 : un compte de l'institution (registre T172)
+  const c = [...E.comptesInstitution, ...E.comptesBancaires.map((x) => ({ numero: x.compte, ouvert: true, saisissable: true }))].find((x) => x.numero === numero);
   if (!c) throw new ErreurMetier(`${quoi} : ${numero} n'est pas un compte du plan (Comptabilité > Plan des comptes).`);
   if (!(c.saisissable && c.ouvert)) throw new ErreurMetier(`${quoi} : ${numero} est fermé ou non saisissable.`);
 }
@@ -2858,6 +2864,7 @@ const banques = {
       .filter(([, x]) => !x).map(([k]) => k);
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     if (!/^560[0-3]\d*$/.test(v.compte)) throw new ErreurMetier("Compte : sous-compte de 560 « Comptes NOSTRI disponible » (PCCI, compte 56), par exemple 5601….");
+    if (estComptePcci(v.compte)) throw new ErreurMetier(`Compte : ${v.compte} est un compte du PCCI ; ouvrir le compte de la banque sous lui, par exemple ${v.compte.padEnd(8, "0")}.`);   // lot 10 (T172)
     if (!E.devises.some((x) => x.code === v.devise)) throw new ErreurMetier("Devise inconnue.");   // S35
     const comptePenalite = (d.comptePenalite ?? "").trim();   // registre S58-3 : texte p. 67
     if (comptePenalite && !comptePenalite.startsWith("60")) throw new ErreurMetier("Compte de pénalité : un compte de charges du compte 60 (PCCI), par exemple 607 « Autres charges financières ».");   // S58-6
@@ -3390,7 +3397,8 @@ const dossiers = {
     lectureAdmin(["S86", "S87", "S88", "S89"]);
     return { produits: E.produitsCredit.filter((p) => p.actif !== false).sort((a, b) => String(a.numero).localeCompare(String(b.numero))).map((p) => ({ id: p.id, nom: String(p.nom),
         devise: String(p.devise) as Devise, physique: !!p.clientPhysique, groupe: !!p.clientGroupe, entreprise: !!p.clientEntreprise, montantMin: Number(p.montantMin) * 100,
-        montantMax: Number(p.montantMax) * 100, dureeMin: Number(p.dureeMin), dureeMax: Number(p.dureeMax), typeAssuranceId: (p.typeAssuranceId as number | null) ?? null })),
+        montantMax: Number(p.montantMax) * 100, dureeMin: Number(p.dureeMin), dureeMax: Number(p.dureeMax), typeAssuranceId: (p.typeAssuranceId as number | null) ?? null,
+        fondsCommun: p.solidariteDestination === "commun" })),   // registre T143
       cycles: stockCredit("cycles").filter((c) => c.actif !== false).map((c) => ({ id: c.id, code: String(c.code ?? ""), libelle: String(c.libelle ?? "") })),
       provinces: E.lieux.filter((l) => l.niveau === "province" && l.actif).map((l) => ({ id: l.id, nom: l.nom })).sort((a, b) => a.nom.localeCompare(b.nom)),
       villes: E.lieux.filter((l) => l.niveau === "ville" && l.actif).map((l) => ({ id: l.id, provinceId: l.parentId, nom: l.nom, nature: l.nature || "Ville" })).sort((a, b) => a.nom.localeCompare(b.nom)),
@@ -3588,8 +3596,8 @@ function infosCreditDemande(d: Record<string, unknown>, t: Tiers, p: Record<stri
   const ids = new Set(E.comptes.filter((c) => c.tiersId === t.id && !c.closLe && c.devise === p.devise).map((c) => c.id));
   const ce = (d.compteEpargneId ?? null) as number | null, cs = (d.compteSolidariteId ?? null) as number | null;
   if (s.epargneObligatoire && !ids.has(ce ?? -1)) throw new ErreurMetier("À remplir : compte d'épargne obligatoire du client, dans la devise du crédit.");
-  const fonds = chargeCredit(p.solidariteNature, p.solidariteValeur, montant);
-  if (fonds && !ids.has(cs ?? -1)) throw new ErreurMetier("À remplir : compte du fonds de solidarité du client, dans la devise du crédit.");
+  const fonds = chargeCredit(p.solidariteNature, p.solidariteValeur, montant), commun = p.solidariteDestination === "commun";   // registre T143
+  if (fonds && !commun && !ids.has(cs ?? -1)) throw new ErreurMetier("À remplir : compte du fonds de solidarité du client, dans la devise du crédit.");
   let assureur = (d.assureurId ?? null) as number | null;
   if (p.typeAssuranceId) { if (!stockCredit("assureurs").some((y) => y.id === assureur && Number(y.typeAssuranceId) === Number(p.typeAssuranceId))) throw new ErreurMetier("À remplir : Assureur (de l'assurance du produit)."); }
   else assureur = null;
@@ -3599,7 +3607,7 @@ function infosCreditDemande(d: Record<string, unknown>, t: Tiers, p: Record<stri
   const ligne = (d.ligneBudgetId ?? null) as number | null;
   if (ligne && !(E.budget["lignes"] ?? []).some((y) => y.id === ligne && y.actif)) throw new ErreurMetier("Ligne de financement inconnue.");
   return { differe: s.differe, objetId: objet.id, usagePrecis: String(d.usagePrecis ?? "").trim().slice(0, 200), compteEpargneId: s.epargneObligatoire ? ce : null,
-    compteSolidariteId: fonds ? cs : null, assureurId: assureur, ligneBudgetId: ligne };
+    compteSolidariteId: fonds && !commun ? cs : null, assureurId: assureur, ligneBudgetId: ligne };
 }
 /** Le crédit naît à la décision ; la vérification et la décision tiennent les deux premiers visas (plan d'allègement, point 6.1). Comme dossiers.creer_credit. */
 function creerCreditDemande(x: DemandeCredit) {
@@ -3611,7 +3619,7 @@ function creerCreditDemande(x: DemandeCredit) {
     produitId: p.id, montant: x.montantApprouve!, devise: x.devise, duree: x.duree, nombreTraites: s.nombreTraites, differe: s.differe, periodicite: s.periodicite,
     tauxInteret: s.tauxInteret, tauxDiffere: s.tauxDiffere, dateEffet: s.dateEffet, dateDebut: s.dateDebut, cycleId: x.cycleId, zoneId: stockCredit("zones").find((z) => z.nom === t.zone)?.id ?? 0,
     agentId: x.saisiPar, ligneBudgetId: lb?.id ?? null, ligneFinancement: lb ? `${String(lb.numero ?? "")} ${String(lb.libelle ?? "")}` : "", bailleur: "", structure: STRUCTURES[0]!,
-    compteEpargneId: s.epargneObligatoire ? x.compteEpargneId ?? null : null, compteSolidariteId: fonds ? x.compteSolidariteId ?? null : null, epargneObligatoire: s.epargneObligatoire,
+    compteEpargneId: s.epargneObligatoire ? x.compteEpargneId ?? null : null, compteSolidariteId: fonds && p.solidariteDestination !== "commun" ? x.compteSolidariteId ?? null : null, epargneObligatoire: s.epargneObligatoire,
     fondsSolidarite: fonds, frais: s.frais, assurance: s.assurance, assureurId: p.typeAssuranceId ? x.assureurId ?? null : null, objetId: x.objetId!, usagePrecis: x.usagePrecis ?? "",
     tegR: s.tegR, tegA: s.tegA, parts: x.parts, statut: "mis_en_place", misEnPlacePar: x.saisiPar, misEnPlaceLe: jourDossier(), debloqueLe: "",
     echeancier: s.echeancier.map((l) => ({ rang: l.rang, date: l.date, capital: l.capital, interet: l.interet })) };
@@ -3659,7 +3667,7 @@ const miseEnPlace = {
         date: x.creeLe, zoneId: stockCredit("zones").find((z) => z.nom === t.zone)?.id ?? null, agentId: x.saisiPar, typeAssuranceId: (p.typeAssuranceId as number | null) ?? null, parts: x.parts },
       comptes: E.comptes.filter((c) => c.tiersId === t.id && !c.closLe && c.devise === p.devise).sort((a, b) => a.numero.localeCompare(b.numero))
         .map((c) => ({ id: c.id, numero: c.numero, produit: c.intitule })),
-      fondsSolidarite: chargeCredit(p.solidariteNature, p.solidariteValeur, x.montantApprouve!), differeMin: Number(p.differeMin), differeMax: Number(p.differeMax), simulation: s };
+      fondsSolidarite: chargeCredit(p.solidariteNature, p.solidariteValeur, x.montantApprouve!), fondsCommun: p.solidariteDestination === "commun", differeMin: Number(p.differeMin), differeMax: Number(p.differeMax), simulation: s };
   },
   /** 2.16 à 2.23 ; registre S89-1 à S89-9 */
   mettreEnPlace(id: number, d: { differe?: number; compteEpargneId?: number | null; compteSolidariteId?: number | null; assureurId?: number | null; objetId?: number | null; usagePrecis?: string;
@@ -3671,7 +3679,7 @@ const miseEnPlace = {
     controlerListeRouge(x.tiersId);   // registre CR-9
     const ids = new Set(a.comptes.map((c) => c.id));
     if (s.epargneObligatoire && !ids.has(d.compteEpargneId ?? -1)) throw new ErreurMetier("À remplir : compte d'épargne obligatoire du client, dans la devise du crédit.");
-    if (a.fondsSolidarite && !ids.has(d.compteSolidariteId ?? -1)) throw new ErreurMetier("À remplir : compte du fonds de solidarité du client, dans la devise du crédit.");
+    if (a.fondsSolidarite && !a.fondsCommun && !ids.has(d.compteSolidariteId ?? -1)) throw new ErreurMetier("À remplir : compte du fonds de solidarité du client, dans la devise du crédit.");
     let assureur: number | null = d.assureurId ?? null;
     if (p.typeAssuranceId) { if (!stockCredit("assureurs").some((y) => y.id === assureur && Number(y.typeAssuranceId) === Number(p.typeAssuranceId))) throw new ErreurMetier("À remplir : Assureur (de l'assurance du produit)."); }
     else assureur = null;
@@ -3688,7 +3696,7 @@ const miseEnPlace = {
       produitId: p.id, montant: x.montantApprouve!, devise: x.devise, duree: x.duree, nombreTraites: s.nombreTraites, differe: s.differe, periodicite: s.periodicite,
       tauxInteret: s.tauxInteret, tauxDiffere: s.tauxDiffere, dateEffet: s.dateEffet, dateDebut: s.dateDebut, cycleId: x.cycleId, zoneId: d.zoneId!, agentId: d.agentId!,
       ligneBudgetId: lb?.id ?? null, ligneFinancement: lb ? `${String(lb.numero ?? "")} ${String(lb.libelle ?? "")}` : "", bailleur: "", structure,
-      compteEpargneId: s.epargneObligatoire ? d.compteEpargneId! : null, compteSolidariteId: a.fondsSolidarite ? d.compteSolidariteId! : null, epargneObligatoire: s.epargneObligatoire,
+      compteEpargneId: s.epargneObligatoire ? d.compteEpargneId! : null, compteSolidariteId: a.fondsSolidarite && !a.fondsCommun ? d.compteSolidariteId! : null, epargneObligatoire: s.epargneObligatoire,
       fondsSolidarite: a.fondsSolidarite, frais: s.frais, assurance: s.assurance, assureurId: assureur, objetId: d.objetId!, usagePrecis: String(d.usagePrecis ?? "").trim().slice(0, 200), tegR: s.tegR, tegA: s.tegA, parts: x.parts,
       statut: "mis_en_place", misEnPlacePar: u.id, misEnPlaceLe: jourDossier(), debloqueLe: "",
       echeancier: s.echeancier.map((l) => ({ rang: l.rang, date: l.date, capital: l.capital, interet: l.interet })) };
@@ -4204,8 +4212,14 @@ function ecritureDeblocage(c: CreditPret, contrepartie: { compte: string; contra
   for (const [cid, m] of [[c.compteSolidariteId, c.fondsSolidarite]] as [number | null, number][]) if (m && cid) {
     const cp = E.comptes.find((x) => x.id === cid)!;
     l.push({ compte: cp.pcci, contrat: `depot:${cid}`, sens: "C", devise: dv, montant: m, montantCdf: cdf(m, dv) });
-  }
+  } else if (m) l.push({ compte: fondsCommun(c), sens: "C", devise: dv, montant: m, montantCdf: cdf(m, dv) });   // registre T143 : fonds mis en commun
   return poster({ evenement: "deblocage_credit", journal, journeeId: j.id, libelle: `Déblocage du crédit ${c.numero}`, piece: piece(journal), saisiPar, validePar: saisiPar, lignes: l });
+}
+/** Registre T143 : le compte de l'institution sous 172 « Fonds de garantie mutuels » qui reçoit le fonds de solidarité mis en commun (comme le serveur) */
+function fondsCommun(c: CreditPret): string {
+  const x = E.produitsCredit.find((p) => p.id === c.produitId)?.solidariteCompte;
+  if (!x) throw new ErreurMetier("Fonds de solidarité mis en commun : le produit n'a pas de compte du fonds commun (Paramétrage > Crédit > Produit).");
+  return String(x);
 }
 function apresDeblocage(c: CreditPret, eid: number, mode: "caisse" | "banque" | "epargne", u: number) {
   const d = jourDeblocage().date;
@@ -4472,7 +4486,7 @@ const provisions = {
 
 // ---------- B18 (confrontation du 21/11/2026) : rentrée sur une créance passée en perte. Mêmes règles que provisions.radies et provisions.rentree :
 // produit au 791, sortie du hors bilan (0612 contre 096), prélevée sur un compte du client, sur son ordre (PCCI, compte 79 ; registre T71) ----------
-const resteRadie = (c: CreditPret) => E.ecritures.reduce((s, e) => s + e.lignes.filter((l) => l.compte === "0612" && l.contrat === `credit:${c.id}`)
+const resteRadie = (c: CreditPret) => E.ecritures.reduce((s, e) => s + e.lignes.filter((l) => l.compte.startsWith("0612") && l.contrat === `credit:${c.id}`)
   .reduce((t, l) => t + (l.sens === "D" ? l.montant : -l.montant), 0), 0);
 const creancesRadiees = {
   lister() {
@@ -4954,6 +4968,7 @@ function enregistrerRemboursement(c: CreditPret, d: string, montant: unknown, re
   ligne("433", r.tva!);   // la TVA perçue est due au Trésor : taxe collectée, jamais un produit (PCCI, compte 433 ; O.-L. 10/001, art. 25, 5° ; registre CR-27)
   for (const [k, cid] of [["epargne", c.compteEpargneId], ["solidarite", c.compteSolidariteId]] as [string, number | null][])
     if (r[k] && cid) ligne(E.comptes.find((x) => x.id === cid)!.pcci, r[k]!, `depot:${cid}`);
+    else if (r[k] && k === "solidarite") ligne(fondsCommun(c), r[k]!);   // registre T143 : fonds mis en commun
   const e = poster({ evenement: "remboursement_credit", journal, journeeId: jourDeblocage().id, libelle: extra.libelle ?? `Remboursement du crédit ${c.numero}`, piece: piece(journal), saisiPar: u, validePar: u, lignes: l });
   const repartition = Object.fromEntries([...CLES_REMB, "capitalAnticipe"].map((k) => [k, r[k] ?? 0]));
   const rb: RemboursementCredit = { id: prochain(E.remboursementsCredit), creditId: c.id, ecritureId: e.id, operationId: null, date: d, montant: m, repartition,
@@ -5199,6 +5214,18 @@ function sortiePossible(sessionId: number, devise: Devise, c: Comptage) {
 
 /** Plan comptable : le PCCI complet (replica/pcci.json, 604 comptes ; Instruction BCC n° 006), plus les comptes bancaires de l'institution (S58) */
 const NUMEROS_PCCI = PCCI.comptes.map((c) => c.numero);
+/** Registre T172 : un paramétrage de compte n'accepte qu'un compte de l'institution ; le compte proposé d'un compte du PCCI (son numéro suivi de zéros,
+ *  T167) s'ouvre à l'enregistrement ; un compte du PCCI est refusé, avec le compte proposé à choisir. Même règle que le serveur (services.compte_institution). */
+function compteInstitution(n: string, quoi: string): string {
+  const x = n.trim();
+  if (E.comptesInstitution.some((c) => c.numero === x) || E.comptesBancaires.some((b) => b.compte === x)) return x;
+  if (x.length === 1) throw new ErreurMetier(`${quoi} : ${x} n'est pas un compte du plan (une classe ne reçoit pas d'écriture).`);   // T16
+  if (estComptePcci(x)) throw new ErreurMetier(`${quoi} : ${x} est un compte du PCCI ; choisir un compte de l'institution`
+    + (PCCI.comptes.some((c) => c.numero !== x && c.numero.startsWith(x)) ? " ouvert sous lui (Comptabilité > Plan des comptes)." : ` (${x.padEnd(8, "0")}).`));
+  const p = pcciDuPropose(x);
+  if (p) { comptePropose(E, p); return x; }
+  throw new ErreurMetier(`${quoi} : le compte ${x} n'existe pas au plan de comptes.`);   // règle T16
+}
 function planComptable() {
   return [...NUMEROS_PCCI, ...E.comptesInstitution.map((c) => c.numero), ...E.comptesBancaires.map((c) => c.compte)];
 }
@@ -5217,7 +5244,8 @@ const comptes = {
     exiger();
     // Les classes du PCCI (§ 13) : tête de l'arbre et premier niveau du Modèle ; elles ne reçoivent pas d'écriture
     const classes = Object.entries(PCCI.classes).map(([k, v]) => ({ ...OPTIONS_PCCI, saisissable: false, numero: k, libelle: v, classe: Number(k), pcci: true }));
-    const tous: LigneCompte[] = [...classes, ...PCCI.comptes.map((c) => ({ ...OPTIONS_PCCI, numero: c.numero, libelle: c.libelle, classe: c.classe, pcci: true })),
+    // Lot 10 : le PCCI sert de cadre, il ne reçoit pas d'écriture (registre T168)
+    const tous: LigneCompte[] = [...classes, ...PCCI.comptes.map((c) => ({ ...OPTIONS_PCCI, saisissable: false, numero: c.numero, libelle: c.libelle, classe: c.classe, nature: c.nature, pcci: true })),
       ...E.comptesInstitution.map((c) => ({ ...c, pcci: false }))];
     return { comptes: tous.sort((a, b) => a.numero.localeCompare(b.numero)), groupes: GROUPES_COMPTE, typesSuivi: TYPES_TIERS };   // registre S102-7
   },
@@ -5234,7 +5262,8 @@ const comptes = {
     if (!p) throw new ErreurMetier("Parent : ce compte n'est pas dans le plan." + (parent in PCCI.classes ? " Une classe n'a pas de compte divisionnaire direct : choisir un compte." : ""));
     const numero = parent + suite;
     if (d.typeSuivi?.trim() && !TYPES_TIERS.includes(d.typeSuivi.trim())) throw new ErreurMetier("Type de suivi inconnu.");   // registre S102-7
-    const v: CompteInstitution = { numero, libelle, classe: p.classe, ouvert: !!d.ouvert, saisissable: !!d.saisissable, typeSuivi: d.typeSuivi?.trim() ?? "",
+    // Registre T171 : Statut Ouvert, Fermé ou Bloqué (un compte bloqué est ouvert, mais ne reçoit que les écritures du logiciel)
+    const v: CompteInstitution = { numero, libelle, classe: p.classe, nature: p.nature, ouvert: !!d.ouvert, bloque: !!d.bloque && !!d.ouvert, saisissable: !!d.saisissable, typeSuivi: d.typeSuivi?.trim() ?? "",
       autorisationBcc: d.autorisationBcc?.trim() ?? "",   // B19 : Instr. BCC 006, art. 3
       ...Object.fromEntries(OPTIONS_COMPTE.map((k) => [k, !!d[k]])) as Pick<OptionsCompte, (typeof OPTIONS_COMPTE)[number]> };
     if (numeroActuel === undefined) {
@@ -6420,7 +6449,7 @@ export interface SaisieGuichet extends Adresse {
   compteGuichet: string; compteLiaison: string; compteSurplus: string; compteManquant: string; billetage?: boolean; actif: boolean;
 }
 /** Registre S08-7 : comptes du PCCI proposés par défaut, modifiables, contrôlés sur le plan de comptes (règle T16) */
-export const COMPTES_DEFAUT = { compteGuichet: "570", compteLiaison: "579", compteSurplus: "7790", compteManquant: "671" };
+export const COMPTES_DEFAUT = { compteGuichet: "57000000", compteLiaison: "57900000", compteSurplus: "77900000", compteManquant: "67100000" };   // lot 10 (T167, T172)
 const guichets = {
   lire() {
     exiger();
@@ -6463,7 +6492,7 @@ const guichets = {
     for (const [k, n] of [["compteGuichet", "Compte guichet"], ["compteLiaison", "Compte liaison"], ["compteSurplus", "Compte surplus"], ["compteManquant", "Compte manquant"]] as const) {
       const x = d[k].trim();
       if (x && !/^\d+$/.test(x)) throw new ErreurMetier(`${n} : chiffres seulement.`);
-      if (x && !planComptable().includes(x)) throw new ErreurMetier(`${n} : le compte ${x} n'est pas dans le plan de comptes.`);   // règle T16
+      if (x) compteInstitution(x, n);   // règle T16 ; lot 10 : un compte de l'institution (registre T172)
       comptes[k] = x || undefined;
     }
     if (E.guichets.some((g) => g.code === v.code && g.id !== id)) throw new ErreurMetier("Ce code guichet existe déjà.");
@@ -6609,7 +6638,7 @@ export function exemplesDemo(): string[] {
   try {
     comme("jpmukendi");
     essayer("banque de démonstration", () => E.banques.some((b) => b.code === "DEMO"),
-      () => banques.enregistrerBanque({ code: "DEMO", libelle: "Banque de démonstration", compteLiaison: "5601", adresse: "Kinshasa, Gombe" }));
+      () => banques.enregistrerBanque({ code: "DEMO", libelle: "Banque de démonstration", compteLiaison: "56010000", adresse: "Kinshasa, Gombe" }));
     const banque = E.banques.find((b) => b.code === "DEMO")?.id;
     const journal = [...E.journaux].filter((j) => j.type === "banque" && j.actif && !j.supprime).sort((x, y) => x.code.localeCompare(y.code))[0]?.id ?? 0;
     for (const [compte, numero, devise] of [["56010011", "DEMO-USD-0001", "USD"], ["56010012", "DEMO-CDF-0001", "CDF"]] as const)
@@ -6619,7 +6648,7 @@ export function exemplesDemo(): string[] {
       () => produitsCredit.enregistrer({ typeProduit: "CNO", numero: "L001", nom: "Crédit commerce", devise: "CDF", modeCalcul: "Dégressif", typeInteret: "Fixe",
         tauxInteret: "2,5", tauxDiffere: 2, montantMin: 100000, montantMax: 5000000, dureeMin: 3, dureeMax: 12, differeMin: 0, differeMax: 2, interetMin: 1, interetMax: 4,
         clientPhysique: true, periodicite: "M", modeDiffere: "Réparti", paiementInteret: "Normal", interetAnticipation: false, ageMax: 65, epargneNature: "Taux",
-        epargneValeur: 10, categorie: "Prêt commercial", penaliteAnticipation: 50, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "7152" }] }));
+        epargneValeur: 10, categorie: "Prêt commercial", penaliteAnticipation: 50, frais: [{ typeFrais: "Frais de dossier", nature: "Taux", valeur: 1, compte: "71520000" }] }));
     const EPARGNE = { famille: "EPARGNE", devise: "CDF", soldeMinimum: 0, nbMaxComptes: 1, operer: true, depotCheque: false, caution: false, nantissement: false,
       calculerInteret: true, soldeNegatif: false, repartitionGroupe: false, actif: true };
     for (const [numero, code, libelle, onglet, compte, extra] of [[6, "DAT", "Dépôt à terme", "DAT", "340", {}], [7, "PE", "Plan épargne scolaire", "Epargne", "354", { tauxInteret: "6" }]] as const)
@@ -6629,7 +6658,7 @@ export function exemplesDemo(): string[] {
       });
     essayer("type de commande ACHA_M", () => E.typesCommande.some((t) => t.code === "ACHA_M"), () => facture.enregistrerType({ code: "ACHA_M", libelle: "Achat de matériel" }));
     essayer("fournisseur", () => valeursRef("tiers", "tiers").some((t) => t.typeTiers === "FOURNISSEUR"),
-      () => refTiers.enregistrer("tiers", { typeTiers: "FOURNISSEUR", intitule: "Papeterie du Fleuve", compte: "400" }));
+      () => refTiers.enregistrer("tiers", { typeTiers: "FOURNISSEUR", intitule: "Papeterie du Fleuve", compte: "40000000" }));
     comme("plumbala");
     essayer("employé EMP/000/26", () => (E.paieEmployes ?? []).length > 0, () => {
       const id = (page: string, libelle: string) => valeursRef("paie", page).find((l) => l.libelle === libelle)?.id ?? null;
@@ -6836,7 +6865,7 @@ function referentiel(o: OptionsReferentiel) {
         if (f.type === "jjmm" && jourMois(x as string) === null) throw new ErreurMetier(`${sansDeux(f.libelle)} : date au format JJ/MM.`);
         if (f.type === "email" && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x as string)) throw new ErreurMetier(`${sansDeux(f.libelle)} invalide.`);
         if (f.type === "compte") v[f.cle] = paramCompte(x as string);
-        if (f.type === "compteSimple" && !numerosPlan().includes(x as string)) throw new ErreurMetier(`${sansDeux(f.libelle)} : ${x as string} n'existe pas au plan de comptes.`);   // T16
+        if (f.type === "compteSimple") compteInstitution(x as string, sansDeux(f.libelle));   // T16 ; lot 10 : un compte de l'institution (registre T172)
         const r = refDe(f);
         if (r && !choix(r).some((y) => y.id === x)) throw new ErreurMetier(`${sansDeux(f.libelle)} inconnu.`);
       }
@@ -6913,7 +6942,8 @@ function dateOperationOc(d: unknown) {
   if (x > jour) throw new ErreurMetier("La date de l'opération ne peut pas dépasser la journée ouverte.");
   return x;
 }
-const tenuParLaGestion = (n: string) => GESTION_OC.some((p) => n.startsWith(p)) || E.comptesBancaires.some((c) => c.compte === n);
+// Registre T171 : un compte bloqué ne reçoit que les écritures du logiciel
+const tenuParLaGestion = (n: string) => GESTION_OC.some((p) => n.startsWith(p)) || E.comptesBancaires.some((c) => c.compte === n) || E.comptesInstitution.some((c) => c.numero === n && c.bloque);
 function compteLibre(numero: unknown, quoi: string) {
   const n = texteOc(numero);
   if (!n) throw new ErreurMetier(`À remplir : ${quoi}.`);
@@ -7038,7 +7068,7 @@ const operationsCompta = {
       lignesBudget: (E.budget["lignes"] ?? []).filter((x) => x.actif).map((x) => ({ id: x.id, numero: String(x.numero ?? ""), libelle: String(x.libelle ?? ""), bailleur: "" })),
       auxiliaires: valeursRef("tiers", "tiers").map((x) => ({ id: x.id, intitule: String(x.intitule ?? ""), compte: String(x.compte ?? ""), typeTiers: String(x.typeTiers ?? "") }))
         .sort((a, b) => a.intitule.localeCompare(b.intitule)),
-      comptes: [...PCCI.comptes.map((x) => ({ numero: x.numero, libelle: x.libelle })), ...E.comptesInstitution.filter((x) => x.ouvert && x.saisissable).map((x) => ({ numero: x.numero, libelle: x.libelle }))]
+      comptes: E.comptesInstitution.filter((x) => x.ouvert && x.saisissable).map((x) => ({ numero: x.numero, libelle: x.libelle }))   // lot 10 : comptes de l'institution (T168)
         .filter((x) => !tenuParLaGestion(x.numero)).sort((a, b) => a.numero.localeCompare(b.numero)) };
   },
   /** Comptes ouverts d'un client : N° Compte, N° Comptable, Produit, Solde (cadres « Compte Client » et « Compte Emetteur », p. 134) */
@@ -7397,7 +7427,7 @@ const facturesFournisseurs = {
       taxes: taxesF(), elements: elementsF().map(({ id, libelle, compte, taux, tauxA, tauxNA, retenue }) => ({ id, libelle, compte, taux, tauxA, tauxNA, retenue })),
       typesBudget: (E.budget["types_budget"] ?? []).filter((x) => x.actif).map((x) => ({ id: x.id, code: String(x.code ?? ""), libelle: String(x.libelle ?? "") })),
       lignesBudget: (E.budget["lignes"] ?? []).filter((x) => x.actif).map((x) => ({ id: x.id, numero: String(x.numero ?? ""), libelle: String(x.libelle ?? ""), bailleur: "" })),
-      comptes: [...PCCI.comptes.map((x) => ({ numero: x.numero, libelle: x.libelle })), ...E.comptesInstitution.filter((x) => x.ouvert && x.saisissable).map((x) => ({ numero: x.numero, libelle: x.libelle }))]
+      comptes: E.comptesInstitution.filter((x) => x.ouvert && x.saisissable).map((x) => ({ numero: x.numero, libelle: x.libelle }))   // lot 10 : comptes de l'institution (T168)
         .filter((x) => ["2", "6", "47"].some((p) => x.numero.startsWith(p)) && !tenuParLaGestion(x.numero)).sort((a, b) => a.numero.localeCompare(b.numero)),
       banques: [...E.banques].sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, libelle }) => ({ id, code, libelle })),
       comptesBancaires: [...E.comptesBancaires].sort((a, b) => a.numeroBancaire.localeCompare(b.numeroBancaire)).map((c) => ({ id: c.id, banqueId: c.banqueId, numero: c.numeroBancaire, devise: c.devise as string })),
@@ -7829,7 +7859,7 @@ const controlesCompta = {
     const orig = E.ecritures.find((x) => x.id === r.ecritureId)!, vue = repartitionAnnulable(r);
     const e = poster({ evenement: "annulation", journal: "OD", journeeId: j.id, libelle: `Annulation : ${orig.libelle}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, type: "contre_passation", contrePasseId: orig.id,
       lignes: orig.lignes.map((l) => ({ ...l, sens: l.sens === "D" ? "C" as const : "D" as const })) });
-    const hb = orig.lignes.filter((l) => l.compte === "0630" && l.sens === "C").reduce((t, l) => t + l.montant, 0);   // intérêts sortis du hors bilan au règlement : ils y reviennent (CR-19)
+    const hb = orig.lignes.filter((l) => l.compte.startsWith("0630") && l.sens === "C").reduce((t, l) => t + l.montant, 0);   // intérêts sortis du hors bilan au règlement : ils y reviennent (CR-19)
     if (hb) c.interetsHorsBilan = (c.interetsHorsBilan ?? 0) + hb;
     for (const x of r.echeancesAvant ?? []) { const y = c.echeancier.find((z) => z.rang === x.rang); if (y) { y.capital = x.capital; y.interet = x.interet; } }
     E.remboursementsAnnules.push({ ...r, ecritureAnnulation: e.id, annulePar: u.id, annuleLe: j.date });
@@ -7944,6 +7974,7 @@ const budgets = {
   comptesDuType(typeId: number) {
     lectureAdmin(["S124", "S125"]);
     const t = typeB(typeId), noms = intitulesComptes();
+    // Le budget peut porter sur un compte de regroupement du PCCI (il n'écrit rien), comme le serveur
     return [...PCCI.comptes.map((x) => x.numero), ...E.comptesInstitution.filter((x) => x.saisissable && x.ouvert).map((x) => x.numero), ...E.comptesBancaires.map((x) => x.compte)]
       .filter((n, i, a) => a.indexOf(n) === i && permisB(t.paramCompte, n)).sort().map((numero) => ({ numero, libelle: noms.get(numero) ?? "" }));
   },
@@ -8222,7 +8253,7 @@ function ecrireCloture(journeeId: number, libelle: string, type: "reevaluation" 
   if (lignes.reduce((s, x) => s + (x.sens === "D" ? x.montantCdf : -x.montantCdf), 0) !== 0) throw new ErreurMetier("Écriture déséquilibrée en CDF (PCCI § 3.2).");
   const j = E.journees.find((x) => x.id === journeeId)!, id = prochain(E.ecritures), u = exiger();
   E.ecritures.push(Object.freeze({ id, numero: `OD-${j.date.slice(0, 4)}-${String(id).padStart(6, "0")}`, journal: "OD", evenement: type === "reevaluation" ? "reevaluation" : "cloture_exercice", journeeId, libelle, piece: pieceJournee("OD", j), saisiPar: u.id, validePar: u.id,
-    type, lignes: Object.freeze(lignes.map((x) => Object.freeze({ ...x }))) }));
+    type, lignes: Object.freeze(lignes.map((x) => Object.freeze({ ...x, compte: compteEcriture(E, x.compte, x.contrat, x.devise) ?? x.compte }))) }));   // lot 10 (T168)
 }
 const derniereJournee = (a: number, m: number | null) => E.journees.filter((j) => j.date >= `${a}-${String(m ?? 1).padStart(2, "0")}-01` && j.date <= finMois(a, m ?? 12)).sort((x, y) => y.date.localeCompare(x.date))[0];
 const COMPTES_POSITION = ["472", "473", "474"];   // PCCI § 7.1 : position de change, contre-valeur, ajustement devises
@@ -8661,7 +8692,7 @@ const finPeriode = {
     }
     E.ecritures.push(Object.freeze({ id: prochain(E.ecritures), numero: `OD-${j.date.slice(0, 4)}-${String(prochain(E.ecritures)).padStart(6, "0")}`, journal: "OD", evenement: "affectation_resultat", journeeId: j.id,
       libelle: `Affectation du résultat ${a.exercice} : ${ref}`, piece: pieceJournee("OD", j), saisiPar: u.id, validePar: u.id,
-      lignes: Object.freeze(lg.map((x) => Object.freeze({ ...x }))) }));
+      lignes: Object.freeze(lg.map((x) => Object.freeze({ ...x, compte: compteEcriture(E, x.compte, x.contrat, x.devise) ?? x.compte }))) }));   // lot 10 (T168)
     (E.affectationsResultat ??= []).push({ exercice: a.exercice, resultat: a.resultat, decisionReference: ref, decisionLe: le, lignes: lg.map((x) => ({ compte: x.compte, sens: x.sens, montant: x.montant })), saisiPar: u.id });
     enregistrer(); return finPeriode.apercuAffectation(p);
   },
@@ -9588,8 +9619,9 @@ const immobilisations = {
     if (d.type === "Cession") {
       if (typeof d.prixCession !== "number" || !Number.isFinite(d.prixCession) || d.prixCession < 0) throw new ErreurMetier("À remplir : Prix de cession (0 si le bien est cédé sans prix).");
       prix = arrondi2(d.prixCession); contrepartie = (d.compteContrepartie ?? "").trim();
-      if (prix && (!/^[45]\d*$/.test(contrepartie) || !planComptable().includes(contrepartie)))
+      if (prix && !/^[45]\d*$/.test(contrepartie))
         throw new ErreurMetier("Compte qui reçoit le prix : un compte de trésorerie (classe 5) ou de tiers (classe 4) du plan de comptes.");
+      if (prix) compteInstitution(contrepartie, "Compte qui reçoit le prix");   // lot 10 : un compte de l'institution (registre T172)
     }
     const l = (compte: string, sens: "D" | "C", m: number) => ({ compte, sens, devise: "CDF" as Devise, montant: m, montantCdf: m });
     const gestion = (famille: string, racine: string) => (famille && famille.startsWith(racine) ? famille : racine);
@@ -9832,6 +9864,7 @@ export const OPTIONS_PRODUIT_CREDIT = {
   modesCalcul: ["Dégressif"],                     // Instr. BCC 38, art. 11 (la capture montre « Linéaire »)
   typesInteret: ["Fixe"], modesDiffere: ["Réparti"], paiementsInteret: ["Normal"],   // capture p. 38
   natures: ["Montant", "Taux"],
+  destinations: { membre: "Rendu au membre", commun: "Mis en commun" } as Record<string, string>,   // registre T143 (fonds de solidarité)
   categories: ["Prêt à la consommation", "Prêt commercial", "Crédit de trésorerie", "Prêt d'investissement"],   // Instr. BCC 38, art. 6
   typesFrais: ["Frais de dossier", "Frais d'hypothèque", "Frais de mise en place", "Frais d'inscription des gages", "Frais de supervision/suivi/gestion du crédit"],   // Instr. BCC 40, art. 8
 };
@@ -9846,6 +9879,7 @@ const CHAMPS_PRODUIT: Record<string, [string, SorteChamp]> = {
   interetAnticipation: ["Percevoir int. par anticipation", "oui"], ageMax: ["Age max", "entier"],
   epargneNature: ["Nature de l'épargne obligatoire", "texte"], epargneValeur: ["Épargne obligatoire", "nombre"],
   solidariteNature: ["Nature du fonds de solidarité", "texte"], solidariteValeur: ["Fonds de solidarité", "nombre"],
+  solidariteDestination: ["Fonds de solidarité", "texte"], solidariteCompte: ["Compte du fonds commun", "texte"],
   typeAssuranceId: ["Type assurance", "id"], assuranceNature: ["Nature de l'assurance", "texte"], assuranceValeur: ["Assurance", "nombre"],
   categorie: ["Catégorie de prêt", "texte"], tauxRegle: ["Taux réglementé ou bonifié", "oui"], penaliteRetard: ["Pénalité de retard (%)", "nombre"],
   penaliteAnticipation: ["Pénalité de remboursement anticipé (% des intérêts restant dus)", "nombre"], ordreId: ["Ordre de remboursement", "id"],
@@ -9934,6 +9968,13 @@ const produitsCredit = {
       if (v[nat] === "Taux" && (v[val] as number) > 100) throw new ErreurMetier(`${nom} : un taux ne dépasse pas 100 %.`);
       if (v[val] === 0) v[nat] = null;
     }
+    // Registre T143 : rendu au membre par défaut ; mis en commun sur un compte de l'institution sous 172 (PCCI, compte 17), comme le serveur
+    v.solidariteDestination = v.solidariteDestination ?? "membre";
+    if (!["membre", "commun"].includes(v.solidariteDestination as string)) throw new ErreurMetier("Fonds de solidarité : rendu au membre ou mis en commun.");
+    if (v.solidariteDestination === "commun" && (v.solidariteValeur as number) > 0) {
+      if (!String(v.solidariteCompte ?? "").startsWith("172")) throw new ErreurMetier("Compte du fonds commun : un compte 172 « Fonds de garantie mutuels » de l'institution (PCCI, compte 17).");
+      compteInstitution(String(v.solidariteCompte), "Compte du fonds commun");
+    } else v.solidariteCompte = null;
     for (const k of ["tauxInteret", "tauxDiffere", "penaliteRetard"]) if ((v[k] as number) > 100) throw new ErreurMetier(`${CHAMPS_PRODUIT[k]![0]} : un taux ne dépasse pas 100 %.`);
     if ((v.penaliteAnticipation as number) > 50) throw new ErreurMetier("Pénalité de remboursement anticipé : au plus 50 % des intérêts restant dus (Instr. BCC 38, art. 14).");
     if (v.typeAssuranceId !== null && !o.typesAssurance.some((x) => x.id === v.typeAssuranceId)) throw new ErreurMetier("Type assurance inconnu.");
@@ -9949,7 +9990,8 @@ const produitsCredit = {
       if (vus.has(tf)) throw new ErreurMetier(`Frais : ${tf} figure deux fois.`);
       if (!o.natures.includes(nat)) throw new ErreurMetier("Frais : nature inconnue.");
       if (val! <= 0 || (nat === "Taux" && val! > 100)) throw new ErreurMetier(`Frais : ${tf} : valeur positive, et un taux ne dépasse pas 100 %.`);
-      if (!/^\d+$/.test(cpt) || !numerosPlan().includes(cpt)) throw new ErreurMetier(`Frais : le compte ${cpt} n'existe pas au plan de comptes.`);
+      if (!/^\d+$/.test(cpt)) throw new ErreurMetier(`Frais : le compte ${cpt} n'existe pas au plan de comptes.`);
+      compteInstitution(cpt, `Frais : ${tf}`);   // lot 10 : un compte de l'institution (registre T172)
       vus.add(tf); frais.push({ typeFrais: tf, nature: nat, valeur: val!, compte: cpt });
     }
     if (E.produitsCredit.some((x) => String(x.numero).toLowerCase() === String(v.numero).toLowerCase() && x.id !== id)) throw new ErreurMetier("Ce Num Produit existe déjà.");
@@ -10086,6 +10128,10 @@ const produitsEpargne = {
       const compte = (typeof d.compteLie === "string" ? d.compteLie.trim() : "") || ({ Epargne: "330", Courant: "331", DAT: "340", "Bloqué": "334" } as Record<string, string>)[nature] || "";
       parametrageEpargne.enregistrer({ onglet: nature, produitId: pid!, compteLie: compte, typesClient: valeursListe("type_client").map((l) => l.id) });
     }
+    if (!actuel) {   // registre T169 : à la création du produit, un compte par catégorie de membre sous le compte du PCCI qui le range (comme le serveur)
+      const p = E.produits.find((x) => x.id === pid)!, x = compteDuProduit(p);
+      if (estComptePcci(x)) for (const k of [0, 1, 2]) compteProduit(E, x, `epargne:${p.id}`, `${p.libelle} ${p.code}`, k);
+    }
     enregistrer(); return produitsEpargne.lire();
   },
   /** Supprimer (p. 12) : logique (T02) ; un produit qui a des comptes ne se supprime pas : décocher Actif (registre S27-3) */
@@ -10208,7 +10254,8 @@ const edDivers = {
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     if (!["PRODUIT", "CHARGE"].includes(sens)) throw new ErreurMetier("Type Opération inconnu.");
     if (!["ACTIF", "INACTIF"].includes(statut)) throw new ErreurMetier("Statut inconnu.");
-    const c = [...PCCI.comptes.map((x) => ({ numero: x.numero, ouvert: true, saisissable: true })), ...E.comptesInstitution].find((x) => x.numero === compte);
+    compteInstitution(compte, "Compte");   // lot 10 : un compte de l'institution (registre T172)
+    const c = E.comptesInstitution.find((x) => x.numero === compte);
     if (!c) throw new ErreurMetier(`Compte : ${compte} n'est pas un compte du plan (une classe ne reçoit pas d'écriture).`);   // T16
     if (!(c.saisissable && c.ouvert)) throw new ErreurMetier(`Compte : ${compte} est fermé ou non saisissable, il ne reçoit pas d'écriture.`);   // S102-10
     if (compte.startsWith("57")) throw new ErreurMetier("Compte : un compte de caisse (57) ne peut pas être la contrepartie d'une opération de caisse.");   // S31-2
@@ -10258,7 +10305,7 @@ const societe = {
     if (!Number.isInteger(d.journeeMax) || d.journeeMax! < 1) throw new ErreurMetier("Journée Maxi ouvert : nombre entier, 1 au moins.");
     controlerLieu(v);   // registre S32-7 ; adresse unique (registre T41)
     for (const [k, nom] of [["compteHorsBilan1", "Compte Hors Bilan 1"], ["compteHorsBilan2", "Hors Bilan 2"]] as const)
-      if (v[k] && !(v[k].startsWith("0") && PCCI.comptes.some((c) => c.numero === v[k]))) throw new ErreurMetier(`${nom} : ${v[k]} n'est pas un compte de hors bilan du plan (classe 0).`);
+      if (v[k]) { if (!v[k].startsWith("0")) throw new ErreurMetier(`${nom} : ${v[k]} n'est pas un compte de hors bilan du plan (classe 0).`); compteInstitution(v[k], nom); }   // lot 10 (T172)
     if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) throw new ErreurMetier("email invalide.");
     const [aa, ap, ae] = [t(d.assuranceAssureur), t(d.assurancePolice), t(d.assuranceEcheance)];   // police de la trésorerie : tout ou rien (registre SN01-4)
     if ((aa || ap || ae) && !(aa && ap && /^\d{4}-\d{2}-\d{2}$/.test(ae))) throw new ErreurMetier("Assurance de la trésorerie : assureur, numéro de police et date d'échéance.");
@@ -10533,7 +10580,8 @@ const facture = {
     const manque = manquants([["Libellé", libelle], ["Compte", compte]]);
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
     const taux = tauxFacture(d.taux, "Taux(%)");   // « Taux A. » et « Taux N.A. » (AIB du Bénin) supprimés : registre T130
-    if (!/^\d+$/.test(compte) || !planComptable().includes(compte)) throw new ErreurMetier(`Compte : ${compte} n'est pas dans le plan de comptes.`);   // règle T16
+    if (!/^\d+$/.test(compte)) throw new ErreurMetier(`Compte : ${compte} n'est pas dans le plan de comptes.`);   // règle T16
+    compteInstitution(compte, "Compte");   // lot 10 : un compte de l'institution (registre T172)
     const e = id === undefined ? undefined : E.elementsFacture.find((x) => x.id === id && !x.supprime);
     if (id !== undefined && !e) throw new ErreurMetier("Elément introuvable.");
     if (E.elementsFacture.some((x) => !x.supprime && x.id !== id && x.libelle.toLowerCase() === libelle.toLowerCase())) throw new ErreurMetier("Ce Libellé existe déjà.");

@@ -15,7 +15,7 @@ PRODUIT_CREDIT = {"typeProduit": "CNO", "numero": "L001", "nom": "Crédit commer
                   "differeMax": 2, "interetMin": 1, "interetMax": 4, "clientPhysique": True, "periodicite": "M", "modeDiffere": "Réparti",
                   "paiementInteret": "Normal", "interetAnticipation": False, "ageMax": 65, "epargneNature": "Taux", "epargneValeur": 10,
                   "categorie": "Prêt commercial", "penaliteAnticipation": 50,
-                  "frais": [{"typeFrais": "Frais de dossier", "nature": "Taux", "valeur": 1, "compte": "7152"}]}
+                  "frais": [{"typeFrais": "Frais de dossier", "nature": "Taux", "valeur": 1, "compte": "71520000"}]}
 EPARGNE = {"famille": "EPARGNE", "devise": "CDF", "soldeMinimum": 0, "nbMaxComptes": 1, "operer": True, "depotCheque": False, "caution": False,
            "nantissement": False, "calculerInteret": True, "soldeNegatif": False, "repartitionGroupe": False, "actif": True}
 
@@ -47,7 +47,7 @@ def exemples() -> list[str]:
 
     # Banque > Création banque (S58, p. 67) : compte liaison 5601 et comptes NOSTRI 5601… (PCCI, compte 56)
     essayer("banque de démonstration", lambda: valeur("select 1 from banque where institution_id = %s and code = 'DEMO' and supprime_le is null", (ins,)),
-            lambda: bq.enregistrer_banque(chef, {"code": "DEMO", "libelle": "Banque de démonstration", "compteLiaison": "5601", "adresse": "Kinshasa, Gombe"}))
+            lambda: bq.enregistrer_banque(chef, {"code": "DEMO", "libelle": "Banque de démonstration", "compteLiaison": "56010000", "adresse": "Kinshasa, Gombe"}))
     banque = valeur("select id from banque where institution_id = %s and code = 'DEMO' and supprime_le is null", (ins,))
     journal = valeur("select id from journal where institution_id = %s and type = 'banque' and actif and not supprime order by code limit 1", (ins,))
     for compte, numero, devise in (("56010011", "DEMO-USD-0001", "USD"), ("56010012", "DEMO-CDF-0001", "CDF")):
@@ -70,7 +70,7 @@ def exemples() -> list[str]:
     essayer("type de commande ACHA_M", lambda: valeur("select 1 from type_commande where institution_id = %s and code = 'ACHA_M'", (ins,)),
             lambda: fa.enregistrer_type(chef, {"code": "ACHA_M", "libelle": "Achat de matériel"}))
     essayer("fournisseur", lambda: valeur("select 1 from tiers_comptable where institution_id = %s and type_tiers = 'FOURNISSEUR'", (ins,)),
-            lambda: rf.enregistrer(compta, "tiers", "tiers", {"typeTiers": "FOURNISSEUR", "intitule": "Papeterie du Fleuve", "compte": "400"}))
+            lambda: rf.enregistrer(compta, "tiers", "tiers", {"typeTiers": "FOURNISSEUR", "intitule": "Papeterie du Fleuve", "compte": "40000000"}))
     # Paie (S133) : un employé classé dans la grille du décret SMIG (registre S131-8)
     def employe():
         lib = lambda t, l: valeur(f"select id from {t} where institution_id = %s and libelle = %s and actif", (ins, l))

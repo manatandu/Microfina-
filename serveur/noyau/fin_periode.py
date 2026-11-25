@@ -26,7 +26,7 @@ from .depots_terme import COMPTE_COURUS as DETTES_DAT, COMPTE_IRC, compte_intere
 from .deblocage import comptes_credit
 from .modeles_credit import DEGRES, TERMES
 from .provisions import PROVISION, taux as taux_provision
-from .services import compte_du_produit, cours, exiger, id_compte, journee_courante, nom_utilisateur, nouvelle_piece, poster, schema_valide, titulaire
+from .services import compte_du_produit, cours, exiger, compte_ecriture, journee_courante, nom_utilisateur, nouvelle_piece, poster, schema_valide, titulaire
 
 TENUE, COMPTE_TENUE = "TENUE_COMPTE", "720"          # PCCI 720 Commissions de tenue des comptes (proposé ; le compte du frais l'emporte)
 INTERET_DAV = "610"                                  # PCCI 610 Intérêts sur épargne et comptes ordinaires
@@ -413,7 +413,7 @@ def ecrire(u, journee_id: int, jour: date, libelle: str, type_: str, evenement: 
                  (u["institution_id"], numero, jid, journee_id, jour, libelle, pid, str(uuid.uuid4()), schema_valide(u, evenement), u["id"], u["id"], type_))
     for rang, l in enumerate(lg, start=1):
         executer("""insert into ligne_ecriture (ecriture_id, rang, compte_id, contrat_ref, sens, devise, montant_devise, montant_cdf) values (%s, %s, %s, %s, %s, %s, %s, %s)""",
-                 (eid, rang, id_compte(l["compte"], u["institution_id"]), l.get("contrat"), l["sens"], l["devise"], l["montant"], l["cdf"]))
+                 (eid, rang, compte_ecriture(l["compte"], u["institution_id"], l.get("contrat"), l["devise"]), l.get("contrat"), l["sens"], l["devise"], l["montant"], l["cdf"]))
     return eid
 
 

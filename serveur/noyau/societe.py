@@ -4,7 +4,7 @@ web/src/donnees/api.ts (societe)."""
 import re
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import exiger, localites
+from .services import compte_institution, exiger, localites
 from .fuseau import FUSEAUX
 
 PROFILS = {"coopec": "COOPEC", "societe_microfinance": "Société de microfinance", "entreprise_microcredit": "Entreprise de micro-crédit",
@@ -68,8 +68,10 @@ def enregistrer(u, d) -> dict:
     from .adresse import controler
     controler(lambda k: v.get(k, ""), quoi="Pays, ville, commune ou quartier")      # registre S32-7 ; adresse unique (registre T41)
     for k, nom in (("compteHorsBilan1", "Compte Hors Bilan 1"), ("compteHorsBilan2", "Hors Bilan 2")):
-        if v[k] and not (v[k].startswith("0") and valeur("select 1 from compte where numero = %s and (institution_id is null or institution_id = %s)", (v[k], i))):
+        if v[k] and not v[k].startswith("0"):
             raise ErreurMetier(f"{nom} : {v[k]} n'est pas un compte de hors bilan du plan (classe 0).")       # PCCI § 9, T16
+        if v[k]:
+            compte_institution(u, v[k], nom)   # lot 10 : un compte de l'institution (registre T172)
     if v["email"] and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", v["email"]):
         raise ErreurMetier("email invalide.")
     logo = d.get("logo")

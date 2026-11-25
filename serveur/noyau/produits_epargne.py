@@ -104,6 +104,7 @@ def enregistrer(u, d, pid: int | None = None) -> dict:
         raise ErreurMetier("Solde négatif = Oui : seulement pour un compte courant (catégorie Courant, PCCI 331). Une épargne, un dépôt à terme ou une épargne bloquée ne devient pas débiteur ; un découvert est un crédit (PCCI, compte 33 ; Instr. BCC 003, art. 7).")
     cols = [c for c, _, _ in CHAMPS.values()]
     vals = [v[k] for k in CHAMPS]
+    nouveau = pid is None
     if pid is None:
         pid = valeur(f"insert into produit_epargne (institution_id, {', '.join(cols)}) values (%s, {', '.join(['%s'] * len(cols))}) returning id", (i, *vals))
     else:
@@ -112,6 +113,13 @@ def enregistrer(u, d, pid: int | None = None) -> dict:
         from .parametrage_epargne import ONGLETS, enregistrer as ranger
         types = [r["id"] for r in lignes("select id from liste_reference where institution_id = %s and liste = 'type_client' and actif", (i,))]
         ranger(u, {"onglet": nature, "produitId": pid, "compteLie": (d.get("compteLie") or "").strip() or ONGLETS.get(nature, ""), "typesClient": types})
+    if nouveau:   # registre T169 : à la création du produit, un compte par catégorie de membre sous le compte du PCCI qui le range
+        from .services import compte_du_produit
+        p = une("select id, code, libelle, famille, compte_lie from produit_epargne where id = %s", (pid,))
+        x = compte_du_produit(p)
+        if valeur("select 1 from compte where numero = %s and institution_id is null", (x,)):
+            for k in (0, 1, 2):
+                valeur("select compte_produit(%s, %s, %s, %s, %s)", (i, x, f"epargne:{pid}", f"{p['libelle']} {p['code']}", k))
     return lire(u)
 
 

@@ -253,7 +253,10 @@ def enregistrer(u, c: dict, d: date, montant: int, rep: dict, contrepartie: dict
     if r["tva"]:   # la TVA perçue est due au Trésor : taxe collectée, jamais un produit (PCCI, compte 433 ; O.-L. 10/001, art. 25, 5° ; registre CR-27)
         l.append({"compte": "433", "contrat": f"credit:{c['id']}", "sens": "C", "devise": dv, "montant": r["tva"]})
     for k, cid_ in (("epargne", c["compte_epargne_id"]), ("solidarite", c["compte_solidarite_id"])):
-        if r[k]:
+        if r[k] and k == "solidarite" and not cid_:     # registre T143 : fonds mis en commun, au compte 172 du produit
+            from .deblocage import fonds_commun
+            l.append({"compte": fonds_commun(c), "sens": "C", "devise": dv, "montant": r[k]})
+        elif r[k]:
             pr = une("select p.famille, p.compte_lie from compte_depot cd join produit_epargne p on p.id = cd.produit_id where cd.id = %s", (cid_,))
             l.append({"compte": compte_du_produit(pr), "contrat": f"depot:{cid_}", "sens": "C", "devise": dv, "montant": r[k]})
     hb = min(c.get("interets_hors_bilan") or 0, r["interet"])            # intérêts suivis en hors bilan, perçus : sortis du hors bilan (CR-19)

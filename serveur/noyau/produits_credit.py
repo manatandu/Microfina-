@@ -7,8 +7,7 @@ from decimal import Decimal, InvalidOperation
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .credit import CATALOGUE as CATALOGUE_CREDIT, ordre_en_clair
-from .moteur import compte_existe
-from .services import exiger
+from .services import compte_institution, exiger
 
 FIXES = {c["page"]: c["fixe"] for c in CATALOGUE_CREDIT if "fixe" in c}
 TYPES_PRODUIT = [(r["code"], r["nom"]) for r in FIXES["types_produit"]]          # S21, Type produit Credit
@@ -18,6 +17,8 @@ TYPES_INTERET = ["Fixe"]                          # capture p. 38
 MODES_DIFFERE = ["Réparti"]                       # capture p. 38
 PAIEMENTS_INTERET = ["Normal"]                    # capture p. 38
 NATURES = ["Montant", "Taux"]                     # comme les frais (S16-2)
+# Registre T143 : le fonds de solidarité rendu au membre (dépôt de la clientèle, classe 3) ou mis en commun (compte 172 « Fonds de garantie mutuels »)
+DESTINATIONS = {"membre": "Rendu au membre", "commun": "Mis en commun"}
 CATEGORIES = ["Prêt à la consommation", "Prêt commercial", "Crédit de trésorerie", "Prêt d'investissement"]      # Instr. BCC 38, art. 6
 TYPES_FRAIS = ["Frais de dossier", "Frais d'hypothèque", "Frais de mise en place", "Frais d'inscription des gages",
                "Frais de supervision/suivi/gestion du crédit"]                    # Instr. BCC 40, art. 8 (assurance et épargne : leurs pages)
@@ -38,6 +39,7 @@ CHAMPS = {   # clé -> (colonne, libellé, sorte) ; sorte : texte, nombre, entie
     "ageMax": ("age_max", "Age max", "entier"),
     "epargneNature": ("epargne_nature", "Nature de l'épargne obligatoire", "texte"), "epargneValeur": ("epargne_valeur", "Épargne obligatoire", "nombre"),
     "solidariteNature": ("solidarite_nature", "Nature du fonds de solidarité", "texte"), "solidariteValeur": ("solidarite_valeur", "Fonds de solidarité", "nombre"),
+    "solidariteDestination": ("solidarite_destination", "Fonds de solidarité", "texte"), "solidariteCompte": ("solidarite_compte", "Compte du fonds commun", "texte"),
     "typeAssuranceId": ("type_assurance_id", "Type assurance", "id"), "assuranceNature": ("assurance_nature", "Nature de l'assurance", "texte"),
     "assuranceValeur": ("assurance_valeur", "Assurance", "nombre"),
     "categorie": ("categorie", "Catégorie de prêt", "texte"), "tauxRegle": ("taux_regle", "Taux réglementé ou bonifié", "oui"),
@@ -47,7 +49,7 @@ CHAMPS = {   # clé -> (colonne, libellé, sorte) ; sorte : texte, nombre, entie
 }
 OBLIGATOIRES = ["typeProduit", "numero", "nom", "devise", "modeCalcul", "typeInteret", "tauxInteret", "tauxDiffere", "montantMin", "dureeMin", "differeMin",
                 "montantMax", "dureeMax", "differeMax", "periodicite", "modeDiffere", "paiementInteret", "interetAnticipation", "ageMax", "categorie"]
-NULS_PERMIS = {"interetMin", "interetMax", "epargneNature", "solidariteNature", "typeAssuranceId", "assuranceNature", "ordreId"}
+NULS_PERMIS = {"interetMin", "interetMax", "epargneNature", "solidariteNature", "solidariteDestination", "solidariteCompte", "typeAssuranceId", "assuranceNature", "ordreId"}
 
 
 def nombre(x):
@@ -66,7 +68,7 @@ def options(u) -> dict:
     i = u["institution_id"]
     return {"typesProduit": [{"code": c, "libelle": n} for c, n in TYPES_PRODUIT], "periodicites": [{"code": c, "libelle": l} for c, l in PERIODICITES],
             "devises": [r["code"] for r in lignes("select code from devise order by code desc")], "modesCalcul": MODES_CALCUL, "typesInteret": TYPES_INTERET,
-            "modesDiffere": MODES_DIFFERE, "paiementsInteret": PAIEMENTS_INTERET, "natures": NATURES, "categories": CATEGORIES, "typesFrais": TYPES_FRAIS,
+            "modesDiffere": MODES_DIFFERE, "paiementsInteret": PAIEMENTS_INTERET, "natures": NATURES, "destinations": DESTINATIONS, "categories": CATEGORIES, "typesFrais": TYPES_FRAIS,
             "typesAssurance": lignes("select id, libelle from credit_type_assurance where institution_id = %s and actif order by id", (i,)),
             "ordres": [{"id": o["id"], "libelle": ordre_en_clair(o["libelle"])} for o in
                        lignes("select id, code, libelle from credit_ordre where institution_id = %s and actif order by id", (i,))],
@@ -178,6 +180,16 @@ def valider(u, d) -> tuple[dict, list]:
             raise ErreurMetier(f"{nom} : un taux ne dépasse pas 100 %.")
         if v[val] == 0:
             v[nat] = None
+    # Registre T143 : rendu au membre par défaut ; mis en commun sur un compte de l'institution sous 172 (PCCI, compte 17)
+    v["solidariteDestination"] = v["solidariteDestination"] or "membre"
+    if v["solidariteDestination"] not in DESTINATIONS:
+        raise ErreurMetier("Fonds de solidarité : rendu au membre ou mis en commun.")
+    if v["solidariteDestination"] == "commun" and v["solidariteValeur"] > 0:
+        if not (v["solidariteCompte"] or "").startswith("172"):
+            raise ErreurMetier("Compte du fonds commun : un compte 172 « Fonds de garantie mutuels » de l'institution (PCCI, compte 17).")
+        compte_institution(u, v["solidariteCompte"], "Compte du fonds commun")
+    else:
+        v["solidariteCompte"] = None
     for k in ("tauxInteret", "tauxDiffere", "penaliteRetard"):
         if v[k] > 100:
             raise ErreurMetier(f"{CHAMPS[k][1]} : un taux ne dépasse pas 100 %.")
@@ -209,8 +221,9 @@ def valider(u, d) -> tuple[dict, list]:
             raise ErreurMetier("Frais : nature inconnue.")
         if val <= 0 or (nat == "Taux" and val > 100):
             raise ErreurMetier(f"Frais : {t} : valeur positive, et un taux ne dépasse pas 100 %.")
-        if not re.fullmatch(r"\d+", cpt) or not compte_existe(u, cpt):
+        if not re.fullmatch(r"\d+", cpt):
             raise ErreurMetier(f"Frais : le compte {cpt} n'existe pas au plan de comptes.")
+        compte_institution(u, cpt, f"Frais : {t}")   # lot 10 : un compte de l'institution (registre T172)
         vus.add(t)
         frais.append((t, nat, val, cpt))
     return v, frais

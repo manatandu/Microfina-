@@ -1,7 +1,7 @@
 """S31 : Comptabilité > ED DIVERS, Paramétrage autres opérations (manuel Microfina++, p. 42). « renseigner le type opération, compte, Statut,
 libelle opération et [Enregistrer] ». Mêmes règles que web/src/donnees/api.ts (edDivers)."""
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import exiger
+from .services import compte_institution, exiger
 
 SENS = ["PRODUIT", "CHARGE"]          # capture p. 42 (colonne Sens) : encaissement, décaissement au guichet (S78)
 STATUTS = ["ACTIF", "INACTIF"]
@@ -27,7 +27,8 @@ def enregistrer(u, d, oid: int | None = None) -> dict:
         raise ErreurMetier("Type Opération inconnu.")
     if statut not in STATUTS:
         raise ErreurMetier("Statut inconnu.")
-    c = une("select saisissable, ouvert from compte where numero = %s and (institution_id is null or institution_id = %s)", (compte, i))
+    compte_institution(u, compte, "Compte")   # lot 10 : un compte de l'institution (registre T172)
+    c = une("select saisissable, ouvert from compte where numero = %s and institution_id = %s", (compte, i))
     if not c:
         raise ErreurMetier(f"Compte : {compte} n'est pas un compte du plan (une classe ne reçoit pas d'écriture).")      # T16
     if not (c["saisissable"] and c["ouvert"]):

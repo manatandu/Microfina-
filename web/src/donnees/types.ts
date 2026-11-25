@@ -353,7 +353,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 82;
+  version: 83;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -448,7 +448,8 @@ export interface Etat {
   monnaies: { devise: string; valeur: number; typeId: number }[];   // S35 : coupures, valeur en unités
   operationsDiverses: { id: number; sens: "PRODUIT" | "CHARGE"; compte: string; libelle: string; statut: "ACTIF" | "INACTIF" }[];   // S31
   journaux: { id: number; code: string; libelle: string; type: string; actif: boolean; supprime: boolean }[];   // S30
-  comptesInstitution: CompteInstitution[];   // S102 : comptes divisionnaires ouverts par l'institution (PCCI § 9)
+  comptesInstitution: CompteInstitution[];
+  comptesUtilisation?: { pcci: string; objet: string; categorie: string; numero: string }[];   // lot 10 : comptes d'utilisation ouverts par le logiciel (T167 à T170)   // S102 : comptes divisionnaires ouverts par l'institution (PCCI § 9)
   comptesBancaires: { id: number; banqueId: number; compte: string; libelle: string; numeroBancaire: string; devise: Devise; journalId: number; contactNom: string; contactNomComplet: string; contactTelephone: string; comptePenalite?: string; contactAdresse?: string }[];
   consentements: { id: number; tiersId: number; code: string; dateDebut: string; dateFin: string; commentaire: string }[];   // S50
   operationsBanque: OperationBanque[];   // S52
@@ -519,11 +520,11 @@ export interface LigneListe { id: number; liste: string; code: string; libelle: 
 
 /** S102 (manuel p. 122 et 146) : options d'un compte du plan */
 export interface OptionsCompte {
-  ouvert: boolean; saisissable: boolean; saisieAnalytique: boolean; saisieEcheance: boolean; lettrageAuto: boolean; saisieTiers: boolean;
+  ouvert: boolean; bloque?: boolean; saisissable: boolean; saisieAnalytique: boolean; saisieEcheance: boolean; lettrageAuto: boolean; saisieTiers: boolean;
   immobilisation: boolean; compteTaxe: boolean; compteTaxable: boolean; typeSuivi: string;
   autorisationBcc?: string;   // B19 : autorisation préalable de la BCC pour une opération hors nomenclature du PCCI (Instr. BCC 006, art. 3)
 }
-export type CompteInstitution = OptionsCompte & { numero: string; libelle: string; classe: number };
+export type CompteInstitution = OptionsCompte & { numero: string; libelle: string; classe: number; nature?: string };   // nature : actif, passif, charge, produit, hors bilan
 
 /** S17 (manuel p. 26) : Prefixe, Suffixe, Position ; le N° Client est toujours présent */
 export interface RegleNumeroCompte { prefixe: boolean; suffixe: boolean; position: number }

@@ -6,7 +6,7 @@ import uuid
 from decimal import Decimal
 
 from .bd import ErreurMetier, lignes, une, valeur
-from .services import exiger, journee_courante
+from .services import compte_institution, exiger, journee_courante
 
 
 def texte(d, k):
@@ -78,8 +78,10 @@ def mettre_en_place(u, d) -> dict:
         if v is None or v < 0:
             raise ErreurMetier(f"{nom} : un montant positif ou nul.")
         totaux[k] = v
-    compte = texte(d, "compteEmprunt") or "533"
-    c = une("select saisissable, ouvert from compte where numero = %s and (institution_id is null or institution_id = %s)", (compte, i))
+    compte = texte(d, "compteEmprunt") or "53300000"           # lot 10 : le compte proposé sous 533 (registre T167, T172)
+    if compte.startswith(("533", "1622")):
+        compte_institution(u, compte, "Compte Emprunt")
+    c = une("select saisissable, ouvert from compte where numero = %s and institution_id = %s", (compte, i))
     subordonne = compte.startswith("1622")                    # B21 : emprunts et dettes subordonnés (PCCI, 1622 ; Instr. BCC 002, art. 9 et 10)
     if not (compte.startswith("533") or subordonne) or not c:  # PCCI : emprunts auprès des intermédiaires financiers au compte 53 (registre S61-1)
         raise ErreurMetier("Compte Emprunt : un compte 533 « Emprunts à terme » du plan (PCCI, compte 53), ou 1622 pour un emprunt subordonné.")

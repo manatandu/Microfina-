@@ -1,6 +1,6 @@
 """S16 : frais et leur paramétrage (manuel Microfina++, p. 25 à 27). Mêmes règles que web/src/donnees/api.ts (parametrage)."""
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import est_coopec, exiger
+from .services import compte_institution, est_coopec, exiger
 from .listes import valeurs as valeurs_liste
 
 # Registre S16-1 : les opérations des menus Caisse et Banque déjà construites (ADHESION et DEPOT sont montrés p. 25 et 26)
@@ -34,7 +34,7 @@ def lire(u) -> dict:
         "typesOperation": [t for t in TYPES_OPERATION if t not in ("DEPOT", "RETRAIT")], "natures": list(NATURES), "typesMembre": list(TYPES_MEMBRE),
         "fondements": {k: v for k, v in FONDEMENTS.items() if k != "part_sociale"},      # la part se règle dans la fiche Société (T134)
         "sousTypes": [r["libelle"] for r in valeurs_liste(u, "sous_type_client")],   # registre S16-8 : Général > Sous type de client
-        "compteAdhesion": "727",                                                       # registre S16-4 : proposé, modifiable
+        "compteAdhesion": "72700000",                                                       # registre S16-4 : proposé, modifiable
         "frais": lignes("""select id, libelle, type_operation as "typeOperation", coalesce(fondement, '') as fondement, coalesce(autorisation_bcc, '') as "autorisationBcc"
                            from frais where institution_id = %s and supprime_le is null and coalesce(fondement, '') <> 'part_sociale' order by id""", (i,)),
         "operations": lignes("""select p.id, p.frais_id as "fraisId", s.libelle as "sousType", p.valeur, p.compte, initcap(p.nature) as nature
@@ -119,8 +119,8 @@ def controler_valeurs(u, d, adhesion: bool = False) -> tuple[str, int | None, st
         raise ErreurMetier("Taux invalide : 100 % au plus.")
     if c and not c.isdigit():
         raise ErreurMetier("Compte : chiffres seulement.")
-    if c and not une("select 1 from compte where numero = %s and (institution_id is null or institution_id = %s)", (c, u["institution_id"])):
-        raise ErreurMetier(f"Compte : le compte {c} n'est pas dans le plan de comptes.")   # règle T16
+    if c:
+        compte_institution(u, c, "Compte")   # règle T16 ; lot 10 : un compte de l'institution (registre T172)
     return NATURES[n], v, c or None
 
 

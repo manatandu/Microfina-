@@ -455,9 +455,11 @@ def sortir(u, d) -> dict:
             raise ErreurMetier("À remplir : Prix de cession (0 si le bien est cédé sans prix).")
         prix = round(prix, 2)
         contrepartie = d.get("compteContrepartie").strip() if isinstance(d.get("compteContrepartie"), str) else ""
-        if prix and (not contrepartie.isdigit() or contrepartie[0] not in "45"
-                     or not une("select 1 from compte where numero = %s and (institution_id is null or institution_id = %s)", (contrepartie, u["institution_id"]))):
+        if prix and (not contrepartie.isdigit() or contrepartie[0] not in "45"):
             raise ErreurMetier("Compte qui reçoit le prix : un compte de trésorerie (classe 5) ou de tiers (classe 4) du plan de comptes.")
+        if prix:
+            from .services import compte_institution
+            compte_institution(u, contrepartie, "Compte qui reçoit le prix")   # lot 10 : un compte de l'institution (registre T172)
     lg = [{"compte": v["comptes"]["acquisition"], "sens": "C", "devise": "CDF", "montant": b["prix_acquisition"]}]
     if cumul:
         lg.append({"compte": v["comptes"]["amortissement"], "sens": "D", "devise": "CDF", "montant": cumul})

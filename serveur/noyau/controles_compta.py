@@ -340,7 +340,7 @@ def annuler_reglement(u, rid: int) -> dict:
                 **({"contrat": x["contrat_ref"]} if x["contrat_ref"] else {})} for x in orig]
     eid = poster(u, journal="OD", journee_id=j["id"], libelle=f"Annulation : {r['libelle']}", piece=nouvelle_piece(u, "OD", jd), evenement="annulation", cle=str(uuid.uuid4()),
                  valide_par=u["id"], lignes_ecr=inverse, contre_passe=r["ecriture_id"])
-    hb = sum(x["montant_devise"] for x in orig if x["compte"] == "0630" and x["sens"] == "C")       # intérêts sortis du hors bilan au règlement : ils y reviennent (CR-19)
+    hb = sum(x["montant_devise"] for x in orig if x["compte"].startswith("0630") and x["sens"] == "C")       # intérêts sortis du hors bilan au règlement : ils y reviennent (CR-19)
     if hb:
         executer("update credit set interets_hors_bilan = interets_hors_bilan + %s where id = %s", (hb, r["credit_id"]))
     for e in avant or []:                                         # remboursement anticipé : les échéances d'avant le règlement reviennent

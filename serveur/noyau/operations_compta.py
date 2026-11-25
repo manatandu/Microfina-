@@ -71,6 +71,8 @@ def date_operation(u, d) -> str:
 
 
 def tenu_par_la_gestion(u, numero: str) -> bool:
+    if valeur("select 1 from compte where numero = %s and institution_id = %s and bloque", (numero, u["institution_id"])):
+        return True     # registre T171 : un compte bloqué ne reçoit que les écritures du logiciel
     return numero.startswith(GESTION) or bool(valeur("""select 1 from compte_bancaire cb join compte c on c.id = cb.compte_id
                                                         where cb.institution_id = %s and cb.supprime_le is null and c.numero = %s""", (u["institution_id"], numero)))
 

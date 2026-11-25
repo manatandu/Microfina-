@@ -58,7 +58,8 @@ def permis(param: str, compte: str) -> bool:
 def comptes_du_type(u, tid: int) -> list[dict]:
     exiger(u)
     t = type_budget(u, tid)
-    return [c for c in lignes("""select numero, libelle from compte where (institution_id is null or institution_id = %s) and saisissable and ouvert
+    # Le budget peut porter sur un compte de regroupement du PCCI (il n'écrit rien) ; lot 10 : les comptes du PCCI ne sont plus saisissables
+    return [c for c in lignes("""select numero, libelle from compte where institution_id is null or (institution_id = %s and saisissable and ouvert)
                                  order by numero""", (u["institution_id"],)) if permis(t["param_compte"], c["numero"])]
 
 

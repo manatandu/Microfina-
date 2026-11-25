@@ -29,6 +29,14 @@ def terme(duree: int) -> int:
     return 3
 
 
+def fonds_commun(c: dict) -> str:
+    """Registre T143 : le compte de l'institution sous 172 « Fonds de garantie mutuels » qui reçoit le fonds de solidarité mis en commun"""
+    x = valeur("select solidarite_compte from produit_credit where id = %s", (c["produit_id"],))
+    if not x:
+        raise ErreurMetier("Fonds de solidarité mis en commun : le produit n'a pas de compte du fonds commun (Paramétrage > Crédit > Produit).")
+    return x
+
+
 def comptes_credit(c: dict, degre: int = 1) -> dict:
     """Comptes du crédit selon le modèle du produit (S26), le degré (sain : 1) et le terme"""
     t = terme(c["duree_mois"])
@@ -148,7 +156,9 @@ def ecriture(u, c: dict, d: date, contrepartie: dict, journal: str, cle: str) ->
             raise ErreurMetier(f"Épargne obligatoire : l'emprunteur dépose d'abord {c['epargne_obligatoire'] / 100:,.2f} {dv}".replace(",", " ").replace(".", ",")
                                + (f" sur le compte {num}" if num else "") + " ; elle n'est pas retenue sur le prêt (Instr. BCC 40, art. 10).")
     for cid_, m in ((c["compte_solidarite_id"], c["fonds_solidarite"]),):
-        if m:
+        if m and not cid_:     # registre T143 : fonds mis en commun, au compte 172 du produit (PCCI, compte 17)
+            l.append({"compte": fonds_commun(c), "sens": "C", "devise": dv, "montant": m})
+        elif m:
             p = une("""select p.famille, p.compte_lie from compte_depot cd join produit_epargne p on p.id = cd.produit_id where cd.id = %s""", (cid_,))
             l.append({"compte": compte_du_produit(p), "contrat": f"depot:{cid_}", "sens": "C", "devise": dv, "montant": m})
     if r["net"] <= 0:
@@ -160,7 +170,7 @@ def ecriture(u, c: dict, d: date, contrepartie: dict, journal: str, cle: str) ->
 
 def apres_deblocage(u, c: dict, d: date, eid: int, mode: str):
     for cid_, m, quoi in ((c["compte_epargne_id"], c["epargne_obligatoire"], "Épargne obligatoire"), (c["compte_solidarite_id"], c["fonds_solidarite"], "Fonds de solidarité")):
-        if m:                                                            # bloqués en garantie du crédit (Instr. BCC 38, art. 9 ; S71)
+        if m and cid_:                                                   # bloqués en garantie du crédit (Instr. BCC 38, art. 9 ; S71) ; pas le fonds commun
             executer("insert into blocage (compte_id, montant, motif, garantie_de, pose_par) values (%s, %s, %s, %s, %s)",
                      (cid_, m, f"{quoi} du crédit {c['numero']}", c["id"], u["id"]))
     for e in echeancier_recale(u, c, d):

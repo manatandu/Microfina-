@@ -189,6 +189,7 @@ class Command(BaseCommand):
     def handle(self, *args, **opts):
         if valeur("select count(*) from institution"):
             n = completer(valeur("select min(id) from institution"))
+            executer("select comptes_parametres(id) from institution")   # lot 10 : paramétrages sur les comptes de l'institution (T172)
             self.stdout.write(f"Base déjà remplie : {n} élément(s) ajouté(s), rien d'effacé ni modifié.")
             return
         ins = valeur("insert into institution (nom, sigle, profil, pays, ville, commune, quartier) values ('COOPEC Tujenge', 'CTJ', 'coopec', 'République démocratique du Congo', 'Kinshasa', 'Matete', 'Kinsaku') returning id")
@@ -365,7 +366,8 @@ class Command(BaseCommand):
         tot = lambda d: sum(v * 100 * n for v, n in FONDS_G2[d].items())
         usd = lambda m: round(m * COURS)
         cours_id = valeur("select id from cours_change")
-        compte_id = lambda n: valeur("select id from compte where numero = %s", (n,))
+        # Plan d'allègement, lot 10 : chaque ligne va au compte d'utilisation de l'institution (registre T167 à T170)
+        compte_id = lambda n, contrat, d: valeur("select compte_ecriture(%s, %s, %s, %s)", (ins, n, contrat, d))
         lignes = [("570", f"guichet:{g2}", "D", "USD", tot("USD"), usd(tot("USD"))), ("570", f"guichet:{g2}", "D", "CDF", tot("CDF"), tot("CDF")),
                   ("330", f"depot:{comptes['0412-000318-01']}", "C", "USD", 1428600, usd(1428600)), ("330", f"depot:{comptes['0412-000318-02']}", "C", "CDF", 341250000, 341250000),
                   ("330", f"depot:{comptes['0412-000319-01']}", "C", "USD", 52000, usd(52000)), ("330", f"depot:{comptes['0412-000319-02']}", "C", "CDF", 125000000, 125000000),
@@ -375,7 +377,7 @@ class Command(BaseCommand):
                   ("1030", f"parts:{tiers['0412-000320']}", "C", "CDF", VALEUR_PART, VALEUR_PART)]
         for rang, (num, contrat, sens, d, m, cdf) in enumerate(lignes, start=1):
             executer("""insert into ligne_ecriture (ecriture_id, rang, compte_id, contrat_ref, sens, devise, montant_devise, montant_cdf, cours_id)
-                        values (%s, %s, %s, %s, %s, %s, %s, %s, %s)""", (e, rang, compte_id(num), contrat, sens, d, m, cdf, cours_id if d == "USD" else None))
+                        values (%s, %s, %s, %s, %s, %s, %s, %s, %s)""", (e, rang, compte_id(num, contrat, d), contrat, sens, d, m, cdf, cours_id if d == "USD" else None))
         s = valeur("insert into session_caisse (guichet_id, journee_id, caissier_id, statut, arretee_le) values (%s, %s, %s, 'arretee', now()) returning id", (g2, j, caissiere))
         for d, fonds in FONDS_G2.items():
             b = valeur("""insert into billetage (session_caisse_id, moment, devise, saisi_par, valide_par, valide_le, theorique)
@@ -384,4 +386,5 @@ class Command(BaseCommand):
                 executer("insert into billetage_ligne values (%s, %s, %s, %s)", (b, d, v * 100, n))
         executer("update journee_comptable set statut = 'fermee', fermee_par = %s where id = %s", (chef, j))
         completer(ins)
+        executer("select comptes_parametres(%s)", (ins,))   # lot 10 : paramétrages sur les comptes de l'institution (T172)
         self.stdout.write(self.style.SUCCESS("Données de démonstration chargées."))

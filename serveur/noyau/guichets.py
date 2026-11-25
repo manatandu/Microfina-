@@ -1,6 +1,6 @@
 """S08, S09 et S10 : Administration > Guichet (manuel Microfina++, p. 18 à 20, 95 et 96). Mêmes règles que web/src/donnees/api.ts (guichets)."""
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import devises_tenues, exiger, journee_courante, ouvrir_caisse
+from .services import compte_institution, devises_tenues, exiger, journee_courante, ouvrir_caisse
 from .listes import valeurs
 
 
@@ -8,8 +8,9 @@ def types_guichet(u) -> list[str]:
     """Les deux types de guichet (principal, secondaire), choisis dans l'écran Guichets ; ils n'ont plus de page de liste (plan d'allègement, point 2.10)"""
     return [v["libelle"] for v in valeurs(u, "type_guichet")]
 
-# Registre S08-7 : comptes du PCCI proposés par défaut (570, 579, 7790, 671), modifiables, contrôlés sur le plan de comptes (règle T16)
-COMPTES_DEFAUT = {"compteGuichet": "570", "compteLiaison": "579", "compteSurplus": "7790", "compteManquant": "671"}
+# Registre S08-7 : comptes proposés par défaut, modifiables, contrôlés sur le plan de comptes (règle T16) ; lot 10 : les comptes proposés
+# de l'institution sous 570, 579, 7790 et 671 (registre T167, T172)
+COMPTES_DEFAUT = {"compteGuichet": "57000000", "compteLiaison": "57900000", "compteSurplus": "77900000", "compteManquant": "67100000"}
 
 
 def droit(u):
@@ -99,8 +100,8 @@ def enregistrer(u, d, gid: int | None = None) -> dict:
         v = texte(d, k)
         if v and not v.isdigit():
             raise ErreurMetier(f"{n} : chiffres seulement.")
-        if v and not une("select 1 from compte where numero = %s and (institution_id is null or institution_id = %s)", (v, i)):
-            raise ErreurMetier(f"{n} : le compte {v} n'est pas dans le plan de comptes.")   # règle T16
+        if v:
+            compte_institution(u, v, n)   # règle T16 ; lot 10 : un compte de l'institution (registre T172)
         comptes[k] = v or None
     if une("select 1 from guichet where agence_id = %s and code = %s and id is distinct from %s", (agence, code, gid)):
         raise ErreurMetier("Ce code guichet existe déjà.")

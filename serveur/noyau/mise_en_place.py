@@ -56,6 +56,7 @@ def apercu(u, did: int, d) -> dict:
                         "montant": x["montant_approuve"], "duree": x["duree_mois"], "date": x["cree_le"].date().isoformat(), "zoneId": t["zone_id"], "agentId": x["saisi_par"],
                         "typeAssuranceId": p["type_assurance_id"], "parts": json_lu(x["parts"]) or []},
             "comptes": comptes_client(u, x["tiers_id"], p["devise"].strip()), "fondsSolidarite": charge(p["solidarite_nature"], p["solidarite_valeur"], x["montant_approuve"]),
+            "fondsCommun": p["solidarite_destination"] == "commun",   # registre T143 : mis en commun, pas de compte du membre
             "differeMin": p["differe_min"], "differeMax": p["differe_max"], "simulation": s}
 
 
@@ -88,7 +89,7 @@ def creer_depuis_demande(u, x: dict) -> int:
                  (u["institution_id"], x["id"], numero, x["tiers_id"], p["id"], x["montant_approuve"], p["devise"], x["duree_mois"], s["dateEffet"], s["dateDebut"],
                   s["nombreTraites"], zone, x["agent_id"] or x["saisi_par"], f"{lb['numero']} {lb['libelle']}" if lb else None, x["cycle_id"], s["periodicite"],
                   p["taux_interet"], p["taux_differe"], s["differe"], x["ligne_budget_id"], bailleur, STRUCTURES[0],
-                  x["compte_epargne_id"] if s["epargneObligatoire"] else None, x["compte_solidarite_id"] if fonds else None, s["epargneObligatoire"], fonds,
+                  x["compte_epargne_id"] if s["epargneObligatoire"] else None, x["compte_solidarite_id"] if fonds and p["solidarite_destination"] == "membre" else None, s["epargneObligatoire"], fonds,
                   s["frais"], s["assurance"], x["assureur_id"] if p["type_assurance_id"] else None, x["objet_id"], s["tegR"], s["tegA"],
                   Jsonb(json_lu(x["parts"]) or []), x["saisi_par"], jour(u), x["usage_precis"] or ""))
     for l in s["echeancier"]:
@@ -112,7 +113,7 @@ def mettre_en_place(u, did: int, d) -> dict:
     ce, cs = entier_ou_rien(d, "compteEpargneId"), entier_ou_rien(d, "compteSolidariteId")
     if s["epargneObligatoire"] and ce not in ids:
         raise ErreurMetier("À remplir : compte d'épargne obligatoire du client, dans la devise du crédit.")
-    if a["fondsSolidarite"] and cs not in ids:
+    if a["fondsSolidarite"] and not a["fondsCommun"] and cs not in ids:     # registre T143 : rendu au membre, sur un compte de dépôt du membre
         raise ErreurMetier("À remplir : compte du fonds de solidarité du client, dans la devise du crédit.")
     assureur = entier_ou_rien(d, "assureurId")
     if p["type_assurance_id"]:
@@ -151,7 +152,7 @@ def mettre_en_place(u, did: int, d) -> dict:
                     %s, %s, %s, %s, %s, %s) returning id""",
                  (u["institution_id"], x["id"], numero, x["tiers_id"], p["id"], x["montant_approuve"], p["devise"], x["duree_mois"], s["dateEffet"], s["dateDebut"],
                   s["nombreTraites"], zone, agent, f"{lb['numero']} {lb['libelle']}" if lb else None, x["cycle_id"], s["periodicite"], p["taux_interet"], p["taux_differe"],
-                  s["differe"], ligne, bailleur, structure, ce if s["epargneObligatoire"] else None, cs if a["fondsSolidarite"] else None, s["epargneObligatoire"],
+                  s["differe"], ligne, bailleur, structure, ce if s["epargneObligatoire"] else None, cs if a["fondsSolidarite"] and not a["fondsCommun"] else None, s["epargneObligatoire"],
                   a["fondsSolidarite"], s["frais"], s["assurance"], assureur, objet, s["tegR"], s["tegA"], Jsonb(json_lu(x["parts"]) or []), u["id"], jour(u), usage))
     for l in s["echeancier"]:
         executer("insert into echeance (credit_id, rang, date_due, capital, interet) values (%s, %s, %s, %s, %s)", (cid, l["rang"], l["date"], l["capital"], l["interet"]))
