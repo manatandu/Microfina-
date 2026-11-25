@@ -18,6 +18,8 @@ body {
 h1, h2, h3 { letter-spacing: -0.01em; }
 .num, .chiffres { font-family: var(--police-chiffres); font-variant-numeric: tabular-nums; }
 .num { text-align: right; white-space: nowrap; }
+/* Montants à droite dans tous les tableaux : « montant » et « num » disent la même chose (DESIGN § 5 ; plan d'allègement, point 11.2) */
+.grille :is(th, td).montant { text-align: right; white-space: nowrap; font-family: var(--police-chiffres); font-variant-numeric: tabular-nums; }
 .muet { color: var(--encre-2); }
 .dense { font-size: var(--taille-dense); line-height: var(--interligne-dense); }
 
@@ -130,10 +132,11 @@ h1, h2, h3 { letter-spacing: -0.01em; }
   padding: 4px var(--espace-2); min-height: var(--mise-bouton-h); width: 100%; min-width: 0;
   box-shadow: var(--ombre-creux);
 }
-.saisie::placeholder { color: var(--encre-2); opacity: .7; }
-.saisie:focus-visible { outline: 2px solid var(--tampon-pale); outline-offset: 0; border-color: var(--tampon); }
+.saisie::placeholder { color: var(--encre-2); opacity: 1; }   /* texte indicatif lisible (4,5:1) */
+/* Contour de la case active à 3:1 au moins (guide natural-interactions ; WCAG 1.4.11 ; plan d'allègement, point 11.2) */
+.saisie:focus-visible { outline: 2px solid var(--tampon); outline-offset: 1px; border-color: var(--tampon); }
 .saisie[aria-invalid="true"] { border-color: var(--alerte); }
-.saisie[aria-invalid="true"]:focus-visible { outline-color: var(--alerte-pale); }
+.saisie[aria-invalid="true"]:focus-visible { outline-color: var(--alerte); }
 /* Valeur en lecture : une case grisée, à plat, de la taille des autres ; on voit d'un coup d'œil ce qui se tape et ce qui se lit
    (les cases grises de Microfina++, p. 87 : Répartition, Détail crédit) */
 .saisie[readonly], .saisie:disabled {
@@ -141,7 +144,7 @@ h1, h2, h3 { letter-spacing: -0.01em; }
 }
 .saisie:disabled { color: var(--encre-2); cursor: not-allowed; }
 select.saisie:disabled { background-image: none; padding-right: var(--espace-2); opacity: 1; }
-.saisie[readonly]:focus-visible { outline: 2px solid var(--tampon-pale); border-color: var(--tampon); }
+.saisie[readonly]:focus-visible { outline: 2px solid var(--tampon); outline-offset: 1px; border-color: var(--tampon); }
 /* En saisie, montants et nombres à droite, chiffres de même largeur (SAP Fiori : « Amounts are right-aligned » en édition) */
 input.saisie.montant, input.saisie.nombre { text-align: right; font-family: var(--police-chiffres); font-variant-numeric: tabular-nums; }
 input.saisie.montant[readonly] { text-align: left; }   /* en lecture dans une section : juste après le libellé (DESIGN § 3.5) */
@@ -160,7 +163,7 @@ select.saisie { appearance: none; padding-right: 26px; background-image: linear-
   background: var(--feuille); border: 1px solid var(--trait-saisie); border-radius: var(--rayon-bloc); box-shadow: var(--ombre-creux);
   padding: var(--espace-1) var(--espace-3);
 }
-.montant-champ:focus-within { border-color: var(--tampon); outline: 2px solid var(--tampon-pale); }
+.montant-champ:focus-within { border-color: var(--tampon); outline: 2px solid var(--tampon); outline-offset: 1px; }
 .montant-champ[data-erreur] { border-color: var(--alerte); }
 .montant-champ input {
   flex: 1 1 0; width: 100%; min-width: 0; border: 0; background: none; color: var(--encre); outline: none;
@@ -215,7 +218,7 @@ select.saisie { appearance: none; padding-right: 26px; background-image: linear-
   width: 64px; text-align: right; font: inherit; color: var(--encre); background: var(--feuille);
   border: 1px solid var(--trait-saisie); border-radius: var(--rayon-petit); padding: 3px var(--espace-2); box-shadow: var(--ombre-creux);
 }
-.billetage input:focus-visible { border-color: var(--tampon); outline: 2px solid var(--tampon-pale); outline-offset: 0; }
+.billetage input:focus-visible { border-color: var(--tampon); outline: 2px solid var(--tampon); outline-offset: 1px; }
 .billetage input.trop { border-color: var(--alerte); color: var(--alerte); background: var(--alerte-pale); }
 .billetage input[readonly] { background: transparent; border-color: transparent; box-shadow: none; }
 .billetage tfoot td { border-top: 2px solid var(--encre); font-weight: 700; padding-top: var(--espace-2); }
@@ -223,6 +226,7 @@ select.saisie { appearance: none; padding-right: 26px; background-image: linear-
 .ecart.ok { color: var(--sain-texte); }
 .ecart.ok::before { content: "✓ "; }
 .ecart.ko { color: var(--alerte); }
+.ecart.ko::before { content: "✗ "; }   /* l'écart se lit sans la couleur, comme ✓ */
 
 /* ---------- Étapes avant validation ---------- */
 .etapes { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; }
@@ -267,6 +271,9 @@ details.textes ul { margin: var(--espace-1) 0 0; padding-left: var(--espace-4); 
   padding: var(--espace-2) var(--espace-3); border-radius: var(--rayon-champ); font-size: var(--taille-courant); margin: 0;
 }
 .bloquant strong { color: var(--alerte); }
+/* Message d'erreur d'un écran (role="alert") : la même boîte que « bloquant » (plan d'allègement, point 11.2) */
+.erreur-champ { border: 1px solid color-mix(in srgb, var(--alerte) 30%, var(--alerte-pale)); border-left: 3px solid var(--alerte); background: var(--alerte-pale); color: var(--encre);
+  padding: var(--espace-2) var(--espace-3); border-radius: var(--rayon-champ); font-size: var(--taille-courant); margin: 0; }
 .attention {
   border: 1px solid color-mix(in srgb, var(--tampon) 30%, var(--tampon-pale)); border-left: 3px solid var(--tampon); background: var(--tampon-pale); color: var(--encre);
   padding: var(--espace-2) var(--espace-3); border-radius: var(--rayon-champ); font-size: var(--taille-courant); margin: 0;
@@ -316,7 +323,7 @@ details.textes ul { margin: var(--espace-1) 0 0; padding-left: var(--espace-4); 
 .ordre li:focus-visible { outline: 2px solid var(--tampon); outline-offset: 1px; }
 .ordre .actions { display: flex; gap: var(--espace-1); }
 .ordre .actions button { font: inherit; font-size: var(--taille-dense); padding: 2px var(--espace-2); min-height: 30px; border: 1px solid var(--trait-saisie); border-radius: var(--rayon-petit); background: var(--feuille); color: var(--encre); cursor: pointer; }
-.ordre .actions button:disabled { color: var(--inactif); border-color: var(--trait); cursor: not-allowed; }
+.ordre .actions button:disabled { color: var(--sur-inactif); border-color: var(--trait); cursor: not-allowed; }
 
 /* ---------- Recherche ---------- */
 .recherche { position: relative; }
@@ -352,11 +359,11 @@ details.textes ul { margin: var(--espace-1) 0 0; padding-left: var(--espace-4); 
 .boite { border: 1px solid var(--trait-saisie); border-radius: var(--rayon-bloc); padding: 0 var(--espace-4) var(--espace-4); width: min(var(--mise-carte-etroite), calc(100vw - 2 * var(--espace-4)));
   background: var(--cadre); color: var(--encre); box-shadow: var(--ombre-flottant); overflow: hidden; }
 .boite::backdrop { background: color-mix(in srgb, var(--nuit) 50%, transparent); }
-.boite h2 { margin: 0 calc(-1 * var(--espace-4)) var(--espace-4); padding: 8px var(--espace-4); font-size: var(--taille-titre); line-height: var(--interligne-titre);
+.boite > h1 { margin: 0 calc(-1 * var(--espace-4)) var(--espace-4); padding: 8px var(--espace-4); font-size: var(--taille-titre); line-height: var(--interligne-titre);
   background: var(--bandeau-fort); border-bottom: 1px solid var(--trait); }
-.boite[data-type="succes"] h2 { box-shadow: inset 4px 0 0 var(--sain); }
-.boite[data-type="erreur"] h2 { box-shadow: inset 4px 0 0 var(--alerte); }
-.boite p { margin: 0; }
+.boite[data-type="succes"] > h1 { box-shadow: inset 4px 0 0 var(--sain); }
+.boite[data-type="erreur"] > h1 { box-shadow: inset 4px 0 0 var(--alerte); }
+.boite > p { margin: 0; }
 .boite .boutons { display: flex; justify-content: flex-end; gap: var(--espace-2); margin-top: var(--espace-4); }
 .boite .boutons .bouton { min-width: 5.5rem; }
 /* Succès : un message bref, en bas de l'écran, qui disparaît seul (registre T121) */
@@ -368,5 +375,8 @@ details.textes ul { margin: var(--espace-1) 0 0; padding-left: var(--espace-4); 
 .fiche { border: 1px solid var(--trait-saisie); border-radius: var(--rayon-bloc); padding: 0 var(--espace-4) var(--espace-4); width: min(48rem, calc(100vw - 2 * var(--espace-4)));
   max-height: calc(100dvh - 2 * var(--espace-4)); overflow: auto; background: var(--cadre); color: var(--encre); box-shadow: var(--ombre-flottant); }
 .fiche::backdrop { background: color-mix(in srgb, var(--nuit) 50%, transparent); }
-.fiche > h2 { position: sticky; top: 0; z-index: 2; margin: 0 calc(-1 * var(--espace-4)) var(--espace-4); padding: 8px var(--espace-4); font-size: var(--taille-titre); line-height: var(--interligne-titre);
+/* La page ne défile pas sous une fenêtre ouverte (guide dialog, « MANDATORY (both rules) » ; amélioration progressive, jamais overflow: hidden sur body) */
+dialog:modal { overscroll-behavior: contain; }
+dialog::backdrop { overflow: hidden; overscroll-behavior: contain; }
+.fiche > h1 { position: sticky; top: 0; z-index: 2; margin: 0 calc(-1 * var(--espace-4)) var(--espace-4); padding: 8px var(--espace-4); font-size: var(--taille-titre); line-height: var(--interligne-titre);
   background: var(--bandeau-fort); border-bottom: 1px solid var(--trait); }

@@ -446,6 +446,24 @@ Texte : Instr. BCC 009, annexe (effectif par sexe, salaire moyen) : sexe, date d
 - Les rapports par localisation et multicritère fusionnent en « Registre des immobilisations », avec totaux (PCCI, classe 2 : registre de l'inventaire).
 - « Bien immobilier » devient « immobilisation ».
 
+## Lot 11. Web moderne : fenêtres, clavier, vitesse, sécurité, dates, apparence
+
+Demande du porteur, 25/11/2026, après l'audit fait avec le skill « modern-web-guidance » (Google Chrome, Edge, Firefox, MDN ; guides dans `.claude/skills/modern-web-guidance/guides/`). Décisions du porteur du même jour : texte en rem, nouvelle rampe de gris et nouvelle échelle de texte à la place de DESIGN § 3.1 et § 3.2, police Poppins retirée, garde contre la fermeture par erreur d'une fiche en cours de saisie, focus sur « Non » dans une confirmation qui détruit, fuseau horaire de chaque agence, application installable. Ordre : 11.1 et 11.2 d'abord, puis 11.3 à 11.6, la refonte visuelle (11.7) en dernier.
+
+**11.1 Fenêtres : focus, Échap, issues.** Une fenêtre fermée rend le focus au bouton qui l'a ouverte, et après un reçu à « N° client ». Échap dans le calendrier ne ferme plus la fiche. Une fiche en cours de saisie demande confirmation avant de se fermer par Échap. Une confirmation qui détruit (supprimer, annuler, rompre, passer en perte) met le focus sur « Non » (le manuel, p. 10, montre Oui et Non sans dire lequel est choisi). « Photo et signature » reçoit un bouton Fermer, « Choix du journal » une issue. Guides : dialog, light-dismiss-a-dialog, html.
+
+**11.2 Défauts visibles, sans changer le style.** Montants à droite dans tous les tableaux ; messages d'erreur, unités et écarts stylés ; contour de la case active à 3:1 ; bouton « Menu » du téléphone ; case active jamais cachée sous les barres ; pas de saut quand la barre de défilement apparaît ; un même cadre identique partout ; texte indicatif et cases inactives lisibles ; police Poppins retirée des jetons. Guides : natural-interactions, state-aware-sticky-headers, css-layout, color.
+
+**11.3 Formulaires et clavier.** Entrée valide chaque saisie (`<form>`), les filtres dans `<search>` ; champs obligatoires reconnus (`required`), focus sur le premier manquant ; billetage : bouton inactif qui dit pourquoi (DESIGN § 2.2) ; onglets aux flèches ; N° de crédit en lien dans le portefeuille ; recherche de client et calendrier au clavier ; ce qui compte ne s'efface plus au bout de 5 secondes ; lien « Aller au contenu », titre d'onglet par écran, menus en vraie navigation. Guides : forms, required-field-feedback, tabs, menu, accessibility, persistent-toast-notifications.
+
+**11.4 Dates.** Un seul module de dates dans le fuseau IANA de l'agence (Africa/Kinshasa, UTC+1 ; Africa/Lubumbashi, UTC+2), à la place des calculs de jour en UTC ; le journal de sécurité filtre et affiche dans ce fuseau. Guides : capture-location-agnostic-data, support-global-calendar-systems.
+
+**11.5 Vitesse et application installable.** Paquet de départ allégé (objectif : moins de 150 Ko compressés, contrôlé à chaque construction) ; l'écran se charge avec la session ; préchargement du seul module ouvert, en priorité basse, suspendu sur réseau lent ; relecture ciblée après une opération ; arbre des lieux en fichier statique ; délai maximal et annulation des appels ; grand livre sans ralentissement ; manifeste et cache des fichiers statiques pour installer l'application (jamais les données). Guides : performance, break-up-long-tasks, defer-rendering-heavy-content, js, install-web-app.
+
+**11.6 Sécurité dans le navigateur.** Impression sans `document.write` ; politique de contenu avec Trusted Types, d'abord en observation puis imposée ; nettoyage du poste à la déconnexion (Clear-Site-Data) et message si elle échoue ; contrôle des en-têtes Fetch Metadata côté serveur. Guides : security, sanitize-untrusted-html, trusted-types.
+
+**11.7 Refonte visuelle.** D'abord la cascade (`@layer`, `@scope`, requêtes de conteneur). Puis une rampe de gris en oklch à pas nets, cinq fonds au plus, `light-dark()` ; une échelle de texte en rem à vrais écarts ; le gras et le bleu réservés au sens ; fin des reliefs et des cadres emboîtés ; montant du guichet en grand ; pastilles de retard employées ; thème sombre corrigé. La structure des écrans ne change pas. Captures avant et après, écran par écran, en clair et en sombre. DESIGN § 3.1 et § 3.2 sont réécrits. Guides : color, typography, dark-mode, css, content-first-noise-reduction, card, motion.
+
 ## La barre des menus après allègement
 
 Membre, Conformité, Épargne, Caisse, Crédit, Banque, Comptabilité, Budget, Personnel, Immobilisations, Administration, Paramétrage. Disparaissent : Part sociale (dans le Guichet), Autres (réparti), la page des modules (si 9.3 est retenu).

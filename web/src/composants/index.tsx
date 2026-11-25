@@ -162,10 +162,10 @@ export function ChampDate({ libelle, valeur, onChange, aide, requis }: { libelle
         <input {...p} ref={entree} className="saisie date" inputMode={tactile ? "none" : "numeric"} autoComplete="off" placeholder="jj/mm/aaaa" maxLength={10} required={requis} value={texte}
           aria-haspopup="dialog" aria-expanded={ouvert}
           onClick={() => setOuvert(true)}
-          onKeyDown={(e) => { if (e.key === "ArrowDown" && e.altKey) { e.preventDefault(); setOuvert(true); } else if (e.key === "Tab" || e.key === "Escape") setOuvert(false); }}
+          onKeyDown={(e) => { if (e.key === "ArrowDown" && e.altKey) { e.preventDefault(); setOuvert(true); } else if (e.key === "Escape" && ouvert) { e.preventDefault(); setOuvert(false); } else if (e.key === "Tab") setOuvert(false); }}
           onChange={(e) => { const t = masque(e.target.value); setOuvert(false); setTexte(t); onChange(lireDate(t) ?? ""); }} />
         {ouvert && entree.current && <Calendrier valeur={iso ?? ""} ancre={entree.current} fermer={() => setOuvert(false)}
-          choisir={(d) => { setTexte(versTexte(d)); onChange(d); setOuvert(false); entree.current?.focus(); }} />}
+          choisir={(d) => { setTexte(versTexte(d)); onChange(d); setOuvert(false); entree.current?.dispatchEvent(new Event("saisie", { bubbles: true })); entree.current?.focus(); }} />}
       </>}
     </Champ>
   );
@@ -196,7 +196,8 @@ function Calendrier({ valeur, ancre, choisir, fermer }: { valeur: string; ancre:
   }, [ancre, an, mois]);
   useEffect(() => {
     const dehors = (e: PointerEvent) => { if (!ref.current?.contains(e.target as Node) && e.target !== ancre) fermer(); };
-    const touche = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); fermer(); ancre.focus(); } };
+    // Échap ferme le calendrier seul, pas la fiche qui le contient (guide light-dismiss-a-dialog : « capture the Esc key press »)
+    const touche = (e: KeyboardEvent) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); fermer(); ancre.focus(); } };
     document.addEventListener("pointerdown", dehors, true); document.addEventListener("keydown", touche, true);
     return () => { document.removeEventListener("pointerdown", dehors, true); document.removeEventListener("keydown", touche, true); };
   }, []);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -242,7 +243,9 @@ export function lireDate(t: string): string | null {
 }
 
 /** Boîtes de dialogue du manuel Microfina++ (p. 10 et 11) : confirmation Oui/Non, succès, erreur. */
-export type Boite = { type: "confirmation"; message: string; oui: () => void } | { type: "succes" | "erreur"; message: string };
+export type Boite = { type: "confirmation"; message: string; oui: () => void; prudent?: boolean } | { type: "succes" | "erreur"; message: string };
+/** Une confirmation qui détruit met le focus sur « Non » (décision du porteur, registre T152 ; guide dialog : « put autofocus on the safe action ») */
+const DETRUIT = /\b(supprimer|annuler|rompre|passer en perte|retirer|radier|résilier)\b/i;
 const TITRES = { confirmation: "Confirmation", succes: "Succès", erreur: "Erreur" };
 const ecouteursSucces = new Set<(texte: string) => void>();
 /** Remet le message de succès à la coquille ; faux si aucune coquille n'écoute (écran affiché seul) */
@@ -257,42 +260,78 @@ export function MessageSucces() {
 }
 
 export function Dialogue({ boite, fermer }: { boite: Boite | null; fermer: () => void }) {
-  const [el, setEl] = useState<HTMLDialogElement | null>(null);
+  const ref = useRef<HTMLDialogElement>(null);
+  const idTitre = useId();
   // Succès : un message qui disparaît seul, sans bouton à cliquer (plan d'allègement, point 1.12 ; registre T121). La boîte se ferme aussitôt,
   // comme après un clic sur Ok ; le message est montré par la coquille, qui reste en place quand l'écran se recharge.
   const [local, setLocal] = useState<{ texte: string; n: number } | null>(null);
   useEffect(() => { if (boite?.type === "succes") { if (!annoncer(boite.message)) setLocal((x) => ({ texte: boite.message, n: (x?.n ?? 0) + 1 })); fermer(); } }, [boite]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (!local) return; const t = setTimeout(() => setLocal(null), 5000); return () => clearTimeout(t); }, [local]);
-  const succes = local;
   const ouverte = boite && boite.type !== "succes" ? boite : null;
-  useEffect(() => { if (el && ouverte && !el.open) el.showModal?.(); if (el && !ouverte && el.open) el.close(); }, [el, ouverte]);
-  const message = succes && <p key={succes.n} className="message-succes" role="status">{succes.texte}</p>;
-  if (!ouverte) return message || null;
+  const prudent = ouverte?.type === "confirmation" && (ouverte.prudent ?? DETRUIT.test(ouverte.message));
+  // La boîte reste dans la page et se ferme par close() : le navigateur rend alors le focus au bouton qui l'a ouverte (plan d'allègement, point 11.1)
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    if (ouverte && !el.open) { el.showModal(); el.querySelector<HTMLElement>("[data-focus]")?.focus(); }
+    if (!ouverte && el.open) el.close();
+  }, [ouverte]);
+  const message = local && <p key={local.n} className="message-succes" role="status">{local.texte}</p>;
   return (
     <>{message}
-    <dialog ref={setEl} className="boite" data-type={ouverte.type} aria-labelledby="boite-titre" onCancel={(e) => { e.preventDefault(); fermer(); }}>
-      <h2 id="boite-titre">{TITRES[ouverte.type]}</h2>
-      <p>{ouverte.message}</p>
-      <div className="boutons">
-        {ouverte.type === "confirmation"
-          ? <><button className="bouton" type="button" autoFocus onClick={() => { fermer(); ouverte.oui(); }}>Oui</button>
-              <button className="bouton secondaire" type="button" onClick={fermer}>Non</button></>
-          : <button className="bouton" type="button" autoFocus onClick={fermer}>Ok</button>}
-      </div>
+    <dialog ref={ref} className="boite" data-type={ouverte?.type} aria-labelledby={idTitre}
+      onCancel={(e) => { if (e.target !== e.currentTarget) return; e.preventDefault(); fermer(); }} onClose={(e) => { if (e.target === e.currentTarget && !e.currentTarget.open && ouverte) fermer(); }}>
+      {ouverte && <>
+        <h1 id={idTitre}>{TITRES[ouverte.type]}</h1>
+        <p>{ouverte.message}</p>
+        <div className="boutons">
+          {ouverte.type === "confirmation"
+            ? <><button className="bouton" type="button" data-focus={prudent ? undefined : ""} onClick={() => { fermer(); ouverte.oui(); }}>Oui</button>
+                <button className="bouton secondaire" type="button" data-focus={prudent ? "" : undefined} onClick={fermer}>Non</button></>
+            : <button className="bouton" type="button" data-focus="" onClick={fermer}>Ok</button>}
+        </div>
+      </>}
     </dialog></>
   );
 }
 
-/** Fiche ouverte par-dessus l'écran (ex. fiche d'un signataire, manuel Microfina++ p. 50) */
+/** Fiche ouverte par-dessus l'écran (ex. fiche d'un signataire, manuel Microfina++ p. 50). Elle reste dans la page et se ferme par close() : le focus
+ *  revient au bouton qui l'a ouverte. Une fiche où l'on a saisi ne se ferme pas par Échap sans confirmation (décision du porteur, registre T151) ;
+ *  une recherche (champ type="search" ou zone data-sans-garde) ne compte pas comme saisie. Plan d'allègement, point 11.1 ; guide dialog. */
 export function Fiche({ titre, ouverte, fermer, children }: { titre: string; ouverte: boolean; fermer: () => void; children: ReactNode }) {
-  const [el, setEl] = useState<HTMLDialogElement | null>(null);
-  const idTitre = useId();   // deux fiches ouvertes l'une sur l'autre gardent chacune leur titre
-  useEffect(() => { if (el && ouverte && !el.open) el.showModal?.(); if (el && !ouverte && el.open) el.close(); }, [el, ouverte]);
-  if (!ouverte) return null;
+  const ref = useRef<HTMLDialogElement>(null);
+  const garde = useRef<HTMLDialogElement>(null);
+  const modifiee = useRef(false);
+  const idTitre = useId(), idGarde = useId();   // deux fiches ouvertes l'une sur l'autre gardent chacune leur titre
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    if (ouverte && !el.open) { modifiee.current = false; el.showModal(); el.querySelector<HTMLElement>(":scope > :not(dialog) [data-focus], :scope > [data-focus]")?.focus(); }
+    if (!ouverte && el.open) { if (garde.current?.open) garde.current.close(); el.close(); }
+  }, [ouverte]);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const noter = (e: Event) => { const t = e.target as Element;
+      if (!garde.current?.contains(t) && !t.closest?.("[data-sans-garde], input[type='search']")) modifiee.current = true; };
+    const types = ["input", "change", "saisie"];
+    types.forEach((n) => el.addEventListener(n, noter));
+    return () => types.forEach((n) => el.removeEventListener(n, noter));
+  }, []);
+  function echap(e: React.SyntheticEvent<HTMLDialogElement>) {
+    if (e.target !== e.currentTarget) return;
+    e.preventDefault();
+    if (!modifiee.current) { fermer(); return; }
+    garde.current?.showModal(); garde.current?.querySelector<HTMLElement>("[data-focus]")?.focus();
+  }
   return (
-    <dialog ref={setEl} className="fiche" aria-labelledby={idTitre} onCancel={(e) => { e.preventDefault(); fermer(); }}>
-      <h2 id={idTitre}>{titre}</h2>
-      {children}
+    <dialog ref={ref} className="fiche" aria-labelledby={idTitre} onCancel={echap} onClose={(e) => { if (e.target === e.currentTarget && !e.currentTarget.open && ouverte) fermer(); }}>
+      {ouverte && <><h1 id={idTitre}>{titre}</h1>{children}</>}
+      <dialog ref={garde} className="boite" data-type="confirmation" aria-labelledby={idGarde}>
+        <h1 id={idGarde}>Confirmation</h1>
+        <p>Voulez-vous vraiment fermer ? La saisie en cours sera perdue.</p>
+        <div className="boutons">
+          <button className="bouton" type="button" onClick={() => { garde.current?.close(); fermer(); }}>Oui</button>
+          <button className="bouton secondaire" type="button" data-focus="" onClick={() => garde.current?.close()}>Non</button>
+        </div>
+      </dialog>
     </dialog>
   );
 }

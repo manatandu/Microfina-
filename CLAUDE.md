@@ -66,6 +66,16 @@ Chaque écran et chaque règle du code est **confronté aux Instructions de la B
 - Les maquettes sont dans `docs/design/maquettes/`.
 - Catalogue de composants 21st.dev : serveur MCP `21st` déclaré dans `.mcp.json`, clé dans la variable `API_KEY_21ST` de chaque poste, jamais dans le dépôt. Un composant trouvé là sert de point de départ : il est réécrit avec nos jetons et nos composants (`replica/design/`), sans Tailwind ni couleur en dur, puis confronté à DESIGN.md (pas d'animation sur ce qui se répète, couleur réservée au sens). Mode d'emploi : skill `21st-composants-ui`.
 
+## 2 bis. Web moderne (décision du porteur, 25/11/2026)
+
+Le skill `modern-web-guidance` (`.claude/skills/`) accompagne le logiciel du début à la fin ; avant chaque écran ou composant, lire le guide qui le concerne (sans `npx` : `grep -ril` dans ses `guides/`). Les corrections de l'audit du 25/11 forment le lot 11 du plan d'allègement.
+
+- Navigateurs : Baseline « widely available » sans repli ; le reste avec le repli que donne le guide (le parc des agences est ancien).
+- Budget, mesuré dans Chromium sur réseau lent (1,6 Mb/s, 150 ms, processeur ÷ 4) : paquet de départ sous 150 Ko compressés, LCP sous 2,5 s, INP sous 200 ms, CLS sous 0,1.
+- Accessibilité : WCAG 2.2 AA ; clavier complet ; le focus revient au bouton d'origine quand une fenêtre se ferme ; contraste 4,5:1 pour le texte, 3:1 pour le focus et les contrôles ; texte en rem.
+- Sécurité : CSP avec Trusted Types, aucun `innerHTML` ni `document.write`, cookies de session protégés.
+- Dates : fuseau IANA de l'agence (Africa/Kinshasa ou Africa/Lubumbashi), jamais de jour calculé en UTC.
+
 ## 3. Architecture
 
 - Décisions : `docs/architecture/ARCHITECTURE.md`.

@@ -1,6 +1,9 @@
 /* Mise en page de l'application. Jetons seulement (tokens.css). */
 a { color: var(--tampon); text-underline-offset: 3px; }
 #racine { min-height: 100vh; min-height: 100dvh; }
+/* La case active n'est jamais cachée sous la barre du haut ni sous la barre d'état ; la barre de défilement ne fait plus sauter la page
+   (guides state-aware-sticky-headers et css-layout ; plan d'allègement, point 11.2) */
+html { scroll-padding-block: calc(var(--mise-barre) + 2px + var(--espace-2)) calc(var(--hauteur-pied, 26px) + var(--espace-2)); scrollbar-gutter: stable; }
 
 /* Bouton Menu de l'accès rapide : seulement sur écran étroit (voir la règle à 860 px) */
 .bouton-acces-rapide { display: none; }
@@ -174,7 +177,7 @@ a.module:active { transform: scale(.97); }
 /* Un seul titre, celui de la coquille (plan d'allègement, point 1.6) : l'en-tête qui suit ne redouble pas sa barre */
 .page > h1 + .entete-ecran { border-left: 0; padding-left: 0; }
 /* Le titre de fenêtre de Microfina++, sous le titre du menu : une étiquette, pas un second titre */
-.page > h2, .page > .bloc > h2:first-child { margin: 0; font-size: var(--taille-courant); font-weight: 600; color: var(--encre-2); }
+.page > h2 { margin: 0; font-size: var(--taille-courant); font-weight: 600; color: var(--encre-2); }   /* un cadre garde son bandeau où qu'il soit (point 11.2) */
 .page > .chapeau { margin: calc(-1 * var(--espace-4)) 0 0; color: var(--encre-2); max-width: 70ch; }
 .rangee { display: flex; flex-wrap: wrap; gap: var(--espace-2); align-items: center; }
 .pile { display: grid; gap: var(--espace-3); align-content: start; min-width: 0; }
@@ -239,7 +242,7 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
   .barre-menus { flex-wrap: wrap; padding: 0 var(--espace-2); }
   .logo { border-right: 0; }
   .menus { order: 3; flex-basis: 100%; }
-  .corps { grid-template-columns: minmax(0, 1fr); }
+  .corps { grid-template-columns: minmax(0, 1fr); align-content: start; }   /* le bouton Menu garde sa hauteur (point 11.2) */
   .acces-rapide { border-right: 0; border-bottom: 1px solid var(--trait); }
   .acces-rapide details:not([open]) { display: none; }
   .page { padding: var(--espace-4) var(--mise-gouttiere-mobile); }
@@ -284,7 +287,7 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
   }
   .onglets [role="tab"], .onglets > a, .onglets > span { flex-shrink: 0; }
   /* Accès rapide : replié derrière le bouton Menu ; ouvert, il montre seulement le module en cours */
-  .bouton-acces-rapide { display: inline-flex; justify-self: start; margin: var(--espace-3) var(--mise-gouttiere-mobile) 0; }
+  .bouton-acces-rapide { display: inline-flex; justify-self: start; align-self: start; margin: var(--espace-3) var(--mise-gouttiere-mobile) 0; }
   .acces-rapide { display: none; }
   .acces-rapide.ouvert { display: grid; }
   .acces-rapide.ouvert details:not([open]) { display: block; }
@@ -404,7 +407,7 @@ button.lien:focus-visible { outline: 2px solid var(--tampon); outline-offset: 2p
 .menu-action > ul { position: absolute; right: 0; top: calc(100% + var(--espace-1)); z-index: 5; list-style: none; margin: 0; padding: var(--espace-1);
   min-width: 12rem; background: var(--papier); border: 1px solid var(--trait); border-radius: var(--rayon-champ); box-shadow: var(--ombre-flottant); }
 .menu-action button[role="menuitem"] { width: 100%; text-align: left; font: inherit; background: none; border: 0; border-radius: var(--rayon-petit); padding: var(--espace-2) var(--espace-3); color: var(--encre); cursor: pointer; }
-.menu-action button[role="menuitem"]:disabled { color: var(--inactif); cursor: default; }
+.menu-action button[role="menuitem"]:disabled { color: var(--sur-inactif); cursor: default; }
 @media (hover: hover) and (pointer: fine) { .menu-action button[role="menuitem"]:not(:disabled):hover { background: var(--tampon-pale); } }
 .ligne-choix[aria-selected="true"], .grille tbody tr.ligne-choix[aria-selected="true"] td { background: var(--tampon-pale); }
 fieldset.sans-cadre { border: 0; padding: 0; margin: 0; min-width: 0; }
@@ -720,3 +723,8 @@ select.saisie { max-width: 100%; }
 .champ-client .propositions { position: absolute; z-index: 5; inset-inline: 0; top: 100%; margin: 0; padding: var(--espace-1) 0; list-style: none; background: var(--cadre); border: 1px solid var(--trait); border-radius: var(--rayon-champ); max-height: 16rem; overflow: auto; }
 .champ-client .propositions li { padding: var(--espace-1) var(--espace-3); cursor: pointer; }
 .champ-client .propositions li:hover { background: var(--ligne); }
+
+/* Champ suivi de son unité (mois, %, jours) et liste de lignes d'information (plan d'allègement, point 11.2) */
+.avec-unite { display: flex; align-items: center; gap: var(--espace-2); }
+.avec-unite > .saisie { flex: 1 1 auto; }
+.info-ligne-liste { margin: 0; display: grid; }

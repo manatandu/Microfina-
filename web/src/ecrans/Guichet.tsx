@@ -1,5 +1,5 @@
 import { vers } from "./registre";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { boiteOperation } from "../lib/examen";
@@ -118,6 +118,8 @@ export default function GuichetDepotRetrait() {
   }, [t?.id, compteId, fait?.id, images, op]);
 
   const effacer = () => { setT(null); setCompteId(0); setSaisie(""); setMandataire(""); setProcurationId(null); setMotif(""); setCoupures({}); setCle(nouvelleCle()); setFait(null); };
+  // Après le reçu, une nouvelle opération : le focus va à « N° client » (plan d'allègement, point 11.1), une fois la fenêtre fermée
+  const nouvelleOperation = () => { setRecu(false); effacer(); requestAnimationFrame(() => document.querySelector<HTMLInputElement>(".champ-client input")?.focus()); };
   useEffect(() => { effacer(); }, [op]);   // changer d'onglet repart d'une saisie vierge
   // Arrivée par la recherche globale : le client est déjà choisi
   const tiersDemande = q.get("tiers");
@@ -223,14 +225,15 @@ export default function GuichetDepotRetrait() {
           "Instr. BCC 15 bis, art. 1 : examen renforcé dès 10 000 USD en espèces",
           "Manuel Microfina++, p. 20 : case « Voir solde client » de l'affectation du guichet (S10) ; loi 22/069, titre III, chapitre II : secret professionnel"]} />
       </section>
-      <Fiche titre="Reçu" ouverte={recu} fermer={() => setRecu(false)}>
-        {fait && <Recu id={fait.id} onNouveau={() => { setRecu(false); effacer(); }} />}
+      <Fiche titre="Reçu" ouverte={recu} fermer={nouvelleOperation}>
+        {fait && <Recu id={fait.id} onNouveau={nouvelleOperation} echap />}
       </Fiche>
       <Fiche titre="Photo et signature" ouverte={images} fermer={() => setImages(false)}>
         <div className="photos-signataires">
           <div className="cadre-signature apercu-grand">{img?.photo ? <img src={img.photo} alt="Photo du client" /> : <Silhouette />}</div>
           <div className="cadre-signature apercu-grand">{img?.signature ? <img src={img.signature} alt="Signature du client" /> : <Specimen />}</div>
         </div>
+        <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setImages(false)}>Fermer</button></div>
       </Fiche>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (x) => (x ? (await api.tiers.rechercher(x)).filter((y) => y.statut === "actif") : [])}
@@ -258,8 +261,11 @@ export default function GuichetDepotRetrait() {
 }
 
 /** Reçu : ce que le membre reçoit (Instr. BCC 40, art. 13) */
-export function Recu({ id, onNouveau }: { id: number; onNouveau: () => void }) {
+/** Reçu d'une opération de caisse. « Échap » n'est rappelé que là où la touche lance vraiment une nouvelle opération (guichet ; DESIGN § 2.1 ; plan d'allègement, point 11.1) */
+export function Recu({ id, onNouveau, echap = false }: { id: number; onNouveau: () => void; echap?: boolean }) {
   const { donnees: r } = useDonnees(() => api.operations.recu(id), [id]);
+  const nouvelle = useRef<HTMLButtonElement>(null);
+  useEffect(() => { if (r) nouvelle.current?.focus(); }, [r]);   // l'action principale du reçu reçoit le focus (guide dialog), une fois le reçu chargé
   const lettres = useMemo(() => (r ? montantEnLettres(r.o.montant, r.o.devise) : ""), [r]);
   if (!r) return <Chargement />;
   const titre = { depot: "Dépôt enregistré", retrait: "Retrait enregistré", adhesion: "Adhésion enregistrée", achat_parts: "Achat de parts enregistré", retrait_parts: "Retrait de parts enregistré", ed_encaissement: "Encaissement enregistré", ed_decaissement: "Décaissement enregistré", transfert_sortie: "Transfert enregistré", transfert_entree: "Transfert reçu", versement_banque: "Versement en banque enregistré", deblocage_credit: "Déblocage de crédit", remboursement_credit: "Remboursement de crédit enregistré" }[r.o.type];
@@ -286,7 +292,7 @@ export function Recu({ id, onNouveau }: { id: number; onNouveau: () => void }) {
       </details>
       <div className="rangee">
         <button type="button" className="bouton secondaire" onClick={() => imprimer(".fiche .a-imprimer")}>Imprimer</button>
-        <button type="button" className="bouton" onClick={onNouveau}>Nouvelle opération <Touche>Échap</Touche></button>
+        <button ref={nouvelle} type="button" className="bouton" onClick={onNouveau}>Nouvelle opération{echap && <> <Touche>Échap</Touche></>}</button>
       </div>
     </div>
   );

@@ -13,7 +13,8 @@ const VIDE = { jour: "", reference: "", libelle: "", auxiliaire: "", compte: "",
 export default function SaisieEcriture() {
   const { donnees: ctx } = useDonnees(() => api.operationsCompta.lire());
   const [choix, setChoix] = useState({ journal: "", periode: "" });
-  const [ecr, setEcr] = useState<Ecr | null>(null);   // null : « Choix du journal » ouvert
+  const [ecr, setEcr] = useState<Ecr | null>(null);   // null : pas encore de journal choisi
+  const [choixOuvert, setChoixOuvert] = useState(true);   // « Choix du journal » se ferme par sa croix (manuel p. 129 ; plan d'allègement, point 11.1)
   const [f, setF] = useState(VIDE);
   const [choisie, setChoisie] = useState<number | null>(null);
   const [fenetreAux, setFenetreAux] = useState(false);
@@ -24,14 +25,14 @@ export default function SaisieEcriture() {
   const intitule = ctx.comptes.find((c) => c.numero === f.compte.trim())?.libelle ?? "";
   const aux = ctx.auxiliaires.find((a) => String(a.id) === f.auxiliaire);
   const ligne = ctx.lignesBudget.find((l) => String(l.id) === f.ligneBudget);
-  const poser = (e: Ecr) => { setEcr(e); setChoisie(null); setF((x) => ({ ...x, jour: e.jour ? String(e.jour) : x.jour, reference: e.id ? e.reference : x.reference })); };
+  const poser = (e: Ecr) => { setEcr(e); setChoixOuvert(false); setChoisie(null); setF((x) => ({ ...x, jour: e.jour ? String(e.jour) : x.jour, reference: e.id ? e.reference : x.reference })); };
   async function ok() {
     setF(VIDE);   // avant la demande : la réponse ne doit pas effacer ce qui se tape pendant qu'elle arrive
     try { poser(await api.operationsCompta.ecritureOuvrir({ journalId: Number(choix.journal), periode: choix.periode })); }
     catch (x) { erreur(x); }
   }
   async function ajouter() {
-    if (!ecr) return;
+    if (!ecr) { setChoixOuvert(true); return; }
     try {
       const e = await api.operationsCompta.ecritureAjouter({ journalId: ecr.journalId, periode: ecr.periode, id: ecr.id, jour: f.jour.trim() ? Number(f.jour) : null, reference: f.reference,
         libelle: f.libelle, compte: f.compte.trim(), debit: f.debit.trim() ? lireMontant(f.debit) : null, credit: f.credit.trim() ? lireMontant(f.credit) : null,
@@ -55,7 +56,7 @@ export default function SaisieEcriture() {
         <div className="ligne-champ">
           <Champ libelle="Journal:">{(p) => <Lecture {...p} value={ecr?.journal ?? ""} />}</Champ>
           <Champ libelle="Période:">{(p) => <Lecture {...p} value={ecr?.periode ?? ""} />}</Champ>
-          <button className="bouton secondaire" type="button" aria-label="Choix du journal" title="Choix du journal" onClick={() => setEcr(null)}>↻</button>
+          <button className="bouton secondaire" type="button" aria-label="Choix du journal" title="Choix du journal" onClick={() => { setEcr(null); setChoixOuvert(true); }}>↻</button>
         </div>
         <div className="ligne-champ">
           <Champ libelle="Jour: *">{(p) => <input {...p} className="saisie code" inputMode="numeric" autoComplete="off" readOnly={!!ecr?.id} value={f.jour} onChange={(e) => maj({ jour: e.target.value })} />}</Champ>
@@ -101,13 +102,14 @@ export default function SaisieEcriture() {
           "Registre S109-1 à S109-7 : l'écriture équilibrée part au visa (S113), puis à la validation (S114) et à la comptabilisation (S111) ; comptes tenus par la gestion refusés (S109-4) ; compte ouvert et saisissable (S102-10)",
           "Instr. BCC 008, art. 66 : séparation des tâches entre saisie, visa et validation"]} />
       </section>
-      <Fiche titre="Choix du journal" ouverte={!ecr} fermer={() => { if (ecr) setEcr(ecr); }}>
+      <Fiche titre="Choix du journal" ouverte={!ecr && choixOuvert} fermer={() => setChoixOuvert(false)}>
         <div className="pile formulaire">
           <Champ libelle="Journal:">{(p) => <select {...p} className="saisie" value={choix.journal} onChange={(e) => setChoix({ ...choix, journal: e.target.value })}>
             <option value=""></option>{ctx.journaux.map((j) => <option key={j.id} value={j.id}>{j.libelle}</option>)}</select>}</Champ>
           <Champ libelle="Période:">{(p) => <select {...p} className="saisie" value={choix.periode} onChange={(e) => setChoix({ ...choix, periode: e.target.value })}>
             <option value=""></option>{ctx.periodes.map((x) => <option key={x} value={x}>{x}</option>)}</select>}</Champ>
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={ok}>OK</button></div>
+          <div className="actions-onglets"><button className="bouton" type="button" onClick={ok}>OK</button>
+            <button className="bouton secondaire" type="button" onClick={() => setChoixOuvert(false)}>Fermer</button></div>
         </div>
       </Fiche>
       <Fiche titre="Compte auxiliaire" ouverte={fenetreAux} fermer={() => setFenetreAux(false)}>
