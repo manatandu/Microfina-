@@ -2750,6 +2750,31 @@ def test_visa_validation_banque(clients, journee):
     assert (v["statut"], v["piece"]) == ("validee", "")
 
 
+def test_operations_en_attente(clients, journee):
+    """Plan d'allègement 7.1 : une file ; le nombre pour le menu ; Refuser avec motif, par une autre personne que celle qui a saisi (Instr. BCC 008, art. 66 ;
+    registre T138) ; l'opération refusée quitte la file et ne passe pas au grand livre"""
+    chef, compta, caisse = clients["chef"], clients["compta"], clients["caisse"]
+    ids = banque_usd(chef)
+    nombre = lambda c: c.get("/api/attente/nombre").json()["nombre"]
+    avant = nombre(chef)
+    o = compta.post("/api/banque/operations", {"cle": cle(), "date": "2026-11-05", "type": "encaissement", "compteBancaireId": ids["R-USD-1"], "compte": "72700000",
+                                               "libelle": "Commission", "montant": 50000}, **H).json()
+    assert nombre(chef) == avant + 1 and nombre(caisse) == 0
+    R = "/api/attente/refus"
+    def refus(c, corps):
+        r = c.post(R, corps, **H); assert r.status_code in (403, 422), r.content; return r.json()["message"]
+    assert "motif" in refus(chef, {"source": "banque", "id": o["id"], "motif": " "})
+    assert "Quatre yeux" in refus(compta, {"source": "banque", "id": o["id"], "motif": "Pièce absente"})
+    assert "Droit manquant" in refus(caisse, {"source": "banque", "id": o["id"], "motif": "Pièce absente"})
+    assert "inconnue" in refus(chef, {"source": "autre", "id": o["id"], "motif": "x"})
+    r = chef.post(R, {"source": "banque", "id": o["id"], "motif": "Pièce justificative absente"}, **H)
+    assert r.status_code == 200 and r.json()["statut"] == "refusee", r.content
+    assert ident("select statut from operation_banque where id = %s", (o["id"],)) == "refusee"
+    assert ident("select motif || ' ' || etape from motif_refus where source = 'banque' and objet_id = %s", (o["id"],)) == "Pièce justificative absente visa"
+    assert nombre(chef) == avant and "Rien à refuser" in refus(chef, {"source": "banque", "id": o["id"], "motif": "encore"})
+    assert o["id"] not in [x["id"] for x in compta.get("/api/banque/visas?etape=visa&liste=enc_dec").json()]
+
+
 def test_cheques_clients(clients, journee):
     """S59 (manuel p. 68 et 69) : dépôt, encaissement par une autre personne, retour, historique (registre S59-1 à S59-5)"""
     chef, compta, agent = clients["chef"], clients["compta"], clients["agent"]

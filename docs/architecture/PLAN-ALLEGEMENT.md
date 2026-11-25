@@ -466,7 +466,7 @@ Demande du porteur, 25/11/2026, après l'audit fait avec le skill « modern-web-
 
 ## Lot 12. Disposition des écrans
 
-Demande du porteur, 25/11/2026 : après la refonte visuelle (11.7), qui n'a changé que l'aspect, la disposition des écrans change aussi ; le porteur donne son accord écran par écran, sur maquette, avant toute construction (registre T188). Le cadre de l'application (barre du haut, accès rapide, barre d'état) ne change pas. Maquettes dans `docs/design/maquettes/disposition-*.html`, jetons et composants du système de design seulement.
+Demande du porteur, 25/11/2026 : après la refonte visuelle (11.7), qui n'a changé que l'aspect, la disposition des écrans change aussi ; le porteur donne son accord écran par écran, sur maquette, avant toute construction (registre T188). Le cadre de l'application (barre du haut, accès rapide, barre d'état) ne change pas. Maquettes dans `docs/design/maquettes/disposition-*.html`, jetons et composants du système de design seulement. Réponse du porteur, 25/11/2026 : « Je n'aime pas aussi cette disposition, mais on y reviendra plus tard » ; les quatre maquettes ne sont pas retenues, le lot est repris avec lui plus tard.
 
 **12.1 Guichet (S74).** La disposition de DESIGN § 4 : le membre à gauche (recherche, photo et signature d'office, ses comptes à choisir avec solde, bloqué et disponible, ses crédits avec leur retard), le bordereau au centre (compte choisi, montant en grand, en lettres juste dessous, versé par le titulaire ou un tiers, motif, solde après l'opération, étapes cochées, bouton Enregistrer), le billetage à droite (total, écart, caisse après l'opération). Les touches F2, F4, F9 et Échap sous l'écran. Le bouton Photo et le cadre « Info compte » disparaissent : leur contenu est affiché d'office.
 
@@ -500,7 +500,6 @@ Elles se posent au début du lot concerné. Aucune n'a de réponse dans les text
 - 9.4 Liaison du budget aux opérations : la brancher ou la supprimer ?
 - 9.5 Calcul de la paie : à construire, ou le module reste-t-il fiche du personnel et retenues ?
 - 10.4 Le fonds de solidarité est-il rendu au membre à la fin du prêt (compte de dépôt du membre), ou mis en commun pour couvrir les impayés du groupe ?
-- 12.1 à 12.4 Accord sur les maquettes de disposition : guichet, nouveau membre, portefeuille de crédits, plan des comptes ?
 
 ## Textes à lire avant d'agir
 

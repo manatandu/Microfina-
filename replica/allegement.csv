@@ -132,7 +132,7 @@ id,lot,titre,ecrans,statut,question,reste
 10.4,10,Fonds de solidarité et épargne obligatoire,S75 S102,fait,,
 10.5,10,Un compte pour chaque opération,S102,fait,,
 10.6,10,Statut « Bloqué » et export du plan,S102 S109,fait,,
-7.1,7,Opérations en attente,S57 S113 S114,à faire,,
+7.1,7,Opérations en attente,S57 S113 S114,fait,,
 7.2,7,"Même nature, même contrôle",,à faire,,
 7.3,7,Virement et prélèvement sur compte client,S53 S116,à faire,,
 7.4,7,Encaissements et décaissements divers,S52 S78 S116,à faire,,
@@ -172,7 +172,7 @@ id,lot,titre,ecrans,statut,question,reste
 11.5,11,Vitesse et application installable,Application,partiel,,"Fait : paquet de départ à 144 Ko compressés, contrôlé à chaque construction ; application installable (manifeste, service worker des seuls fichiers statiques) ; délai maximal des appels. Reste : préchargement du module ouvert en priorité basse, relecture ciblée après une opération, arbre des lieux en fichier statique, annulation des appels d'un écran quitté, grand livre sans ralentissement."
 11.6,11,Sécurité dans le navigateur,"Application, serveur",partiel,,Fait : impression sans document.write ; Trusted Types imposés aux essais et observés en production (rapports reçus) ; Clear-Site-Data à la déconnexion avec message ; Fetch Metadata au serveur. Reste : imposer Trusted Types en production après la période d'observation.
 11.7,11,Refonte visuelle,Tous les écrans,fait,,
-12.1,12,Guichet,S74,à faire,oui,
-12.2,12,Nouveau membre,S37,à faire,oui,
-12.3,12,Portefeuille de crédits,S93,à faire,oui,
-12.4,12,Plan des comptes,S102,à faire,oui,
+12.1,12,Guichet,S74,à faire,,Maquette du 25/11/2026 non retenue par le porteur (« je n'aime pas cette disposition ») ; à reprendre avec lui plus tard.
+12.2,12,Nouveau membre,S37,à faire,,Maquette du 25/11/2026 non retenue par le porteur (« je n'aime pas cette disposition ») ; à reprendre avec lui plus tard.
+12.3,12,Portefeuille de crédits,S93,à faire,,Maquette du 25/11/2026 non retenue par le porteur (« je n'aime pas cette disposition ») ; à reprendre avec lui plus tard.
+12.4,12,Plan des comptes,S102,à faire,,Maquette du 25/11/2026 non retenue par le porteur (« je n'aime pas cette disposition ») ; à reprendre avec lui plus tard.

@@ -1210,6 +1210,14 @@ describe("journée de guichet", () => {
     const ok = await api.banqueOperations.suivre(enc.id, "validation");
     expect([ok.statut, ok.piece]).toEqual(["validee", ""]);   // le numéro de pièce vient à la comptabilisation (S111)
     expect(await api.banqueOperations.visas("validation", "enc_dec")).toEqual([]);
+    // Plan d'allègement 7.1 : Refuser avec motif, par une autre personne que celle qui a saisi ; le nombre en attente pour le menu
+    await connecter("jpmukendi");
+    const avant = (await api.attente.nombre()).nombre;
+    await expect(api.attente.refuser({ source: "banque", id: vir.id, motif: " " })).rejects.toThrow("motif");
+    expect((await api.attente.refuser({ source: "banque", id: vir.id, motif: "Pièce absente" })).statut).toBe("refusee");
+    expect((await api.attente.nombre()).nombre).toBe(avant - 1);
+    await expect(api.attente.refuser({ source: "banque", id: vir.id, motif: "encore" })).rejects.toThrow("Rien à refuser");
+    expect(await api.banqueOperations.visas("visa", "virement")).toEqual([]);
   });
 
   it("chèques clients (S59) : dépôt, encaissement, retour, historique (registre S59-1 à S59-4)", async () => {

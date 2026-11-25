@@ -2256,7 +2256,8 @@ def retraits_plafond(u: dict) -> list[dict]:
     (registre S08-5)."""
     exiger(u)
     return [{"id": r["id"], "date": r["date_comptable"].isoformat(), "libelle": f"Retrait espèces {r['compte']}", "montant": r["montant"],
-             "devise": r["devise"].strip(), "membre": titulaire(r["tiers_id"]), "numeroMembre": r["numero"], "compte": r["compte"], "saisiPar": r["saisi_par"]}
+             "devise": r["devise"].strip(), "membre": titulaire(r["tiers_id"]), "numeroMembre": r["numero"], "compte": r["compte"], "saisiPar": r["saisi_par"],
+             "saisiParNom": nom_utilisateur(r["saisi_par"])}
             for r in lignes("""select o.*, j.date_comptable, c.numero as compte, t.numero from operation o join journee_comptable j on j.id = o.journee_id
                                join compte_depot c on 'depot:' || c.id = o.contrat_ref join tiers t on t.id = o.tiers_id
                                where o.institution_id = %s and o.type = 'retrait' and o.statut = 'saisie' order by o.id""", (u["institution_id"],))]

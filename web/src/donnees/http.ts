@@ -541,6 +541,10 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       apercu: (tiersId: number, produitId: number) => get(`/epargne/comptes/apercu?tiersId=${tiersId}&produitId=${produitId}`),
       ouvrir: (d: object) => post("/epargne/comptes", d),
     },
+    attente: {   // plan d'allègement 7.1
+      refuser: (d: object) => post("/attente/refus", d),
+      nombre: () => get("/attente/nombre"),
+    },
     emprunts: {
       mettreEnPlace: (d: object) => post("/banque/emprunts", d),
       lire: (numero: number) => get(`/banque/emprunts?numero=${numero}`),

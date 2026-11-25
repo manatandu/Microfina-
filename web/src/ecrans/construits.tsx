@@ -6,7 +6,7 @@ import { lazy, type ComponentType } from "react";
 const paresseux = (charger: () => Promise<any>, nom: string): ComponentType => lazy(() => charger().then((m) => ({ default: m[nom] as ComponentType })));
 
 const FICHIERS: (() => Promise<unknown>)[] = [
-  () => import("./VisasCompta"),
+  () => import("./OperationsEnAttente"),
   () => import("./SaisieEcriture"),
   () => import("./JournauxComptables"),
   () => import("./AutresOperations"),
@@ -20,7 +20,6 @@ const FICHIERS: (() => Promise<unknown>)[] = [
   () => import("./FinPeriode"),
   () => import("./Paie"),
   () => import("./Immobilisations"),
-  () => import("./VisaBanque"),
   () => import("./ChequesClients"),
   () => import("./Chequiers"),
   () => import("./Emprunts"),
@@ -114,8 +113,7 @@ export function prechargerEcrans() {
   // Trois secondes de répit : l'écran demandé d'abord, le reste ensuite, trois fichiers à la fois
   setTimeout(() => { for (let i = 0; i < 3; i++) attendre(suivant); }, 3000);
 }
-const ValidationsComptables = paresseux(() => import("./VisasCompta"), "ValidationsComptables");
-const VisasComptables = paresseux(() => import("./VisasCompta"), "VisasComptables");
+const OperationsEnAttente = paresseux(() => import("./OperationsEnAttente"), "default");   // plan d'allègement 7.1 : S57, S113 et S114 mènent à la même file
 const SaisieEcriture = paresseux(() => import("./SaisieEcriture"), "default");
 const JournauxComptables = paresseux(() => import("./JournauxComptables"), "default");
 const AutresOperations = paresseux(() => import("./AutresOperations"), "default");
@@ -149,7 +147,6 @@ const DonneesBaseImmo = paresseux(() => import("./Immobilisations"), "DonneesBas
 const MouvementsBiens = paresseux(() => import("./Immobilisations"), "MouvementsBiens");
 const RapportsImmo = paresseux(() => import("./Immobilisations"), "RapportsImmo");
 const TraitementsBiens = paresseux(() => import("./Immobilisations"), "TraitementsBiens");
-const VisaBanque = paresseux(() => import("./VisaBanque"), "default");
 const ChequesClients = paresseux(() => import("./ChequesClients"), "ChequesClients");
 const Chequiers = paresseux(() => import("./Chequiers"), "Chequiers");
 const Emprunts = paresseux(() => import("./Emprunts"), "Emprunts");
@@ -294,7 +291,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S54: Deblocage,
   S55: Remboursement,
   S56: AdhesionBanque,
-  S57: VisaBanque,
+  S57: OperationsEnAttente,
   S58: CreationBanque,
   S59: ChequesClients,
   S60: Chequiers,
@@ -384,8 +381,8 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S140: RapportsImmo,
   S142: AnnulationReglement,
   S143: Tresorerie,
-  S113: VisasComptables,
-  S114: ValidationsComptables,
+  S113: OperationsEnAttente,
+  S114: OperationsEnAttente,
   S115: JournauxComptables,
   S116: AutresOperations,
   S117: VirementsMensuels,

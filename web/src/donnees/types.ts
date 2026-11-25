@@ -218,16 +218,16 @@ export interface CommandeFournisseur {
   id: number; cle: string; numero: string; typeCommandeId: number; fournisseurId: number; libelle: string; date: string;
   lignes: { compte: string; intitule: string; designation: string; unite: string; quantite: string; prixUnitaire: number; ht: number; tva: number; retenueTaxeId: number | null;
     retenueLibelle: string; retenueTaux: string; retenue: number; typeBudgetId: number | null; ligneBudgetId: number | null }[];
-  tranches: { date: string; montant: number; taux: string }[]; ht: number; tva: number; ttc: number; statut: "saisie" | "validee"; saisiPar: number; validePar?: number;
+  tranches: { date: string; montant: number; taux: string }[]; ht: number; tva: number; ttc: number; statut: "saisie" | "validee" | "refusee"; saisiPar: number; validePar?: number;
 }
 export interface FactureFournisseur {
   id: number; cle: string; numero: string; commandeId: number | null; tranche: number | null; fournisseurId: number; typeFacture: string; reference: string; date: string; echeance: string;
   libelle: string; ht: number; tva: number; ttc: number; charges: ChargeFacture[]; imputation: { compte: string; montant: number; ligneBudgetId?: number | null }[]; du: number; aPayer: number; aJour: boolean; nif: boolean;
-  statut: "saisie" | "visee" | "validee" | "comptabilisee" | "annulee"; saisiPar: number; visePar?: number; validePar?: number; dateValidation?: string; piece: string; ecritureId?: number;
+  statut: "saisie" | "visee" | "validee" | "comptabilisee" | "annulee" | "refusee"; saisiPar: number; visePar?: number; validePar?: number; dateValidation?: string; piece: string; ecritureId?: number;
 }
 export interface ReglementFournisseur {
   id: number; cle: string; factureId: number; montant: number; date: string; mode: "CHEQUE" | "ESPECE" | "PRELEVEMENT" | "VIREMENT"; charges: ChargeFacture[]; aPayer: number;
-  observations: string; statut: "saisie" | "visee" | "validee" | "comptabilisee" | "payee"; cheque?: string; compteBancaireId?: number; dateEmission?: string;
+  observations: string; statut: "saisie" | "visee" | "validee" | "comptabilisee" | "payee" | "refusee"; cheque?: string; compteBancaireId?: number; dateEmission?: string;
   saisiPar: number; visePar?: number; validePar?: number; dateValidation?: string; piece: string; ecritureId?: number; operationId?: number;
 }
 /** S109, S116, S117 : opération saisie en comptabilité, visée (S113), validée (S114), puis comptabilisée (S111) ou payée en caisse (S82) */
@@ -235,7 +235,7 @@ export interface LigneOc { rang?: number; compte?: string; intitule?: string; li
   typeBudgetId?: number | null; ligneBudgetId?: number | null; compteDepotId?: number; numero?: string; client?: string }
 export interface OperationCompta {
   id: number; cle: string; type: "ecriture" | "virement" | "prelevement" | "compte_a_compte" | "tontine_dav" | "diverse" | "deplacee" | "domiciliation" | "prelevement_auto" | "salaire_personnel";
-  statut: "brouillon" | "saisie" | "visee" | "validee" | "comptabilisee" | "payee"; date: string; journalId: number | null; periode: string; reference: string; libelle: string;
+  statut: "brouillon" | "saisie" | "visee" | "validee" | "comptabilisee" | "payee" | "refusee"; date: string; journalId: number | null; periode: string; reference: string; libelle: string;
   montant: number; devise: Devise; sens: "" | "ENCAISSEMENT" | "DECAISSEMENT" | "DEPOT" | "RETRAIT"; lignes: LigneOc[];
   compteDepotId: number | null; compteDepotDestId: number | null; agenceClientId: number | null; numeroClient: string; nomClient: string;
   donneurOrdre?: DonneurOrdre | null; beneficiaire?: BeneficiaireVirement | null;   // A12
@@ -355,7 +355,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 84;
+  version: 85;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -424,7 +424,8 @@ export interface Etat {
   visasCredit: VisaCredit[];   // S90
   declarationsRisque: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // E26, Instr. BCC 05
   reversementsRetenues: ReversementRetenue[];   // écart E16
-  reversementsTaxes: (ReversementRetenue & { taxeId: number })[];   // plan d'allègement 7.10 : déclaration ou quittance d'une taxe du mois (S108)
+  reversementsTaxes: (ReversementRetenue & { taxeId: number })[];
+  motifsRefus: { source: string; objetId: number; etape: "visa" | "validation"; motif: string; refusePar: number; refuseLe: string }[];   // plan d'allègement 7.1   // plan d'allègement 7.10 : déclaration ou quittance d'une taxe du mois (S108)
   journalSecurite: EvenementSecurite[];   // écart E17
   declarationsCip: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // écart E06   // S46, S42, S43
   banques: { id: number; code: string; libelle: string; compteLiaison: string; adresse: string }[];   // S58

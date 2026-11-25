@@ -36,7 +36,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 84) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 85) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return miseEnService(graine());
@@ -6370,7 +6370,8 @@ const operations = {
     return E.operations.filter((o) => o.type === "retrait" && o.statut === "visa_requis").map((o) => {
       const c = E.comptes.find((x) => x.id === o.compteId)!, t = E.tiers.find((x) => x.id === o.tiersId)!;
       const j = E.journees.find((x) => E.sessions.some((s) => s.id === o.sessionId && s.journeeId === x.id));
-      return { id: o.id, date: j?.date ?? "", libelle: `Retrait espèces ${c.numero}`, montant: o.montant, devise: o.devise, membre: titulaire(t), numeroMembre: t.numero, compte: c.numero, saisiPar: o.saisiPar };
+      return { id: o.id, date: j?.date ?? "", libelle: `Retrait espèces ${c.numero}`, montant: o.montant, devise: o.devise, membre: titulaire(t), numeroMembre: t.numero, compte: c.numero, saisiPar: o.saisiPar,
+        saisiParNom: nomUtilisateur(o.saisiPar) };
     });
   },
   /** Ce que le reçu imprime : l'opération, sa pièce, le membre, le compte */
@@ -10712,6 +10713,50 @@ const droits = {
   },
 };
 
+// ---------- Plan d'allègement 7.1 : Opérations en attente (refus avec motif ; nombre pour le menu). Mêmes règles que noyau/attente.py ----------
+// Trois personnes distinctes : celui qui saisit ne vise ni ne valide, ni ne refuse ; celui qui a visé ne valide pas (Instr. BCC 008, art. 66 ; registre T138)
+type ObjetAttente = { statut: string; saisiPar: number; visePar?: number; type?: string };
+function etapeAttente(source: string, o: ObjetAttente): "visa" | "validation" | null {
+  if (source === "commande") return o.statut === "saisie" ? "validation" : null;
+  if (source === "retrait") return o.statut === "visa_requis" ? "visa" : null;
+  if (o.statut === "saisie") return "visa";
+  if (o.statut === "visee" && !(source === "compta" && (CAISSE_OC as readonly string[]).includes(o.type ?? ""))) return "validation";
+  return null;
+}
+const DROITS_ATTENTE: Record<string, [string | null, string | null]> = { banque: ["S57", "S57"], compta: ["S113", "S114"], facture: ["S113", "S114"], reglement: ["S113", "S114"],
+  commande: [null, "S114"], retrait: ["S113", null] };
+const attente = {
+  refuser(d: { source: string; id: number; motif: string }) {
+    const u = exiger(), motif = (d.motif ?? "").trim();
+    const listes: Record<string, ObjetAttente[]> = { banque: E.operationsBanque, compta: E.operationsCompta, facture: E.facturesFournisseurs, reglement: E.reglementsFournisseurs,
+      commande: E.commandesFournisseurs, retrait: E.operations as unknown as ObjetAttente[] };
+    if (!listes[d.source]) throw new ErreurMetier("Opération inconnue.");
+    const o = (listes[d.source] as (ObjetAttente & { id: number })[]).find((x) => x.id === d.id), etape = o ? etapeAttente(d.source, o) : null;
+    if (!o || !etape) throw new ErreurMetier("Rien à refuser.");
+    const droit = DROITS_ATTENTE[d.source]![etape === "visa" ? 0 : 1];
+    if (!droit || !droitsDe(u).includes(droit)) throw new ErreurMetier("Droit manquant : Opérations en attente (Administration > Profil > Assigner droit).");
+    if (!motif) throw new ErreurMetier("À remplir : motif du refus.");
+    if (o.saisiPar === u.id) throw new ErreurMetier("Quatre yeux : pas de refus sur sa propre saisie.");
+    if (etape === "validation" && o.visePar === u.id) throw new ErreurMetier("Quatre yeux : la validation, ou son refus, vient d'une autre personne que celle qui a visé.");
+    if (d.source === "retrait") E.operations.splice(E.operations.indexOf(o as unknown as Operation), 1);   // comme operations.refuser
+    else o.statut = "refusee";
+    E.motifsRefus.push({ source: d.source, objetId: d.id, etape, motif, refusePar: u.id, refuseLe: new Date().toISOString() });
+    enregistrer(); return { source: d.source, id: d.id, statut: "refusee", motif };
+  },
+  /** Le nombre d'opérations en attente que l'utilisateur peut viser ou valider, pour l'entrée du menu. Comme attente.nombre */
+  nombre() {
+    const u = exiger(), dr = droitsDe(u);
+    let n = 0;
+    if (dr.includes("S57")) n += E.operationsBanque.filter((o) => o.statut === "saisie" || o.statut === "visee").length;
+    if (dr.includes("S113")) n += E.operationsCompta.filter((o) => o.statut === "saisie").length + E.facturesFournisseurs.filter((o) => o.statut === "saisie").length
+      + E.reglementsFournisseurs.filter((o) => o.statut === "saisie").length + E.operations.filter((o) => o.type === "retrait" && o.statut === "visa_requis").length;
+    if (dr.includes("S114")) n += E.operationsCompta.filter((o) => o.statut === "visee" && !(CAISSE_OC as readonly string[]).includes(o.type)).length
+      + E.facturesFournisseurs.filter((o) => o.statut === "visee").length + E.reglementsFournisseurs.filter((o) => o.statut === "visee").length
+      + E.commandesFournisseurs.filter((o) => o.statut === "saisie").length;
+    return { nombre: n };
+  },
+};
+
 // ---------- Administration > Utilisateur > Création (S05, manuel p. 16 et 17). Règles identiques côté serveur (noyau/comptes_utilisateurs.py). ----------
 export type SaisieUtilisateur = { nom?: string; agenceId?: number | null; login?: string; motDePasse?: string; confirmation?: string; controleConnecte?: boolean;
   rue?: string; adresse?: string; bp?: string; telephoneFixe?: string; portable?: string; email?: string };
@@ -10965,6 +11010,7 @@ const construireLocale = () => ({
   registreMembres: asynchrone(registreMembres, "registreMembres"),
   conditionsBanque: asynchrone(conditionsBanque, "conditionsBanque"),
   retenues: asynchrone(retenues, "retenues"),
+  attente: asynchrone(attente, "attente"),
   journalSecurite: asynchrone(journalSecurite, "journalSecurite"),
   plaintes: asynchrone(plaintes, "plaintes"),
   banques: asynchrone(banques, "banques"),

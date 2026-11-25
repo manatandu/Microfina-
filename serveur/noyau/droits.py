@@ -75,6 +75,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/epargne/inactifs/\d+/lettre", ["SE01"]),
     (r"/comptabilite/retenues/reversements", ["SF01"]),
     (r"/comptabilite/declaration-taxes/reversements", ["S108"]),   # plan d'allègement 7.10
+    (r"/attente/refus", ["S57", "S113", "S114"]),   # plan d'allègement 7.1 : le droit de l'étape est vérifié dans attente.refuser
     (r"/conformite/cip/declarations", ["SC02"]),
     (r"/conformite/cip/icu/\d+", ["S46"]),   # l'ICU se note dans la fiche du membre (plan 3.16)
     (r"/conformite/centrale-risques/declarations", ["SC02"]),

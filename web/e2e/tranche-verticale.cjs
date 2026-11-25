@@ -842,10 +842,11 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   const visa = p.getByRole('dialog', { name: 'Succès' }); await visa.getByText(/attend le visa/).waitFor(); await etape('11a-retrait-en-attente');   // reste jusqu'à « Ok » (plan 11.3)
   await visa.getByRole('button', { name: 'Ok' }).click();
-  await login('Patrick Lumbala'); await aller('/comptabilite/s113'); await p.getByRole('tab', { name: 'Retrait plafond' }).click();
-  await p.getByRole('cell', { name: '0412-000318-01', exact: true }).waitFor(); await etape('11b-viser-retrait-plafonne');
-  await p.getByRole('button', { name: /^Viser Retrait espèces/ }).click(); await ok();
-  await p.getByRole('cell', { name: 'Aucune information' }).waitFor();
+  // Plan d'allègement 7.1 : le retrait au-delà du plafond se vise dans la file « Opérations en attente »
+  await login('Patrick Lumbala'); await aller('/comptabilite/s113'); const rpl = p.getByRole('row').filter({ hasText: 'Retrait au-delà du plafond' });
+  await rpl.getByRole('cell', { name: '0412-000318-01', exact: true }).waitFor(); await etape('11b-viser-retrait-plafonne');
+  await rpl.getByRole('button', { name: /^Viser Retrait au-delà/ }).click(); await ok();
+  await rpl.waitFor({ state: 'detached' });
   await login('Esther Ngalula'); await aller('/caisse/s74?op=retrait'); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-01' });
   await p.getByLabel('Montant *').fill('1 500'); await p.getByLabel('Motif:').fill('Loyer');
   await p.getByLabel('Remis à').selectOption({ label: 'Kasongo Albert : Passeport OB77' });   // E2 : procuration en cours
@@ -862,11 +863,14 @@ const OUT = process.argv[2];
   await p.getByLabel('N° compte épargne :').waitFor(); await etape('06c8-adhesion-banque');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   // Visa et validation (S57) : l'adhésion saisie attend son visa ; sa propre saisie ne se vise pas (quatre yeux)
-  await aller('/banque/s57'); await p.getByRole('heading', { name: 'Viser Encaissement Décaissement' }).waitFor();
-  await p.getByRole('button', { name: /^Viser/ }).first().click(); await p.getByRole('button', { name: 'Oui' }).click();
+  // Plan d'allègement 7.1 : une file « Opérations en attente » au lieu des huit listes de S57 ; sa propre saisie ne se vise ni ne se refuse
+  await aller('/banque/s57'); await p.getByRole('heading', { name: 'Opérations en attente : banque' }).waitFor();
+  await p.getByRole('button', { name: /^Viser / }).first().click(); await p.getByRole('button', { name: 'Oui' }).click();
   await p.getByRole('dialog', { name: 'Erreur' }).getByText('Quatre yeux').waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); await etape('06c9-visa-banque');
-  await p.getByRole('tab', { name: 'Validation' }).click(); await p.getByRole('heading', { name: 'Validation Encaissement Décaissement' }).waitFor();
-  await p.getByRole('tab', { name: 'Virement / Prélèvement' }).click(); await p.getByRole('heading', { name: 'Validation prélèvement virement' }).waitFor(); await etape('06c10-validation-banque');
+  await p.getByRole('button', { name: /^Refuser / }).first().click(); const mref = p.getByRole('dialog', { name: /^Refuser/ }); await mref.getByLabel('Motif du refus : *').fill('Essai');
+  await mref.getByRole('button', { name: 'Refuser' }).click(); await p.getByRole('dialog', { name: 'Erreur' }).getByText('Quatre yeux').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  await mref.getByRole('button', { name: 'Annuler' }).click();
+  await p.getByLabel('Étape').selectOption('validation'); await etape('06c10-validation-banque');
   // Chèque client (S59) : dépôt de Kalala, encaissement, historique
   await aller('/banque/s59'); await p.getByRole('heading', { name: 'Enregistrement Dépôt de Chèque' }).waitFor();
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
@@ -1092,10 +1096,10 @@ const OUT = process.argv[2];
   await aller('/comptabilite/s117'); await p.getByRole('heading', { name: 'Virement de salaire' }).waitFor(); await etape('14n-virement-salaire');
   // Chef d'agence : visa de l'écriture et de l'opération diverse (S113, p. 130 à 132) ; il n'a pas saisi (Instr. BCC 008, art. 66)
   await login('J.-P. Mukendi'); await aller('/comptabilite/s113');
-  await p.getByRole('tab', { name: 'Écritures comptables' }).click(); await p.getByRole('row').filter({ hasText: 'Honoraires' }).click();
-  await p.getByRole('dialog', { name: 'Ecriture à viser' }).getByRole('button', { name: 'Visa' }).click(); await oui(); await etape('14o-visa-ecriture');
-  await p.getByRole('tab', { name: 'Opérations diverses et déplacées' }).click(); await p.getByRole('button', { name: "Visa Prime d'assurance" }).click(); await oui(); await etape('14p-visa-diverse');
-  await aller('/comptabilite/s114'); await p.getByRole('heading', { name: 'Validation', exact: true }).waitFor(); await etape('14p2-validation');
+  await p.getByRole('button', { name: /^Détail Écriture comptable .*Honoraires/ }).click();
+  await p.getByRole('dialog', { name: /^Ecriture/ }).getByRole('button', { name: 'Viser' }).click(); await oui(); await etape('14o-visa-ecriture');
+  await p.getByRole('button', { name: /^Viser Opération diverse .*Prime d'assurance/ }).click(); await oui(); await etape('14p-visa-diverse');
+  await aller('/comptabilite/s114'); await p.getByRole('heading', { name: 'Opérations en attente : validation' }).waitFor(); await etape('14p2-validation');
   // Caissière : validation en caisse de l'opération diverse, avec son billetage (S82, p. 93 et 94)
   await login('Esther Ngalula'); await aller('/caisse/s82'); await p.getByRole('row').filter({ hasText: "Prime d'assurance" }).click();
   const vd = p.getByRole('dialog', { name: 'Opération diverse' });
@@ -1226,9 +1230,9 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: 'Retenues sur intérêts' }).click(); await p.getByRole('article', { name: 'État des retenues du mois' }).waitFor();
   if (await p.getByLabel('Année').count()) throw new Error('S108 : le mois se choisit deux fois'); await etape('23f2-retenues-du-mois');
   // Chef : visa de la facture (S113) ; la validation (S114) revient à une troisième personne (Instr. BCC 008, art. 66)
-  await login('J.-P. Mukendi'); await aller('/comptabilite/s113'); await p.getByRole('tab', { name: 'Facture' }).click();
-  await p.getByRole('button', { name: 'Visa F-2026-001' }).click(); await oui(); await etape('23g-visa-facture');
-  await aller('/comptabilite/s114'); await p.getByRole('tab', { name: 'Facture' }).click(); await p.getByRole('button', { name: 'Valider F-2026-001' }).click();
+  await login('J.-P. Mukendi'); await aller('/comptabilite/s113');
+  await p.getByRole('button', { name: /^Viser Facture fournisseur F-2026-001/ }).click(); await oui(); await etape('23g-visa-facture');
+  await p.getByRole('button', { name: /^Valider Facture fournisseur F-2026-001/ }).click();
   await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Erreur' }).getByText(/Quatre yeux/).waitFor(); await etape('23h-validation-quatre-yeux');
   await p.getByRole('button', { name: 'Ok' }).click();
   // Un écran sans droit ne s'ouvre pas, même par son adresse (registre T07) : le chef n'a pas les transferts de fonds

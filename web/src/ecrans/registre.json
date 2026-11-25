@@ -476,12 +476,13 @@
   },
   {
     "id": "S57",
-    "nom": "Visa et validation des opérations de banque",
-    "acces": "Banque > Visa ; Validation",
+    "nom": "Opérations en attente : banque",
+    "acces": "Comptabilité > Contrôle > Opérations en attente > Banque",
     "but": "Deux étapes pour chaque type d'opération de banque",
     "module": "banque",
     "priorite": "must",
-    "chemin": "/banque/s57"
+    "chemin": "/banque/s57",
+    "menu": false
   },
   {
     "id": "S58",
@@ -1006,21 +1007,22 @@
   },
   {
     "id": "S113",
-    "nom": "Visas comptables",
-    "acces": "Comptabilité > Contrôle > Visa",
-    "but": "Viser virements, retraits au-delà du plafond, opérations diverses et déplacées, écritures, factures, règlements, virements de compte à compte",
+    "nom": "Opérations en attente",
+    "acces": "Comptabilité > Contrôle > Opérations en attente",
+    "but": "Viser, valider ou refuser avec motif les opérations de banque et de comptabilité, factures, règlements, commandes et retraits au-delà du plafond",
     "module": "comptabilite",
     "priorite": "must",
     "chemin": "/comptabilite/s113"
   },
   {
     "id": "S114",
-    "nom": "Validations comptables",
-    "acces": "Comptabilité > Contrôle > Validation",
+    "nom": "Opérations en attente : validation",
+    "acces": "Comptabilité > Contrôle > Opérations en attente > Validation",
     "but": "Valider les mêmes opérations après visa",
     "module": "comptabilite",
     "priorite": "must",
-    "chemin": "/comptabilite/s114"
+    "chemin": "/comptabilite/s114",
+    "menu": false
   },
   {
     "id": "S111",

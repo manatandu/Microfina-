@@ -966,6 +966,19 @@ def operation_recu(request, oid: int):
     return s.recu(oid)
 
 
+# ---------- Plan d'allègement 7.1 : Opérations en attente (refus avec motif, nombre pour le menu) ----------
+@api.post("/attente/refus")
+def attente_refuser(request, corps: dict = Body(...)):
+    from . import attente
+    return attente.refuser(u(request), corps)
+
+
+@api.get("/attente/nombre")
+def attente_nombre(request):
+    from . import attente
+    return {"nombre": attente.nombre(u(request))}
+
+
 @api.get("/visas/retraits-plafond")
 def visas_retraits_plafond(request):
     return s.retraits_plafond(u(request))

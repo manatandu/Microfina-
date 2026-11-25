@@ -742,4 +742,8 @@ select.saisie { max-width: 100%; }
 .lien-evitement:focus { position: fixed; top: var(--espace-2); left: var(--espace-2); z-index: 100; padding: var(--espace-2) var(--espace-3);
   background: var(--feuille); color: var(--tampon); border: 2px solid var(--tampon); border-radius: var(--rayon-champ); font-weight: 600; }
 #titre-ecran:focus, #contenu:focus { outline: none; }   /* cibles du focus après navigation, pas des contrôles */
+/* Plan d'allègement 7.1 : le nombre d'opérations en attente, à côté de l'entrée du menu */
+.compteur { display: inline-block; min-width: 1.25rem; margin-left: var(--espace-2); padding: 0 var(--espace-1); border-radius: var(--rayon-rond); background: var(--tampon); color: var(--sur-tampon);
+  font: 600 var(--taille-dense)/1.4 var(--police-chiffres); text-align: center; font-variant-numeric: tabular-nums; }
+[aria-current="page"] .compteur, .actif .compteur { background: var(--sur-tampon); color: var(--tampon); }
 }

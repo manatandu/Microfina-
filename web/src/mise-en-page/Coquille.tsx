@@ -1,7 +1,7 @@
 // Cadre d'un module, sur le modèle de la « page du menu général » de Microfina++ (manuel, p. 13 et 14) :
 // barre de menus horizontale, menus d'accès rapide à gauche, zone de travail, bas de page
 // (serveur, base de données, journée ouverte, utilisateur), menus complémentaires langue, aide, déconnexion.
-import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, Suspense, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { api, SUR_SERVEUR } from "../donnees/api";
 import { useDonnees } from "../lib/useDonnees";
@@ -15,6 +15,13 @@ import { Marque } from "./Marque";
 import { MessageSucces, useSourcesEcran } from "../composants";
 import { choisirLangue, langue } from "../lib/langue";
 import { reglesAide } from "../lib/aide";
+
+const NombreAttente = createContext(0);
+/** Le nom d'un écran au menu ; « Opérations en attente » porte le nombre en attente (plan d'allègement 7.1) */
+function NomEcran({ id, nom }: { id: string; nom: string }) {
+  const n = useContext(NombreAttente);
+  return <>{nom}{id === "S113" && n > 0 && <span className="compteur" aria-label={`, ${n} en attente`}>{n}</span>}</>;
+}
 
 export function Coquille() {
   const nav = useNavigate();
@@ -41,6 +48,9 @@ export function Coquille() {
   });
   const connecte = !!donnees?.u;
   useEffect(() => { if (connecte) prechargerEcrans(); }, [connecte]);   // les autres écrans se chargent en fond : le clic suivant ne les attend pas
+  // Plan d'allègement 7.1 : l'entrée « Opérations en attente » porte le nombre d'opérations que l'utilisateur peut viser ou valider ; relu à chaque écran
+  const peutAttente = ((donnees?.u as { droits?: string[] } | null | undefined)?.droits ?? []).some((d) => ["S57", "S113", "S114"].includes(d));
+  const { donnees: attente } = useDonnees(async () => (peutAttente ? (await api.attente.nombre()).nombre : 0), [peutAttente, lieu.pathname]);
   // En attendant la session : le cadre vide plutôt qu'une page blanche
   if (!donnees) return <div className="cadre" aria-busy="true"><header className="barre-menus"><span className="logo"><Marque sombre taille={26} /></span></header><div className="corps" /><footer className="pied" /></div>;
   const { u, ctx, j } = donnees;
@@ -57,6 +67,7 @@ export function Coquille() {
   const libelle = (x: Menu) => (x.id === "clients" ? m.Membre : x.libelle);
 
   return (
+    <NombreAttente.Provider value={attente ?? 0}>
     <div className="cadre">
       <a href="#contenu" className="lien-evitement" onClick={(e) => { e.preventDefault(); (document.getElementById("titre-ecran") ?? document.getElementById("contenu"))?.focus(); }}>Aller au contenu</a>
       <header className="barre-menus">
@@ -92,7 +103,7 @@ export function Coquille() {
                   {g.titre && <p className="titre-groupe">{g.titre}</p>}
                   <ul>
                     {g.ecrans.map((e) => (
-                      <li key={e.id}><NavLink to={e.chemin} className={CONSTRUITS[e.id] ? "" : "a-construire"}>{e.nom}</NavLink></li>
+                      <li key={e.id}><NavLink to={e.chemin} className={CONSTRUITS[e.id] ? "" : "a-construire"}><NomEcran id={e.id} nom={e.nom} /></NavLink></li>
                     ))}
                   </ul>
                 </div>
@@ -112,6 +123,7 @@ export function Coquille() {
         <span className="muet">{ctx.institution.nom} · agence de {ctx.agence.nom}</span>
       </footer>
     </div>
+    </NombreAttente.Provider>
   );
 }
 
@@ -126,7 +138,7 @@ function MenuDeroulant({ menu, libelle }: { menu: Menu; libelle: string }) {
           {g.titre && <p className="titre-groupe">{g.titre}</p>}
           {g.ecrans.map((e) => (
             <NavLink key={e.id} to={e.chemin} className={CONSTRUITS[e.id] ? "" : "a-construire"}>
-              {e.nom}{!CONSTRUITS[e.id] && <span className="muet"> · à construire</span>}
+              <NomEcran id={e.id} nom={e.nom} />{!CONSTRUITS[e.id] && <span className="muet"> · à construire</span>}
             </NavLink>
           ))}
         </div>
