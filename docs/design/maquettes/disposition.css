@@ -1,0 +1,68 @@
+/* Maquettes de disposition (lot 12, demande du porteur du 25/11/2026) : le cadre de l'application, identique à l'écran actuel.
+   Jetons et composants : replica/design/tokens.css et composants.css. Ici, seulement le cadre et les gabarits nouveaux. */
+@layer interface {
+html, body { height: 100%; margin: 0; }
+body { display: grid; grid-template-rows: var(--mise-barre) minmax(0, 1fr) auto; grid-template-columns: var(--mise-menu) minmax(0, 1fr); background: var(--bureau); color: var(--encre);
+  font: var(--graisse-courant) var(--taille-courant)/var(--interligne-courant) var(--police-texte); }
+
+/* Barre du haut et barre d'état : inchangées */
+.barre { grid-column: 1 / -1; display: flex; align-items: stretch; background: var(--nuit); color: var(--nuit-texte); border-bottom: 2px solid var(--marque-rouge); }
+.barre .logo { display: flex; align-items: center; padding: 0 var(--espace-4); font: 800 1.5rem/1 var(--police-marque); letter-spacing: -0.02em; border-right: 1px solid var(--nuit-trait); }
+.barre .logo b { color: var(--marque-rouge); font-weight: 800; }
+.barre nav { display: flex; }
+.barre nav span { display: grid; place-items: center; padding: 0 var(--espace-4); font-size: var(--taille-dense); font-weight: 600; }
+.barre nav span[aria-current] { background: var(--nuit-2); box-shadow: inset 0 -3px 0 var(--nuit-texte); }
+.barre .outils { margin-left: auto; display: flex; gap: var(--espace-5); align-items: center; padding: 0 var(--espace-5); font-size: var(--taille-dense); border-left: 1px solid var(--nuit-trait); }
+.etat { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--espace-5); align-items: center; background: var(--nuit); color: var(--nuit-texte); font-size: var(--taille-dense); padding: var(--espace-1) var(--espace-3); }
+.etat b { font-weight: 700; }
+.etat .droite { margin-left: auto; }
+
+/* Accès rapide : inchangé */
+.acces { background: var(--bureau); border-right: 1px solid var(--trait); padding: var(--espace-3) var(--espace-2); overflow: auto; display: grid; align-content: start; gap: var(--espace-2); }
+.acces .menu { background: var(--cadre); border: 1px solid var(--trait); border-radius: var(--rayon-champ); }
+.acces .menu > b { display: flex; justify-content: space-between; padding: var(--espace-2) var(--espace-2); font-weight: 700; }
+.acces .menu > b::after { content: "›"; color: var(--encre-2); }
+.acces .menu.ouvert > b::after { content: "⌄"; }
+.acces ul { list-style: none; margin: 0; padding: 0 var(--espace-1) var(--espace-1); }
+.acces li { padding: var(--espace-1) var(--espace-2); border-radius: var(--rayon-petit); }
+.acces li.titre { font-size: var(--taille-dense); font-weight: 700; color: var(--encre-2); background: var(--lecture); margin-top: var(--espace-1); }
+.acces li[aria-current] { background: var(--tampon); color: var(--sur-tampon); font-weight: 600; }
+
+/* Zone de travail */
+.travail { overflow: auto; padding: var(--espace-4) var(--espace-5) var(--espace-6); display: grid; align-content: start; gap: var(--espace-4); container: travail / inline-size; }
+
+/* Tête d'écran (nouveau) : le titre, son contexte et les actions de l'écran sur une seule ligne, en haut */
+.tete { display: flex; flex-wrap: wrap; align-items: center; gap: var(--espace-2) var(--espace-4); }
+.tete h1 { margin: 0; font-size: var(--taille-grand); line-height: var(--interligne-grand); font-weight: 700; padding-left: var(--espace-3); border-left: 4px solid var(--marque-rouge); }
+.tete .contexte { display: flex; flex-wrap: wrap; gap: var(--espace-1) var(--espace-4); color: var(--encre-2); font-size: var(--taille-dense); }
+.tete .contexte b { color: var(--encre); font-weight: 600; }
+.tete .actions { margin-left: auto; display: flex; gap: var(--espace-2); }
+
+/* Choix segmenté (nouveau) : une valeur parmi trois ou quatre, visible d'un coup */
+.segments { display: inline-flex; background: var(--lecture); border: 1px solid var(--trait); border-radius: var(--rayon-champ); padding: 2px; gap: 2px; }
+.segments span { padding: var(--espace-1) var(--espace-3); border-radius: var(--rayon-petit); font-weight: 600; color: var(--encre-2); white-space: nowrap; }
+.segments span[aria-checked="true"] { background: var(--cadre); color: var(--encre); box-shadow: var(--ombre-surface); outline: 1px solid var(--trait); }
+
+/* Carte de section : titre, contenu ; les libellés au-dessus des cases */
+.carte { background: var(--cadre); border: 1px solid var(--trait); border-radius: var(--rayon-bloc); box-shadow: var(--ombre-surface); padding: var(--espace-4); min-width: 0; }
+.carte > h2 { margin: 0 0 var(--espace-3); font-size: var(--taille-titre); font-weight: 600; display: flex; align-items: baseline; justify-content: space-between; gap: var(--espace-2); }
+.carte > h2 small { font-size: var(--taille-dense); font-weight: 400; color: var(--encre-2); }
+.carte h3 { margin: var(--espace-4) 0 var(--espace-2); font-size: var(--taille-dense); font-weight: 700; color: var(--encre-2); text-transform: uppercase; letter-spacing: .04em; }
+.champs { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: var(--espace-3) var(--espace-4); align-items: start; }
+.champs .large { grid-column: 1 / -1; }
+.lecture-seule { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--espace-2) var(--espace-4); margin: 0; }
+.lecture-seule dt { color: var(--encre-2); }
+.lecture-seule dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+
+/* Barre d'actions fixée au bas de la zone de travail (nouveau) : toujours visible, même en bas d'un long formulaire */
+.barre-actions { position: sticky; bottom: calc(-1 * var(--espace-6)); display: flex; align-items: center; gap: var(--espace-2); background: var(--cadre); border: 1px solid var(--trait);
+  border-radius: var(--rayon-bloc); box-shadow: var(--ombre-flottant); padding: var(--espace-2) var(--espace-3); }
+.barre-actions .droite { margin-left: auto; display: flex; gap: var(--espace-2); align-items: center; }
+
+.defile-x { overflow-x: auto; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Repère des nouveautés sur la maquette (n'existe pas dans le logiciel) */
+.nouveau { position: relative; }
+.repere { display: inline-block; font-size: 0.6875rem; font-weight: 700; color: var(--sur-tampon); background: var(--tampon); border-radius: var(--rayon-rond); padding: 0 var(--espace-2); vertical-align: middle; }
+}

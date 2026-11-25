@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portefeuille, nouvelle disposition</title>
+<link rel="stylesheet" href="../../../replica/design/tokens.css">
+<link rel="stylesheet" href="../../../replica/design/composants.css">
+<link rel="stylesheet" href="disposition.css">
+<style>
+@layer interface {
+/* Critères sur une ligne, au-dessus de la liste ; la liste s'affiche d'emblée et suit les critères */
+.filtres { display: flex; flex-wrap: wrap; gap: var(--espace-3); align-items: end; }
+.filtres .champ { min-width: 9rem; }
+.filtres .periode { display: flex; gap: var(--espace-1); align-items: center; }
+.filtres .periode .saisie { width: 8rem; }
+.filtres .plus { margin-left: auto; }
+/* Synthèse : le capital restant par tranche de retard, avec la rampe de l'Instr. BCC 003 (DESIGN § 2.4) */
+.synthese { display: grid; gap: var(--espace-3); }
+.synthese .totaux { display: flex; flex-wrap: wrap; gap: var(--espace-2) var(--espace-6); align-items: baseline; }
+.synthese .totaux span { color: var(--encre-2); }
+.synthese .totaux b { color: var(--encre); font-family: var(--police-chiffres); font-weight: 600; }
+.rampe { display: flex; height: 12px; border-radius: var(--rayon-rond); overflow: hidden; background: var(--ligne); }
+.rampe i { display: block; }
+.rampe .t0 { background: var(--sain); } .rampe .t1 { background: var(--r1); } .rampe .t2 { background: var(--r2); }
+.rampe .t3 { background: var(--r3); } .rampe .t4 { background: var(--r4); } .rampe .t5 { background: var(--r5); }
+.legende { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--espace-2); margin: 0; padding: 0; list-style: none; font-size: var(--taille-dense); }
+.legende li { display: grid; gap: 2px; }
+.legende b { font-family: var(--police-chiffres); font-weight: 600; font-size: var(--taille-courant); }
+.legende small { color: var(--encre-2); }
+.grille td small { display: block; color: var(--encre-2); font-size: var(--taille-dense); font-family: var(--police-texte); }
+.grille td.membre { min-width: 11rem; }
+.grille td.membre + td.membre { min-width: 0; white-space: nowrap; }
+.grille th, .grille td { padding-inline: var(--espace-2); }
+.grille td.actions { white-space: nowrap; text-align: right; }
+.grille td.actions .bouton { min-height: 24px; padding: 0 var(--espace-2); font-size: var(--taille-dense); }
+.grille a { color: var(--tampon); }
+.pied { display: flex; justify-content: space-between; color: var(--encre-2); font-size: var(--taille-dense); padding-top: var(--espace-2); }
+}
+</style>
+</head>
+<body>
+<header class="barre">
+  <span class="logo"><b>Exo</b>fina</span>
+  <nav><span>Banque</span><span>Épargne</span><span aria-current="page">Crédit</span><span>Comptabilité</span><span>Budget</span></nav>
+  <span class="outils"><span>FR</span><span>?</span><span>⎋</span></span>
+</header>
+<aside class="acces">
+  <div class="menu"><b>Banque</b></div>
+  <div class="menu"><b>Épargne</b></div>
+  <div class="menu ouvert"><b>Crédit</b><ul><li aria-current="page">Portefeuille de crédits</li><li>Déblocage</li><li>Remboursement</li><li>Balance âgée et provisions</li><li>Intérêts courus sur crédits</li></ul></div>
+  <div class="menu"><b>Comptabilité</b></div>
+  <div class="menu"><b>Budget</b></div>
+</aside>
+<main class="travail">
+  <div class="tete">
+    <h1>Portefeuille de crédits</h1>
+    <div class="actions"><button class="bouton secondaire" type="button">Exporter</button></div>
+  </div>
+
+  <section class="carte" aria-label="Critères">
+    <div class="filtres">
+      <div class="champ"><span class="libelle">Période</span><span class="periode"><input class="saisie" value="01/01/2026"><span>au</span><input class="saisie" value="25/11/2026"></span></div>
+      <div class="champ"><label>État</label><select class="saisie"><option>Tous</option></select></div>
+      <div class="champ"><label>Produit crédit</label><select class="saisie"><option>Tous les produits</option></select></div>
+      <div class="champ"><label>Agent de crédit</label><select class="saisie"><option>Tous les agents</option></select></div>
+      <button class="bouton secondaire plus" type="button">Autres critères (3)</button>
+    </div>
+  </section>
+
+  <section class="carte synthese" aria-label="Synthèse">
+    <div class="totaux"><span><b>128</b> crédits</span><span>Montant prêté <b>612 400 000,00 CDF</b></span><span>Capital restant <b>486 250 000,00 CDF</b></span>
+      <span class="segments" role="radiogroup" aria-label="Devise" style="margin-left:auto"><span aria-checked="true">CDF</span><span>USD</span></span></div>
+    <div class="rampe" role="img" aria-label="Capital restant par tranche de retard"><i class="t0" style="width:81%"></i><i class="t1" style="width:9%"></i><i class="t2" style="width:4%"></i><i class="t3" style="width:2.5%"></i><i class="t4" style="width:2%"></i><i class="t5" style="width:1.5%"></i></div>
+    <ul class="legende">
+      <li><span class="puce" data-tranche="0">Sain</span><b>393 862 500,00</b><small>101 crédits · 81 %</small></li>
+      <li><span class="puce" data-tranche="1">1 à 30 jours</span><b>43 762 500,00</b><small>12 crédits · 9 %</small></li>
+      <li><span class="puce" data-tranche="2">31 à 60 jours</span><b>19 450 000,00</b><small>6 crédits · 4 %</small></li>
+      <li><span class="puce" data-tranche="3">61 à 90 jours</span><b>12 156 250,00</b><small>4 crédits · 2,5 %</small></li>
+      <li><span class="puce" data-tranche="4">91 à 180 jours</span><b>9 725 000,00</b><small>3 crédits · 2 %</small></li>
+      <li><span class="puce" data-tranche="5">Plus de 180 jours</span><b>7 293 750,00</b><small>2 crédits · 1,5 %</small></li>
+    </ul>
+  </section>
+
+  <section class="carte" aria-label="Crédits">
+    <div class="defile-x"><table class="grille">
+      <thead><tr><th scope="col">N° crédit</th><th scope="col">Membre</th><th scope="col">Produit et agent</th>
+        <th scope="col" class="num">Montant prêt</th><th scope="col" class="num">Capital restant</th><th scope="col">Retard</th><th scope="col">État</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody>
+        <tr><td class="code"><a href="#">P-2026-00871</a><small>demandé le 12/03/2026</small></td><td class="membre">Kalala Mbuyi Josée<small>0412-000318</small></td><td class="membre">Crédit commerce<small>Bijou Kasongo</small></td>
+          <td class="num chiffres">2 500 000,00 CDF</td><td class="num chiffres">1 640 000,00 CDF</td><td><span class="puce" data-tranche="1">12 j</span></td><td>Débloqué</td><td class="actions"><button class="bouton secondaire">Documents ▾</button></td></tr>
+        <tr><td class="code"><a href="#">P-2026-00902</a><small>demandé le 02/04/2026</small></td><td class="membre">Groupement des maraîchères de Kinsaku<small>0412-000455 · groupe solidaire</small></td><td class="membre">Crédit solidaire<small>Bijou Kasongo</small></td>
+          <td class="num chiffres">6 000 000,00 CDF</td><td class="num chiffres">3 750 000,00 CDF</td><td><span class="puce" data-tranche="0">À jour</span></td><td>Débloqué</td><td class="actions"><button class="bouton secondaire">Documents ▾</button></td></tr>
+        <tr><td class="code"><a href="#">P-2026-00917</a><small>demandé le 18/04/2026</small></td><td class="membre">Tshibangu Kalonji wa Mutombo Béatrice<small>0412-000502</small></td><td class="membre">Crédit habitat<small>Jean-Paul Ilunga</small></td>
+          <td class="num chiffres">4 200,00 USD</td><td class="num chiffres">3 115,00 USD</td><td><span class="puce" data-tranche="3">74 j</span></td><td>Prorogé</td><td class="actions"><button class="bouton secondaire">Documents ▾</button></td></tr>
+        <tr><td class="code"><a href="#">P-2026-00731</a><small>demandé le 06/01/2026</small></td><td class="membre">Lukusa Mwamba Patrick<small>0412-000117</small></td><td class="membre">Crédit commerce<small>Jean-Paul Ilunga</small></td>
+          <td class="num chiffres">1 800 000,00 CDF</td><td class="num chiffres">1 210 500,00 CDF</td><td><span class="puce" data-tranche="5">212 j</span></td><td>Contentieux</td><td class="actions"><button class="bouton secondaire">Documents ▾</button></td></tr>
+        <tr><td class="code">D-2026-00144<small>demandé le 20/11/2026</small></td><td class="membre">Kabongo Ilunga Marie<small>0412-000611</small></td><td class="membre">Crédit commerce<small>Bijou Kasongo</small></td>
+          <td class="num chiffres">3 000 000,00 CDF</td><td></td><td></td><td>Demande</td><td class="actions"><button class="bouton">Vérifier</button></td></tr>
+        <tr><td class="code">D-2026-00141<small>demandé le 17/11/2026</small></td><td class="membre">Mbala Nsimba Chantal<small>0412-000598</small></td><td class="membre">Crédit scolaire<small>Jean-Paul Ilunga</small></td>
+          <td class="num chiffres">850 000,00 CDF</td><td></td><td></td><td>Vérifiée</td><td class="actions"><button class="bouton">Décider</button></td></tr>
+        <tr><td class="code">P-2026-01012<small>demandé le 10/11/2026</small></td><td class="membre">Ngoy Kasongo Albert<small>0412-000574</small></td><td class="membre">Crédit équipement<small>Bijou Kasongo</small></td>
+          <td class="num chiffres">7 500,00 USD</td><td></td><td></td><td>Décidé</td><td class="actions"><button class="bouton">Viser</button></td></tr>
+        <tr><td class="code"><a href="#">P-2026-00955</a><small>demandé le 03/05/2026</small></td><td class="membre">Mutombo Kabeya Jean-Pierre<small>0412-000289</small></td><td class="membre">Crédit commerce<small>Jean-Paul Ilunga</small></td>
+          <td class="num chiffres">1 200 000,00 CDF</td><td class="num chiffres">402 000,00 CDF</td><td><span class="puce" data-tranche="2">38 j</span></td><td>Débloqué</td><td class="actions"><button class="bouton secondaire">Documents ▾</button></td></tr>
+      </tbody>
+    </table></div>
+    <div class="pied"><span>8 lignes sur 128</span><span>Page 1 sur 16</span></div>
+  </section>
+</main>
+<footer class="etat"><span>Serveur : <b>démonstration, dans ce navigateur</b></span><span>Base de données : <b>locale</b></span><span>Journée ouverte : <b>05/11/2026</b></span><span>Utilisateur : <b>Patrick Lumbala</b></span><span class="droite">COOPEC Tujenge · agence de Matete</span></footer>
+</body>
+</html>

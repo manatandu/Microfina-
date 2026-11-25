@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nouveau membre, nouvelle disposition</title>
+<link rel="stylesheet" href="../../../replica/design/tokens.css">
+<link rel="stylesheet" href="../../../replica/design/composants.css">
+<link rel="stylesheet" href="disposition.css">
+<style>
+@layer interface {
+/* Les cinq onglets deviennent des étapes à gauche, chacune avec ce qui reste à remplir ; le formulaire au centre, en groupes */
+.dossier { display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: var(--espace-4); align-items: start; }
+@container travail (max-width: 760px) { .dossier { grid-template-columns: minmax(0, 1fr); } }
+.etapes-v { list-style: none; margin: 0; padding: var(--espace-2); display: grid; gap: 2px; position: sticky; top: 0; }
+.etapes-v li { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr); gap: 2px var(--espace-2); padding: var(--espace-2); border-radius: var(--rayon-champ); }
+.etapes-v li::before { content: attr(data-n); grid-row: span 2; width: 1.5rem; height: 1.5rem; border-radius: var(--rayon-rond); display: grid; place-items: center;
+  font-size: var(--taille-dense); font-weight: 700; border: 1px solid var(--trait-saisie); color: var(--encre-2); background: var(--cadre); }
+.etapes-v li b { font-weight: 600; }
+.etapes-v li small { color: var(--encre-2); font-size: var(--taille-dense); }
+.etapes-v li.fait::before { content: "✓"; background: var(--sain-pale); color: var(--sain-texte); border-color: var(--sain); }
+.etapes-v li[aria-current] { background: var(--tampon-pale); }
+.etapes-v li[aria-current]::before { background: var(--tampon); border-color: var(--tampon); color: var(--sur-tampon); }
+.etapes-v li[aria-current] b { color: var(--tampon); }
+.etapes-v li .manque { color: var(--alerte); font-weight: 600; }
+.carte h3:first-of-type { margin-top: 0; }
+.a-remplir { font-size: var(--taille-dense); color: var(--alerte); font-weight: 600; margin: 0; }
+}
+</style>
+</head>
+<body>
+<header class="barre">
+  <span class="logo"><b>Exo</b>fina</span>
+  <nav><span aria-current="page">Membre</span><span>Conformité</span><span>Épargne</span><span>Crédit</span></nav>
+  <span class="outils"><span>FR</span><span>?</span><span>⎋</span></span>
+</header>
+<aside class="acces">
+  <div class="menu ouvert"><b>Membre</b><ul><li aria-current="page">Nouveau membre</li><li>Fiche du membre</li><li class="titre">Rapports</li><li>Rapports clients</li><li>Registre des membres</li></ul></div>
+  <div class="menu"><b>Conformité</b></div>
+  <div class="menu"><b>Épargne</b></div>
+  <div class="menu"><b>Crédit</b></div>
+</aside>
+<main class="travail">
+  <!-- La nature du membre se choisit dans la tête de l'écran ; plus de second titre « Nouveau membre : personne physique » -->
+  <div class="tete">
+    <h1>Nouveau membre</h1>
+    <span class="segments" role="radiogroup" aria-label="Nature du membre"><span aria-checked="true">Personne physique</span><span>Entreprise</span><span>Groupe</span></span>
+  </div>
+
+  <div class="dossier">
+    <!-- Les cinq onglets deviennent des étapes : on voit d'un coup ce qui est fait et ce qui manque -->
+    <ol class="etapes-v carte" aria-label="Étapes du dossier">
+      <li class="fait" data-n="1"><b>Informations de base</b><small>Complet</small></li>
+      <li data-n="2" aria-current="step"><b>Identité</b><small class="manque">2 champs à remplir</small></li>
+      <li data-n="3"><b>Adresse et activité</b><small>5 champs à remplir</small></li>
+      <li data-n="4"><b>Personnes</b><small>Facultatif</small></li>
+      <li data-n="5"><b>Photos et pièces</b><small>Photo, signature, pièce</small></li>
+    </ol>
+
+    <section class="carte" aria-label="Identité">
+      <h2>Identité</h2>
+      <h3>Nom</h3>
+      <div class="champs">
+        <div class="champ"><label>Nom <span class="requis">*</span></label><input class="saisie" value="Kalala"></div>
+        <div class="champ"><label>Post-nom</label><input class="saisie" value="Mbuyi"></div>
+        <div class="champ"><label>Prénom <span class="requis">*</span></label><input class="saisie" value="Josée"></div>
+        <div class="champ"><label>Sexe</label><select class="saisie"><option>Féminin</option></select></div>
+      </div>
+      <h3>Naissance et filiation</h3>
+      <div class="champs">
+        <div class="champ"><label>Date de naissance <span class="requis">*</span></label><input class="saisie" value="14/03/1988"></div>
+        <div class="champ"><label>Lieu de naissance <span class="requis">*</span></label><input class="saisie" value="Kinshasa"></div>
+        <div class="champ"><label>Nationalité</label><select class="saisie"><option>République démocratique du Congo</option></select></div>
+        <div class="champ"><label>Situation matrimoniale</label><select class="saisie"><option>Mariée</option></select></div>
+        <div class="champ"><label>Noms du père</label><input class="saisie" value="Kalala Ilunga Pierre"></div>
+        <div class="champ"><label>Noms de la mère</label><input class="saisie" value="Mbuyi Ngoyi Thérèse"></div>
+      </div>
+      <h3>Pièce d'identité</h3>
+      <div class="champs">
+        <div class="champ"><label>Forme d'identité <span class="requis">*</span></label><select class="saisie"><option>Carte d'électeur</option></select></div>
+        <div class="champ"><label>N° de pièce <span class="requis">*</span></label><input class="saisie code" value="1-0412-5531"></div>
+        <div class="champ"><label>Pays de délivrance</label><select class="saisie"><option>République démocratique du Congo</option></select></div>
+        <div class="champ"><label>Lieu de délivrance <span class="requis">*</span></label><input class="saisie" value="Kinshasa"></div>
+        <div class="champ"><label>Date de délivrance <span class="requis">*</span></label><input class="saisie" value="10/01/2024"></div>
+        <div class="champ"><label>Date d'expiration <span class="requis">*</span></label><input class="saisie" aria-invalid="true" placeholder="jj/mm/aaaa"><p class="a-remplir">À remplir</p></div>
+        <div class="champ"><label>Autorité de délivrance <span class="requis">*</span></label><input class="saisie" aria-invalid="true"><p class="a-remplir">À remplir</p></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Les boutons restent visibles en bas, même au bout d'un long formulaire -->
+  <div class="barre-actions">
+    <button class="bouton secondaire" type="button">Enregistrer comme prospect</button>
+    <span class="droite"><button class="bouton secondaire" type="button">Précédent</button><button class="bouton" type="button">Suivant : Adresse et activité</button></span>
+  </div>
+</main>
+<footer class="etat"><span>Serveur : <b>démonstration, dans ce navigateur</b></span><span>Base de données : <b>locale</b></span><span>Journée ouverte : <b>05/11/2026</b></span><span>Utilisateur : <b>Bijou Kasongo</b></span><span class="droite">COOPEC Tujenge · agence de Matete</span></footer>
+</body>
+</html>

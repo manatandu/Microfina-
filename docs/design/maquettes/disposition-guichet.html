@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guichet, nouvelle disposition</title>
+<link rel="stylesheet" href="../../../replica/design/tokens.css">
+<link rel="stylesheet" href="../../../replica/design/composants.css">
+<link rel="stylesheet" href="disposition.css">
+<style>
+@layer interface {
+/* DESIGN.md § 4 : la personne à gauche, le montant au centre, l'argent physique à droite ; l'œil suit l'ordre réel du geste */
+.guichet { display: grid; grid-template-columns: var(--mise-guichet-gauche) minmax(0, 1fr) var(--mise-guichet-droite); gap: var(--espace-4); align-items: start; }
+@container travail (max-width: 860px) { .guichet { grid-template-columns: minmax(0, 1fr); } }
+.recherche { display: flex; gap: var(--espace-2); margin-bottom: var(--espace-3); }
+.recherche .saisie { flex: 1; }
+.photo svg { width: 100%; height: 100%; }
+.photo .fond { fill: var(--photo-fond); }
+.photo .figure { fill: var(--photo-figure); }
+.specimen svg { width: 100%; height: 44px; }
+.specimen path { fill: none; stroke: var(--encre); stroke-width: 1.6; stroke-linecap: round; }
+.specimen .legende { font-size: var(--taille-dense); color: var(--encre-2); margin: 0 0 var(--espace-1); }
+.comptes { margin-top: var(--espace-3); }
+.credits { margin: var(--espace-3) 0 0; padding: 0; list-style: none; display: grid; gap: var(--espace-1); font-size: var(--taille-dense); }
+.credits li { display: flex; justify-content: space-between; gap: var(--espace-2); align-items: center; }
+.bordereau { display: grid; gap: var(--espace-4); }
+.bordereau .compte-choisi { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--espace-1) var(--espace-3); padding: var(--espace-2) var(--espace-3);
+  background: var(--lecture); border-radius: var(--rayon-champ); }
+.bordereau .compte-choisi span { color: var(--encre-2); }
+.bordereau .compte-choisi b { font-family: var(--police-chiffres); font-weight: 600; }
+.apres { display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid var(--ligne); padding-top: var(--espace-3); }
+.apres span { color: var(--encre-2); }
+.apres b { font: var(--graisse-grand) var(--taille-grand)/1 var(--police-chiffres); }
+.valider { display: grid; gap: var(--espace-3); }
+.valider .boutons { display: flex; gap: var(--espace-2); justify-content: flex-end; }
+.valider .bouton:not(.secondaire) { min-height: var(--mise-bouton-h-grand); padding-inline: var(--espace-5); }
+.solde-caisse { margin: var(--espace-3) 0 0; display: flex; justify-content: space-between; font-size: var(--taille-dense); color: var(--encre-2); }
+.solde-caisse b { color: var(--encre); font-family: var(--police-chiffres); }
+}
+</style>
+</head>
+<body>
+<header class="barre">
+  <span class="logo"><b>Exo</b>fina</span>
+  <nav><span>Membre</span><span>Conformité</span><span>Épargne</span><span aria-current="page">Caisse</span><span>Administration</span></nav>
+  <span class="outils"><span>FR</span><span>?</span><span>⎋</span></span>
+</header>
+<aside class="acces">
+  <div class="menu"><b>Membre</b></div>
+  <div class="menu"><b>Conformité</b></div>
+  <div class="menu"><b>Épargne</b></div>
+  <div class="menu ouvert"><b>Caisse</b><ul><li aria-current="page">Guichet</li><li>Transferts de fonds</li><li>Journal de caisse</li><li class="titre">Arrêté de caisse</li><li>Arrêté de caisse : comptage</li></ul></div>
+  <div class="menu"><b>Administration</b></div>
+</aside>
+<main class="travail">
+  <div class="tete">
+    <h1>Guichet</h1>
+    <div class="contexte"><span>Caisse <b>Caisse 2</b></span><span>Caissier <b>Esther Ngalula</b></span><span>Journée <b>05/11/2026</b> <span class="puce" data-etat="ouverte">ouverte</span></span></div>
+    <div class="actions contexte"><span>Caisse CDF <b class="chiffres">4 794 000,00 CDF</b></span><span>Caisse USD <b class="chiffres">14 806,00 USD</b></span></div>
+  </div>
+  <div class="onglets" role="tablist" aria-label="Opération">
+    <span role="tab" aria-selected="true">Dépôt</span><span role="tab">Retrait</span><span role="tab">Remboursement</span><span role="tab">Adhésion</span><span role="tab">Déblocage</span>
+    <span role="tab">Parts sociales</span><span role="tab">Autres encaissements et décaissements</span><span role="tab">Paiements préparés</span>
+  </div>
+
+  <div class="guichet">
+    <!-- 1. La personne : recherche, photo et signature d'office, ses comptes et ses crédits -->
+    <section class="carte" aria-label="Membre">
+      <h2>Membre <small><span class="touche">F2</span></small></h2>
+      <div class="recherche"><input class="saisie code" value="0412-000318" aria-label="N° client"><button class="bouton secondaire" type="button">Rechercher</button></div>
+      <div class="identite">
+        <div class="photo"><svg viewBox="0 0 64 80" aria-hidden="true"><rect class="fond" width="64" height="80"/><circle class="figure" cx="32" cy="30" r="13"/><path class="figure" d="M8 80c2-17 12-26 24-26s22 9 24 26z"/></svg></div>
+        <div>
+          <p class="nom">Kalala Mbuyi Josée</p>
+          <dl><dt>N° membre</dt><dd class="chiffres">0412-000318</dd><dt>Pièce</dt><dd>Carte d'électeur</dd><dt>N° pièce</dt><dd class="chiffres">1-0412-5531</dd><dt>Agence</dt><dd>Matete</dd></dl>
+        </div>
+      </div>
+      <div class="specimen"><p class="legende">Spécimen de signature</p><svg viewBox="0 0 220 44" aria-label="Spécimen de signature"><path d="M8 30c10-22 18-22 16-2s14-18 22-12-6 18 4 14 18-20 26-14-8 16 2 12c12-6 18-16 26-10s-4 12 8 10 26-14 40-8 22 4 52-4"/></svg></div>
+      <div class="comptes" role="radiogroup" aria-label="Comptes">
+        <label class="compte"><input type="radio" name="c" checked><span><span class="intitule">Épargne à vue CDF</span><br><span class="numero">0412-000318-02</span></span>
+          <dl class="soldes"><dt>Solde</dt><dd>3 412 500,00 CDF</dd><dt>Bloqué</dt><dd>0,00 CDF</dd><dt>Disponible</dt><dd>3 412 500,00 CDF</dd></dl></label>
+        <label class="compte"><input type="radio" name="c"><span><span class="intitule">Épargne à vue USD</span><br><span class="numero">0412-000318-03</span></span>
+          <dl class="soldes"><dt>Disponible</dt><dd>1 250,00 USD</dd></dl></label>
+      </div>
+      <ul class="credits" aria-label="Crédits"><li><span class="chiffres">P-2026-00871</span><span class="puce" data-tranche="1">12 jours de retard</span></li></ul>
+    </section>
+
+    <!-- 2. Le bordereau : le compte choisi, le montant en grand, en lettres juste dessous, puis ce qui reste à saisir -->
+    <section class="carte bordereau" aria-label="Dépôt espèces">
+      <h2>Dépôt espèces</h2>
+      <div class="compte-choisi"><span>Compte</span><b>0412-000318-02 · Épargne à vue CDF</b></div>
+      <div class="champ"><label for="m">Montant <span class="requis">*</span></label>
+        <div class="montant-champ"><input id="m" value="150 000,00" inputmode="decimal"><span class="devise">CDF</span></div>
+        <p class="lettres">cent cinquante mille francs congolais</p></div>
+      <div class="champ"><span class="libelle">Versé par</span><span class="segments" role="radiogroup"><span aria-checked="true">Le titulaire</span><span>Un tiers</span></span></div>
+      <div class="champ"><label for="mo">Motif</label><input id="mo" class="saisie" value="Écolage"></div>
+      <div class="apres"><span>Solde après le dépôt</span><b>3 562 500,00 CDF</b></div>
+      <div class="valider">
+        <ul class="etapes" aria-label="Avant d'enregistrer"><li class="ok">Membre identifié</li><li class="ok">Montant saisi</li><li class="ok">Billetage juste</li></ul>
+        <div class="boutons"><button class="bouton secondaire" type="button">Détail</button><button class="bouton secondaire" type="button">Effacer <span class="touche">Échap</span></button><button class="bouton" type="button">Enregistrer le dépôt <span class="touche">F9</span></button></div>
+      </div>
+    </section>
+
+    <!-- 3. L'argent physique : le billetage, son total, et la caisse -->
+    <section class="carte" aria-label="Billetage">
+      <h2>Billetage CDF <small><span class="touche">F4</span></small></h2>
+      <table class="billetage">
+        <thead><tr><th scope="col">Coupure</th><th scope="col">Nombre</th><th scope="col">Montant</th></tr></thead>
+        <tbody>
+          <tr><td>20 000</td><td><input aria-label="20 000" value=""></td><td></td></tr>
+          <tr><td>10 000</td><td><input aria-label="10 000" value="15"></td><td>150 000</td></tr>
+          <tr><td>5 000</td><td><input aria-label="5 000"></td><td></td></tr>
+          <tr><td>1 000</td><td><input aria-label="1 000"></td><td></td></tr>
+          <tr><td>500</td><td><input aria-label="500"></td><td></td></tr>
+          <tr><td>200</td><td><input aria-label="200"></td><td></td></tr>
+          <tr><td>100</td><td><input aria-label="100"></td><td></td></tr>
+          <tr><td>50</td><td><input aria-label="50"></td><td></td></tr>
+          <tr><td>20</td><td><input aria-label="20"></td><td></td></tr>
+          <tr><td>10</td><td><input aria-label="10"></td><td></td></tr>
+          <tr><td>5</td><td><input aria-label="5"></td><td></td></tr>
+          <tr><td>1</td><td><input aria-label="1"></td><td></td></tr>
+          <tr><td>0,5</td><td><input aria-label="0,5"></td><td></td></tr>
+        </tbody>
+        <tfoot><tr><td colspan="2">Total</td><td>150 000</td></tr></tfoot>
+      </table>
+      <p class="ecart ok">Le compte est bon.</p>
+      <p class="solde-caisse"><span>Caisse CDF après le dépôt</span><b>4 944 000,00 CDF</b></p>
+    </section>
+  </div>
+
+  <p class="touches"><span><span class="touche">F2</span> Rechercher un membre</span><span><span class="touche">F4</span> Billetage</span><span><span class="touche">F9</span> Enregistrer</span><span><span class="touche">Échap</span> Effacer</span></p>
+</main>
+<footer class="etat"><span>Serveur : <b>démonstration, dans ce navigateur</b></span><span>Base de données : <b>locale</b></span><span>Journée ouverte : <b>05/11/2026</b></span><span>Utilisateur : <b>Esther Ngalula</b></span><span class="droite">COOPEC Tujenge · agence de Matete</span></footer>
+</body>
+</html>

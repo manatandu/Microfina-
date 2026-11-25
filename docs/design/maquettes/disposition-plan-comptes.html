@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan des comptes, nouvelle disposition</title>
+<link rel="stylesheet" href="../../../replica/design/tokens.css">
+<link rel="stylesheet" href="../../../replica/design/composants.css">
+<link rel="stylesheet" href="disposition.css">
+<style>
+@layer interface {
+/* L'arbre à gauche, la fiche du compte choisi à droite ; le formulaire ne paraît que pour créer ou modifier */
+.plan { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: var(--espace-4); align-items: start; }
+@container travail (max-width: 860px) { .plan { grid-template-columns: minmax(0, 1fr); } }
+.arbre { list-style: none; margin: var(--espace-3) 0 0; padding: 0; font-size: var(--taille-courant); }
+.arbre li { display: grid; grid-template-columns: 1rem 5.5rem minmax(0, 1fr); gap: var(--espace-2); align-items: baseline; padding: 3px var(--espace-2); border-radius: var(--rayon-petit); }
+.arbre li::before { content: "▸"; color: var(--encre-2); font-size: var(--taille-dense); }
+.arbre li.ouvert::before { content: "▾"; }
+.arbre li.feuille::before { content: ""; }
+.arbre li .n { font-family: var(--police-chiffres); color: var(--encre-2); white-space: nowrap; }
+.arbre li.classe { font-weight: 600; }
+.arbre li.classe .n { color: var(--encre); }
+.arbre li[data-niveau="2"] { padding-left: calc(var(--espace-2) + 1rem); }
+.arbre li[data-niveau="3"] { padding-left: calc(var(--espace-2) + 2rem); }
+.arbre li[data-niveau="4"] { padding-left: calc(var(--espace-2) + 3rem); }
+.arbre li[aria-selected="true"] { background: var(--tampon-pale); box-shadow: inset 3px 0 0 var(--tampon); }
+.arbre li[aria-selected="true"] .n { color: var(--tampon); font-weight: 600; }
+.arbre li .genre { justify-self: end; font-size: var(--taille-dense); color: var(--encre-2); }
+.ariane { margin: 0 0 var(--espace-2); font-size: var(--taille-dense); color: var(--encre-2); }
+.numero-compte { margin: 0; font: 700 var(--taille-grand)/1.2 var(--police-chiffres); }
+.intitule-compte { margin: var(--espace-1) 0 var(--espace-4); font-size: var(--taille-titre); }
+.fiche-actions { display: flex; flex-wrap: wrap; gap: var(--espace-2); align-items: center; justify-content: flex-end; margin-top: var(--espace-5); border-top: 1px solid var(--ligne); padding-top: var(--espace-3); }
+.fiche-actions .aide { margin-right: auto; }
+}
+</style>
+</head>
+<body>
+<header class="barre">
+  <span class="logo"><b>Exo</b>fina</span>
+  <nav><span>Banque</span><span>Épargne</span><span>Crédit</span><span aria-current="page">Comptabilité</span><span>Budget</span></nav>
+  <span class="outils"><span>FR</span><span>?</span><span>⎋</span></span>
+</header>
+<aside class="acces">
+  <div class="menu"><b>Banque</b></div>
+  <div class="menu"><b>Épargne</b></div>
+  <div class="menu"><b>Crédit</b></div>
+  <div class="menu ouvert"><b>Comptabilité</b><ul><li class="titre">Référentiels</li><li aria-current="page">Plan des comptes</li><li>Plan des tiers</li><li>Taxes</li>
+    <li class="titre">Saisie</li><li>Saisie d'écritures</li><li>Autres opérations</li><li>Virements mensuels</li><li>Factures fournisseurs</li>
+    <li class="titre">Contrôle</li><li>Visas comptables</li><li>Validations comptables</li><li>Clôture de la journée</li></ul></div>
+  <div class="menu"><b>Budget</b></div>
+</aside>
+<main class="travail">
+  <div class="tete">
+    <h1>Plan des comptes</h1>
+    <div class="contexte"><span>Plan général <b>PCCI</b></span></div>
+    <div class="actions"><button class="bouton secondaire" type="button">Exporter</button><button class="bouton" type="button">Nouveau compte</button></div>
+  </div>
+
+  <div class="plan">
+    <section class="carte" aria-label="Comptes">
+      <input class="saisie" placeholder="N° ou libellé du compte" aria-label="Rechercher un compte">
+      <ul class="arbre" role="tree" aria-label="Plan des comptes">
+        <li class="classe"><span class="n">0</span><span>COMPTES DE HORS BILAN</span></li>
+        <li class="classe"><span class="n">1</span><span>FONDS PROPRES ET EMPRUNTS A PLUS D'UN AN</span></li>
+        <li class="classe"><span class="n">2</span><span>VALEURS IMMOBILISEES</span></li>
+        <li class="classe"><span class="n">3</span><span>OPERATIONS AVEC LA CLIENTELE</span></li>
+        <li class="classe"><span class="n">4</span><span>COMPTES DES TIERS ET DE REGULARISATION</span></li>
+        <li class="classe ouvert"><span class="n">5</span><span>COMPTES DE TRESORERIE</span></li>
+        <li data-niveau="2"><span class="n">52</span><span>Titre à court terme</span></li>
+        <li data-niveau="2"><span class="n">53</span><span>Prêts et emprunts à terme</span></li>
+        <li data-niveau="2"><span class="n">56</span><span>Banque, organe faîtier et autres intermédiaires financiers</span></li>
+        <li data-niveau="2" class="ouvert"><span class="n">57</span><span>Caisse</span></li>
+        <li data-niveau="3" class="ouvert"><span class="n">570</span><span>Monnaies nationale et étrangère</span></li>
+        <li data-niveau="4" class="feuille" aria-selected="true"><span class="n">57001000</span><span>Caisse Caisse 2 CDF</span></li>
+        <li data-niveau="4" class="feuille"><span class="n">57001100</span><span>Caisse Caisse 2 USD</span></li>
+        <li data-niveau="4" class="feuille"><span class="n">57002000</span><span>Caisse Coffre-fort CDF</span></li>
+        <li data-niveau="4" class="feuille"><span class="n">57002100</span><span>Caisse Coffre-fort USD</span></li>
+        <li data-niveau="3"><span class="n">579</span><span>Mouvements de fonds inter caisses</span></li>
+        <li data-niveau="2"><span class="n">58</span><span>Provisions pour dépréciation des comptes de la classe 5</span></li>
+        <li data-niveau="2"><span class="n">59</span><span>Virements internes</span></li>
+        <li class="classe"><span class="n">6</span><span>COMPTES DES CHARGES</span></li>
+        <li class="classe"><span class="n">7</span><span>COMPTES DE PRODUITS</span></li>
+        <li class="classe"><span class="n">8</span><span>SOLDES DE GESTION</span></li>
+      </ul>
+    </section>
+
+    <!-- La fiche du compte choisi, en lecture ; Modifier ouvre les mêmes champs que la création -->
+    <section class="carte" aria-label="Compte choisi">
+      <p class="ariane">5 Comptes de trésorerie › 57 Caisse › 570 Monnaies nationale et étrangère</p>
+      <p class="numero-compte">57001000</p>
+      <p class="intitule-compte">Caisse Caisse 2 CDF</p>
+      <dl class="lecture-seule">
+        <dt>Parent</dt><dd>570 Monnaies nationale et étrangère</dd>
+        <dt>Statut</dt><dd>Ouvert</dd>
+        <dt>Nature</dt><dd>Saisissable</dd>
+        <dt>Type de suivi</dt><dd>Aucun</dd>
+        <dt>Autorisation BCC</dt><dd>Sans objet</dd>
+      </dl>
+      <div class="fiche-actions">
+        <p class="aide">Ce compte a servi : il se ferme par son statut, il ne se supprime pas.</p>
+        <button class="bouton secondaire" type="button" disabled>Supprimer</button>
+        <button class="bouton secondaire" type="button">Modifier</button>
+      </div>
+    </section>
+  </div>
+</main>
+<footer class="etat"><span>Serveur : <b>démonstration, dans ce navigateur</b></span><span>Base de données : <b>locale</b></span><span>Journée ouverte : <b>05/11/2026</b></span><span>Utilisateur : <b>Patrick Lumbala</b></span><span class="droite">COOPEC Tujenge · agence de Matete</span></footer>
+</body>
+</html>
