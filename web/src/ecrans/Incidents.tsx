@@ -5,7 +5,7 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
-import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Formulaire } from "../composants";
 
 export default function Incidents() {
   const [relu, setRelu] = useState(0);
@@ -24,14 +24,14 @@ export default function Incidents() {
     <>
       
       <section className="bloc pile" aria-label="Incidents et dépassements">
-        <fieldset className="pile cadre-champs champs-a-gauche"><legend>Déclarer un incident</legend>
+        <Formulaire envoyer={() => agir("Voulez-vous vraiment enregistrer ?",
+            () => api.incidents.declarer({ type: f.type, description: f.description, montant: f.montant.trim() ? lireMontant(f.montant) : null }), () => setF({ type: "", description: "", montant: "" }))}><fieldset className="pile cadre-champs champs-a-gauche"><legend>Déclarer un incident</legend>
           <Champ libelle="Type : *">{(p) => <select {...p} className="saisie" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}><option value=""></option>
             {donnees.types.map((y) => <option key={y.code} value={y.code}>{y.libelle}</option>)}</select>}</Champ>
           <Champ libelle="Description : *">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />}</Champ>
           <Champ libelle="Montant (CDF) :">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={f.montant} onChange={(e) => setF({ ...f, montant: e.target.value })} />}</Champ>
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment enregistrer ?",
-            () => api.incidents.declarer({ type: f.type, description: f.description, montant: f.montant.trim() ? lireMontant(f.montant) : null }), () => setF({ type: "", description: "", montant: "" }))}>Enregistrer</button></div>
-        </fieldset>
+          <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button></div>
+        </fieldset></Formulaire>
         <div className="defile-x"><table className="grille" aria-label="Liste des incidents">
           <thead><tr><th scope="col">Date</th><th scope="col">Type</th><th scope="col">Description</th><th scope="col" className="num">Montant</th><th scope="col">Origine</th>
             <th scope="col">Traitement</th><th scope="col">Régularisé le</th></tr></thead>
@@ -41,12 +41,12 @@ export default function Incidents() {
               <td className="num chiffres">{y.montant === null ? "" : montant(y.montant, (y.devise || "CDF") as Devise)}</td><td>{y.origine === "automatique" ? "Logiciel" : "Déclaré"}</td>
               <td>{y.traitement}{y.traitePar ? ` (${y.traitePar})` : ""}</td><td className="chiffres">{y.regulariseLe ? fr(y.regulariseLe) : ""}</td></tr>)}</tbody>
         </table></div>
-        {x && <fieldset className="pile cadre-champs champs-a-gauche"><legend>Traitement</legend>
+        {x && <Formulaire envoyer={() => agir("Voulez-vous vraiment enregistrer ce traitement ?",
+            () => api.incidents.traiter(x.id, t), () => setChoisi(null))}><fieldset className="pile cadre-champs champs-a-gauche"><legend>Traitement</legend>
           <Champ libelle="Traitement : *">{(p) => <input {...p} className="saisie" autoComplete="off" value={t.traitement} onChange={(e) => setT({ ...t, traitement: e.target.value })} />}</Champ>
           <label className="case"><input type="checkbox" checked={t.regularise} onChange={(e) => setT({ ...t, regularise: e.target.checked })} /><span>Régularisé</span></label>
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment enregistrer ce traitement ?",
-            () => api.incidents.traiter(x.id, t), () => setChoisi(null))}>Enregistrer</button></div>
-        </fieldset>}
+          <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button></div>
+        </fieldset></Formulaire>}
         <Textes sources={["Instr. BCC 008, art. 43 : les incidents de toutes natures (incidents opérationnels, dépassements de limites, déficits de trésorerie) sont conservés dans une base de données prévue à cet effet",
           "Instr. BCC 008, art. 49 : limites surveillées de manière automatisée ; alerte aux responsables sur un dépassement ; traitement formalisé et tracé",
           "Instr. BCC 007, art. 39 : l'organe exécutif informe l'organe délibérant des dépassements de limites et des incidents opérationnels significatifs (registre T102)"]} />

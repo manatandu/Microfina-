@@ -3,7 +3,7 @@ import { api } from "../donnees/api";
 import type { ProduitEpargne } from "../donnees/types";
 import { lireMontant } from "@design/montant.js";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Formulaire } from "../composants";
 
 type Saisie = Record<string, string | boolean | null>;
 const VIDE: Saisie = {
@@ -50,7 +50,7 @@ export default function GestionProduitsEpargne() {
   return (
     <>
       <h2>Gestion des produits épargnes</h2>
-      <section className="bloc pile" aria-label="Gestion des produits épargnes">
+      <Formulaire className="bloc pile" label="Gestion des produits épargnes" envoyer={() => { try { const d = envoi(); confirmer("Voulez-vous vraiment enregistrer ?", () => api.produitsEpargne.enregistrer(d)); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }}>
         <div className="grille-deux">
           <div className="pile champs-a-gauche">
             {texte("numero", "N° Produit : *", "saisie code")}
@@ -75,7 +75,7 @@ export default function GestionProduitsEpargne() {
           </div>
         </div>
         <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={choisi !== null} onClick={() => { try { const d = envoi(); confirmer("Voulez-vous vraiment enregistrer ?", () => api.produitsEpargne.enregistrer(d)); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }}>Enregistrer</button>
+          <button className="bouton" type="submit" disabled={choisi !== null}>Enregistrer</button>
           <button className="bouton secondaire" type="button" disabled={choisi === null} onClick={() => { try { const d = envoi(); confirmer("Voulez-vous vraiment modifier ?", () => api.produitsEpargne.enregistrer(d, choisi!)); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }}>Modifier</button>
           <button className="bouton secondaire" type="button" disabled={choisi === null} onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.produitsEpargne.supprimer(choisi!))}>Supprimer</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
@@ -94,7 +94,7 @@ export default function GestionProduitsEpargne() {
         <Textes sources={["Manuel Microfina++, p. 40 : Gestion des produits épargnes, « renseigner les champs obligatoires et autres, ensuite [Enregistrer] » ; N° Produit*, Code produit*, Famille produit*, Libellé produit*, Solde minimum*, Max retrait/jour, Max compte à créer*, Afficher à l'adhésion, Actif, Virement prélèvement ; options Oui/Non ; Enregistrer, Modifier, Supprimer, Effacer ; grille Code Produit, Famille, Produit",
           "PCCI, compte 330 (Epargnes) et 334 (Epargnes obligatoires)",
           "Instr. BCC n°003 du 14/04/2012, art. 7 : comptes courants débiteurs (option Solde négatif)"]} />
-      </section>
+      </Formulaire>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );

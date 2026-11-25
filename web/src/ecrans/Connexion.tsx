@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api, LIBELLES_ROLES } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr } from "../lib/dates";
+import { fr, aujourdhui } from "../lib/dates";
 import { Bloquant } from "../composants";
 import { Marque } from "../mise-en-page/Marque";
 
@@ -17,7 +17,7 @@ export default function Connexion() {
   const [login, setLogin] = useState("");
   const [mdp, setMdp] = useState("");
   const [erreur, setErreur] = useState("");
-  const aujourdhui = new Date().toISOString().slice(0, 10);
+  const jourReel = aujourdhui();
 
   const enLigne = !!donnees?.mode.motDePasseRequis;
   async function ouvrir(l: string, m?: string) {
@@ -49,7 +49,7 @@ export default function Connexion() {
           </div>
           <div className="champ">
             <label htmlFor="date-systeme">Date système :</label>
-            <input id="date-systeme" className="saisie" readOnly value={fr(aujourdhui)} />
+            <input id="date-systeme" className="saisie" readOnly value={fr(jourReel)} />
           </div>
           <p className="serveur">Serveur : {location.host || "local"}</p>
           <Bloquant titre="">{erreur}</Bloquant>

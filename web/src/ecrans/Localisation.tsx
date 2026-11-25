@@ -4,7 +4,7 @@ import { api, type LieuVue } from "../donnees/api";
 import type { NiveauLieu } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { exporterExcel } from "../lib/excel";
-import { Champ, Chargement, Dialogue, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, type Boite, Formulaire } from "../composants";
 
 type Lieu = Omit<LieuVue, "ascendants">;
 const ORDRE_NATURE = ["Ville", "Territoire", "Commune", "Secteur", "Chefferie"];
@@ -81,14 +81,14 @@ export default function Localisation() {
           {ville && liste("commune", ville.id, choix.commune, (id) => choisir({ ...choix, commune: id }), ["Commune", "Secteur", "Chefferie"])}
         </fieldset>
 
-        {commune && <fieldset className="pile cadre-champs champs-a-gauche">
+        {commune && <Formulaire envoyer={() => executer(
+              () => api.localisation.enregistrer("quartier", { parentId: commune.id, nom: nouveau }), () => setNouveau(""))}><fieldset className="pile cadre-champs champs-a-gauche">
           <legend>Ajouter un {quoi} dans {commune.nom}</legend>
           <Champ libelle={`Nom du ${quoi} *`}>{(p) => <input {...p} className="saisie" value={nouveau} onChange={(e) => setNouveau(e.target.value)} />}</Champ>
           <div className="actions-onglets">
-            <button className="bouton" type="button" onClick={() => executer(
-              () => api.localisation.enregistrer("quartier", { parentId: commune.id, nom: nouveau }), () => setNouveau(""))}>Ajouter</button>
+            <button className="bouton" type="submit">Ajouter</button>
           </div>
-        </fieldset>}
+        </fieldset></Formulaire>}
 
         {quartier && <fieldset className="pile cadre-champs champs-a-gauche">
           <legend>Corriger le {quoi} {quartier.nom}</legend>
@@ -119,7 +119,7 @@ export default function Localisation() {
           <button className="bouton secondaire" type="button" aria-expanded={pays !== null}
             onClick={() => setPays(pays ? null : { nom: "", nationalite: "", code: "", zone: "" })}>Ajouter un pays (nationalités)</button>
         </div>
-        {pays && <fieldset className="pile cadre-champs champs-a-gauche">
+        {pays && <Formulaire envoyer={() => executer( () => api.localisation.enregistrer("pays", pays), () => setPays(null))}><fieldset className="pile cadre-champs champs-a-gauche">
           <legend>Ajouter un pays</legend>
           <Champ libelle="Pays *">{(p) => <input {...p} className="saisie" value={pays.nom} onChange={(e) => setPays({ ...pays, nom: e.target.value })} />}</Champ>
           <Champ libelle="Nationalite *">{(p) => <input {...p} className="saisie" value={pays.nationalite} onChange={(e) => setPays({ ...pays, nationalite: e.target.value })} />}</Champ>
@@ -127,9 +127,9 @@ export default function Localisation() {
           <Champ libelle="Zone *">{(p) => <select {...p} className="saisie" value={pays.zone} onChange={(e) => setPays({ ...pays, zone: e.target.value })}>
             <option value=""></option>{donnees.zones.map((z) => <option key={z} value={z}>{enClair(z)}</option>)}</select>}</Champ>
           <div className="actions-onglets">
-            <button className="bouton" type="button" onClick={() => executer( () => api.localisation.enregistrer("pays", pays), () => setPays(null))}>Enregistrer</button>
+            <button className="bouton" type="submit">Enregistrer</button>
           </div>
-        </fieldset>}
+        </fieldset></Formulaire>}
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee, Formulaire } from "../composants";
 
 const PAGES = [["element", "Elément Facture"], ["reference", "Référence Commande"]] as const;
 type Element = { id: number; libelle: string; compte: string; taux: number; tauxA: number; tauxNA: number; retenue: boolean; actif: boolean };
@@ -48,7 +48,8 @@ function Elements() {
     <Champ libelle={libelle}>{(p) => <input {...p} className={classe} inputMode={k.startsWith("taux") || k === "compte" ? "decimal" : undefined}
       value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} />}</Champ>);
   return (
-    <section className="bloc pile" id="volet-element" role="tabpanel" aria-labelledby="onglet-element">
+    <section className="bloc pile" id="volet-element" role="tabpanel" aria-labelledby="onglet-element"><Formulaire className="pile" envoyer={() => confirmer(choisi === null ? "Voulez-vous vraiment enregistrer ?" : "Voulez-vous vraiment modifier ?",
+          () => api.facture.enregistrerElement(f, choisi ?? undefined), annuler)}>
       <div className="pile champs-a-gauche">
         {texte("libelle", "Libellé", "saisie")}
         {texte("compte", "Compte :")}
@@ -56,8 +57,7 @@ function Elements() {
         <label className="case-jour"><input type="checkbox" checked={f.retenue} onChange={(e) => setF({ ...f, retenue: e.target.checked })} /> Retenue Taux</label>
       </div>
       <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={() => confirmer(choisi === null ? "Voulez-vous vraiment enregistrer ?" : "Voulez-vous vraiment modifier ?",
-          () => api.facture.enregistrerElement(f, choisi ?? undefined), annuler)}>Enregistrer</button>
+        <button className="bouton" type="submit">Enregistrer</button>
         <button className="bouton secondaire" type="button" disabled={choisi === null}
           onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.facture.supprimerElement(choisi!), annuler)}>Supprimer</button>
         <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
@@ -84,7 +84,7 @@ function Elements() {
       <Textes sources={["Manuel Microfina++, p. 46 : « Dans le menu [Facture], cliquez sur [Elément Facture] et renseigner les champs correspondants puis enregistrer » ; capture : Libellé, Compte, Taux(%), Taux A.(%), Taux N.A.(%), Retenue Taux, Enregistrer, Supprimer (grisé), Annuler ; cadre Liste éléments : Libelle, Compte, Taux (%), Taux A. (%), Taux N.A. (%), Retenue, Désactiver ; « Taux A. » et « Taux N.A. » (AIB du Bénin) supprimés (registre T130)",
         "Manuel Microfina++, p. 125 et 150 : TVA, AIB et Taux au bon de commande ; Liste des charges (Libellé, Taux (%), Montant) à l'enregistrement de la facture"]} />
       <Dialogue boite={boite} fermer={fermer} />
-    </section>
+    </Formulaire></section>
   );
 }
 

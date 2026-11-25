@@ -3,7 +3,7 @@ import { Onglet as PageZone } from "./Credit";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Formulaire } from "../composants";
 
 type Role = "gestionnaire" | "sensibilisateur" | "commercial";
 const ROLES: [Role, string][] = [["gestionnaire", "Gestionnaire"], ["sensibilisateur", "Sensibilisateur"], ["commercial", "Commercial"]];
@@ -53,7 +53,7 @@ function ListeAgents() {
   const texte = (k: "nom" | "prenom" | "portable", libelle: string) => (
     <Champ libelle={libelle}>{(p) => <input {...p} className="saisie" value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} />}</Champ>);
   return (
-    <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby="onglet-agents">
+    <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby="onglet-agents"><Formulaire className="pile" envoyer={() => executer(() => api.agents.enregistrer(envoi()))}>
       <div className="grille-deux">
         <div className="pile champs-a-gauche">
           {texte("nom", "Nom : *")}
@@ -74,7 +74,7 @@ function ListeAgents() {
       </div>
       <div className="actions-onglets">
         {choisi === null
-          ? <button className="bouton" type="button" onClick={() => executer(() => api.agents.enregistrer(envoi()))}>Enregistrer</button>
+          ? <button className="bouton" type="submit">Enregistrer</button>
           : <button className="bouton" type="button" onClick={() => executer(() => api.agents.enregistrer(envoi(), choisi))}>Modifier</button>}
         <button className="bouton secondaire" type="button" disabled={choisi === null} onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.agents.supprimer(choisi!))}>Supprimer</button>
         <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
@@ -94,6 +94,6 @@ function ListeAgents() {
       <Textes sources={["Manuel Microfina++, p. 43 : Informations de base liées aux agences (Gestionnaire, Sensibilisateur, Commercial), réunis en une liste à rôles cochés (plan d'allègement, point 2.20)",
         "Manuel Microfina++, p. 55 : Sensibilisateur et Commercial du prospect (S45)"]} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </section>
+    </Formulaire></section>
   );
 }

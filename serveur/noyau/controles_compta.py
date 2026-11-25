@@ -105,7 +105,7 @@ def enregistrer_rapprochement(u, p: dict) -> dict:
         raise ErreurMetier("Période : un rapprochement de ce compte couvre déjà cette date de début.")
     rid = valeur("""insert into rapprochement (institution_id, agence_id, compte_bancaire_id, debut, fin, solde_debut, solde_releve, solde_comptable, suspens_debit,
                                                suspens_credit, ecart, prepare_par, date_operation)
-                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, coalesce(%s::date, current_date)) returning id""",
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, coalesce(%s::date, jour_agence())) returning id""",
                  (u["institution_id"], u["agence_id"], cb["id"], e["du"], e["au"], e["soldeDebut"], e["soldeFin"], e["soldeComptable"], e["suspensDebit"], e["suspensCredit"],
                   e["ecart"], u["id"], (journee_courante(u) or {}).get("date")))
     for x in e["pointees"]:

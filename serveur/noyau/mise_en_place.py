@@ -9,13 +9,14 @@ from psycopg.types.json import Jsonb
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import exiger, journee_courante, json_lu, titulaire
 from .simulation_credit import charge, simuler
+from .fuseau import jour_agence
 
 STRUCTURES = ("Part. classique",)                 # capture p. 113 : seule valeur montrée (registre S89-4)
 
 
 def jour(u) -> date:
     j = journee_courante(u)
-    return date.fromisoformat(j["date"]) if j else date.today()
+    return date.fromisoformat(j["date"]) if j else jour_agence(u)
 
 
 def contexte(u) -> dict:

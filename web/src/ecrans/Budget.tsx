@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api, CATALOGUE_BUDGET, type ChampBudget, type LigneBudgetVue } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee, Formulaire } from "../composants";
 
 const PAGES_MANUEL: Record<string, string> = {
   types_centre: "p. 27 : 2-1 Types de centre de coût, Création et mise à jour des types de centre de coût, Code*, Libellé*, Parent, Enregistrer, Effacer, Supprimer, Liste des types de centres de coût (Code, Libellé, Parent), Rafraichir ; « Remplir les champs obligatoires code, et libelle puis préciser le parent »",
@@ -66,13 +66,13 @@ function PageBudget({ page, changer }: { page: string; changer: (p: string) => v
   };
   const formulaire = (
     <>
-      <div className="ligne-champ">{fiche.champs.map(champ)}</div>
+      <Formulaire className="pile" envoyer={() => faire(() => api.budget.enregistrer(page, envoi(), choisi ?? undefined))}><div className="ligne-champ">{fiche.champs.map(champ)}</div>
       <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={() => faire(() => api.budget.enregistrer(page, envoi(), choisi ?? undefined))}>Enregistrer</button>
+        <button className="bouton" type="submit">Enregistrer</button>
         <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         <button className="bouton secondaire" type="button" disabled={choisi === null}
           onClick={() => choisi !== null && confirmer("Voulez-vous vraiment supprimer ?", () => api.budget.supprimer(page, choisi))}>Supprimer</button>
-      </div>
+      </div></Formulaire>
     </>
   );
   return (

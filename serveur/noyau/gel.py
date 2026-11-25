@@ -184,8 +184,8 @@ def _personnes(tid: int) -> list[tuple[str, str, str]]:
     roles = {"dirigeant": "Dirigeant", "signataire": "Signataire", "membre": "Membre du groupe"}
     for r in lignes("select role, nom, postnom, prenom, piece_numero from representant where tiers_id = %s and retire_le is null", (tid,)):
         gens.append((roles.get(r["role"], r["role"]), " ".join(x for x in (r["nom"], r["postnom"], r["prenom"]) if x), r["piece_numero"] or ""))
-    for r in lignes("""select nom, postnom, prenom, piece_numero from procuration where mandant_id = %s and fin_le is null and date_debut <= current_date
-                       and (date_fin is null or date_fin >= current_date)""", (tid,)):
+    for r in lignes("""select nom, postnom, prenom, piece_numero from procuration where mandant_id = %s and fin_le is null and date_debut <= jour_agence()
+                       and (date_fin is null or date_fin >= jour_agence())""", (tid,)):
         gens.append(("Mandataire", " ".join(x for x in (r["nom"], r["postnom"], r["prenom"]) if x), r["piece_numero"] or ""))
     return gens
 

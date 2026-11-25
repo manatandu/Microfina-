@@ -4,7 +4,7 @@ import { useState } from "react";
 import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr } from "../lib/dates";
+import { fr, aujourdhui } from "../lib/dates";
 import { montant, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
 import { RechercheClient } from "./Visa";
@@ -37,7 +37,7 @@ export function ReleveCompte() {
   const [situation, setSituation] = useState<Situation | null>(null);
   const [membres, setMembres] = useState<Tiers["membres"] | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
-  const jour = j && j.statut === "ouverte" ? j.date : new Date().toISOString().slice(0, 10);
+  const jour = j && j.statut === "ouverte" ? j.date : aujourdhui();
   const debut = du || `${jour.slice(0, 4)}-01-01`, fin = au || jour;
   const { donnees: comptes } = useDonnees(() => (t ? api.tiers.comptes(t.id) : Promise.resolve([])), [t?.id]);
   const { donnees: soldes, erreur } = useDonnees(async () => (compte ? await api.releves.releve(Number(compte), debut, fin) : null), [compte, debut, fin]);

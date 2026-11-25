@@ -33,8 +33,8 @@ def situation(u, p: dict, brut: bool = False) -> list[dict]:
         raise ErreurMetier("Montant prêt : choisir la comparaison et saisir le montant.")
     statuts = list(STATUTS) if p.get("archives") else ["mis_en_place", "vise", "debloque"]
     out = []
-    for c in lignes("""select c.*, dc.approuve_le::date as approuve from credit c join demande_credit dc on dc.id = c.demande_id
-                       where c.institution_id = %s and c.statut = any(%s) and dc.approuve_le::date <= %s and (%s::date is null or dc.approuve_le::date >= %s)
+    for c in lignes("""select c.*, jour_agence(dc.approuve_le) as approuve from credit c join demande_credit dc on dc.id = c.demande_id
+                       where c.institution_id = %s and c.statut = any(%s) and jour_agence(dc.approuve_le) <= %s and (%s::date is null or jour_agence(dc.approuve_le) >= %s)
                        and (%s::bigint is null or c.produit_id = %s) and (%s::bigint is null or c.agent_id = %s)
                        and (%s::text is null or exists (select 1 from visa_credit v where v.credit_id = c.id and v.niveau = %s and v.avis = 'accepte'))
                        order by c.id""",
@@ -81,7 +81,7 @@ def portefeuille(u, p: dict) -> list[dict]:
     d1 = None if p.get("mode") == "date" else date_iso(p.get("du"), "Date début")
     op, m = p.get("operateur") or None, p.get("montant")
     statuts = [s for s, k in (("saisie", "demande"), ("controlee", "verifie"), ("rejetee", "refuse")) if k in etats]
-    for x in lignes("""select * from demande_credit where institution_id = %s and statut = any(%s) and cree_le::date <= %s and (%s::date is null or cree_le::date >= %s)
+    for x in lignes("""select * from demande_credit where institution_id = %s and statut = any(%s) and jour_agence(cree_le) <= %s and (%s::date is null or jour_agence(cree_le) >= %s)
                        and (%s::bigint is null or produit_id = %s) and (%s::bigint is null or coalesce(agent_id, saisi_par) = %s) order by id""",
                     (u["institution_id"], statuts, d2, d1, d1, p.get("produitId"), p.get("produitId"), p.get("agentId"), p.get("agentId"))):
         if op and not OPERATEURS[op](x["montant_demande"], m):

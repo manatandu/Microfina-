@@ -4,7 +4,7 @@ import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees } from "../lib/useDonnees";
 import { debutExercice, jusquAujourdhui } from "../lib/dates";
-import { Champ, ChampDate, Chargement, Textes } from "../composants";
+import { Champ, ChampDate, Chargement, Textes, Recherche } from "../composants";
 import { CATEGORIES, CRITERES_TRI, csv, dateReference, INCONNU, modifies, multicritere, prospects, synthese, valeur,
   type ContexteRapport, type CriteresModifies, type CriteresMulticritere, type CriteresProspect, type LigneModifies, type Tri } from "../lib/rapports";
 
@@ -82,7 +82,7 @@ function Multicritere({ ctx, cx, clients }: { ctx: Ctx; cx: ContexteRapport; cli
   };
   return (
     <>
-      <div className="grille-cadres">
+      <Recherche className="pile" label="Critères" envoyer={() => setLignes(multicritere(clients, c, cx))}><div className="grille-cadres">
         <fieldset className="pile cadre-champs"><legend>Période</legend>
           <ChampDate libelle="Du :" valeur={c.du} onChange={(v) => maj({ du: v })} /><ChampDate libelle="Au :" valeur={c.au} onChange={(v) => maj({ au: v })} />
         </fieldset>
@@ -120,9 +120,9 @@ function Multicritere({ ctx, cx, clients }: { ctx: Ctx; cx: ContexteRapport; cli
           <option value="">Tous les Client</option><option value="M">Homme</option><option value="F">Femme</option></select>}</Champ>
       </fieldset>
       <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={() => setLignes(multicritere(clients, c, cx))}>Rechercher</button>
+        <button className="bouton" type="submit">Rechercher</button>
         <button className="bouton secondaire" type="button" onClick={() => { setC(MULTI_VIDE()); setLignes(null); }}>Effacer les critères</button>
-      </div>
+      </div></Recherche>
       {lignes && (
         <>
           <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={lignes.length === 0} onClick={exporter}>Exporter</button></div>
@@ -162,7 +162,7 @@ function Prospects({ ctx, clients }: { ctx: Ctx; clients: Tiers[] }) {
   const valeurs = (t: Tiers) => [t.nom, t.prenom, t.sexe, t.profession, fr(t.naissance)];
   return (
     <>
-      <fieldset className="cadre-champs formulaire">
+      <Recherche className="pile" label="Critères" envoyer={() => setLignes(prospects(clients, c))}><fieldset className="cadre-champs formulaire">
         <legend className="sr-only">Période</legend>
         <ChampDate libelle="Du" valeur={c.du} onChange={(v) => maj({ du: v })} />
         <ChampDate libelle="Au" valeur={c.au} onChange={(v) => maj({ au: v })} />
@@ -178,10 +178,10 @@ function Prospects({ ctx, clients }: { ctx: Ctx; clients: Tiers[] }) {
         <Champ libelle="Profession :">{(p) => <input {...p} className="saisie" autoComplete="off" value={c.profession} onChange={(e) => maj({ profession: e.target.value })} />}</Champ>
       </fieldset>
       <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={() => setLignes(prospects(clients, c))}>Rechercher</button>
+        <button className="bouton" type="submit">Rechercher</button>
         <button className="bouton secondaire" type="button" disabled={!lignes || lignes.length === 0}
           onClick={() => lignes && telecharger("rapport-prospects.csv", csv(entetes, lignes.map(valeurs)))}>Export</button>
-      </div>
+      </div></Recherche>
       <table className="grille">
         <thead><tr>{entetes.map((e) => <th key={e} scope="col">{e}</th>)}</tr></thead>
         <tbody>
@@ -205,7 +205,7 @@ function Modifies({ ctx, clients, modifs }: { ctx: Ctx; clients: Tiers[]; modifs
   const valeurs = (l: LigneModifies) => [fr(l.date), nomU(l.utilisateur), l.numero, l.agence, String(l.nombre)];
   return (
     <>
-      <div className="grille-cadres">
+      <Recherche className="pile" label="Critères" envoyer={() => setLignes(modifies(modifs, clients, c, ctx.agence.nom))}><div className="grille-cadres">
         <fieldset className="pile cadre-champs"><legend>Période</legend>
           <ChampDate libelle="Du :" valeur={c.du} onChange={(v) => maj({ du: v })} /><ChampDate libelle="Au :" valeur={c.au} onChange={(v) => maj({ au: v })} />
         </fieldset>
@@ -217,10 +217,10 @@ function Modifies({ ctx, clients, modifs }: { ctx: Ctx; clients: Tiers[]; modifs
         </fieldset>
       </div>
       <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={() => setLignes(modifies(modifs, clients, c, ctx.agence.nom))}>Afficher</button>
+        <button className="bouton" type="submit">Afficher</button>
         <button className="bouton secondaire" type="button" disabled={!lignes || lignes.length === 0}
           onClick={() => lignes && telecharger("rapport-clients-modifies.csv", csv(entetes, lignes.map(valeurs)))}>Exporter</button>
-      </div>
+      </div></Recherche>
       <table className="grille">
         <thead><tr>{entetes.map((e) => <th key={e} scope="col">{e}</th>)}</tr></thead>
         <tbody>

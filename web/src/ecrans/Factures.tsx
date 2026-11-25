@@ -114,7 +114,7 @@ function BonDeCommande({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
         <Champ libelle="Libellé">{(p) => <textarea {...p} className="saisie" rows={3} value={f.libelle} onChange={(e) => setF({ ...f, libelle: e.target.value })} />}</Champ>
         <ChampDate libelle="Date opération" valeur={f.date || ctx.date} onChange={(v) => setF({ ...f, date: v })} />
       </fieldset>
-      <fieldset className="cadre-champs formulaire"><legend>Enregistrement des Lignes de commandes</legend>
+      <Formulaire className="pile" envoyer={ajouter}><fieldset className="cadre-champs formulaire"><legend>Enregistrement des Lignes de commandes</legend>
         <div className="ligne-champ"><label className="case"><input type="checkbox" disabled /><span>Produit</span></label><label className="case"><input type="checkbox" disabled /><span>Besoin</span></label></div>
         <Champ libelle="Compte">{(p) => <input {...p} className="saisie code" inputMode="numeric" autoComplete="off" list="comptes-achat" value={l.compte} onChange={(e) => setL({ ...l, compte: e.target.value })} />}</Champ>
         <datalist id="comptes-achat">{ctx.comptes.map((c) => <option key={c.numero} value={c.numero}>{c.libelle}</option>)}</datalist>
@@ -133,11 +133,11 @@ function BonDeCommande({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
         <Champ libelle="Ligne budgétaire :">{(p) => <select {...p} className="saisie" value={l.ligneBudget} onChange={(e) => setL({ ...l, ligneBudget: e.target.value })}>
           <option value="">Choisissez un financement</option>{ctx.lignesBudget.map((x) => <option key={x.id} value={x.id}>{x.numero} {x.libelle}</option>)}</select>}</Champ>
         <p>Bailleur : <strong>{ligneB?.bailleur ?? ""}</strong></p>
-        <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={!!faite} onClick={ajouter}>Ajouter</button>
+        <div className="actions-onglets"><button className="bouton secondaire" type="submit" disabled={!!faite}>Ajouter</button>
           <button className="bouton secondaire" type="button" onClick={() => setL(vide)}>Effacer</button>
           <button className="bouton secondaire" type="button" disabled={choisie === null || !!faite} onClick={() => { setLignes(lignes.filter((_, i) => i !== choisie)); setChoisie(null); }}>Retirer</button>
           <button className="bouton secondaire" type="button" onClick={() => setFiche("agrandir")}>Agrandir</button></div>
-      </fieldset>
+      </fieldset></Formulaire>
     </div>
     {grille}
     <div className="actions-onglets">

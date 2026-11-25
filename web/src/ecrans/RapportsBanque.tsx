@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, type LigneVisaBanque } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr } from "../lib/dates";
+import { fr, aujourdhui } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { montant, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Recherche } from "../composants";
@@ -22,8 +22,8 @@ export function RapportsBanque() {
   if (!donnees) return <Chargement />;
   const { cx, lu } = donnees;
   const maj = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p }));
-  const du = f.du || `${cx.enCours ?? new Date().getFullYear()}-01-01`;
-  const au = f.au || lu.date || new Date().toISOString().slice(0, 10);
+  const du = f.du || `${cx.enCours ?? aujourdhui().slice(0, 4)}-01-01`;
+  const au = f.au || lu.date || aujourdhui();
   const comptes = lu.comptes.filter((c) => String(c.banqueId) === f.banque);
   const m = (x: number) => (r && x ? montant(x, r.devise as Devise) : "");
 

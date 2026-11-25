@@ -171,6 +171,9 @@ const OUT = process.argv[2];
   await aller('/parametrage/s32'); await p.getByLabel('Directeur :').fill('J.-P. Mukendi'); await p.getByRole('tabpanel', { name: 'Information Société' }).getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await etape('02f22-info-societe');
   await p.getByRole('tab', { name: 'Agence' }).click(); await p.getByRole('cell', { name: '0412' }).waitFor();
+  // Fuseau horaire de l'agence (plan d'allègement, point 11.4 ; registre T153) : Kinshasa pour Matete
+  await p.getByRole('cell', { name: '0412' }).click();
+  if ((await p.getByLabel('Fuseau horaire : *').inputValue()) !== 'Africa/Kinshasa') throw new Error('11.4 : fuseau de l\'agence');
   // Chef : agents d'agence (S33, p. 43) : une liste, rôles cochés (plan d'allègement, point 2.20) ; un sensibilisateur
   await aller('/parametrage/s33'); await p.getByRole('table', { name: 'Liste des agents' }).waitFor();
   await p.getByLabel('Nom : *', { exact: true }).fill('Mbuyi'); await p.getByLabel('Prénom : *', { exact: true }).fill('Sarah');

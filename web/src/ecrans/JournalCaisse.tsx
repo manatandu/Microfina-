@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr } from "../lib/dates";
+import { fr, aujourdhui } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { montant, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Lecture, LigneFiltres, Paginee, Textes, type Boite, Recherche } from "../composants";
@@ -21,7 +21,7 @@ export default function JournalCaisse() {
   const [boite, setBoite] = useState<Boite | null>(null);
   if (!ctx) return <Chargement />;
   const [c, j] = ctx;
-  const jour = j?.date ?? new Date().toISOString().slice(0, 10);
+  const jour = j?.date ?? aujourdhui();
   const v = f ?? { guichet: c.guichetId ? String(c.guichetId) : "", du: `${jour.slice(0, 4)}-01-01`, au: jour };
   const maj = (x: Partial<typeof v>) => setF({ ...v, ...x });
   const propre = c.guichets.find((g) => g.id === c.guichetId);

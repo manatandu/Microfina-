@@ -6,6 +6,7 @@ from datetime import date, timedelta
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import exiger, journee_courante, titulaire
+from .fuseau import jour_agence
 
 TYPES = {"ouverture_compte": "Ouverture de compte", "cloture_compte": "Clôture de compte", "nouveau_client": "Nouveau client", "modification_client": "Client modifié"}
 
@@ -37,11 +38,11 @@ def evenements(u: dict, du: str, au: str, statut: str = "") -> list[dict]:
       union all
       select 'nouveau_client', t.id, t.date_visa, t.id, t.numero, null, null, null from tiers t where t.institution_id = %(i)s and t.date_visa between %(du)s and %(au)s
       union all
-      select 'modification_client', m.id, m.valide_le::date, t.id, t.numero, null, null, null from tiers_modification m join tiers t on t.id = m.tiers_id
-        where t.institution_id = %(i)s and m.valide_le::date between %(du)s and %(au)s
+      select 'modification_client', m.id, jour_agence(m.valide_le), t.id, t.numero, null, null, null from tiers_modification m join tiers t on t.id = m.tiers_id
+        where t.institution_id = %(i)s and jour_agence(m.valide_le) between %(du)s and %(au)s
       order by 3, 1, 2""", p)
     j = journee_courante(u)
-    jour = date.fromisoformat(j["date"]) if j else date.today()
+    jour = date.fromisoformat(j["date"]) if j else jour_agence(u)
     sortie = []
     for r in rows:
         dc = une("select declare_le, reference from declaration_cip where institution_id = %s and type_evenement = %s and objet_id = %s",
@@ -78,7 +79,7 @@ def declarer(u: dict, d: dict) -> list[dict]:
         sql = {"ouverture_compte": "select ouvert_le from compte_depot where id = %s and institution_id = %s",
                "cloture_compte": "select clos_le from compte_depot where id = %s and institution_id = %s",
                "nouveau_client": "select date_visa from tiers where id = %s and institution_id = %s",
-               "modification_client": "select m.valide_le::date from tiers_modification m join tiers t on t.id = m.tiers_id where m.id = %s and t.institution_id = %s"}[type_]
+               "modification_client": "select jour_agence(m.valide_le) from tiers_modification m join tiers t on t.id = m.tiers_id where m.id = %s and t.institution_id = %s"}[type_]
         de = valeur(sql, (oid, u["institution_id"]))
         if not de:
             raise ErreurMetier("Événement inconnu.")

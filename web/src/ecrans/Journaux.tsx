@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { exporterExcel } from "../lib/excel";
-import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee, Formulaire } from "../composants";
 
 type Journal = { id: number; code: string; libelle: string; type: string; typeLibelle: string; actif: boolean; detail: boolean };
 const VIDE = { type: "", libelle: "", code: "", actif: false, detail: false };
@@ -26,7 +26,8 @@ export default function Journaux() {
   return (
     <>
       <h2>Journal</h2>
-      <section className="bloc pile" aria-label="Journal">
+      <Formulaire className="bloc pile" label="Journal" envoyer={() => confirmer(choisi === null ? "Voulez-vous vraiment enregistrer ?" : "Voulez-vous vraiment modifier ?",
+            () => api.journaux.enregistrer(f, choisi ?? undefined))}>
         <fieldset className="cadre-champs">
           <legend>Info Journal</legend>
           <div className="ligne-champ">
@@ -39,8 +40,7 @@ export default function Journaux() {
           <label className="case"><input type="checkbox" checked={f.detail} onChange={(e) => setF({ ...f, detail: e.target.checked })} /><span>Détail journal</span></label>
         </fieldset>
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={() => confirmer(choisi === null ? "Voulez-vous vraiment enregistrer ?" : "Voulez-vous vraiment modifier ?",
-            () => api.journaux.enregistrer(f, choisi ?? undefined))}>Enregistrer</button>
+          <button className="bouton" type="submit">Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
           <button className="bouton secondaire" type="button" disabled={choisi === null} onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.journaux.supprimer(choisi!))}>Supprimer</button>
         </div>
@@ -62,7 +62,7 @@ export default function Journaux() {
         <Textes sources={["Manuel Microfina++, p. 41 : « renseigner le type journal et le libelle et [Enregistrer] » ; capture p. 42 : Info Journal (Type Journal*, Libelle*, Code, Actif, Détail journal), Enregistrer, Effacer, Supprimer, Liste des Journaux (N° Journal, Libellé, Type Journal, Actif), Exporter",
           "PCCI § 3.3 : journaux et livres auxiliaires au choix de l'institution, centralisés au moins une fois par mois dans le livre-journal",
           "Manuel Microfina++, p. 21 : Compléter journal détail (S11c)"]} />
-      </section>
+      </Formulaire>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );

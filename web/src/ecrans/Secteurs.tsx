@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api, CATALOGUE_LISTES } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee, Formulaire } from "../composants";
 
 type Ligne = { id: number; code: string; libelle: string; parentId: number | null; parent: string };
 const VIDE = { code: "", libelle: "", parentId: 0 };
@@ -55,21 +55,21 @@ function PageListe({ liste, changer }: { liste: string; changer: (l: string) => 
           </ul>
         </nav>
         <section className="bloc pile" aria-label={c.titre}>
-          <fieldset className="pile cadre-champs champs-a-gauche">
+          <Formulaire envoyer={() => executer( () => api.listes.enregistrer(liste, saisie))}><fieldset className="pile cadre-champs champs-a-gauche">
             {parent && <Champ libelle={`${parent.libelle} : *`}>{(p) => <select {...p} className="saisie" value={f.parentId || ""} onChange={(e) => setF({ ...f, parentId: Number(e.target.value) })}>
               <option value=""></option>{donnees.parents.map((x) => <option key={x.id} value={x.id}>{x.libelle}</option>)}</select>}</Champ>}
             {!c.sansCode && <Champ libelle={`${c.code} : *`}>{(p) => <input {...p} className="saisie code" value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} />}</Champ>}
             <Champ libelle={`${c.libelle} : *`}>{(p) => <input {...p} className="saisie" value={f.libelle} onChange={(e) => setF({ ...f, libelle: e.target.value })} />}</Champ>
             <div className="actions-onglets">
               {choisi === null
-                ? <button className="bouton" type="button" onClick={() => executer( () => api.listes.enregistrer(liste, saisie))}>Enregistrer</button>
+                ? <button className="bouton" type="submit">Enregistrer</button>
                 : <>
                     <button className="bouton secondaire" type="button" onClick={() => executer( () => api.listes.enregistrer(liste, saisie, choisi))}>Modifier</button>
                     <button className="bouton secondaire" type="button" onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.listes.supprimer(liste, choisi))}>Supprimer</button>
                   </>}
               <button className="bouton secondaire" type="button" onClick={effacer}>{c.effacer ?? "Effacer"}</button>
             </div>
-          </fieldset>
+          </fieldset></Formulaire>
           <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
             <thead>
               <tr>{!c.sansCode && <th scope="col">Numéro</th>}{parent && <th scope="col">{parent.colonne}</th>}

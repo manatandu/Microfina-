@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee, Formulaire } from "../composants";
 import { Referentiels, type FacadeReferentiel } from "./Referentiels";
 
 const PAGES = ["lignes_financement", "types_financement", "bailleurs"];
@@ -55,17 +55,17 @@ function LignesFinancement({ changer }: { changer: (p: string) => void }) {
         </section>
       </div>
       <Fiche titre="Ligne financement" ouverte={!!f} fermer={() => setF(null)}>
-        {f && <div className="pile formulaire">
+        {f && <Formulaire className="pile formulaire" envoyer={() => confirmer(f.id === null ? "Voulez-vous vraiment enregistrer ?" : "Voulez-vous vraiment modifier ?",
+              () => facade.enregistrer("lignes_financement", { libelle: f.libelle, montant: f.montant, typeId: f.typeId ? Number(f.typeId) : null }, f.id ?? undefined))}>
           <Champ libelle="Libellé *">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.libelle} onChange={(e) => setF({ ...f, libelle: e.target.value })} />}</Champ>
           <Champ libelle="Montant">{(p) => <input {...p} className="saisie montant" inputMode="numeric" autoComplete="off" value={f.montant} onChange={(e) => setF({ ...f, montant: e.target.value })} />}</Champ>
           <Champ libelle="Type *">{(p) => <select {...p} className="saisie" value={f.typeId} onChange={(e) => setF({ ...f, typeId: e.target.value })}><option value=""></option>
             {types.map((o) => <option key={String(o.id)} value={String(o.id)}>{o.libelle}</option>)}</select>}</Champ>
           <div className="actions-onglets">
-            <button className="bouton" type="button" onClick={() => confirmer(f.id === null ? "Voulez-vous vraiment enregistrer ?" : "Voulez-vous vraiment modifier ?",
-              () => facade.enregistrer("lignes_financement", { libelle: f.libelle, montant: f.montant, typeId: f.typeId ? Number(f.typeId) : null }, f.id ?? undefined))}>Enregistrer</button>
+            <button className="bouton" type="submit">Enregistrer</button>
             <button className="bouton secondaire" type="button" onClick={() => setF(null)}>Fermer</button>
           </div>
-        </div>}
+        </Formulaire>}
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>

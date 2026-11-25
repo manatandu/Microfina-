@@ -5,7 +5,7 @@ import { api, IMAGE_MAX, ageAu, MAJORITE } from "../donnees/api";
 import type { Representant, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { vers } from "./registre";
-import { jourOuvert } from "../lib/dates";
+import { jourOuvert, jourDe } from "../lib/dates";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture, Paginee } from "../composants";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
 import { aDesParts, mots } from "../lib/vocabulaire";
@@ -28,7 +28,7 @@ export function MembresAViser() {
   if (!donnees) return <Chargement />;
   const nom = (id?: number) => ((donnees.ctx as { utilisateurs?: { id: number; nom: string }[] }).utilisateurs ?? []).find((x) => x.id === id)?.nom ?? "";
   const lignes = [...donnees.nouveaux.map((t) => ({ t, genre: "nouveau" as const, quoi: "Nouveau membre", par: nom(t.creePar), le: t.creeLe })),
-    ...donnees.modifies.map(({ t, m }) => ({ t, genre: "modifie" as const, quoi: "Fiche modifiée", par: nom(m?.modifiePar), le: m?.modifieLe?.slice(0, 10) ?? "" }))];
+    ...donnees.modifies.map(({ t, m }) => ({ t, genre: "modifie" as const, quoi: "Fiche modifiée", par: nom(m?.modifiePar), le: jourDe(m?.modifieLe ?? "") }))];
   const fait = () => setRelu((x) => x + 1);
   return (
     <>
@@ -445,7 +445,7 @@ export function ValidationClientModifie({ initial, fait }: { initial?: Tiers; fa
         {t && <fieldset className="pile cadre-champs">
           <legend>Modification à valider</legend>
           {!attente ? <p>Aucune modification en attente pour ce client.</p> : <>
-            <p>Modifiée le {fr(attente.modifieLe.slice(0, 10))}{auteur ? ` par ${auteur}` : ""}.</p>
+            <p>Modifiée le {fr(jourDe(attente.modifieLe))}{auteur ? ` par ${auteur}` : ""}.</p>
             <table className="grille" aria-label="Modification à valider">
               <thead><tr><th scope="col">Champ</th><th scope="col">Avant</th><th scope="col">Après</th></tr></thead>
               <tbody>{changes.length === 0 ? <tr><td colSpan={3}>Aucun champ suivi n'a changé.</td></tr>
@@ -551,7 +551,7 @@ export function InformationsClient() {
             <thead><tr><th scope="col">Adresse</th><th scope="col">Jusqu'au</th><th scope="col">Changement validé</th></tr></thead>
             <tbody>
               {(detail?.modifications ?? []).filter((m) => (m.avant.adresse ?? "") !== (m.apres.adresse ?? "")).map((m) =>
-                <tr key={m.modifieLe}><td>{m.avant.adresse}</td><td>{fr(m.modifieLe.slice(0, 10))}</td><td>{m.validePar ? "Oui" : "En attente"}</td></tr>)}
+                <tr key={m.modifieLe}><td>{m.avant.adresse}</td><td>{fr(jourDe(m.modifieLe))}</td><td>{m.validePar ? "Oui" : "En attente"}</td></tr>)}
               <tr><td>{t.adresse}</td><td>Adresse actuelle</td><td></td></tr>
             </tbody>
           </table>
@@ -612,7 +612,7 @@ export function InformationsClient() {
             <thead><tr><th scope="col">Le</th><th scope="col">Par</th><th scope="col">Validée</th></tr></thead>
             <tbody>
               {(detail?.modifications ?? []).length === 0 && <tr><td colSpan={3}>Aucune ligne.</td></tr>}
-              {(detail?.modifications ?? []).map((m) => <tr key={m.modifieLe}><td className="chiffres">{fr(m.modifieLe.slice(0, 10))}</td><td>{nomUtil(m.modifiePar)}</td>
+              {(detail?.modifications ?? []).map((m) => <tr key={m.modifieLe}><td className="chiffres">{fr(jourDe(m.modifieLe))}</td><td>{nomUtil(m.modifiePar)}</td>
                 <td>{m.validePar ? `Oui, par ${nomUtil(m.validePar)}` : "En attente"}</td></tr>)}
             </tbody>
           </table>

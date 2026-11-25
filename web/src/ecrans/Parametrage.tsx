@@ -3,7 +3,7 @@ import { enClair } from "../lib/enclair";
 import { api, type ValeursFrais } from "../donnees/api";
 import type { Frais, ParamAdhesion, ParamOperation } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee, Formulaire } from "../composants";
 import { lireMontant, montant } from "@design/montant.js";
 
 type Donnees = Awaited<ReturnType<typeof api.parametrage.lireFrais>>;
@@ -98,7 +98,8 @@ function FormulaireFrais({ d, confirmer, ouvrir }: Props & { ouvrir: (f: Frais) 
     : d.operations.filter((x) => x.fraisId === f.id).map((x) => `${x.sousType} : ${valeurLue(x.valeur, x.nature)}`)).join(" ; ");
   return (
     <>
-      <fieldset className="cadre-champs formulaire">
+      <Formulaire className="pile" envoyer={() => confirmer("Voulez-vous vraiment enregistrer ?",
+          () => edition ? api.parametrage.modifierFrais(edition, saisie) : api.parametrage.creerFrais(saisie), annuler)}><fieldset className="cadre-champs formulaire">
         <legend>{edition ? "Modifier le frais" : "Nouveau frais"}</legend>
         <Champ libelle="Type Opération: *">{(p) => <select {...p} className="saisie" required value={type} onChange={(e) => setType(e.target.value)}>
           <option value=""></option>{d.typesOperation.map((t) => <option key={t} value={t}>{enClair(t)}</option>)}</select>}</Champ>
@@ -108,10 +109,9 @@ function FormulaireFrais({ d, confirmer, ouvrir }: Props & { ouvrir: (f: Frais) 
         {fondement === "autorisation_bcc" && <Champ libelle="Référence de l'autorisation BCC: *">{(p) => <input {...p} className="saisie" required autoComplete="off" value={autorisation} onChange={(e) => setAutorisation(e.target.value)} />}</Champ>}
       </fieldset>
       <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?",
-          () => edition ? api.parametrage.modifierFrais(edition, saisie) : api.parametrage.creerFrais(saisie), annuler)}>Enregistrer</button>
+        <button className="bouton" type="submit">Enregistrer</button>
         <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
-      </div>
+      </div></Formulaire>
       <Paginee lignes={d.frais}>{(visibles) => (<div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">Frais</th><th scope="col">Type opération</th><th scope="col">Fondement</th><th scope="col">Barème</th><th scope="col"><span className="sr-only">Action</span></th></tr></thead>
         <tbody>
@@ -168,19 +168,19 @@ function Bareme({ d, confirmer, erreur, frais }: Props & { frais: Frais }) {
           ))}
         </tbody>
       </table></div>
-      <div className="deux-colonnes">
-        <Valeurs v={v} maj={(p) => setV({ ...v, ...p })} natures={natures} />
-        <Coches titre={adhesion ? "Type client" : "Sous type client"} liste={adhesion ? d.typesMembre : d.sousTypes} coches={coches} onChange={setCoches} />
-      </div>
-      <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={() => {
+      <Formulaire className="pile" envoyer={() => {
           try {
             const val = lireValeurs(v);
             confirmer("Voulez-vous vraiment enregistrer ?", () => adhesion ? api.parametrage.parametrerAdhesion({ fraisId: frais.id, typesMembre: coches, ...val })
               : api.parametrage.parametrerOperation({ fraisId: frais.id, sousTypes: coches, ...val }), () => { setV(neuf); setCoches([]); });
           } catch (x) { erreur(x); }
-        }}>Ajouter</button>
+        }}><div className="deux-colonnes">
+        <Valeurs v={v} maj={(p) => setV({ ...v, ...p })} natures={natures} />
+        <Coches titre={adhesion ? "Type client" : "Sous type client"} liste={adhesion ? d.typesMembre : d.sousTypes} coches={coches} onChange={setCoches} />
       </div>
+      <div className="actions-onglets">
+        <button className="bouton" type="submit">Ajouter</button>
+      </div></Formulaire>
     </div>
   );
 }

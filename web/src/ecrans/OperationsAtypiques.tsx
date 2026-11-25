@@ -7,7 +7,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { montant, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee, LigneFiltres } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee, LigneFiltres, Formulaire } from "../composants";
 
 type Alerte = Awaited<ReturnType<typeof api.conformite.atypiques>>[number];
 type Rapport = Awaited<ReturnType<typeof api.conformite.rapportAtypiques>>;
@@ -74,19 +74,20 @@ export default function OperationsAtypiques({ jour }: { jour: string }) {
         "Instr. BCC 15, art. 35 et 36 : examen de la justification économique et de la légitimité apparente ; rapports écrits des opérations considérées atypiques et de leurs critères",
         "Instr. BCC 15, art. 36, 4e tiret : déclaration de soupçon à la CENAREF ; art. 34 : critères précisés par écrit aux employés"]} />
       <Fiche titre="Critères des opérations atypiques" ouverte={!!saisie} fermer={() => setSaisie(null)}>
-        {saisie && <div className="pile">
+        {saisie && <Formulaire className="pile" envoyer={() => agir("Voulez-vous vraiment enregistrer ?", () => api.conformite.fixerCriteresAtypiques(saisie), () => setSaisie(null))}>
           <fieldset className="pile cadre-champs">
             <legend>Critères</legend>
             {CRITERES.map(([k, l]) => <Champ key={k} libelle={l}>{(p) => <input {...p} className="saisie chiffres" inputMode="decimal" value={saisie[k]} onChange={(e) => setSaisie({ ...saisie, [k]: e.target.value })} />}</Champ>)}
           </fieldset>
           <div className="actions-onglets">
-            <button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment enregistrer ?", () => api.conformite.fixerCriteresAtypiques(saisie), () => setSaisie(null))}>Enregistrer</button>
+            <button className="bouton" type="submit">Enregistrer</button>
             <button className="bouton secondaire" type="button" onClick={() => setSaisie(null)}>Fermer</button>
           </div>
-        </div>}
+        </Formulaire>}
       </Fiche>
       <Fiche titre={choisi ? `Alerte du ${fr(choisi.date)} : ${choisi.client}` : ""} ouverte={!!choisi} fermer={fermer}>
-        {choisi && <div className="pile">
+        {choisi && <Formulaire className="pile" envoyer={() => agir("Voulez-vous vraiment enregistrer cette analyse ?",
+              async () => setChoisi(await api.conformite.analyserAtypique({ cle: choisi.cle, ...f })), () => {})}>
           <dl className="info-ligne-liste">
             <div className="info-ligne"><dt>Mouvement</dt><dd>{choisi.libelle}{choisi.piece ? `, pièce ${choisi.piece}` : ""}</dd></div>
             <div className="info-ligne"><dt>Compte</dt><dd className="chiffres">{choisi.compte} ({choisi.membre})</dd></div>
@@ -109,13 +110,12 @@ export default function OperationsAtypiques({ jour }: { jour: string }) {
                 </div>}
           </fieldset>}
           <div className="actions-onglets">
-            {choisi.statut === "a_analyser" && <button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment enregistrer cette analyse ?",
-              async () => setChoisi(await api.conformite.analyserAtypique({ cle: choisi.cle, ...f })), () => {})}>Enregistrer</button>}
+            {choisi.statut === "a_analyser" && <button className="bouton" type="submit">Enregistrer</button>}
             {choisi.statut === "atypique" && !choisi.declareLe && <button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment noter cette déclaration ?",
               async () => setChoisi(await api.conformite.declarerAtypique({ cle: choisi.cle, date: decl.date || jour, reference: decl.reference })), () => {})}>Noter la déclaration</button>}
             <button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button>
           </div>
-        </div>}
+        </Formulaire>}
       </Fiche>
       <Fiche titre="Rapport des opérations atypiques" ouverte={!!rapport} fermer={() => setRapport(null)}>
         {rapport && <RapportAtypiques r={rapport} />}

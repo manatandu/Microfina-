@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api, type CompteModele } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Formulaire } from "../composants";
 
 type Degre = { rang: number; libelle: string; taux: number; debut: number; fin: number };
 type Terme = { rang: number; libelle: string; debut: number; fin: number };
@@ -27,7 +27,8 @@ export default function ModeleCredit() {
   } });
   return (
     <>
-      <section className="bloc pile" aria-label="Modèle pour crédit">
+      <Formulaire className="bloc pile" label="Modèle pour crédit" envoyer={() => confirmer(choisi === null ? "Voulez-vous vraiment enregistrer ?" : "Voulez-vous vraiment modifier ?",
+            () => api.modeles.enregistrer({ libelle, comptes: matrice }, choisi ?? undefined))}>
         <div className="ligne-champ"><Champ libelle="Libellé : *">{(p) => <input {...p} className="saisie" value={libelle} onChange={(e) => setLibelle(e.target.value)} />}</Champ></div>
         {/* Les 21 combinaisons classe et terme dans un seul tableau, modifiable sur place ; « Compte interne », jamais lu, n'est plus demandé (plan d'allègement, point 2.15) */}
         <div className="defile-x"><table className="grille" aria-label="Comptes par classe et par terme">
@@ -41,8 +42,7 @@ export default function ModeleCredit() {
           }))}</tbody>
         </table></div>
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={() => confirmer(choisi === null ? "Voulez-vous vraiment enregistrer ?" : "Voulez-vous vraiment modifier ?",
-            () => api.modeles.enregistrer({ libelle, comptes: matrice }, choisi ?? undefined))}>Enregistrer</button>
+          <button className="bouton" type="submit">Enregistrer</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
           <button className="bouton secondaire" type="button" disabled={choisi === null}
             onClick={() => choisi !== null && confirmer("Voulez-vous vraiment supprimer ?", () => api.modeles.supprimer(choisi))}>Supprimer</button>
@@ -59,7 +59,7 @@ export default function ModeleCredit() {
         <Textes sources={["Manuel Microfina++, p. 40 : « Remplir les champs Libellé (obligatoire), Compte capital, Compte interne, compte intérêt et [Enregistrer] » ; capture : Dégré, Terme, Libellé model",
           "Instr. BCC n°003 du 14/04/2012, art. 12 : tranches de retard (degrés de S21)",
           "PCCI, classe 3 : crédits à court, moyen et long terme (32, 31, 30) ; compte 390 (crédits en retard de 1 à 30, 31 à 60, 61 à 90, 91 à 180, 181 jours et plus) ; classe 7 : 710 à 712 (intérêts), 717 (intérêts sur crédits en retard)"]} />
-      </section>
+      </Formulaire>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );

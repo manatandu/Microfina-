@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { BarrePages, Champ, Chargement, Dialogue, Fiche, PAR_PAGE, Textes, type Boite, Lecture } from "../composants";
+import { BarrePages, Champ, Chargement, Dialogue, Fiche, PAR_PAGE, Textes, type Boite, Lecture, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
 
 const nomComplet = (t: { nom: string; postnom: string; prenom: string }) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
@@ -85,17 +85,17 @@ export function GroupeSolidaire() {
       </div>
       <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}>
         {onglet === 0 && <>
-          <div className="formulaire">
+          <Formulaire className="pile" envoyer={() => {
+              const d = { code: code ?? g.codeSuivant, nom };
+              executer(() => (edition ? api.groupes.modifier(edition, d) : api.groupes.creer(d)), "Groupe solidarité enregistré avec succès", effacer);
+            }}><div className="formulaire">
             <Champ libelle="Code groupe *">{(p) => <input {...p} className="saisie code" required autoComplete="off" value={code ?? g.codeSuivant} onChange={(e) => setCode(e.target.value)} />}</Champ>
             <Champ libelle="nom groupe *">{(p) => <input {...p} className="saisie" required autoComplete="off" value={nom} onChange={(e) => setNom(e.target.value)} />}</Champ>
           </div>
           <div className="actions-onglets">
-            <button className="bouton" type="button" onClick={() => {
-              const d = { code: code ?? g.codeSuivant, nom };
-              executer(() => (edition ? api.groupes.modifier(edition, d) : api.groupes.creer(d)), "Groupe solidarité enregistré avec succès", effacer);
-            }}>Enregistrer</button>
+            <button className="bouton" type="submit">Enregistrer</button>
             <button className="bouton secondaire" type="button" onClick={effacer}>effacer</button>
-          </div>
+          </div></Formulaire>
           <TableFiltree colonnes={COLONNES_GROUPES} lignes={g.groupes} cle={(x) => x.id} />
         </>}
 

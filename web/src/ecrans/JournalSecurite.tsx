@@ -6,18 +6,19 @@ import { api } from "../donnees/api";
 import { useDonnees } from "../lib/useDonnees";
 import { exporterExcel } from "../lib/excel";
 import { Champ, ChampDate, Chargement, Textes, Paginee, LigneFiltres } from "../composants";
+import { aujourdhui, frInstant } from "../lib/dates";
 
 const EVENEMENTS = [["", "Tous"], ["connexion", "Connexion"], ["connexion_refusee", "Connexion refusée (mot de passe)"], ["connexion_impossible", "Connexion impossible"],
   ["connexion_bloquee", "Connexion bloquée (trop d'essais)"], ["acces_refuse", "Accès refusé (droit manquant)"], ["limite_requetes", "Limite de requêtes dépassée"]] as const;
-const heure = (iso: string) => new Date(iso).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "medium" });
+const heure = (iso: string) => frInstant(iso, true);   // heure de l'agence (point 11.4)
 const ALERTES = new Set(["connexion_refusee", "connexion_bloquee", "acces_refuse", "limite_requetes"]);
 
 export default function JournalSecurite() {
   const { donnees: j } = useDonnees(() => api.journees.courante());
-  const aujourdhui = new Date().toISOString().slice(0, 10);
+  const jourReel = aujourdhui();
   const [du, setDu] = useState(""); const [au, setAu] = useState("");
   const [evenement, setEvenement] = useState("");
-  const fin = au || aujourdhui, debut = du || `${fin.slice(0, 7)}-01`;
+  const fin = au || jourReel, debut = du || `${fin.slice(0, 7)}-01`;
   const { donnees, erreur } = useDonnees(() => api.journalSecurite.consulter(debut, fin, evenement), [debut, fin, evenement]);
   if (j === undefined) return <Chargement />;
   if (erreur) return <><p role="alert" className="erreur-champ">{erreur}</p></>;

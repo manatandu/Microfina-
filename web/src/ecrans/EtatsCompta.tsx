@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr, texteEdition } from "../lib/dates";
+import { fr, texteEdition, aujourdhui, heureDe } from "../lib/dates";
 import { balanceXml, grandLivreXml, telecharger, type CompteGrandLivre } from "../lib/liasse";
 import { montant } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Recherche } from "../composants";
@@ -19,8 +19,8 @@ const ONGLETS = [["general", "Général"], ["analytique", "Analytique"]] as cons
 
 /** En-tête des documents comptables (modèles FPM et CARRIGRES) : institution, période, date de tirage (registre T31) */
 async function enteteDoc(du: string, au: string) {
-  const ctx = await api.referentiel.contexte(), d = new Date();
-  return { institution: ctx.institution.nom, du, au, tirage: `${fr(d.toISOString().slice(0, 10))} ${d.toTimeString().slice(0, 5)}` };
+  const ctx = await api.referentiel.contexte();
+  return { institution: ctx.institution.nom, du, au, tirage: `${fr(aujourdhui())} ${heureDe().slice(0, 5)}` };   // heure de l'agence (point 11.4)
 }
 const versGl = (c: { compte: string; intitule: string; soldeInitial: number; lignes: { date: string; journal: string; piece: string; libelle: string; debit: number; credit: number }[] }): CompteGrandLivre =>
   ({ compte: c.compte, intitule: c.intitule, soldeInitial: c.soldeInitial, lignes: c.lignes.map(({ date, journal, piece, libelle, debit, credit }) => ({ date, journal, piece, libelle, debit, credit })) });
@@ -45,7 +45,7 @@ export function GrandLivre() {
   const cadre = useCadre();
   if (!cadre) return <Chargement />;
   return <><Onglets nom="Grand livre" valeur={page} changer={(k) => setParams(k === "general" ? {} : { page: k })} />
-    <EditionGrandLivre key={page} analytique={page === "analytique"} ctx={cadre.ctx} jour={cadre.j?.date ?? new Date().toISOString().slice(0, 10)} /></>;
+    <EditionGrandLivre key={page} analytique={page === "analytique"} ctx={cadre.ctx} jour={cadre.j?.date ?? aujourdhui()} /></>;
 }
 
 function EditionGrandLivre({ analytique, ctx, jour }: { analytique: boolean; ctx: Ctx; jour: string }) {
@@ -106,7 +106,7 @@ export function BalanceComptes() {
   const cadre = useCadre();
   if (!cadre) return <Chargement />;
   return <><Onglets nom="Balance" valeur={page} changer={(k) => setParams(k === "generale" ? {} : { page: k })} libelles={[["generale", "Générale"], ["analytique", "Analytique"]]} />
-    <EditionBalance key={page} analytique={page === "analytique"} ctx={cadre.ctx} jour={cadre.j?.date ?? new Date().toISOString().slice(0, 10)} /></>;
+    <EditionBalance key={page} analytique={page === "analytique"} ctx={cadre.ctx} jour={cadre.j?.date ?? aujourdhui()} /></>;
 }
 
 function EditionBalance({ analytique, ctx, jour }: { analytique: boolean; ctx: Ctx; jour: string }) {

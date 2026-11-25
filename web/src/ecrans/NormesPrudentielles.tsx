@@ -4,7 +4,7 @@ import { FondsPropres } from "./Societe";
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr, texteEdition } from "../lib/dates";
+import { fr, texteEdition, aujourdhui } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { decimal } from "@design/montant.js";
 import { ChampDate, Chargement, Dialogue, Textes, type Boite, Recherche } from "../composants";
@@ -18,7 +18,7 @@ export default function NormesPrudentielles() {
   const [r, setR] = useState<Etat | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   if (j === undefined) return <Chargement />;
-  const d = date || j?.date || new Date().toISOString().slice(0, 10);
+  const d = date || j?.date || aujourdhui();
   async function rechercher() { try { setR(await api.normes.etat({ date: d })); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }
   const m = (v: number) => decimal.format(v / 100);
   const etat = (x: Etat["normes"][number]) => (!x.applicable ? "Sans objet" : x.respect === null ? "Non calculable" : x.respect ? "Respectée" : "Non respectée");

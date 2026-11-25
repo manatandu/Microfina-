@@ -7,9 +7,9 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr } from "../lib/dates";
+import { fr, aujourdhui } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
-import { Champ, ChampDate, ChampMontant, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, ChampMontant, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Formulaire } from "../composants";
 import { lireMontant } from "@design/montant.js";
 import { Referentiels, type FacadeReferentiel } from "./Referentiels";
 
@@ -78,7 +78,8 @@ export function CreationBien() {
   const txt = (k: string, l: string, req = false) => <Champ libelle={`${l}${req ? " *" : ""}`}>{(p) => <input {...p} className="saisie" value={v(k)} onChange={(e) => maj(k, e.target.value)} />}</Champ>;
   const radio = (k: string, l: string) => <fieldset className="choix-radio"><legend>{l}</legend>{["oui", "non"].map((x) =>
     <label key={x} className="case"><input type="radio" name={k} checked={v(k) === x} onChange={() => maj(k, x)} /><span>{x === "oui" ? "Oui" : "Non"}</span></label>)}</fieldset>;
-  return <section className="bloc pile" aria-label="Création de Bien immobilier"><h2>Création de Bien immobilier</h2>
+  return <Formulaire className="bloc pile" label="Création de Bien immobilier" envoyer={() => c.confirmer(id ? "Voulez-vous vraiment modifier ?" : "Voulez-vous vraiment enregistrer ?", async () => {
+        const x = await api.immobilisations.enregistrer(envoi(), id ?? undefined); charger(x); })}><h2>Création de Bien immobilier</h2>
     <div className="deux-colonnes">{b?.numeroPiece && <Champ libelle="Numéro de pièce :">{(p) => <Lecture {...p} value={b.numeroPiece} />}</Champ>}
       <Champ libelle="Date opération">{(p) => <Lecture {...p} value={b ? fr(b.dateOperation) : ""} />}</Champ></div>
     <div className="deux-colonnes">
@@ -112,15 +113,14 @@ export function CreationBien() {
       <button className="bouton secondaire" type="button" disabled={!id} onClick={() => setFenetre("tableau")}>Tableau amortissement</button>
       <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
       <button className="bouton secondaire" type="button" disabled={!id} onClick={() => id && c.confirmer("Voulez-vous vraiment supprimer ?", () => api.immobilisations.supprimer(id), effacer)}>Supprimer</button>
-      <button className="bouton" type="button" onClick={() => c.confirmer(id ? "Voulez-vous vraiment modifier ?" : "Voulez-vous vraiment enregistrer ?", async () => {
-        const x = await api.immobilisations.enregistrer(envoi(), id ?? undefined); charger(x); })}>Enregistrer</button>
+      <button className="bouton" type="submit">Enregistrer</button>
     </div>
     <Textes sources={[M("p. 4 : « Saisir la codification, la référence du constructeur, sélectionner la catégorie, la famille, saisir le libellé, la date d'acquisition, la durée de vie en année, sélectionner le type d'utilisation, la localisation, saisir la date de mise en service, sélectionner le fournisseur la facture, le montant, cocher selon que le bien est acquis sur subvention ou pas »"),
       "PCCI, classe 2 : inventaire détaillé des immobilisations, fichier ou registre de l'inventaire"]} />
     <ChoixBien ouverte={fenetre === "liste"} fermer={() => setFenetre("")} choisir={charger} />
     <Fiche titre="Tableau amortissement" ouverte={fenetre === "tableau"} fermer={() => setFenetre("")}><TablePlan plan={plan ?? []} /></Fiche>
     {c.dialogue}
-  </section>;
+  </Formulaire>;
 }
 
 function TablePlan({ plan }: { plan: (Plan[number] & { passe?: boolean })[] }) {
@@ -163,12 +163,12 @@ export function MouvementsBiens() {
   return <>
     <div className="onglets" role="tablist" aria-label="Mouvements des biens">{PAGES_MOUV.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => { vider(); setParams(k === "affectation" ? {} : { page: k }); }}>{l}</button>)}</div>
     {page === "affectation" && <section className="bloc pile" aria-label="Création des affectations de Biens"><h2>Création des affectations de Biens</h2>
-      <fieldset className="cadre-champs formulaire"><legend className="sr-only">Affectation</legend>{choisirEmp(emp, setEmp, "Matricule")}{local()}{date("Date affectation")}</fieldset>
+      <Formulaire className="pile" envoyer={() => c.confirmer("Voulez-vous vraiment enregistrer ?", () => api.immobilisations.affecter({ employeId: num(emp), localisationId: num(loc), date: quand, biens: ids }), vider)}><fieldset className="cadre-champs formulaire"><legend className="sr-only">Affectation</legend>{choisirEmp(emp, setEmp, "Matricule")}{local()}{date("Date affectation")}</fieldset>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setListe("LIBRE")}>Liste des biens à affecter</button></div>
       <BiensChoisis biens={choisis} retirer={(i) => setChoisis(choisis.filter((x) => x.id !== i))} ctx={ctx} />
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={vider}>Effacer</button>
         <button className="bouton secondaire" type="button" onClick={() => window.print()}>Imprimer reçu</button>
-        <button className="bouton" type="button" onClick={() => c.confirmer("Voulez-vous vraiment enregistrer ?", () => api.immobilisations.affecter({ employeId: num(emp), localisationId: num(loc), date: quand, biens: ids }), vider)}>Enregistrer</button></div>
+        <button className="bouton" type="submit">Enregistrer</button></div></Formulaire>
     </section>}
     {page === "bien" && <section className="bloc pile" aria-label="Transférer un bien immobilier"><h2>Transférer un bien immobilier</h2>
       <fieldset className="cadre-champs formulaire"><legend>Détails Biens</legend>
@@ -182,12 +182,12 @@ export function MouvementsBiens() {
         <button className="bouton secondaire" type="button" onClick={() => window.print()}>Imprimer reçu</button></div>
     </section>}
     {page === "employe" && <section className="bloc pile" aria-label="Transfert de biens d'un employé à un autre"><h2>Transfert de biens d'un employé à un autre</h2>
-      <fieldset className="cadre-champs formulaire"><legend>Infos ancien détenteur</legend>{choisirEmp(emp, (x) => { setEmp(x); setChoisis([]); }, "Matricule")}{local()}</fieldset>
+      <Formulaire className="pile" envoyer={() => c.confirmer("Voulez-vous vraiment enregistrer ?", () => api.immobilisations.transfererEmploye({ ancienId: num(emp), nouveauId: num(emp2), localisationId: num(loc), date: quand, biens: ids }), vider)}><fieldset className="cadre-champs formulaire"><legend>Infos ancien détenteur</legend>{choisirEmp(emp, (x) => { setEmp(x); setChoisis([]); }, "Matricule")}{local()}</fieldset>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={!emp} onClick={() => setListe("AFFECTE")}>Liste des biens encours d'utilisation</button></div>
       <BiensChoisis biens={choisis} retirer={(i) => setChoisis(choisis.filter((x) => x.id !== i))} ctx={ctx} />
       <fieldset className="cadre-champs formulaire"><legend>Infos nouveau détenteur</legend>{choisirEmp(emp2, setEmp2, "Matricule du nouveau détenteur")}{date("Date transfert")}</fieldset>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={vider}>Effacer</button>
-        <button className="bouton" type="button" onClick={() => c.confirmer("Voulez-vous vraiment enregistrer ?", () => api.immobilisations.transfererEmploye({ ancienId: num(emp), nouveauId: num(emp2), localisationId: num(loc), date: quand, biens: ids }), vider)}>Enregistrer</button></div>
+        <button className="bouton" type="submit">Enregistrer</button></div></Formulaire>
     </section>}
     {page === "liberation" && <section className="bloc pile" aria-label="Libération d'un bien encours d'utilisation"><h2>Libération d'un bien encours d'utilisation</h2>
       <fieldset className="cadre-champs formulaire"><legend className="sr-only">Libération</legend>{date("Date libération")}{local()}</fieldset>
@@ -220,7 +220,7 @@ export function TraitementsBiens() {
     <button className="bouton secondaire" type="button" aria-label="Rechercher un bien" onClick={() => setListe(true)}>Rechercher</button></span>}</Champ>;
   return <>
     <div className="onglets" role="tablist" aria-label="Traitements des biens">{PAGES_TRAIT.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => { setBien(null); setF({ par: "materiel" }); setParams(k === "amortissement" ? {} : { page: k }); }}>{l}</button>)}</div>
-    {page === "amortissement" && <section className="bloc pile" aria-label="Amortissement"><h2>Amortissement</h2>
+    {page === "amortissement" && <Formulaire className="bloc pile" label="Amortissement" envoyer={() => c.confirmer("Voulez-vous vraiment passer l'amortissement ?", () => api.immobilisations.amortir({ par: f.par, bienId: bien?.id, exercice: f.exercice ? Number(f.exercice) : null }))}><h2>Amortissement</h2>
       <Champ libelle="Amortissement par">{(p) => <select {...p} className="saisie" value={f.par} onChange={(e) => maj("par", e.target.value)}><option value="materiel">Matériel</option><option value="lot">Lot de matériel</option></select>}</Champ>
       <fieldset className="cadre-champs formulaire"><legend className="sr-only">Bien</legend>
         {f.par === "materiel" && choixBien}
@@ -230,9 +230,9 @@ export function TraitementsBiens() {
       </fieldset>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => { setBien(null); setF({ par: f.par ?? "materiel" }); }}>Effacer</button>
         <button className="bouton secondaire" type="button" onClick={() => window.print()}>Imprimer</button>
-        <button className="bouton" type="button" onClick={() => c.confirmer("Voulez-vous vraiment passer l'amortissement ?", () => api.immobilisations.amortir({ par: f.par, bienId: bien?.id, exercice: f.exercice ? Number(f.exercice) : null }))}>Exécuter</button></div>
-    </section>}
-    {page === "inventaire" && <section className="bloc pile" aria-label="Inventaire de biens"><h2>Inventaire de biens</h2>
+        <button className="bouton" type="submit">Exécuter</button></div>
+    </Formulaire>}
+    {page === "inventaire" && <Formulaire className="bloc pile" label="Inventaire de biens" envoyer={() => c.confirmer("Voulez-vous vraiment enregistrer ?", () => api.immobilisations.inventorier({ bienId: bien?.id, etat: f.etat, date: f.date, observation: f.observation }))}><h2>Inventaire de biens</h2>
       <div className="deux-colonnes"><fieldset className="cadre-champs formulaire"><legend className="sr-only">Inventaire</legend>{choixBien}
         <Champ libelle="État du bien *">{(p) => <select {...p} className="saisie" value={f.etat ?? ""} onChange={(e) => maj("etat", e.target.value)}><option value=""></option>{ctx.etats.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
         <ChampDate libelle="Date inventaire *" valeur={f.date ?? ""} onChange={(x) => maj("date", x)} />
@@ -240,9 +240,10 @@ export function TraitementsBiens() {
         <fieldset className="cadre-champs"><legend>Détails bien</legend><dl className="definitions"><dt>Détenteur</dt><dd>{bien?.detenteur}</dd><dt>Direction/Cellule</dt><dd>{bien?.departement}</dd>
           <dt>Localisation</dt><dd>{bien?.localisation}</dd><dt>État</dt><dd>{bien?.statut}</dd></dl></fieldset></div>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => { setBien(null); setF({ par: "materiel" }); }}>Effacer</button>
-        <button className="bouton" type="button" onClick={() => c.confirmer("Voulez-vous vraiment enregistrer ?", () => api.immobilisations.inventorier({ bienId: bien?.id, etat: f.etat, date: f.date, observation: f.observation }))}>Enregistrer</button></div>
-    </section>}
-    {page === "sortie" && <section className="bloc pile" aria-label="Sortie de biens du patrimoine"><h2>Sortie de biens du patrimoine</h2>
+        <button className="bouton" type="submit">Enregistrer</button></div>
+    </Formulaire>}
+    {page === "sortie" && <Formulaire className="bloc pile" label="Sortie de biens du patrimoine" envoyer={() => c.confirmer("Voulez-vous vraiment sortir ce bien du patrimoine ?", () => api.immobilisations.sortir({ type: f.type, bienId: bien?.id, date: f.date, observation: f.observation, autorisationBcc: f.autorisationBcc,
+          prixCession: f.type === "Cession" ? lireMontant(f.prix ?? "") : null, compteContrepartie: f.contrepartie }))}><h2>Sortie de biens du patrimoine</h2>
       <fieldset className="cadre-champs formulaire"><legend className="sr-only">Sortie</legend>
         <Champ libelle="Type de sortie *">{(p) => <select {...p} className="saisie" value={f.type ?? ""} onChange={(e) => maj("type", e.target.value)}><option value=""></option>{ctx.sorties.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
         {choixBien}<ChampDate libelle="Date de sortie *" valeur={f.date ?? ""} onChange={(x) => maj("date", x)} />
@@ -260,9 +261,8 @@ export function TraitementsBiens() {
           {f.type === "Mise au rebut" && <><dt>Mise au rebut (673)</dt><dd>{n(bien.prixAcquisition - bien.cumulAmortissements)}</dd></>}</dl>}
       </fieldset>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => window.print()}>Imprimer</button>
-        <button className="bouton" type="button" onClick={() => c.confirmer("Voulez-vous vraiment sortir ce bien du patrimoine ?", () => api.immobilisations.sortir({ type: f.type, bienId: bien?.id, date: f.date, observation: f.observation, autorisationBcc: f.autorisationBcc,
-          prixCession: f.type === "Cession" ? lireMontant(f.prix ?? "") : null, compteContrepartie: f.contrepartie }))}>Enregistrer</button></div>
-    </section>}
+        <button className="bouton" type="submit">Enregistrer</button></div>
+    </Formulaire>}
     <Textes sources={[M("p. 6 et 7 : amortissement par matériel ou lot de matériel ; inventaire : code du bien, état, date, observation ; sortie : type de sortie, bien, date, observation, « imprimer l'état »"),
       "PCCI : compte 681 (dotations), 28 (amortissements) ; sortie : la valeur d'origine sort, avec les amortissements antérieurs et un compte de gestion (673 mise au rebut, 674 moins-value, 774 plus-value)"]} />
     <ChoixBien ouverte={liste} fermer={() => setListe(false)} choisir={setBien} />
@@ -276,7 +276,7 @@ export function RapportsImmo() {
   const [params, setParams] = useSearchParams();
   const page = PAGES_RAPPORTS.find(([k]) => k === params.get("page"))?.[0] ?? "biens";
   const ctx = useCtx();
-  const annee = new Date().getFullYear();
+  const annee = Number(aujourdhui().slice(0, 4));
   const [f, setF] = useState<Record<string, string>>({ rechercher: "periode", du: `${annee}-01-01`, au: `${annee}-12-31`, resultat: "transfert", systeme: "Linéaire", periodicite: "Annuelle", groupe: "detaille" });
   const [r, setR] = useState<Record<string, unknown>[] | null>(null);
   const c = useConfirmer();

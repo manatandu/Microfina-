@@ -21,6 +21,7 @@ import MODELE_LCB from "@reportingLcb";
 import QUALITES_PPE from "@ppeQualites";
 import REFERENTIELS from "@referentiels";
 import { bilanRapport } from "../lib/liasse";
+import { aujourdhui, FUSEAU_PAR_DEFAUT, FUSEAUX, heureDe, jourDe } from "../lib/dates";
 
 // Seuils : valeurs des maquettes
 export const SEUIL_ESPECES_USD = 10000;   // examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
@@ -51,7 +52,7 @@ export function _etat(): Etat { return E; }
 export function _poster(e: Omit<Ecriture, "id" | "numero">): Ecriture { return poster({ evenement: "ecriture_manuelle", ...e }); }
 export function _remplacer(e: Etat) { E = e; }
 
-const heure = () => new Date().toTimeString().slice(0, 5);
+const heure = () => heureDe().slice(0, 5);   // heure de l'agence (point 11.4)
 /** Montant bloqué d'un compte (S71) : tout le solde quand le compte entier est bloqué, sinon la somme des montants bloqués en cours. Comme services.montant_bloque. */
 function bloqueDe(c: CompteDepot, solde = soldeContrat(`depot:${c.id}`, c.devise, "C")) {
   const actifs = E.blocages.filter((b) => b.compteId === c.id && !b.fin);
@@ -121,7 +122,7 @@ const session = {
 };
 
 function contexte() {
-  return { arbreLieux: arbreLieux(), institution: E.institution, agence: E.agence, guichets: E.guichets.filter((g) => g.actif !== false), produits: produitsProposes(), zones: zonesActives(), typesClient: valeursListe("type_client").map((l) => l.libelle), typesEntreprise: TYPES_ENTREPRISE, typesGroupe: valeursListe("type_groupe").map((l) => l.libelle), pieces: PIECES, localites: localites(),
+  return { arbreLieux: arbreLieux(), institution: E.institution, agence: { ...E.agence, fuseau: E.agences.find((a) => a.id === E.agence.id)?.fuseau ?? FUSEAU_PAR_DEFAUT }, guichets: E.guichets.filter((g) => g.actif !== false), produits: produitsProposes(), zones: zonesActives(), typesClient: valeursListe("type_client").map((l) => l.libelle), typesEntreprise: TYPES_ENTREPRISE, typesGroupe: valeursListe("type_groupe").map((l) => l.libelle), pieces: PIECES, localites: localites(),
     // S37 : listes lues par la fiche du client (registre S37-2)
     listesFiche: { ...Object.fromEntries(Object.entries(LISTES_FICHE).map(([k, [liste]]) => [k, valeursListe(liste).map((l) => l.libelle)])) as Record<string, string[]>,
       filiation: valeursListe("filiation").map((l) => l.libelle), formeJuridique: valeursListe("forme_juridique").map((l) => l.libelle),
@@ -631,13 +632,13 @@ export function categorieGroupe(hommes?: number | null, femmes?: number | null) 
 }
 export function controlerFichePhysique(d: NouveauTiers, jour: string, identite = true, categorie = "categorie") {
   const txt = (k: keyof NouveauTiers) => (typeof d[k] === "string" ? (d[k] as string).trim() : "");
-  const aujourdhui = new Date().toISOString().slice(0, 10);
+  const jourReel = aujourdhui();
   if (identite) {
     const manque = OBLIGATOIRES_IDENTITE.filter(([, k]) => !txt(k)).map(([n]) => n);
     if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")} (Instr. BCC 15, art. 12 et 13).`);
     if (!DATE.test(txt("pieceExpire")) || txt("pieceExpire") < jour) throw new ErreurMetier("Pièce expirée : une pièce en cours de validité (Instr. BCC 15, art. 12).");
   }
-  for (const [k, n] of [["naissance", "Date de naissance"], ["pieceDelivreeLe", "Délivrée le"]] as const) if (txt(k) && (!DATE.test(txt(k)) || txt(k) > aujourdhui)) throw new ErreurMetier(`${n} : date invalide.`);
+  for (const [k, n] of [["naissance", "Date de naissance"], ["pieceDelivreeLe", "Délivrée le"]] as const) if (txt(k) && (!DATE.test(txt(k)) || txt(k) > jourReel)) throw new ErreurMetier(`${n} : date invalide.`);
   for (const [k, [l, nom]] of Object.entries(LISTES_FICHE)) {
     const liste = k === "categorie" ? categorie : l;   // groupe : Catégorie de groupe, S14j (registre S39-1)
     const v = txt(k as keyof NouveauTiers);
@@ -659,7 +660,7 @@ export function controlerFichePhysique(d: NouveauTiers, jour: string, identite =
   (d.beneficiaires ?? []).forEach((b, i) => {
     if (!b.nom?.trim()) throw new ErreurMetier(`Bénéficiaire ${i + 1} : à remplir : nom.`);
     if (!["", "F", "M"].includes(b.sexe ?? "")) throw new ErreurMetier(`Bénéficiaire ${i + 1} : sexe inconnu.`);
-    if (b.naissance && (!DATE.test(b.naissance) || b.naissance > aujourdhui)) throw new ErreurMetier(`Bénéficiaire ${i + 1} : date de naissance invalide.`);
+    if (b.naissance && (!DATE.test(b.naissance) || b.naissance > jourReel)) throw new ErreurMetier(`Bénéficiaire ${i + 1} : date de naissance invalide.`);
     if (b.filiation && !filiations.includes(b.filiation)) throw new ErreurMetier(`Bénéficiaire ${i + 1} : filiation inconnue.`);
   });
 }
@@ -672,9 +673,9 @@ function controlerRepresentant(r: RepresentantSaisi, qui: string, jour: string, 
     ["autorité de délivrance", r.pieceAutorite], ["valide jusqu'au", r.pieceExpire], ...(qualite ? [["qualité ou pouvoir", r.qualite] as [string, string | undefined]] : [])]);
   if (manque.length) throw new ErreurMetier(`${qui} : à remplir : ${manque.join(", ")} (loi 22/068, art. 31 et 33 ; Instr. BCC 15, art. 13 et 16).`);
   controlerPiece(r.pieceType, r.pieceExpire, jour, `${qui} : `);
-  const aujourdhui = new Date().toISOString().slice(0, 10);
+  const jourReel = aujourdhui();
   for (const [v, n, futur] of [[r.naissance, "date de naissance", false], [r.pieceDelivreeLe, "délivrée le", false], [r.pieceExpire, "valide jusqu'au", true]] as const)
-    if (!DATE.test(v ?? "") || (!futur && (v ?? "") > aujourdhui)) throw new ErreurMetier(`${qui} : ${n} : date invalide.`);
+    if (!DATE.test(v ?? "") || (!futur && (v ?? "") > jourReel)) throw new ErreurMetier(`${qui} : ${n} : date invalide.`);
   if (r.piecePays?.trim() && !localites().some((p) => p.pays === r.piecePays!.trim())) throw new ErreurMetier(`${qui} : pays de délivrance inconnu (Paramétrage > Localisation).`);
   controlerAdresse(r, true, `${qui} : adresse`);
   controlerImage(r.photo, `${qui} : photo`); controlerImage(r.signature, `${qui} : signature`);
@@ -771,7 +772,7 @@ function controlerProspect(d: Prospect): Prospect {
     ["pays", v.pays], ["ville", v.ville], ["quartier", v.quartier]]);
   if (manque.length) throw new ErreurMetier(`À remplir : ${manque.join(", ")}.`);
   if (v.sexe !== "F" && v.sexe !== "M") throw new ErreurMetier("Sexe inconnu.");
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(v.naissance) || v.naissance > new Date().toISOString().slice(0, 10)) throw new ErreurMetier("Date de naissance invalide.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v.naissance) || v.naissance > aujourdhui()) throw new ErreurMetier("Date de naissance invalide.");
   controlerLieu(v, "Pays, ville ou quartier");          // adresse unique (registre T41)
   if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) throw new ErreurMetier("Email invalide.");
   return v;
@@ -781,7 +782,7 @@ function ctxControle() {
     physique: (id: number) => E.tiers.some((t) => t.id === id && t.type === "physique") };
 }
 function nouveauTiers(d: NouveauTiers, creePar: number, reste: Pick<Tiers, "type" | "dirigeant" | "signataires" | "membres" | "photo" | "specimen">): Tiers {
-  const t: Tiers = { ...d, ...reste, intitule: "", dateVisa: "", motifDepart: "", resilieLe: "", creeLe: new Date().toISOString().slice(0, 10), id: prochain(E.tiers), numero: numeroClient(), statut: "a_viser", creePar };
+  const t: Tiers = { ...d, ...reste, intitule: "", dateVisa: "", motifDepart: "", resilieLe: "", creeLe: aujourdhui(), id: prochain(E.tiers), numero: numeroClient(), statut: "a_viser", creePar };
   E.tiers.push(t); return t;
 }
 
@@ -916,7 +917,7 @@ const tiers = {
     const motif = (d.motif ?? "").trim();
     if (!motif) throw new ErreurMetier("À remplir : motif du refus (loi 22/069, titre III, chap. Ier : un refus se motive).");
     const j = journees.courante();
-    Object.assign(t, { statut: "refuse", refusMotif: motif, refuseLe: j?.date ?? new Date().toISOString().slice(0, 10) }); enregistrer(); return t;
+    Object.assign(t, { statut: "refuse", refusMotif: motif, refuseLe: j?.date ?? aujourdhui() }); enregistrer(); return t;
   },
   viser(id: number, v: Visa = {}) {
     const u = exiger("chef_agence");
@@ -925,7 +926,7 @@ const tiers = {
     if (t.statut !== "a_viser") throw new ErreurMetier("Ce client n'est pas en attente de visa.");
     if (t.creePar === u.id) throw new ErreurMetier("Quatre yeux : le visa vient d'une autre personne que celle qui a enrôlé.");
     const j = journees.courante();
-    const jour = j && j.statut === "ouverte" ? j.date : new Date().toISOString().slice(0, 10);
+    const jour = j && j.statut === "ouverte" ? j.date : aujourdhui();
     const dateVisa = v.dateVisa?.trim() || jour;
     if (t.dateDemande && dateVisa < t.dateDemande) throw new ErreurMetier("La date de visa précède la date de demande.");
     if (dateVisa > jour) throw new ErreurMetier("La date de visa ne peut pas dépasser la journée en cours.");
@@ -1064,7 +1065,7 @@ const tiers = {
     const t = E.tiers.find((x) => x.id === id && x.type === "physique");
     if (!t) throw new ErreurMetier("Client physique introuvable.");
     if (t.decesLe) throw new ErreurMetier("Décès déjà déclaré.");
-    if (!DATE.test(d.date ?? "") || d.date > new Date().toISOString().slice(0, 10) || !(d.reference ?? "").trim())
+    if (!DATE.test(d.date ?? "") || d.date > aujourdhui() || !(d.reference ?? "").trim())
       throw new ErreurMetier("À remplir : date du décès (pas dans le futur) et référence de l'acte de décès.");
     Object.assign(t, { decesLe: d.date, decesReference: d.reference.trim() });
     for (const p of (E.procurations ?? []).filter((x) => x.mandantId === id && !x.finLe)) Object.assign(p, { finLe: d.date > p.dateDebut ? d.date : p.dateDebut, finMotif: "Décès du mandant" });
@@ -1089,7 +1090,7 @@ const tiers = {
       throw new ErreurMetier("Client endosseur d'un prêt en cours : il ne peut pas se retirer (loi 002/2002, art. 24).");
     controlerApurement(id);
     const j = journees.courante();
-    const jourResil = j && j.statut === "ouverte" ? j.date : new Date().toISOString().slice(0, 10);
+    const jourResil = j && j.statut === "ouverte" ? j.date : aujourdhui();
     // P1 : exclusion, référence et date de la décision du Conseil d'administration (loi 002/2002, art. 25). Comme le serveur.
     if (d.exclusion && (!d.exclusion.reference?.trim() || !DATE.test(d.exclusion.date ?? "") || d.exclusion.date > jourResil))
       throw new ErreurMetier("Exclusion : référence et date de la décision du Conseil d'administration (loi 002/2002, art. 25).");
@@ -1122,7 +1123,7 @@ const tiers = {
     if (ouvertes.some((m) => m.modifiePar === u.id)) throw new ErreurMetier("Quatre yeux : la validation vient d'une autre personne que celle qui a modifié.");
     exigerAutorisationPpe(t.id);   // écart E02 : Instr. BCC 15, art. 64
     exigerCorrespondancesExaminees(t.id);   // A13 : listes de gel (loi 22/068, art. 158 bis)
-    const jv = journees.courante(); ouvertes.forEach((m) => { m.validePar = u.id; m.valideLe = jv?.statut === "ouverte" ? jv.date : new Date().toISOString().slice(0, 10); });
+    const jv = journees.courante(); ouvertes.forEach((m) => { m.validePar = u.id; m.valideLe = jv?.statut === "ouverte" ? jv.date : aujourdhui(); });
     t.statut = "actif"; enregistrer(); return t;
   },
   comptes(tiersId: number) {
@@ -1504,7 +1505,7 @@ export type SaisieProcuration = Partial<Omit<Procuration, "id" | "type" | "copie
   mandantId: number; typeId: number; dateDebut: string; copieActe?: string; copiePiece?: string };
 function vueProcuration(p: NonNullable<Etat["procurations"]>[number]): Procuration {
   const { copieActeImage: _a, copiePieceImage: _p, creePar: _c, ...v } = p;
-  const jour = new Date().toISOString().slice(0, 10);
+  const jour = aujourdhui();
   return { ...v, enCours: !p.finLe && p.dateDebut <= jour && (!p.dateFin || p.dateFin >= jour) };
 }
 /** Retrait (S74) : le titulaire, ou un mandataire choisi parmi ses procurations en cours (loi 22/068, art. 31, al. 3). Comme le serveur (mandataire_du_retrait). */
@@ -2539,7 +2540,7 @@ const plansEpargne = {
     exiger();
     const x = planDe(id);
     if (!FILTRES_PLAN.includes(filtre)) throw new ErreurMetier("Afficher uniquement : choix inconnu.");
-    const jour = journees.courante()?.date ?? new Date().toISOString().slice(0, 10);
+    const jour = journees.courante()?.date ?? aujourdhui();
     const garde = (e: PlanEpargne["echeances"][number]) => ({ toutes: true, non_cotisees: !e.dateReelle, cotisees: !!e.dateReelle,
       arrieres_non_cotisees: e.datePrevue < jour && !e.dateReelle, arrieres_cotisees: e.datePrevue < jour && !!e.dateReelle,
       echues_non_cotisees: e.datePrevue <= jour && !e.dateReelle, echues_cotisees: e.datePrevue <= jour && !!e.dateReelle } as Record<string, boolean>)[filtre];
@@ -2698,7 +2699,7 @@ const blocages = {
       if (!d.montant || d.montant <= 0 || !Number.isInteger(d.montant)) throw new ErreurMetier("Montant à bloquer : un montant supérieur à zéro.");
       if (d.montant > e.epargneLibre) throw new ErreurMetier("Le montant à bloquer dépasse l'épargne libre du compte.");
     }
-    E.blocages.push({ id: prochain(E.blocages), compteId: c.id, montant: montant ? d.montant! : null, motif, debut: journees.courante()?.date ?? new Date().toISOString().slice(0, 10),
+    E.blocages.push({ id: prochain(E.blocages), compteId: c.id, montant: montant ? d.montant! : null, motif, debut: journees.courante()?.date ?? aujourdhui(),
       posePar: u.id, fin: "", levePar: null, motifLevee: "" });
     enregistrer(); return blocages.etat(c.id);
   },
@@ -2710,7 +2711,7 @@ const blocages = {
     if (b.garantieDe != null) throw new ErreurMetier("Ce montant garantit un crédit : il se libère par Crédit > Caution et nantissement.");
     const motif = (d.motif ?? "").trim();
     if (!motif) throw new ErreurMetier("À remplir : Motif.");
-    Object.assign(b, { fin: journees.courante()?.date ?? new Date().toISOString().slice(0, 10), levePar: u.id, motifLevee: motif });
+    Object.assign(b, { fin: journees.courante()?.date ?? aujourdhui(), levePar: u.id, motifLevee: motif });
     enregistrer(); return blocages.etat(b.compteId);
   },
 };
@@ -2913,7 +2914,7 @@ type Incident = NonNullable<Etat["incidents"]>[number];
 function noterIncident(description: string, montant: number | null = null, devise: string | null = null) {
   const l = (E.incidents ??= []);
   if (l.some((x) => x.type === "depassement_limite" && x.description === description && !x.regulariseLe)) return;
-  l.push({ id: prochain(l), type: "depassement_limite", origine: "automatique", le: journees.courante()?.date ?? new Date().toISOString().slice(0, 10), description, montant, devise: devise ?? "",
+  l.push({ id: prochain(l), type: "depassement_limite", origine: "automatique", le: journees.courante()?.date ?? aujourdhui(), description, montant, devise: devise ?? "",
     utilisateurId: session.courante()?.id ?? null, traitement: "", regulariseLe: "", traitePar: null });
   sauver();
 }
@@ -2931,7 +2932,7 @@ const incidents = {
     if (!description) throw new ErreurMetier("À remplir : Description.");
     if (d.montant !== null && d.montant !== undefined && (!Number.isInteger(d.montant) || d.montant < 0)) throw new ErreurMetier("Montant : un montant positif.");
     const l = (E.incidents ??= []);
-    l.push({ id: prochain(l), type: d.type as Incident["type"], origine: "manuelle", le: journees.courante()?.date ?? new Date().toISOString().slice(0, 10), description, montant: d.montant ?? null,
+    l.push({ id: prochain(l), type: d.type as Incident["type"], origine: "manuelle", le: journees.courante()?.date ?? aujourdhui(), description, montant: d.montant ?? null,
       devise: d.montant !== null && d.montant !== undefined ? "CDF" : "", utilisateurId: u.id, traitement: "", regulariseLe: "", traitePar: null });
     enregistrer(); return incidents.lister();
   },
@@ -3222,7 +3223,7 @@ const simulationCredit = {
     if (n < 1 || !Number.isInteger(n)) throw new ErreurMetier(`Durée : ${d.duree} mois ne se découpe pas en échéances « ${per.libelle} ».`);
     const nd = semaines(differe * Number(per.denominateur) / 12, per.unite);
     if (!Number.isInteger(nd)) throw new ErreurMetier(`Différé : ${differe} mois ne se découpe pas en périodes « ${per.libelle} ».`);
-    const deblocage = d.dateDeblocage || journees.courante()?.date || new Date().toISOString().slice(0, 10);
+    const deblocage = d.dateDeblocage || journees.courante()?.date || aujourdhui();
     const den = Number(per.denominateur), r = nb("tauxInteret") * 12 / den / 100, rd = nb("tauxDiffere") * 12 / den / 100;
     const interetDiffere = Math.round(d.montant * rd * nd);
     const part = Array.from({ length: n }, (_, k) => Math.floor(interetDiffere / n) + (k < interetDiffere % n ? 1 : 0));
@@ -3309,7 +3310,7 @@ const analyses = {
     const a: AnalyseFinanciere = { id: prochain(E.analyses), numero: `AF${String(E.analyses.length + 1).padStart(6, "0")}`, type: d.type, tiersId: d.tiersId,
       produitId: d.produitId, montant: d.montant, duree: d.duree, objet: d.objet?.trim() ?? "", donnees, echeanceMensuelle: em, avis: d.avis,
       montantRecommande: d.montantRecommande ?? null, dureeRecommandee: d.dureeRecommandee ?? null, commentaire: d.commentaire?.trim() ?? "", creePar: u.id,
-      creeLe: journees.courante()?.date ?? new Date().toISOString().slice(0, 10) };
+      creeLe: journees.courante()?.date ?? aujourdhui() };
     E.analyses.push(a); enregistrer(); return vueAnalyse(a);
   },
 };
@@ -3322,7 +3323,7 @@ const entierDossier = (d: Record<string, unknown> | undefined, k: string, nom: s
   if (typeof v !== "number" || !Number.isInteger(v) || v < mini) throw new ErreurMetier(`${nom} : un nombre entier, ${mini} ou plus.`);
   return v;
 };
-const jourDossier = () => journees.courante()?.date ?? new Date().toISOString().slice(0, 10);
+const jourDossier = () => journees.courante()?.date ?? aujourdhui();
 const fondsPropresActuels = () => { const f = [...E.fondsPropres].sort((a, b) => b.dateArrete.localeCompare(a.dateArrete))[0];
   return f ? { dateArrete: f.dateArrete, montant: f.montant } : null; };
 /** En CDF au cours du jour : crédits en cours (capital non remboursé) et demandes approuvées pas encore mises en place ; pour une COOPEC, hors ressources
@@ -4016,7 +4017,7 @@ const listeRouge = {
     const visees = (p.personnesVisees ?? []).map((x) => ({ nom: (x.nom ?? "").trim(), piece: (x.piece ?? "").trim() })).filter((x) => x.nom || x.piece);
     if (visees.some((x) => !x.nom || !x.piece)) throw new ErreurMetier("Dirigeants et associés visés : un nom et un numéro de pièce par ligne.");
     if (visees.length && !(p.referenceBcc ?? "").trim()) throw new ErreurMetier("Dirigeants et associés visés : seulement pour une mise à l'index de la BCC (Réf. décision BCC).");
-    E.listeRouge.push({ id: prochain(E.listeRouge), tiersId: p.tiersId, motif, personnesVisees: visees, referenceBcc: (p.referenceBcc ?? "").trim(), ajouteLe: journees.courante()?.date ?? new Date().toISOString().slice(0, 10),
+    E.listeRouge.push({ id: prochain(E.listeRouge), tiersId: p.tiersId, motif, personnesVisees: visees, referenceBcc: (p.referenceBcc ?? "").trim(), ajouteLe: journees.courante()?.date ?? aujourdhui(),
       ajoutePar: u.id, retireLe: "", retirePar: null, motifRetrait: "" });
     enregistrer(); return listeRouge.lister();
   },
@@ -4027,7 +4028,7 @@ const listeRouge = {
     if (!motif) throw new ErreurMetier("À remplir : Motif.");
     const i = inscriptionRouge(p.tiersId);
     if (!i) throw new ErreurMetier("Ce client n'est pas sur la liste rouge.");
-    Object.assign(i, { retireLe: journees.courante()?.date ?? new Date().toISOString().slice(0, 10), retirePar: u.id, motifRetrait: motif });
+    Object.assign(i, { retireLe: journees.courante()?.date ?? aujourdhui(), retirePar: u.id, motifRetrait: motif });
     enregistrer(); return listeRouge.lister();
   },
 };
@@ -4055,7 +4056,7 @@ const affectation = {
     if (!Array.isArray(p.credits) || !p.credits.length) throw new ErreurMetier("Cocher au moins un crédit à transférer.");
     const aLui = new Set(affectation.portefeuille(p.de).map((c) => c.id));
     if (!p.credits.every((x) => aLui.has(x))) throw new ErreurMetier("Un crédit coché n'est plus dans le portefeuille de ce gestionnaire.");
-    const le = journees.courante()?.date ?? new Date().toISOString().slice(0, 10);
+    const le = journees.courante()?.date ?? aujourdhui();
     for (const cid of p.credits) {
       E.credits.find((c) => c.id === cid)!.agentId = p.vers;
       E.affectationsCredit.push({ id: prochain(E.affectationsCredit), creditId: cid, de: p.de, vers: p.vers, le, par: u.id });
@@ -4101,10 +4102,10 @@ const etatCredits = {
     if (p.niveau) return credits;
     const d2 = p.mode === "date" ? p.date! : p.au!, d1 = p.mode === "date" ? null : p.du!;
     const k = { saisie: "demande", controlee: "verifie", rejetee: "refuse" } as Record<string, string>;
-    const demandes = E.demandes.filter((x) => k[x.statut] && etats.includes(k[x.statut]!) && x.creeLe.slice(0, 10) <= d2 && (!d1 || x.creeLe.slice(0, 10) >= d1)
+    const demandes = E.demandes.filter((x) => k[x.statut] && etats.includes(k[x.statut]!) && jourDe(x.creeLe) <= d2 && (!d1 || jourDe(x.creeLe) >= d1)
       && (!p.produitId || x.produitId === p.produitId) && (!p.agentId || ((x as { agentId?: number }).agentId ?? x.saisiPar) === p.agentId)
       && (!p.operateur || OPERATEURS_MONTANT[p.operateur]!(x.montant, p.montant!))).map((x) => { const t = E.tiers.find((y) => y.id === x.tiersId)!, e = k[x.statut]!;
-      return { type: "demande" as "credit" | "demande", id: x.id, numero: x.numero, dateDemande: x.creeLe.slice(0, 10), dateApprobation: null as string | null, compte: "", membre: t.numero,
+      return { type: "demande" as "credit" | "demande", id: x.id, numero: x.numero, dateDemande: jourDe(x.creeLe), dateApprobation: null as string | null, compte: "", membre: t.numero,
         client: titulaire(t), contact: ficheClient(t.id).telephone, groupe: t.type === "groupe" ? titulaire(t) : "", montant: x.montant, devise: x.devise as string, duree: x.duree,
         produit: String(E.produitsCredit.find((y) => y.id === x.produitId)?.nom ?? ""), agentId: x.saisiPar, agent: nomUtilisateur(x.saisiPar), etat: e, statut: ETATS_PORTEFEUILLE[e]!,
         capitalRestant: null as number | null, joursRetard: null as number | null, degre: "", refusNiveau: x.refusNiveau ?? "", appel: x.appelDecision ?? "" }; });
@@ -4114,11 +4115,11 @@ const etatCredits = {
     lectureAdmin(["S93", "S95"]);
     const c = E.credits.find((x) => x.id === cid); if (!c) throw new ErreurMetier("Crédit introuvable.");
     const d = E.demandes.find((x) => x.id === c.demandeId)!;
-    const h: { date: string; etape: string; par: string; detail: string }[] = [{ date: d.creeLe.slice(0, 10), etape: "Demande", par: nomUtilisateur(d.saisiPar), detail: "" }];
-    if (d.controleLe) h.push({ date: d.controleLe.slice(0, 10), etape: "Vérification", par: nomUtilisateur(d.controlePar ?? undefined), detail: "Accepté" });
-    if (d.approuveLe) h.push({ date: d.approuveLe.slice(0, 10), etape: "Décision", par: nomUtilisateur(d.approuvePar ?? undefined), detail: "Accepté" + (d.appelDecision === "accorde" ? `, appel au Conseil ${d.appelReference}` : "") });
+    const h: { date: string; etape: string; par: string; detail: string }[] = [{ date: jourDe(d.creeLe), etape: "Demande", par: nomUtilisateur(d.saisiPar), detail: "" }];
+    if (d.controleLe) h.push({ date: jourDe(d.controleLe), etape: "Vérification", par: nomUtilisateur(d.controlePar ?? undefined), detail: "Accepté" });
+    if (d.approuveLe) h.push({ date: jourDe(d.approuveLe), etape: "Décision", par: nomUtilisateur(d.approuvePar ?? undefined), detail: "Accepté" + (d.appelDecision === "accorde" ? `, appel au Conseil ${d.appelReference}` : "") });
     for (const v of E.visasCredit.filter((x) => x.creditId === cid && x.niveau === "service_financier"))
-      h.push({ date: v.le.slice(0, 10), etape: "Visa du service financier", par: nomUtilisateur(v.par), detail: (v.avis === "accepte" ? "Accepté" : "Refusé") + (v.motif ? ` : ${v.motif}` : "") });
+      h.push({ date: jourDe(v.le), etape: "Visa du service financier", par: nomUtilisateur(v.par), detail: (v.avis === "accepte" ? "Accepté" : "Refusé") + (v.motif ? ` : ${v.motif}` : "") });
     if (c.debloqueLe) h.push({ date: c.debloqueLe, etape: "Déblocage", par: "", detail: "" });
     for (const x of E.prorogations.filter((y) => y.creditId === cid)) h.push({ date: x.date, etape: "Prorogation", par: nomUtilisateur(x.par), detail: `${x.mois} mois : ${x.motif}` });
     for (const x of E.contentieux.filter((y) => y.creditId === cid).sort((a, b) => a.id - b.id)) {
@@ -4326,7 +4327,7 @@ const balanceAgee = {
     const u = exiger(), t0 = Date.now();
     if (!p.date) throw new ErreurMetier("Date lancement : obligatoire.");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(p.date) || Number.isNaN(Date.parse(p.date))) throw new ErreurMetier("Date lancement : une date.");
-    const j = journees.courante()?.date ?? new Date().toISOString().slice(0, 10);
+    const j = journees.courante()?.date ?? aujourdhui();
     if (p.date > j) throw new ErreurMetier("Date lancement : pas après la journée ouverte.");
     const d = p.date;
     const lignes = E.credits.filter((c) => ["debloque", "solde", "passe_en_perte"].includes(c.statut) && c.debloqueLe && c.debloqueLe <= d).sort((a, b) => a.id - b.id)
@@ -4699,7 +4700,7 @@ function couvertureRapport(c: CreditPret, d: string) {
 const enCoursRapport = (p: CriteresRapport, d: string) => creditsRapport(p, d).map((c) => ({ c, s: etatCredit(c, d), l: ligneVisa(c) }))
   .filter(({ c, s }) => s.capitalRestant > 0 && !(c.statut === "passe_en_perte" && (c.radieLe ?? "") <= d));
 const ORDRES_RAPPORT: Record<string, string> = { produit: "Produit", agent: "Agent de crédit", degre: "Degré", sexe: "Sexe" };
-const jourRapport = () => journees.courante()?.date ?? new Date().toISOString().slice(0, 10);
+const jourRapport = () => journees.courante()?.date ?? aujourdhui();
 const pctRapport = (a: number, b: number) => (b ? Math.round(a * 10000 / b) / 100 : null);
 function soldesRapport(du: string | null, au: string) {
   const r: Record<string, number> = {};
@@ -5324,7 +5325,7 @@ const vueExamen = (x: Examen) => { const t = E.tiers.find((y) => y.id === x.tier
 const ppePersonne = (tid: number) => { const t = E.tiers.find((x) => x.id === tid); if (!t?.personneExposee) return false;
   const fin = E.dossiersPpe.find((x) => x.tiersId === tid)?.finFonction; if (!fin) return true;
   const [a, m, j] = fin.split("-").map(Number) as [number, number, number]; const limite = new Date(Date.UTC(a, m - 1 + 36, j)).toISOString().slice(0, 10);
-  return limite >= new Date().toISOString().slice(0, 10); };   // 36 mois après la fin de la fonction, plus exposée (art. 64)
+  return limite >= aujourdhui(); };   // 36 mois après la fin de la fonction, plus exposée (art. 64)
 /** Le client lui-même, ou un de ses bénéficiaires effectifs (loi 22/068, art. 53 ; confrontation du 21/11/2026, E3). Comme le serveur (ppe_active). */
 const ppeActive = (tid: number) => { const t = E.tiers.find((x) => x.id === tid);   // E3 : et le dirigeant coché « personne exposée » (art. 34 bis, 3°)
   return ppePersonne(tid) || (t?.beneficiairesEffectifs ?? []).some(ppePersonne) || !!t?.dirigeant?.personneExposee; };
@@ -5350,7 +5351,7 @@ const ppe = {
       if (!x) throw new ErreurMetier("Saisir d'abord le dossier : fonction et origine du patrimoine.");
       if (x.autorisePar) throw new ErreurMetier("Autorisation déjà donnée.");
       if (x.saisiPar === u.id) throw new ErreurMetier("Quatre yeux : l'autorisation vient d'une autre personne que celle qui a saisi le dossier.");
-      x.autorisePar = u.id; x.autoriseLe = new Date().toISOString().slice(0, 10); enregistrer(); return vuePpe(t);
+      x.autorisePar = u.id; x.autoriseLe = aujourdhui(); enregistrer(); return vuePpe(t);
     }
     const f = (d.fonction ?? "").trim(), o = (d.originePatrimoine ?? "").trim(), fin = (d.finFonction ?? "").trim();
     const manque = ([[f, "Fonction exercée"], [o, "Origine du patrimoine et des fonds"]] as const).filter(([v]) => !v).map(([, n]) => n);
@@ -5375,7 +5376,7 @@ const ppe = {
 };
 // Écart E08 : profil de risque (Instr. BCC 15, art. 28 : évalué chaque semestre ; art. 27 et 51 : données revues ; art. 41 : PPE). Mêmes règles que noyau/conformite.py.
 const NIVEAUX_RISQUE: Record<string, string> = { faible: "Faible", moyen: "Moyen", eleve: "Élevé" };
-const jourConformite = () => journees.courante()?.date ?? new Date().toISOString().slice(0, 10);
+const jourConformite = () => journees.courante()?.date ?? aujourdhui();
 const vueProfil = (t: Tiers, jour: string) => {
   const p = E.profilsRisque.filter((x) => x.tiersId === t.id).sort((a, b) => b.evalueLe.localeCompare(a.evalueLe) || b.id - a.id)[0];
   const prochaine = p ? ajouterMois(p.evalueLe, 6) : "";
@@ -5388,7 +5389,7 @@ function signauxProfil(t: Tiers, jour: string) {
   const s: string[] = [];
   if (t.bp?.trim()) s.push("Courrier domicilié dans une boîte postale (Instr. BCC 15, art. 39)");
   const debut = ajouterMois(jour, -12), cles = ["adresse", "province", "ville", "commune", "quartier", "rue", "numeroRue"] as const;
-  const n = E.modifications.filter((m) => m.tiersId === t.id && m.modifieLe.slice(0, 10) >= debut && cles.some((k) => (m.avant[k] ?? "") !== (m.apres[k] ?? ""))).length;
+  const n = E.modifications.filter((m) => m.tiersId === t.id && jourDe(m.modifieLe) >= debut && cles.some((k) => (m.avant[k] ?? "") !== (m.apres[k] ?? ""))).length;
   if (n >= 2) s.push(`Adresse changée ${n} fois en douze mois (Instr. BCC 15, art. 39)`);
   return s;
 }
@@ -5642,7 +5643,7 @@ const dateFr = (v: string) => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v.t
 /** Le client et ceux qui agissent pour lui (art. 158 bis, 4°) : dirigeant, signataires, membres du groupe, mandataires en cours */
 function personnesGel(t: Tiers): [string, string, string][] {
   const nom = (r: { nom: string; postnom?: string; prenom?: string }) => [r.nom, r.postnom, r.prenom].filter(Boolean).join(" ");
-  const jour = new Date().toISOString().slice(0, 10);
+  const jour = aujourdhui();
   return [["Client", titulaire(t), t.pieceNumero ?? ""], ...(t.dirigeant ? [["Dirigeant", nom(t.dirigeant), t.dirigeant.pieceNumero] as [string, string, string]] : []),
     ...t.signataires.map((r) => ["Signataire", nom(r), r.pieceNumero] as [string, string, string]), ...t.membres.map((r) => ["Membre du groupe", nom(r), r.pieceNumero] as [string, string, string]),
     ...(E.procurations ?? []).filter((p) => p.mandantId === t.id && !p.finLe && p.dateDebut <= jour && (!p.dateFin || p.dateFin >= jour))
@@ -5683,9 +5684,9 @@ const listesGel = {
     const vue = (c: (typeof l.correspondances)[number]) => { const e = l.entrees.find((x) => x.id === c.listeId)!, t = E.tiers.find((x) => x.id === c.tiersId)!;
       return { id: c.id, tiersId: c.tiersId, membre: t.numero, client: titulaire(t), personne: c.personne, raison: c.raison, source: SOURCES_LISTE_GEL[e.source], designe: e.nom,
         autresNoms: e.autresNoms, naissance: e.naissance, piece: e.piece, referenceDesignation: e.reference, statut: c.statut, observation: c.observation,
-        traitePar: nomUtilisateur(c.traitePar ?? undefined), traiteLe: c.traiteLe.slice(0, 10) }; };
+        traitePar: nomUtilisateur(c.traitePar ?? undefined), traiteLe: jourDe(c.traiteLe) }; };
     return { imports: [...l.imports].reverse().map((i) => ({ id: i.id, source: SOURCES_LISTE_GEL[i.source], reference: i.reference, publieLe: i.publieLe, lignes: i.lignes,
-      importePar: nomUtilisateur(i.importePar), importeLe: i.importeLe.slice(0, 10), enVigueur: l.entrees.some((e) => e.importId === i.id && e.actif) })),
+      importePar: nomUtilisateur(i.importePar), importeLe: jourDe(i.importeLe), enVigueur: l.entrees.some((e) => e.importId === i.id && e.actif) })),
       correspondances: [...l.correspondances].sort((a, b) => Number(a.statut !== "a_examiner") - Number(b.statut !== "a_examiner") || b.id - a.id).map(vue), colonnes: COLONNES_LISTE_GEL };
   },
   /** Une nouvelle publication remplace la précédente de la même source */
@@ -5838,7 +5839,7 @@ const cip = {
     lectureAdmin(["SC02"]);
     for (const [v, nom] of [[du, "Du"], [au, "Au"]] as const) if (!/^\d{4}-\d{2}-\d{2}$/.test(v ?? "")) throw new ErreurMetier(`À remplir : ${nom}.`);
     if (!["", "a_declarer", "declare"].includes(statut)) throw new ErreurMetier("Statut inconnu.");
-    const j = journees.courante(); const jour = j?.date ?? new Date().toISOString().slice(0, 10);
+    const j = journees.courante(); const jour = j?.date ?? aujourdhui();
     return evenementsCip().filter((e) => e.date >= du && e.date <= au).flatMap((e) => {
       const dc = E.declarationsCip.find((x) => x.type === e.type && x.objetId === e.objetId);
       if ((statut === "declare" && !dc) || (statut === "a_declarer" && dc)) return [];
@@ -5941,7 +5942,7 @@ function evenementsCr(au: string) {
   for (const c of E.credits) if (c.debloqueLe) ev.push({ type: "octroi", objetId: c.id, date: c.debloqueLe, tiersId: c.tiersId, reference: c.numero, montant: c.montant, devise: c.devise });
   for (const r of E.remboursementsCredit) { const c = E.credits.find((x) => x.id === r.creditId)!; ev.push({ type: "remboursement", objetId: r.id, date: r.date, tiersId: c.tiersId, reference: c.numero, montant: r.montant, devise: c.devise }); }
   for (const e of E.engagementsSignature) ev.push({ type: "engagement", objetId: e.id, date: e.dateDebut, tiersId: e.tiersId, reference: e.reference, montant: e.montant, devise: e.devise });
-  for (const m of E.modifications) if (m.valideLe) { const d = m.valideLe.slice(0, 10);
+  for (const m of E.modifications) if (m.valideLe) { const d = jourDe(m.valideLe);
     if (E.credits.some((c) => c.tiersId === m.tiersId && c.statut === "debloque" && c.debloqueLe && c.debloqueLe <= d) || E.engagementsSignature.some((e) => e.tiersId === m.tiersId && e.dateDebut <= d && d <= e.dateFin))
       ev.push({ type: "modification", objetId: m.id, date: d, tiersId: m.tiersId, reference: "", montant: null, devise: "" }); }
   for (const p of E.provisionsCredit) if (p.nature === "radiation") { const c = E.credits.find((x) => x.id === p.creditId)!; ev.push({ type: "passage_en_perte", objetId: p.id, date: p.date, tiersId: c.tiersId, reference: c.numero, montant: p.capitalRestant, devise: c.devise }); }
@@ -5956,7 +5957,7 @@ const centraleRisques = {
     lectureAdmin(["SC02"]);
     for (const [v, nom] of [[du, "Du"], [au, "Au"]] as const) if (!/^\d{4}-\d{2}-\d{2}$/.test(v ?? "")) throw new ErreurMetier(`À remplir : ${nom}.`);
     if (!["", "a_declarer", "declare"].includes(statut)) throw new ErreurMetier("Statut inconnu.");
-    const jour = journees.courante()?.date ?? new Date().toISOString().slice(0, 10);
+    const jour = journees.courante()?.date ?? aujourdhui();
     return evenementsCr(au).filter((e) => e.date >= du && e.date <= au).flatMap((e) => {
       const dc = E.declarationsRisque.find((x) => x.type === e.type && x.objetId === e.objetId);
       if ((statut === "declare" && !dc) || (statut === "a_declarer" && dc)) return [];
@@ -5988,7 +5989,7 @@ const centraleRisques = {
 const CANAUX_PLAINTE: Record<string, string> = { personne: "En personne", lettre: "Lettre", fax: "Fax", courriel: "Courrier électronique", formulaire: "Formulaire en ligne", telephone: "Téléphone", autre: "Autre canal" };
 const PROVENANCES_PLAINTE: Record<string, string> = { siege: "Siège", agence: "Agence", guichet: "Guichet", autre: "Autre" };
 const NATURES_PLAINTE: Record<string, string> = { depot: "Dépôt", retrait: "Retrait", credit: "Crédit", gestion_compte: "Gestion de compte", frais: "Frais et commissions", accueil: "Accueil et service", autre: "Autre" };
-const jourPlainte = () => journees.courante()?.date ?? new Date().toISOString().slice(0, 10);
+const jourPlainte = () => journees.courante()?.date ?? aujourdhui();
 const plusJours = (iso: string, n: number) => { const d = new Date(`${iso}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const vuePlainte = (x: Plainte) => { const ech = plusJours(x.recueLe, 45); const nom = (id: number | null) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
   return { id: x.id, reference: x.reference, recueLe: x.recueLe, echeance: ech, enRetard: x.statut === "recue" && jourPlainte() > ech, tiersId: x.tiersId,
@@ -6172,7 +6173,7 @@ const soupcons = {
     liste.push(x);
     // P9 : la déclaration faite, les opérations mises en attente reprennent (loi 22/068, art. 92). Comme le serveur.
     if (tiersId) for (const a of (E.attentesSoupcon ?? []).filter((y) => y.tiersId === tiersId && !y.leveeLe))
-      Object.assign(a, { leveeLe: new Date().toISOString().slice(0, 10), leveeMotif: `Déclaration de soupçon n° ${x.numero} transmise le ${x.transmiseLe}`, leveePar: u.id });
+      Object.assign(a, { leveeLe: aujourdhui(), leveeMotif: `Déclaration de soupçon n° ${x.numero} transmise le ${x.transmiseLe}`, leveePar: u.id });
     enregistrer(); return soupcons.vue(x);
   },
   // ---------- P9 : mise en attente des opérations soupçonnées (confrontation du 21/11/2026). Mêmes règles que noyau/soupcons.py. ----------
@@ -6190,7 +6191,7 @@ const soupcons = {
     if (!membre || !motif) throw new ErreurMetier("À remplir : N° client et motif du soupçon.");
     const t = E.tiers.find((y) => y.numero === membre); if (!t) throw new ErreurMetier("N° client inconnu.");
     if ((E.attentesSoupcon ?? []).some((a) => a.tiersId === t.id && !a.leveeLe)) throw new ErreurMetier("Les opérations de ce client sont déjà en attente.");
-    const a = { id: prochain(E.attentesSoupcon ?? []), tiersId: t.id, motif, miseLe: new Date().toISOString().slice(0, 10), misePar: u.id, leveeLe: "", leveeMotif: "", leveePar: null };
+    const a = { id: prochain(E.attentesSoupcon ?? []), tiersId: t.id, motif, miseLe: aujourdhui(), misePar: u.id, leveeLe: "", leveeMotif: "", leveePar: null };
     (E.attentesSoupcon ??= []).push(a); enregistrer(); return soupcons.attentes().find((x) => x.id === a.id)!;
   },
   /** Soupçon écarté après examen : les opérations reprennent ; le motif reste */
@@ -6199,7 +6200,7 @@ const soupcons = {
     const a = (E.attentesSoupcon ?? []).find((y) => y.id === id); if (!a) throw new ErreurMetier("Mise en attente introuvable.");
     if (a.leveeLe) throw new ErreurMetier("Mise en attente déjà levée.");
     const motif = (d.motif ?? "").trim(); if (!motif) throw new ErreurMetier("À remplir : motif de la levée (soupçon écarté après examen).");
-    Object.assign(a, { leveeLe: new Date().toISOString().slice(0, 10), leveeMotif: motif, leveePar: u.id }); enregistrer(); return soupcons.attentes().find((x) => x.id === id)!;
+    Object.assign(a, { leveeLe: aujourdhui(), leveeMotif: motif, leveePar: u.id }); enregistrer(); return soupcons.attentes().find((x) => x.id === id)!;
   },
   /** Après la transmission : confirmation écrite d'une déclaration faite par téléphone, puis accusé de réception de la CENAREF (art. 94) */
   suivre(id: number, d: { confirmeeLe?: string; accuseLe?: string; accuseReference?: string }) {
@@ -6266,7 +6267,7 @@ const conformite = {
     if (manque.length) throw new ErreurMetier(`À remplir (Instr. BCC 15, art. 61) : ${manque.join(", ")}.`);
     if (d.decision === "refuse" && !t(d.observations)) throw new ErreurMetier("À remplir : observations (motif du refus).");
     Object.assign(x, { statut: d.decision, origineFonds: t(d.origineFonds), destinationFonds: t(d.destinationFonds), objet: t(d.objet), acteurs: t(d.acteurs), observations: t(d.observations),
-      examinePar: u.id, examineLe: new Date().toISOString().slice(0, 10) });
+      examinePar: u.id, examineLe: aujourdhui() });
     enregistrer(); return vueExamen(x);
   },
   /** Loi 25/048, art. 92 bis ; Instr. BCC 15 bis, art. 7 : date et référence du rapport transmis à la CENAREF */
@@ -7026,7 +7027,7 @@ const operationsCompta = {
   /** Ce que les écrans proposent : journaux et périodes (Choix du journal, p. 129), agences, budget, date de la journée */
   lire() {
     lectureAdmin(["S109", "S116", "S117"]);
-    const j = journees.courante(), ouverte = j && j.statut === "ouverte" ? j.date : "", fin = (ouverte || new Date().toISOString().slice(0, 10)).slice(0, 7);
+    const j = journees.courante(), ouverte = j && j.statut === "ouverte" ? j.date : "", fin = (ouverte || aujourdhui()).slice(0, 7);
     const annees = E.exercices.filter((x) => x.ouvert && !x.valide).map((x) => x.annee).sort((a, b) => a - b);
     return { date: ouverte,
       journaux: journauxActifs().filter((x) => x.type !== "a_nouveaux").map(({ id, code, libelle, type }) => ({ id, code, libelle, type: type as string })),
@@ -7206,7 +7207,7 @@ const operationsCompta = {
     const o = E.operationsCompta.find((x) => x.id === id);
     if (!o || o.statut !== "saisie") throw new ErreurMetier("Rien à viser.");
     if (o.saisiPar === u.id) throw new ErreurMetier("Quatre yeux : pas de visa sur sa propre saisie.");
-    o.statut = "visee"; o.visePar = u.id; o.viseLe = new Date().toISOString().slice(0, 10); enregistrer(); return vueOc(o);
+    o.statut = "visee"; o.visePar = u.id; o.viseLe = aujourdhui(); enregistrer(); return vueOc(o);
   },
   /** S114 : validation, par une autre personne que celles qui ont saisi et visé ; la comptabilisation (S111) vient ensuite */
   valider(id: number, d: { date?: string } = {}) {
@@ -7709,7 +7710,7 @@ const controlesCompta = {
     const u = exiger(), e = etatRapprochementCc(p);
     if (E.rapprochements.some((r) => r.compteBancaireId === e.cbId && r.au >= e.du)) throw new ErreurMetier("Période : un rapprochement de ce compte couvre déjà cette date de début.");
     const r = { id: prochain(E.rapprochements), compteBancaireId: e.cbId, du: e.du, au: e.au, soldeDebut: e.soldeDebut, soldeReleve: e.soldeFin, soldeComptable: e.soldeComptable, suspensDebit: e.suspensDebit,
-      suspensCredit: e.suspensCredit, ecart: e.ecart, preparePar: u.id, date: journees.courante()?.date ?? new Date().toISOString().slice(0, 10), lignes: e.pointees };
+      suspensCredit: e.suspensCredit, ecart: e.ecart, preparePar: u.id, date: journees.courante()?.date ?? aujourdhui(), lignes: e.pointees };
     E.rapprochements.push(r); enregistrer(); const { cbId: _c, ...etat } = e; return { ...etat, id: r.id };
   },
   /** S110, bouton Nouveau : une opération du relevé absente de nos livres se saisit comme une opération de banque (S52) ; elle suit sa chaîne de visa (S57) */
@@ -8354,7 +8355,7 @@ function bloquantsFin(l: ReturnType<typeof controlesFin>) {
   if (b.length) throw new ErreurMetier(`Clôture impossible : ${b.map((c) => `${c.libelle} (${c.detail})`).join(" ; ")}.`);
 }
 function fermerPeriodes(a: number, jusqua: number, u: number) {
-  for (let m = 1; m <= jusqua; m++) if (!E.periodesCloturees.some((p) => p.annee === a && p.mois === m)) E.periodesCloturees.push({ annee: a, mois: m, le: new Date().toISOString().slice(0, 10), par: u });
+  for (let m = 1; m <= jusqua; m++) if (!E.periodesCloturees.some((p) => p.annee === a && p.mois === m)) E.periodesCloturees.push({ annee: a, mois: m, le: aujourdhui(), par: u });
 }
 function exerciceFin(p: { exercice?: unknown }) {
   const e = /^\d+$/.test(String(p.exercice ?? "")) ? E.exercices.find((x) => x.annee === Number(p.exercice)) : undefined;
@@ -8572,7 +8573,7 @@ const finPeriode = {
       n++;
     }
     fermerPeriodes(ex, 12, u.id);
-    e.ouvert = false; e.clotureLe = new Date().toISOString().slice(0, 10); e.cloturePar = u.id; enregistrer();
+    e.ouvert = false; e.clotureLe = aujourdhui(); e.cloturePar = u.id; enregistrer();
     return { ...finPeriode.apercuCloture(p), ecritures: n };
   },
   // ---------- A1 et B14 : affectation du résultat (loi 002/2002, art. 9, 6° et 59, 1° ; Instr. BCC 002, art. 19 à 21 ; PCCI, comptes 11, 12, 13, 44).
@@ -10186,10 +10187,10 @@ const societe = {
       assuranceAssureur: i.assuranceAssureur ?? "", assurancePolice: i.assurancePolice ?? "", assuranceEcheance: i.assuranceEcheance ?? "",
       valeurPart: E.paramAdhesion.find((x) => estPart(x.compte) && (x.valeur ?? 0) > 0)?.valeur ?? null, partEffet: i.partEffet ?? "" };   // registre T134
     return { institution, types: Object.entries(PROFILS_INSTITUTION).map(([code, libelle]) => ({ code, libelle })), localites: localites(), arbreLieux: arbreLieux(),
-      agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, nom, autorisationReference, autorisationLe, ...x }) => ({ id, code, nom,
-        autorisationReference: autorisationReference ?? "", autorisationLe: autorisationLe ?? "",   // A3
+      agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, nom, autorisationReference, autorisationLe, fuseau, ...x }) => ({ id, code, nom,
+        autorisationReference: autorisationReference ?? "", autorisationLe: autorisationLe ?? "", fuseau: fuseau ?? FUSEAU_PAR_DEFAUT,   // A3 ; point 11.4
         ...Object.fromEntries(CHAMPS_ADRESSE.map((k) => [k, (x as Adresse)[k] ?? ""])) as Required<Adresse> })),
-      securite: { motDePasseMin: 8, essais: 5, fenetreMinutes: 15 } };   // cadre « Info sécurité », règles en vigueur (S32-6 ; noyau/securite.py)
+      securite: { motDePasseMin: 8, essais: 5, fenetreMinutes: 15 }, fuseaux: Object.entries(FUSEAUX).map(([code, libelle]) => ({ code, libelle })) };   // cadre « Info sécurité », règles en vigueur (S32-6 ; noyau/securite.py)
   },
   /** Enregistrer la page Information Societe (registre S32-1 à S32-4) */
   enregistrer(d: Partial<Omit<InfoSociete, "journeeMax">> & { journeeMax?: number | null }) {
@@ -10231,7 +10232,7 @@ const societe = {
     enregistrer(); return societe.lire();
   },
   /** Page Agence : Code et Nom (registre S32-5) ; le code d'une agence qui a des clients ne change plus (il entre dans leurs numéros, S15) */
-  enregistrerAgence(d: { code?: string; nom?: string; autorisationReference?: string; autorisationLe?: string } & Adresse, id?: number) {
+  enregistrerAgence(d: { code?: string; nom?: string; autorisationReference?: string; autorisationLe?: string; fuseau?: string } & Adresse, id?: number) {
     exiger("chef_agence");
     const code = d.code?.trim() ?? "", nom = d.nom?.trim() ?? "";
     const manque = manquants([["Code", code], ["Nom", nom]]);
@@ -10247,9 +10248,12 @@ const societe = {
     const ref = d.autorisationReference?.trim() ?? "", le = d.autorisationLe?.trim() ?? "";
     if (!actuel && (!ref || !DATE.test(le))) throw new ErreurMetier("Autorisation préalable de la BCC : référence et date (Instr. BCC 41, art. 35).");
     controlerProvinceCoopec(adr.province, "Agence");
+    // Fuseau horaire de l'agence : le jour et l'heure s'y calculent (plan d'allègement, point 11.4 ; registre T153). Comme le serveur.
+    const fuseau = d.fuseau ?? "";
+    if (!(fuseau in FUSEAUX)) throw new ErreurMetier("À remplir : fuseau horaire.");
     const aut = ref ? { autorisationReference: ref, autorisationLe: le } : {};
-    if (actuel) { Object.assign(actuel, { code, nom, ...adr, ...aut }); if (actuel.id === E.agence.id) Object.assign(E.agence, { code, nom }); }
-    else E.agences.push({ id: prochain(E.agences), code, nom, supprime: false, ...adr, ...aut });
+    if (actuel) { Object.assign(actuel, { code, nom, fuseau, ...adr, ...aut }); if (actuel.id === E.agence.id) Object.assign(E.agence, { code, nom }); }
+    else E.agences.push({ id: prochain(E.agences), code, nom, fuseau, supprime: false, ...adr, ...aut });
     enregistrer(); return societe.lire();
   },
   /** Supprimer (p. 12) : logique (T02) ; une agence qui sert ne se supprime pas */
@@ -10590,7 +10594,7 @@ const journalSecurite = {
     if (!DATE_ISO.test(au ?? "")) throw new ErreurMetier("À remplir : Au.");
     if (du > au) throw new ErreurMetier("La date de début dépasse la date de fin.");
     if (evenement && !EVENEMENTS_SECURITE[evenement]) throw new ErreurMetier("Événement inconnu.");
-    return E.journalSecurite.filter((x) => x.le.slice(0, 10) >= du && x.le.slice(0, 10) <= au && (!evenement || x.evenement === evenement))
+    return E.journalSecurite.filter((x) => jourDe(x.le) >= du && jourDe(x.le) <= au && (!evenement || x.evenement === evenement))
       .sort((a, b) => b.le.localeCompare(a.le) || b.id - a.id).slice(0, 1000)
       .map((x) => ({ le: x.le, evenement: x.evenement, evenementLibelle: EVENEMENTS_SECURITE[x.evenement] ?? x.evenement, login: x.login,
         utilisateur: nomUtilisateur(x.utilisateurId ?? undefined) || E.utilisateurs.find((y) => y.login === x.login)?.nom || "", ip: "", detail: x.detail }));

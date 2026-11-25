@@ -215,7 +215,7 @@ function PersonnesExposees({ jour }: { jour: string }) {
       <Textes sources={["Instr. BCC 15, art. 41 et 64 : origine du patrimoine et des fonds, autorisation de la conformité avant d'entrer en relation ; 36 mois après la fin de la fonction, la personne n'est plus exposée",
         "Instr. BCC 15, art. 65 et Instr. BCC 52, art. 26 : information de la CENAREF, même sans soupçon", "Instr. BCC 008, art. 66 : l'autorisation vient d'une autre personne que celle qui a saisi le dossier"]} />
       <Fiche titre={choisi ? `Personne exposée : ${choisi.client}` : ""} ouverte={!!choisi} fermer={() => { setChoisi(null); setRelu((v) => v + 1); }}>
-        {choisi && <div className="pile">
+        {choisi && <Formulaire className="pile" envoyer={() => agir("Voulez-vous vraiment enregistrer ?", () => api.conformite.enregistrerPpe(choisi.tiersId, f))}>
           <fieldset className="pile cadre-champs">
             <legend>Dossier</legend>
             {/* P6 (confrontation du 21/11/2026) : catégorie et qualité de la liste de l'Instr. BCC 15, art. 5 */}
@@ -238,12 +238,12 @@ function PersonnesExposees({ jour }: { jour: string }) {
                 </div>}
           </fieldset>}
           <div className="actions-onglets">
-            {!fige && <button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment enregistrer ?", () => api.conformite.enregistrerPpe(choisi.tiersId, f))}>Enregistrer</button>}
+            {!fige && <button className="bouton" type="submit">Enregistrer</button>}
             {!fige && choisi.saisiPar && <button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment autoriser la relation avec cette personne ?", () => api.conformite.enregistrerPpe(choisi.tiersId, { autoriser: true }))}>Autoriser</button>}
             {fige && !choisi.informeLe && <button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment noter cette information ?", () => api.conformite.informerPpe(choisi.tiersId, { date: info.date || jour, reference: info.reference }))}>Noter l'information</button>}
             <button className="bouton secondaire" type="button" onClick={() => { setChoisi(null); setRelu((v) => v + 1); }}>Fermer</button>
           </div>
-        </div>}
+        </Formulaire>}
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </section>

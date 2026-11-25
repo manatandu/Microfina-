@@ -6,6 +6,7 @@ from datetime import date
 
 from .bd import ErreurMetier, executer, lignes, une
 from .services import exiger, journee_courante, nom_utilisateur, titulaire
+from .fuseau import jour_agence
 
 
 def _mois(annee, mois) -> tuple[int, int]:
@@ -41,7 +42,7 @@ def etat(u: dict, annee, mois) -> dict:
         totaux[x["devise"]] = totaux.get(x["devise"], 0) + x["retenue"]
     rv = une("select * from reversement_retenue where institution_id = %s and annee = %s and mois = %s", (u["institution_id"], a, m))
     j = journee_courante(u)
-    jour = j["date"] if j else date.today().isoformat()
+    jour = j["date"] if j else jour_agence(u).isoformat()
     ech = echeance(a, m)
     statut = "reverse" if rv else ("aucune" if not retenues else "en_retard" if jour > ech else "a_reverser")
     from .releves import entete

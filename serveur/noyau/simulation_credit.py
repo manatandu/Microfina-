@@ -14,6 +14,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from .bd import ErreurMetier, lignes as lire, une
 from .plans_epargne import PERIODICITES, date_rang, nombre_echeances
 from .services import exiger, journee_courante
+from .fuseau import jour_agence
 
 
 def arrondi(x) -> int:
@@ -82,7 +83,7 @@ def simuler(u, d) -> dict:
     nd = int(nd)
     j = journee_courante(u)
     try:
-        deblocage = date.fromisoformat((d or {}).get("dateDeblocage") or (j["date"] if j else date.today().isoformat()))
+        deblocage = date.fromisoformat((d or {}).get("dateDeblocage") or (j["date"] if j else jour_agence(u).isoformat()))
     except ValueError:
         raise ErreurMetier("Date deblocage : une date.")
     den = Decimal(per["denominateur"])

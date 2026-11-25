@@ -5,6 +5,7 @@ import re
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import exiger, localites
+from .fuseau import FUSEAUX
 
 PROFILS = {"coopec": "COOPEC", "societe_microfinance": "Société de microfinance", "entreprise_microcredit": "Entreprise de micro-crédit",
            "faitiere": "Structure faîtière"}       # loi 002/2002 (COOPEC, faîtières) ; loi 11/020, art. 11 (IMF)
@@ -39,9 +40,9 @@ def lire(u) -> dict:
     from .adresse import arbre
     return {"institution": r, "types": [{"code": k, "libelle": v} for k, v in PROFILS.items()], "localites": localites(), "arbreLieux": arbre(),
             "agences": lignes(f"""select id, code, nom, coalesce(autorisation_bcc_reference, '') as "autorisationReference",
-                                     coalesce(autorisation_bcc_le::text, '') as "autorisationLe", {', '.join(f'{c} as "{k}"' for k, c in ADRESSE.items())}
+                                     coalesce(autorisation_bcc_le::text, '') as "autorisationLe", fuseau, {', '.join(f'{c} as "{k}"' for k, c in ADRESSE.items())}
                                   from agence where institution_id = %s and not supprime order by code""", (i,)),
-            "securite": regles_securite()}
+            "securite": regles_securite(), "fuseaux": [{"code": k, "libelle": v} for k, v in FUSEAUX.items()]}
 
 
 def enregistrer(u, d) -> dict:
@@ -132,12 +133,16 @@ def enregistrer_agence(u, d, aid: int | None = None) -> dict:
     if aid is None and (not ref or not re.match(r"^\d{4}-\d{2}-\d{2}$", le)):
         raise ErreurMetier("Autorisation préalable de la BCC : référence et date (Instr. BCC 41, art. 35).")
     controler_province_coopec(u, adr.get("province", ""), "Agence")
+    # Fuseau horaire de l'agence : le jour et l'heure s'y calculent (plan d'allègement, point 11.4 ; registre T153)
+    fuseau = d.get("fuseau") if isinstance(d.get("fuseau"), str) else ""
+    if fuseau not in FUSEAUX:
+        raise ErreurMetier("À remplir : fuseau horaire.")
     if aid is None:
-        aid = valeur("insert into agence (institution_id, code, nom, autorisation_bcc_reference, autorisation_bcc_le) values (%s, %s, %s, %s, %s) returning id",
-                     (i, code, nom, ref, le))
+        aid = valeur("insert into agence (institution_id, code, nom, autorisation_bcc_reference, autorisation_bcc_le, fuseau) values (%s, %s, %s, %s, %s, %s) returning id",
+                     (i, code, nom, ref, le, fuseau))
     else:
-        executer("update agence set code = %s, nom = %s, autorisation_bcc_reference = coalesce(%s, autorisation_bcc_reference), autorisation_bcc_le = coalesce(%s, autorisation_bcc_le) where id = %s",
-                 (code, nom, ref or None, le or None, aid))
+        executer("update agence set code = %s, nom = %s, autorisation_bcc_reference = coalesce(%s, autorisation_bcc_reference), autorisation_bcc_le = coalesce(%s, autorisation_bcc_le), fuseau = %s where id = %s",
+                 (code, nom, ref or None, le or None, fuseau, aid))
     executer(f"update agence set {', '.join(f'{c} = %s' for c in ADRESSE.values())} where id = %s", (*adr.values(), aid))
     return lire(u)
 

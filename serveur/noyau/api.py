@@ -57,7 +57,7 @@ from . import connexions as cx
 from . import comptes as cp
 from . import numerotation as nu
 from . import services as s
-from .bd import ErreurMetier
+from .bd import ErreurMetier, executer
 from .securite import adresse, controler_tentatives, noter
 
 # Documentation technique de l'API : seulement en développement ; en ligne, elle décrirait toutes les routes à un attaquant (registre T25)
@@ -83,6 +83,8 @@ def u(request: HttpRequest) -> dict:
         raise ErreurMetier("Requête refusée.", 403)
     util = s.exiger(s.utilisateur_de_session(request.session.get("utilisateur"), request.session.get("jeton")))
     dr.verifier_route(util, request.method, request.path)      # droit de la tâche (registre S04-3)
+    # Jour de l'agence dans les requêtes SQL (fonctions jour_agence ; plan d'allègement, point 11.4 ; registre T153)
+    executer("select set_config('exofina.fuseau', coalesce((select fuseau from agence where id = %s), ''), false)", (util.get("agence_id"),))
     return util
 
 

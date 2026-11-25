@@ -182,7 +182,7 @@ def _ppe_personne(tid: int) -> bool:
     if not valeur("select personne_exposee from tiers where id = %s", (tid,)):
         return False
     fin = valeur("select fin_fonction from dossier_ppe where tiers_id = %s", (tid,))
-    return not (fin and valeur("select %s::date + interval '36 months' < current_date", (fin,)))
+    return not (fin and valeur("select %s::date + interval '36 months' < jour_agence()", (fin,)))
 
 
 def ppe_active(tid: int) -> bool:
@@ -286,7 +286,7 @@ MOIS_REVUE = 6      # art. 28 : « semestriellement »
 
 def _jour(u: dict) -> str:
     j = journee_courante(u)
-    return j["date"] if j else valeur("select current_date::text")
+    return j["date"] if j else valeur("select jour_agence()::text")
 
 
 def vue_profil(t: dict, jour: str) -> dict:

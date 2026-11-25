@@ -8,6 +8,7 @@ from datetime import date
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import exiger, journee_courante, titulaire
+from .fuseau import jour_agence
 
 TYPES = {"octroi": "Octroi de crédit", "remboursement": "Remboursement", "engagement": "Engagement par signature", "modification": "Client modifié",
          "passage_en_perte": "Passage en perte", "radiation": "Radiation (encours nul depuis trois ans)", "prorogation": "Crédit prorogé",
@@ -54,10 +55,10 @@ def evenements(u: dict, du: str, au: str, statut: str = "") -> list[dict]:
       select 'engagement', e.id, e.date_debut, e.tiers_id, e.reference, e.montant, trim(e.devise)
         from engagement_signature e where e.institution_id = %(i)s and e.date_debut between %(du)s and %(au)s
       union all
-      select 'modification', m.id, m.valide_le::date, t.id, '', null, null from tiers_modification m join tiers t on t.id = m.tiers_id
-        where t.institution_id = %(i)s and m.valide_le::date between %(du)s and %(au)s
-        and (exists (select 1 from credit c where c.tiers_id = t.id and c.debloque_le <= m.valide_le::date and c.statut = 'debloque')
-             or exists (select 1 from engagement_signature e where e.tiers_id = t.id and m.valide_le::date between e.date_debut and e.date_fin))
+      select 'modification', m.id, jour_agence(m.valide_le), t.id, '', null, null from tiers_modification m join tiers t on t.id = m.tiers_id
+        where t.institution_id = %(i)s and jour_agence(m.valide_le) between %(du)s and %(au)s
+        and (exists (select 1 from credit c where c.tiers_id = t.id and c.debloque_le <= jour_agence(m.valide_le) and c.statut = 'debloque')
+             or exists (select 1 from engagement_signature e where e.tiers_id = t.id and jour_agence(m.valide_le) between e.date_debut and e.date_fin))
       union all
       select 'passage_en_perte', pc.id, pc.date_operation, c.tiers_id, c.numero, pc.capital_restant, trim(c.devise)
         from provision_credit pc join credit c on c.id = pc.credit_id where pc.institution_id = %(i)s and pc.nature = 'radiation'
@@ -74,7 +75,7 @@ def evenements(u: dict, du: str, au: str, statut: str = "") -> list[dict]:
       order by 3, 1, 2""", p)
     rows += [x for x in radiations(i, date.fromisoformat(au)) if x["d"] >= date.fromisoformat(du)]
     j = journee_courante(u)
-    jour = date.fromisoformat(j["date"]) if j else date.today()
+    jour = date.fromisoformat(j["date"]) if j else jour_agence(u)
     sortie = []
     for r in sorted(rows, key=lambda x: (x["d"], x["type"], x["objet"])):
         dc = une("select declare_le, reference from declaration_risque where institution_id = %s and type_evenement = %s and objet_id = %s", (i, r["type"], r["objet"]))
@@ -94,7 +95,7 @@ def evenements(u: dict, du: str, au: str, statut: str = "") -> list[dict]:
 DATES = {"octroi": "select c.debloque_le from credit c where c.id = %s and c.institution_id = %s",
          "remboursement": "select r.date_reglement from remboursement r join credit c on c.id = r.credit_id where r.id = %s and c.institution_id = %s",
          "engagement": "select date_debut from engagement_signature where id = %s and institution_id = %s",
-         "modification": "select m.valide_le::date from tiers_modification m join tiers t on t.id = m.tiers_id where m.id = %s and t.institution_id = %s",
+         "modification": "select jour_agence(m.valide_le) from tiers_modification m join tiers t on t.id = m.tiers_id where m.id = %s and t.institution_id = %s",
          "passage_en_perte": "select date_operation from provision_credit where id = %s and institution_id = %s and nature = 'radiation'",
          "prorogation": "select pr.date_prorogation from credit_prorogation pr join credit c on c.id = pr.credit_id where pr.id = %s and c.institution_id = %s",
          "contentieux": "select ct.ouvert_le from credit_contentieux ct join credit c on c.id = ct.credit_id where ct.id = %s and c.institution_id = %s",

@@ -5,11 +5,12 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { exporterExcel } from "../lib/excel";
 import { Champ, Chargement, Dialogue, Textes, type Boite, Formulaire } from "../composants";
+import { aujourdhui } from "../lib/dates";
 
 const MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 
 export default function ReportingLcb({ jour }: { jour: string }) {
-  const [periode, setPeriode] = useState({ annee: Number((jour || new Date().toISOString()).slice(0, 4)), mois: Number((jour || new Date().toISOString()).slice(5, 7)) });
+  const [periode, setPeriode] = useState({ annee: Number((jour || aujourdhui()).slice(0, 4)), mois: Number((jour || aujourdhui()).slice(5, 7)) });
   const [relu, setRelu] = useState(0);
   const { donnees } = useDonnees(() => api.conformite.reportingMensuel(periode.annee, periode.mois), [periode.annee, periode.mois, relu]);
   const [saisies, setSaisies] = useState<Record<string, string>>({});

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { enClair } from "../lib/enclair";
 import { api, type SaisieBanque, type SaisieCompteBancaire } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture, Formulaire } from "../composants";
 import { TableFiltree } from "./Groupes";
 
 type Donnees = Awaited<ReturnType<typeof api.banques.lire>>;
@@ -46,7 +46,7 @@ function BanqueClient({ d, confirmer }: Props) {
   const t = (k: keyof SaisieBanque) => ({ value: f[k], onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value }) });
   return (
     <>
-      <fieldset className="cadre-champs formulaire">
+      <Formulaire className="pile" envoyer={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.banques.enregistrerBanque(f, choisi ?? undefined), annuler)}><fieldset className="cadre-champs formulaire">
         <legend>Info Banque Client</legend>
         <Champ libelle="Code Banque: *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...t("code")} />}</Champ>
         <Champ libelle="Libellé : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...t("libelle")} />}</Champ>
@@ -54,10 +54,10 @@ function BanqueClient({ d, confirmer }: Props) {
         <Champ libelle="Adresse :">{(p) => <textarea {...p} className="saisie" rows={2} {...t("adresse")} />}</Champ>
       </fieldset>
       <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.banques.enregistrerBanque(f, choisi ?? undefined), annuler)}>Enregistrer</button>
+        <button className="bouton" type="submit">Enregistrer</button>
         <button className="bouton secondaire" type="button" disabled={choisi === null} onClick={() => choisi !== null && confirmer("Voulez-vous vraiment supprimer ?", () => api.banques.supprimerBanque(choisi), annuler)}>Supprimer</button>
         <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
-      </div>
+      </div></Formulaire>
       <fieldset className="pile cadre-champs">
         <legend>Liste Banque Client</legend>
         <TableFiltree lignes={d.banques} cle={(b) => b.id} choisi={choisi}
@@ -86,7 +86,7 @@ function BanqueInstitution({ d, confirmer }: Props) {
   const aImprimer = impression === "un" ? d.comptes.filter((c) => c.id === choisi) : d.comptes;
   return (
     <>
-      <fieldset className="cadre-champs formulaire">
+      <Formulaire className="pile" envoyer={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.banques.enregistrerCompte(f, choisi ?? undefined), annuler)}><fieldset className="cadre-champs formulaire">
         <legend>Infos Banques Institutions à valider</legend>
         <Champ libelle="Banque *">{(p) => <select {...p} className="saisie" required value={f.banqueId} onChange={(e) => setF({ ...f, banqueId: Number(e.target.value) })}>
           <option value={0}></option>{d.banques.map((b) => <option key={b.id} value={b.id}>{b.libelle}</option>)}</select>}</Champ>
@@ -108,12 +108,12 @@ function BanqueInstitution({ d, confirmer }: Props) {
         <Champ libelle="Adresse :">{(p) => <input {...p} className="saisie" autoComplete="off" {...t("contactAdresse")} />}</Champ>
       </fieldset>
       <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.banques.enregistrerCompte(f, choisi ?? undefined), annuler)}>Enregistrer</button>
+        <button className="bouton" type="submit">Enregistrer</button>
         <button className="bouton secondaire" type="button" disabled={choisi === null} onClick={() => choisi !== null && confirmer("Voulez-vous vraiment supprimer ?", () => api.banques.supprimerCompte(choisi), annuler)}>Supprimer</button>
         <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
         <button className="bouton secondaire" type="button" disabled={choisi === null} onClick={() => setImpression("un")}>Imprimer</button>
         <button className="bouton secondaire" type="button" disabled={d.comptes.length === 0} onClick={() => setImpression("tous")}>Imprimer tous les comptes</button>
-      </div>
+      </div></Formulaire>
       <TableFiltree lignes={d.comptes} cle={(c) => c.id} choisi={choisi}
         choisir={(c) => { setChoisi(c.id); setF({ banqueId: c.banqueId, compte: c.compte, numeroBancaire: c.numeroBancaire, devise: c.devise, journalId: c.journalId,
           contactNom: c.contactNom, contactNomComplet: c.contactNomComplet, contactTelephone: c.contactTelephone, comptePenalite: c.comptePenalite ?? "", contactAdresse: c.contactAdresse ?? "" }); }}

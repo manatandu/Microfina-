@@ -4,7 +4,7 @@ import { useState } from "react";
 import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Fiche, Lecture, Paginee, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Lecture, Paginee, Textes, type Boite, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
 
 export const LIENS_APPARENTE = [["actionnaire", "Actionnaire ou membre fondateur"], ["administrateur", "Administrateur"], ["dirigeant", "Dirigeant"], ["personnel", "Personnel"],
@@ -27,7 +27,7 @@ export default function PersonnesApparentees() {
   } });
   return (
     <section className="bloc pile" aria-label="Personnes apparentées">
-      <fieldset className="cadre-champs pile">
+      <Formulaire envoyer={() => t && marquer(t.id, lien, "Voulez-vous vraiment enregistrer ?")}><fieldset className="cadre-champs pile">
         <legend>Marquer une personne apparentée</legend>
         <div className="ligne-champ">
           <Champ libelle="N° client">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
@@ -36,8 +36,8 @@ export default function PersonnesApparentees() {
           <Champ libelle="Lien *">{(p) => <select {...p} className="saisie" value={lien} onChange={(e) => setLien(e.target.value)}><option value=""></option>
             {LIENS_APPARENTE.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ>
         </div>
-        <div className="actions-onglets"><button className="bouton" type="button" disabled={!t || !lien} onClick={() => t && marquer(t.id, lien, "Voulez-vous vraiment enregistrer ?")}>Enregistrer</button></div>
-      </fieldset>
+        <div className="actions-onglets"><button className="bouton" type="submit" disabled={!t || !lien}>Enregistrer</button></div>
+      </fieldset></Formulaire>
       <Paginee lignes={donnees}>{(v) => (<div className="defile-x"><table className="grille">
         <thead><tr><th scope="col">N° client</th><th scope="col">Client</th><th scope="col">Lien</th><th scope="col"><span className="sr-only">Retirer</span></th></tr></thead>
         <tbody>{v.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}

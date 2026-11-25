@@ -106,7 +106,9 @@ def consulter(u: dict, du: str, au: str, evenement: str = "") -> list[dict]:
     """Événements des utilisateurs de l'institution et tentatives anonymes (identifiant inconnu ou adresse seule), du plus récent au plus ancien"""
     from .bd import lignes
     from .services import exiger
+    from .fuseau import fuseau_de
     exiger(u)
+    fz = fuseau_de(u)   # jours et heures de l'agence (plan d'allègement, point 11.4 ; registre T153)
     for v, nom in ((du, "Du"), (au, "Au")):
         if not re.match(r"^\d{4}-\d{2}-\d{2}$", v or ""):
             raise ErreurMetier(f"À remplir : {nom}.")
@@ -116,8 +118,8 @@ def consulter(u: dict, du: str, au: str, evenement: str = "") -> list[dict]:
         raise ErreurMetier("Événement inconnu.")
     rows = lignes("""select j.le, j.evenement, j.login, j.ip, j.detail, coalesce(x.nom, y.nom) as nom
                      from journal_securite j left join utilisateur x on x.id = j.utilisateur_id left join utilisateur y on y.login = j.login
-                     where j.le >= %(du)s::date and j.le < %(au)s::date + 1 and (%(ev)s = '' or j.evenement = %(ev)s)
+                     where (j.le at time zone %(fz)s)::date between %(du)s::date and %(au)s::date and (%(ev)s = '' or j.evenement = %(ev)s)
                        and coalesce(x.institution_id, y.institution_id, %(i)s) = %(i)s
-                     order by j.le desc, j.id desc limit 1000""", {"du": du, "au": au, "ev": evenement, "i": u["institution_id"]})
-    return [{"le": r["le"].astimezone().isoformat(timespec="seconds"), "evenement": r["evenement"], "evenementLibelle": EVENEMENTS.get(r["evenement"], r["evenement"]),
+                     order by j.le desc, j.id desc limit 1000""", {"du": du, "au": au, "ev": evenement, "i": u["institution_id"], "fz": fz.key})
+    return [{"le": r["le"].astimezone(fz).isoformat(timespec="seconds"), "evenement": r["evenement"], "evenementLibelle": EVENEMENTS.get(r["evenement"], r["evenement"]),
              "login": r["login"] or "", "utilisateur": r["nom"] or "", "ip": r["ip"] or "", "detail": r["detail"] or ""} for r in rows]

@@ -10,6 +10,7 @@ from datetime import date, datetime
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import exiger, journee_courante, nom_utilisateur, nouvelle_piece, poster
+from .fuseau import jour_agence
 
 ETATS = ["Bon", "Moyen", "Mauvais", "Hors d'usage"]           # registre S139-3
 SORTIES = ["Cession", "Mise au rebut"]                         # PCCI, classe 2 : cession, mise au rebut (673)
@@ -163,7 +164,7 @@ def valider(u, d: dict, bid: int | None) -> dict:
         from .etats_financiers import soldes
         from .normes import fonds_propres
         j = journee_courante(u)
-        jd = date.fromisoformat(j["date"]) if j else date.today()
+        jd = date.fromisoformat(j["date"]) if j else jour_agence(u)
         s, res, ant = soldes(u, jd, jd.year, vidage=True)
         if v["prix_acquisition"] * 10 > max(fonds_propres(s, res + ant)["base"], 0):
             raise ErreurMetier("Acquisition au-delà de 10 % des fonds propres de base : à remplir, Autorisation BCC (Instr. BCC 41, art. 33).")

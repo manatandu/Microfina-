@@ -8,6 +8,7 @@ from psycopg.types.json import Jsonb
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import est_coopec, exiger, journee_courante, json_lu, titulaire
+from .fuseau import jour_agence
 
 NIVEAUX = ("responsable_credit", "comite", "service_financier")
 LIBELLES = {"responsable_credit": "Responsable crédit", "comite": "Comité de crédit", "service_financier": "Service financier"}
@@ -95,7 +96,7 @@ def appel(u, cid: int, d) -> dict:
         raise ErreurMetier("À remplir : Référence de la décision du Conseil d'administration.")
     j = journee_courante(u)
     executer("update visa_credit set appel_decision = %s, appel_reference = %s, appel_le = %s, appel_par = %s where credit_id = %s and niveau = 'comite'",
-             (d["decision"], ref, j["date"] if j else date.today(), u["id"], cid))
+             (d["decision"], ref, j["date"] if j else jour_agence(u), u["id"], cid))
     if d["decision"] == "accorde":
         executer("update credit set statut = 'mis_en_place' where id = %s", (cid,))
     return {"statut": valeur("select statut from credit where id = %s", (cid,)), "decision": d["decision"]}
@@ -117,13 +118,13 @@ def historique(u, niveau: str, avis: str, du: str, au: str) -> list[dict]:
     d1, d2 = date_iso(du, "Du"), date_iso(au, "A")
     sortie = []
     for v in lignes("""select v.*, c.* from visa_credit v join credit c on c.id = v.credit_id where c.institution_id = %s and v.niveau = %s and v.avis = %s
-                       and v.le::date between %s and %s order by v.le""", (u["institution_id"], niveau, avis, d1, d2)):
+                       and jour_agence(v.le) between %s and %s order by v.le""", (u["institution_id"], niveau, avis, d1, d2)):
         sortie.append({**ligne(v), "visaLe": v["le"].date().isoformat(), "visePar": valeur("select nom from utilisateur where id = %s", (v["par"],)) or "",
                        "motif": v["motif"] or "", "membres": json_lu(v["membres"]) or [], "referencePv": v["reference_pv"] or "", "creditId": v["credit_id"],
                        "appel": ({"accorde": "Accordé", "confirme": "Refus confirmé"}[v["appel_decision"]] + f" ({v['appel_reference']})") if v.get("appel_decision") else ""})
     if avis == "refuse" and niveau in ("responsable_credit", "comite"):   # refus à la vérification ou à la décision : le crédit n'est pas né (plan 6.1)
         for x in lignes("""select * from demande_credit where institution_id = %s and refus_niveau = %s and
-                           (case when refus_niveau = 'comite' then approuve_le::date else controle_le::date end) between %s and %s order by id""",
+                           (case when refus_niveau = 'comite' then jour_agence(approuve_le) else jour_agence(controle_le) end) between %s and %s order by id""",
                         (u["institution_id"], niveau, d1, d2)):
             par = x["approuve_par"] if niveau == "comite" else x["controle_par"]
             le = x["approuve_le"] if niveau == "comite" else x["controle_le"]
@@ -145,5 +146,5 @@ def valides_non_debloques(u, du: str, au: str, agent_id: int | None = None, arch
     d1, d2 = date_iso(du, "Du"), date_iso(au, "A")
     statuts = ["vise", "debloque", "solde"] if archives else ["vise"]
     return [ligne(c) for c in lignes("""select c.* from credit c join demande_credit d on d.id = c.demande_id where c.institution_id = %s and c.statut = any(%s)
-                                         and d.cree_le::date between %s and %s and (%s::bigint is null or c.agent_id = %s) order by c.id""",
+                                         and jour_agence(d.cree_le) between %s and %s and (%s::bigint is null or c.agent_id = %s) order by c.id""",
                                       (u["institution_id"], statuts, d1, d2, agent_id, agent_id))]

@@ -10,7 +10,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
 
 type Resultat = Awaited<ReturnType<typeof api.simulationCredit.simuler>>;
@@ -46,7 +46,7 @@ export default function SimulationCredit() {
   const dv = (r?.devise ?? "CDF") as Devise;
   return (
     <>
-      <section className="bloc pile" aria-label="Simulation tableau d'amortissement">
+      <Formulaire className="bloc pile" label="Simulation tableau d'amortissement" envoyer={() => calculer("recap")}>
         <div className="grille-deux">
           <fieldset className="pile cadre-champs">
             <legend>Crédit</legend>
@@ -85,7 +85,7 @@ export default function SimulationCredit() {
           </dl>
         </fieldset>}
         <div className="actions-onglets">
-          <button className="bouton" type="button" disabled={!f.produit} onClick={() => calculer("recap")}>Calculer</button>
+          <button className="bouton" type="submit" disabled={!f.produit}>Calculer</button>
           <button className="bouton secondaire" type="button" disabled={!f.produit} onClick={() => calculer("echeancier")}>Echéancier</button>
           {/* plan d'allègement, point 6.2 : la demande reprend client, produit, montant, durée et différé */}
           <button className="bouton secondaire" type="button" disabled={!r} onClick={() => navigate(vers("S86", `?${new URLSearchParams({ produit: f.produit, montant: f.montant.trim(),
@@ -95,7 +95,7 @@ export default function SimulationCredit() {
         <Textes sources={["Manuel Microfina++, p. 111 : client, produit, périodicité, mode de calcul, mode différé ; montant et durée ; Récapitulatif, Échéancier, imprimer ; capture",
           "Instr. BCC 38, art. 11 : méthode dégressive ; art. 2, 4, 6, 9 et annexe : TEG, frais, assurance et épargne obligatoire compris ; art. 5 : pas de TEG pour un taux réglementé ou bonifié",
           "Registre S84-1 à S84-9 : échéance constante, taux mensuels, intérêts du différé répartis ; TEG annuel proportionnel au taux de la période (Instr. BCC 38, art. 2 et 4 ; registre T137)"]} />
-      </section>
+      </Formulaire>
       <Fiche titre="Echéancier" ouverte={echeancier} fermer={() => setEcheancier(false)}>
         {r && <div className="pile" id="echeancier-simulation">
           {t && <p>Client : <strong>{nomComplet(t)}</strong> ({t.numero})</p>}

@@ -2036,7 +2036,11 @@ describe("journée de guichet", () => {
     expect([ci.nom, ci.sigle, ci.numeroAgrement, ci.nrc]).toEqual([i.denomination, i.code, "A-77", "KIN/1234"]);
     await expect(api.societe.enregistrerAgence({ code: "0412", nom: "Autre" })).rejects.toThrow("existe déjà");
     await expect(api.societe.enregistrerAgence({ code: "0413", nom: "Lemba" })).rejects.toThrow("Autorisation préalable");   // A3 : Instr. BCC 41, art. 35
-    const n = (await api.societe.enregistrerAgence({ code: "0413", nom: "Lemba", autorisationReference: "BCC/DSIF/2026/41", autorisationLe: "2026-10-01" })).agences.find((a) => a.code === "0413")!;
+    // Fuseau horaire de l'agence (plan d'allègement, point 11.4 ; registre T153) : Kinshasa ou Lubumbashi
+    const lemba = { code: "0413", nom: "Lemba", autorisationReference: "BCC/DSIF/2026/41", autorisationLe: "2026-10-01" };
+    await expect(api.societe.enregistrerAgence({ ...lemba, fuseau: "Europe/Paris" })).rejects.toThrow("fuseau horaire");
+    const n = (await api.societe.enregistrerAgence({ ...lemba, fuseau: "Africa/Lubumbashi" })).agences.find((a) => a.code === "0413")!;
+    expect(n.fuseau).toBe("Africa/Lubumbashi");
     await expect(api.societe.supprimerAgence(1)).rejects.toThrow("clients");
     expect((await api.societe.supprimerAgence(n.id)).agences.some((a) => a.code === "0413")).toBe(false);
   });

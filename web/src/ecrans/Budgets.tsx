@@ -9,7 +9,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { decimal, lireMontant } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee, Recherche } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee, Recherche, Formulaire } from "../composants";
 
 const n = (v: number) => decimal.format(v / 100);
 const pct = (v: number | null) => (v === null ? "" : `${decimal.format(v)} %`);
@@ -70,9 +70,9 @@ function DetailBudget({ ctx }: { ctx: Ctx }) {
             <Champ libelle="Financement:">{(p) => <Lecture {...p} value={ligne?.financement ?? ""} />}</Champ>
             <Champ libelle="Compte:">{(p) => <select {...p} className="saisie" value={f.compte} onChange={(e) => setF({ ...f, compte: e.target.value })}><option value=""></option>
               {(comptes ?? []).map((c) => <option key={c.numero} value={c.numero}>{`${c.numero} ${c.libelle}`}</option>)}</select>}</Champ>
-            <div className="ligne-champ"><Champ libelle="Valeur:">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.valeur} onChange={(e) => setF({ ...f, valeur: e.target.value })} />}</Champ>
-              <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?",
-                () => api.budgets.ajouter({ ...base(), ligneId: f.ligne ? Number(f.ligne) : null, compte: f.compte, valeur: lireMontant(f.valeur) }))}>Ajouter</button></div>
+            <Formulaire className="ligne-champ" envoyer={() => confirmer("Voulez-vous vraiment enregistrer ?",
+                () => api.budgets.ajouter({ ...base(), ligneId: f.ligne ? Number(f.ligne) : null, compte: f.compte, valeur: lireMontant(f.valeur) }))}><Champ libelle="Valeur:">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.valeur} onChange={(e) => setF({ ...f, valeur: e.target.value })} />}</Champ>
+              <button className="bouton" type="submit">Ajouter</button></Formulaire>
           </div>
         </div>
       </fieldset>
@@ -167,7 +167,7 @@ function SuiviBudgetaire({ ctx }: { ctx: Ctx }) {
       r.groupes.map((g) => [g.libelle, g.prevu / 100, g.realise / 100, g.ecart / 100, g.charges / 100, g.produits / 100, g.resultat / 100]));
   }
   return (
-    <section className="bloc pile" aria-label="Suivi budgétaire">
+    <section className="bloc pile" aria-label="Suivi budgétaire"><Recherche className="pile" label="Critères" envoyer={() => afficher("detail")}>
       <h2>Suivi budgétaire</h2>
       <fieldset className="cadre-champs"><legend>Recherche</legend>
         <div className="deux-colonnes">
@@ -176,11 +176,11 @@ function SuiviBudgetaire({ ctx }: { ctx: Ctx }) {
         </div>
       </fieldset>
       <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={() => afficher("detail")}>Afficher</button>
+        <button className="bouton" type="submit">Afficher</button>
         <button className="bouton secondaire" type="button" onClick={() => afficher("financement")}>Financement</button>
         <button className="bouton secondaire" type="button" onClick={() => afficher("analytique")}>Résultat analytique</button>
         <button className="bouton secondaire" type="button" disabled={!r} onClick={exporter}>Exporter</button>
-      </div>
+      </div></Recherche>
       {r && r.mode === "detail" && <div className="pile"><div className="defile-x"><table className="grille">
         <caption>{`${r.budget.code} ${r.budget.libelle}, ${r.periode}, du ${fr(r.du)} au ${fr(r.au)}, en CDF`}</caption>
         <thead><tr><th scope="col">Type budget</th><th scope="col">N°</th><th scope="col">Ligne budgétaire</th><th scope="col">Centre de cout</th><th scope="col">Compte</th><th scope="col" className="num">Prévu</th>

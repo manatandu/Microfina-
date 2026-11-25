@@ -135,7 +135,7 @@ function Garanties({ erreur }: { erreur: (x: unknown) => void }) {
   const COL = ["N° Client", "N° Crédit", "Nom Prénom", "Montant prêt", "Epargne de garantie", "Garantie encours", "Garantie libérée"];
   const lignes = groupe ? [...l].sort((a, b) => nomProduit(a.produitId).localeCompare(nomProduit(b.produitId)) || a.credit.localeCompare(b.credit)) : l;
   return (
-    <section className="bloc pile" aria-label="Rapport des garanties">
+    <section className="bloc pile" aria-label="Rapport des garanties"><Recherche className="pile" label="Critères" envoyer={() => afficher(false)}>
       <div className="grille-cadres">
         <fieldset className="pile cadre-champs"><legend>Période(Date deblocage)</legend>
           <ChampDate libelle="Du :" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} />
@@ -149,11 +149,11 @@ function Garanties({ erreur }: { erreur: (x: unknown) => void }) {
         </fieldset>
       </div>
       <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={() => afficher(false)}>Afficher</button>
+        <button className="bouton" type="submit">Afficher</button>
         <button className="bouton secondaire" type="button" onClick={() => afficher(true)}>Grouper</button>
         <button className="bouton secondaire" type="button" disabled={l.length === 0}
           onClick={() => exporterExcel("Rapport des garanties", COL, lignes.map((x) => [x.membre, x.credit, x.client, m(x.montantPret, x.devise), m(x.epargneGarantie, x.devise), m(x.garantieEncours, x.devise), m(x.garantieLiberee, x.devise)]))}>Export</button>
-      </div>
+      </div></Recherche>
       <Paginee lignes={lignes}>{(v) => (<div className="defile-x"><table className="grille">
         <thead><tr>{COL.map((c, i) => <th key={c} scope="col" className={i > 2 ? "num" : undefined}>{c}</th>)}</tr></thead>
         <tbody>

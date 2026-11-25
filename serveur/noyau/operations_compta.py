@@ -12,6 +12,7 @@ from psycopg.types.json import Jsonb
 
 from .banques import compte_du_plan
 from .bd import ErreurMetier, executer, lignes, une, valeur
+from .fuseau import jour_agence
 from .services import (compte_du_produit, json_lu, controler_montant_coupures, controler_statut_actif, creer_operation, exiger, journee_courante, montant_bloque,
                        nettoyer, nom_utilisateur, nouvelle_piece, poster, session_ouverte, solde_contrat, sorties_en_attente, theorique, titulaire)
 
@@ -142,7 +143,7 @@ def lire(u) -> dict:
     j = journee_courante(u)
     ouverte = j["date"] if j and j["statut"] == "ouverte" else ""
     annees = [r["annee"] for r in lignes("select annee from exercice where institution_id = %s and ouvert and not valide order by annee", (i,))]
-    fin = (ouverte or date.today().isoformat())[:7]
+    fin = (ouverte or jour_agence(u).isoformat())[:7]
     return {
         "date": ouverte,
         "journaux": lignes("""select id, code, libelle, type from journal where institution_id = %s and actif and not supprime and type <> 'a_nouveaux'

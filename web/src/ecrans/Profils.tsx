@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Formulaire } from "../composants";
 
 type Profil = { id: number; nom: string; description: string };
 const VIDE = { nom: "", description: "" };
@@ -23,14 +23,14 @@ export default function GestionProfils() {
   return (
     <>
       <h2>Gestion des profils</h2>
-      <section className="bloc pile" aria-label="Gestion des profils">
+      <Formulaire className="bloc pile" label="Gestion des profils" envoyer={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.profils.enregistrer(f))}>
         <div className="ligne-champ">
           <Champ libelle="Nom Droit *">{(p) => <input {...p} className="saisie" value={f.nom} onChange={(e) => setF({ ...f, nom: e.target.value })} />}</Champ>
           <Champ libelle="Description">{(p) => <textarea {...p} className="saisie" rows={2} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />}</Champ>
         </div>
         <div className="actions-onglets">
           {choisi === null
-            ? <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.profils.enregistrer(f))}>Enregistrer</button>
+            ? <button className="bouton" type="submit">Enregistrer</button>
             : <>
                 <button className="bouton secondaire" type="button" onClick={() => confirmer("Voulez-vous vraiment modifier ?", () => api.profils.enregistrer(f, choisi))}>Modifier</button>
                 <button className="bouton secondaire" type="button" onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.profils.supprimer(choisi))}>Supprimer</button>
@@ -52,7 +52,7 @@ export default function GestionProfils() {
           "Manuel Microfina++, p. 12 : modifier ou supprimer une ligne choisie dans la grille",
           "Instr. BCC 008, art. 66 : séparation des tâches incompatibles (manipulation des valeurs, enregistrement, autorisation, vérification, inspection)"]} />
         <Dialogue boite={boite} fermer={() => setBoite(null)} />
-      </section>
+      </Formulaire>
     </>
   );
 }

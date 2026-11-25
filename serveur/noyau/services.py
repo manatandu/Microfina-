@@ -14,6 +14,7 @@ from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
+from .fuseau import fuseau_agence, instant_agence, jour_agence
 
 # Seuils, valeurs des maquettes
 SEUIL_ESPECES_USD = 10000    # examen renforcé : loi 22/068, art. 23 ; Instr. BCC 15, art. 61 ; Instr. BCC 15 bis, art. 1
@@ -142,7 +143,7 @@ def devises_tenues() -> list[str]:
 
 
 def cours_ligne(devise: str, jour: date | None = None) -> dict | None:
-    return une("select id, cours from cours_change where devise = %s and jour <= coalesce(%s, current_date) order by jour desc limit 1", (devise, jour))
+    return une("select id, cours from cours_change where devise = %s and jour <= coalesce(%s, jour_agence()) order by jour desc limit 1", (devise, jour))
 
 
 def cours(devise: str, jour: date | None = None) -> float:
@@ -213,7 +214,7 @@ def valeur_part_ou_rien(institution_id: int) -> int | None:
 
 def contexte(u: dict) -> dict:
     i = institution_de(u)
-    a = une("select id, code, nom from agence where id = %s", (u["agence_id"],))
+    a = une("select id, code, nom, fuseau from agence where id = %s", (u["agence_id"],))
     # Toutes les listes de référence en une requête, au lieu d'une par liste : le référentiel est lu par chaque écran (mesure du 21/11/2026)
     listes: dict[str, list[dict]] = {}
     for r in lignes("select liste, libelle, id from liste_reference where institution_id = %s and actif order by code, id", (u["institution_id"],)):
@@ -259,9 +260,10 @@ def contexte(u: dict) -> dict:
 def vue_journee(j: dict | None) -> dict | None:
     if not j:
         return None
-    return {"id": j["id"], "date": j["date_comptable"].isoformat(), "statut": j["statut"], "ouvertePar": j["ouverte_par"], "fermeePar": j["fermee_par"],
-            "ouverteLe": j["ouverte_le"].astimezone().isoformat(timespec="seconds") if j.get("ouverte_le") else None,
-            "fermeeLe": j["fermee_le"].astimezone().isoformat(timespec="seconds") if j.get("fermee_le") else None}
+    ag = {"agence_id": j["agence_id"]}   # heures lues dans le fuseau de l'agence (point 11.4)
+    return {"id": j["id"], "date": j["date_comptable"].isoformat(), "statut": j["statut"], "ouvertePar": j["ouverte_par"], "fermeePar": j["fermee_par"], "agenceId": j["agence_id"],
+            "ouverteLe": instant_agence(j["ouverte_le"], ag) if j.get("ouverte_le") else None,
+            "fermeeLe": instant_agence(j["fermee_le"], ag) if j.get("fermee_le") else None}
 
 
 def journees(u: dict) -> list[dict]:
@@ -844,7 +846,7 @@ def categorie_groupe(hommes, femmes) -> str:
 def controler_fiche_physique(u: dict, d: dict, texte, j: dict | None, identite: bool = True, categorie: str = "categorie") -> dict:
     """Onglets Renseignements généraux et Autres renseignements (registre S37-1, S37-2) ; bénéficiaires (S37-3). Mêmes règles que api.ts.
     identite=False : entreprise et groupe, sans mentions d'une personne physique."""
-    jour = date.today().isoformat()
+    jour = jour_agence(u).isoformat()
     if identite:
         manque = [n for n, k in OBLIGATOIRES_IDENTITE if not texte(k)]
         if manque:
@@ -960,7 +962,7 @@ def creer_tiers(u: dict, d: dict) -> dict:
     ecrire_fiche_physique(tid, texte, fiche)
     if any(images.get(k) for k in ("photo", "signature", "copiePiece", "justificatifAdresse", "copieHabilitation")):
         executer("""insert into specimen (tiers_id, photo, signature, copie_piece, justificatif_adresse, copie_habilitation, depose_le)
-                    values (%s, %s, %s, %s, %s, %s, current_date)""",
+                    values (%s, %s, %s, %s, %s, %s, jour_agence())""",
                  (tid, images.get("photo"), images.get("signature"), images.get("copiePiece"), images.get("justificatifAdresse"), images.get("copieHabilitation")))
     ecrire_relation(tid, texte)                                      # A8
     from .gel import rapprocher
@@ -984,7 +986,7 @@ def controler_representant(r, qui: str, j: dict | None, qualite: bool = False) -
     if manque:
         raise ErreurMetier(f"{qui} : à remplir : " + ", ".join(manque) + " (loi 22/068, art. 31 et 33 ; Instr. BCC 15, art. 13 et 16).")
     controler_piece(t("pieceType"), t("pieceExpire"), j, f"{qui} : ")
-    jour = date.today().isoformat()
+    jour = jour_agence({"agence_id": j.get("agenceId")} if j else None).isoformat()
     for k, n in (("naissance", "date de naissance"), ("pieceDelivreeLe", "délivrée le"), ("pieceExpire", "valide jusqu'au")):
         if not re.match(r"^\d{4}-\d{2}-\d{2}$", t(k)) or k != "pieceExpire" and t(k) > jour:
             raise ErreurMetier(f"{qui} : {n} : date invalide.")
@@ -1159,7 +1161,7 @@ def creer_groupe(u: dict, d: dict) -> dict:
     inserer_representants(tid, [("membre", r) for r in membres])
     membres_solidaires(u, tid, texte, d)                             # plan 3.12
     if any(images.get(k) for k in ("photo", "signature", "copiePiece", "justificatifAdresse")):
-        executer("insert into specimen (tiers_id, photo, signature, copie_piece, justificatif_adresse, depose_le) values (%s, %s, %s, %s, %s, current_date)",
+        executer("insert into specimen (tiers_id, photo, signature, copie_piece, justificatif_adresse, depose_le) values (%s, %s, %s, %s, %s, jour_agence())",
                  (tid, images.get("photo"), images.get("signature"), images.get("copiePiece"), images.get("justificatifAdresse")))
     ecrire_relation(tid, texte)                                      # A8
     from .gel import rapprocher
@@ -1195,7 +1197,7 @@ def refuser_tiers(u: dict, tid: int, d: dict | None = None) -> dict:
         raise ErreurMetier("À remplir : motif du refus (loi 22/069, titre III, chap. Ier : un refus se motive).")
     j = journee_courante(u)
     executer("update tiers set statut = 'refuse', refus_motif = %s, refuse_le = %s, refuse_par = %s where id = %s",
-             (motif, j["date"] if j else date.today().isoformat(), u["id"], tid))
+             (motif, j["date"] if j else jour_agence(u).isoformat(), u["id"], tid))
     return lire_tiers(tid)
 
 
@@ -1211,7 +1213,7 @@ def viser_tiers(u: dict, tid: int, d: dict | None = None) -> dict:
     if t["cree_par"] == u["id"]:
         raise ErreurMetier("Quatre yeux : le visa vient d'une autre personne que celle qui a enrôlé.")
     j = journee_courante(u)
-    jour = j["date"] if j and j["statut"] == "ouverte" else date.today().isoformat()
+    jour = j["date"] if j and j["statut"] == "ouverte" else jour_agence(u).isoformat()
     texte = texte_de(d)
     date_visa = texte("dateVisa") or jour
     if t["date_demande"] and date_visa < t["date_demande"].isoformat():
@@ -1422,7 +1424,7 @@ def changer_specimen(u: dict, tid: int, d: dict) -> dict:
     controler_image(habilitation, "Pièce d'habilitation professionnelle")
     avant = une("select photo, signature, copie_piece, justificatif_adresse, copie_habilitation from specimen where tiers_id = %s order by id desc limit 1", (tid,)) or {}
     executer("""insert into specimen (tiers_id, photo, signature, copie_piece, justificatif_adresse, copie_habilitation, depose_le, depose_par)
-                values (%s, %s, %s, %s, %s, %s, current_date, %s)""",
+                values (%s, %s, %s, %s, %s, %s, jour_agence(), %s)""",
              (tid, photo or avant.get("photo"), signature or avant.get("signature"), piece or avant.get("copie_piece"),
               adresse or avant.get("justificatif_adresse"), habilitation or avant.get("copie_habilitation"), u["id"]))
     return lire_tiers(tid)
@@ -1535,7 +1537,7 @@ def controler_prospect(u: dict, d: dict):
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
     if texte("sexe") not in ("F", "M"):
         raise ErreurMetier("Sexe inconnu.")
-    if not re.match(r"^\d{4}-\d{2}-\d{2}$", texte("naissance")) or texte("naissance") > date.today().isoformat():
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", texte("naissance")) or texte("naissance") > jour_agence(u).isoformat():
         raise ErreurMetier("Date de naissance invalide.")
     controler_lieu(texte, "Pays, ville ou quartier")          # adresse unique (registre T41)
     if texte("email") and not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", texte("email")):
@@ -1640,7 +1642,7 @@ def resilier_tiers(u: dict, tid: int, d: dict) -> dict:
         engagements_credit(tid)
     controler_apurement(tid, est_coopec(u))
     j = journee_courante(u)
-    jour = j["date"] if j and j["statut"] == "ouverte" else date.today().isoformat()
+    jour = j["date"] if j and j["statut"] == "ouverte" else jour_agence(u).isoformat()
     # P1 : une exclusion porte la référence et la date de la décision du Conseil d'administration (loi 002/2002, art. 25)
     excl = d.get("exclusion") if isinstance(d, dict) and isinstance(d.get("exclusion"), dict) else None
     excl_ref = excl_le = None
@@ -1743,7 +1745,7 @@ def id_compte(numero: str, institution_id: int | None = None) -> int:
 
 def schema_valide(u: dict, evenement: str) -> int:
     s = valeur("""select id from schema_comptable where institution_id = %s and type_evenement = %s and valide_par is not null
-                  and date_effet <= current_date order by version desc limit 1""", (u["institution_id"], evenement))
+                  and date_effet <= jour_agence() order by version desc limit 1""", (u["institution_id"], evenement))
     if s is None:
         raise ErreurMetier(f"Schéma comptable « {evenement} » non validé.")
     return s
@@ -1870,7 +1872,7 @@ def vue_operation(o: dict) -> dict:
             "compteId": compte_id, "montant": o["montant"], "devise": o["devise"].strip(), "parts": o["parts"],
             "coupures": {unites(r["valeur"]): r["nombre"] for r in lignes("select valeur, nombre from operation_coupure where operation_id = %s", (o["id"],))},
             "remisPar": o["remis_par"] or "", "motif": o.get("motif") or "", "saisiPar": o["saisi_par"], "visePar": o["vise_par"], "ecritureId": o["ecriture_id"],
-            "heure": o["cree_le"].astimezone().strftime("%H:%M")}
+            "heure": o["cree_le"].astimezone(fuseau_agence(o["agence_id"])).strftime("%H:%M")}
 
 
 def enregistrer_coupures(oid: int, devise: str, coupures: dict):

@@ -11,6 +11,7 @@ from .releves import client
 from .remboursements import etat
 from .services import cours, exiger, journee_courante, titulaire
 from .visas_credit import ligne
+from .fuseau import jour_agence
 
 STATUTS = {"debloque": "Débloqué", "solde": "Soldé", "passe_en_perte": "Passé en perte"}
 
@@ -172,7 +173,7 @@ def encours_previsionnel(u, p) -> dict:
     exiger(u)
     du, au = periode(p)
     j = journee_courante(u)
-    jour = (date.fromisoformat(j["date"]) if isinstance(j["date"], str) else j["date"]) if j else date.today()
+    jour = (date.fromisoformat(j["date"]) if isinstance(j["date"], str) else j["date"]) if j else jour_agence(u)
     mois = []
     a, m = du.year, du.month
     while (a, m) <= (au.year, au.month):
@@ -198,7 +199,7 @@ def exigibles(u, p) -> dict:
     exiger(u)
     du, au = periode(p)
     j = journee_courante(u)
-    jour = (date.fromisoformat(j["date"]) if isinstance(j["date"], str) else j["date"]) if j else date.today()
+    jour = (date.fromisoformat(j["date"]) if isinstance(j["date"], str) else j["date"]) if j else jour_agence(u)
     out = []
     for c in credits(u, p, au):
         if c["statut"] != "debloque":

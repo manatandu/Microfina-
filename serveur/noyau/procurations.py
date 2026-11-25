@@ -38,7 +38,7 @@ MOTIFS_FIN = ("Révocation par le mandant", "Renonciation du mandataire", "Déc�
 def _vue(r: dict) -> dict:
     from .services import iso, vue_representant
     v = vue_representant({**r, "role": "mandataire", "piece_validite": r["piece_validite"], "photo": None, "signature": None})
-    jour = valeur("select current_date")
+    jour = valeur("select jour_agence()")
     en_cours = not r["fin_le"] and r["date_debut"] <= jour and (r["date_fin"] is None or r["date_fin"] >= jour)
     return {**{k: v[k] for k in v if k not in ("photo", "specimen", "qualite", "personneExposee")},
             "id": r["id"], "mandantId": r["mandant_id"], "typeId": r["type_id"], "type": r.get("type_libelle") or "", "reference": r["reference"] or "",
@@ -164,7 +164,7 @@ def declarer_deces(u, tid: int, d) -> dict:
     if t["deces_le"]:
         raise ErreurMetier("Décès déjà déclaré.")
     le, ref = str(d.get("date") or "").strip(), str(d.get("reference") or "").strip()
-    if not re.match(r"^\d{4}-\d{2}-\d{2}$", le) or le > valeur("select current_date").isoformat() or not ref:
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", le) or le > valeur("select jour_agence()").isoformat() or not ref:
         raise ErreurMetier("À remplir : date du décès (pas dans le futur) et référence de l'acte de décès.")
     executer("update tiers set deces_le = %s, deces_reference = %s, deces_par = %s where id = %s", (le, ref, u["id"], tid))
     executer("""update procuration set fin_le = greatest(%s::date, date_debut), fin_motif = 'Décès du mandant', fin_par = %s, fin_saisie_le = now()

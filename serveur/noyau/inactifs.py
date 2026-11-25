@@ -5,6 +5,7 @@ import re
 
 from .bd import ErreurMetier, executer, lignes, une
 from .services import exiger, journee_courante, solde_contrat, titulaire
+from .fuseau import jour_agence
 
 ANS = 10          # dix ans sans opération ni réclamation
 MOIS_LETTRE = 6   # lettre six mois avant
@@ -22,7 +23,7 @@ def comptes(u: dict, statut: str = "") -> list[dict]:
     exiger(u)
     j = journee_courante(u)
     from datetime import date
-    jour = date.fromisoformat(j["date"]) if j else date.today()
+    jour = date.fromisoformat(j["date"]) if j else jour_agence(u)
     sortie = []
     for c in lignes("""select c.id, c.numero, c.tiers_id, trim(c.devise) as devise, t.numero as membre,
                               greatest((select max(jc.date_comptable) from ligne_ecriture l join ecriture e on e.id = l.ecriture_id

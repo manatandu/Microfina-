@@ -12,6 +12,7 @@ from psycopg.types.json import Jsonb
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import cours, est_coopec, exiger, journee_courante, json_lu, titulaire
+from .fuseau import jour_agence
 
 APPARENTES = ("actionnaire", "administrateur", "dirigeant", "personnel", "famille", "societe_liee", "contrat")
 EN_COURS = ("mis_en_place", "vise", "debloque")                           # crédits qui comptent dans l'encours
@@ -28,7 +29,7 @@ def entier(d, k, nom, mini=0) -> int:
 
 def jour(u) -> date:
     j = journee_courante(u)
-    return date.fromisoformat(j["date"]) if j else date.today()
+    return date.fromisoformat(j["date"]) if j else jour_agence(u)
 
 
 def produit(u, pid) -> dict:

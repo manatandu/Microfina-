@@ -8,6 +8,7 @@ from datetime import date, timedelta
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import exiger, journee_courante, nom_utilisateur, titulaire
+from .fuseau import jour_agence
 
 CANAUX = {"personne": "En personne", "lettre": "Lettre", "fax": "Fax", "courriel": "Courrier électronique", "formulaire": "Formulaire en ligne",
           "telephone": "Téléphone", "autre": "Autre canal"}
@@ -32,7 +33,7 @@ def vue(x: dict, jour: str) -> dict:
 
 def _jour(u) -> str:
     j = journee_courante(u)
-    return j["date"] if j else date.today().isoformat()
+    return j["date"] if j else jour_agence(u).isoformat()
 
 
 def enregistrer(u: dict, d: dict) -> dict:

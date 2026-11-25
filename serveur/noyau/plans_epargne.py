@@ -13,6 +13,7 @@ from .bd import ErreurMetier, executer, lignes, une, valeur
 from .depots_terme import COMPTE_IRC, ajouter_mois, disponible, taux_irc
 from .produits_credit import FIXES
 from .services import compte_du_produit, exiger, journee_courante, nouvelle_piece, poster, titulaire
+from .fuseau import jour_agence
 
 PERIODICITES = {r["code"]: r for r in FIXES["periodicites"]}          # S21, Périodicité (registre S69-2)
 MODES = ["CHEQUE", "ESPECES", "VIREMENT"]                             # capture p. 79 : CHEQUE par défaut (registre S69-5)
@@ -184,7 +185,7 @@ def tableau(u, pid: int, filtre: str = "toutes") -> dict:
     if filtre not in FILTRES:
         raise ErreurMetier("Afficher uniquement : choix inconnu.")
     j = journee_courante(u)
-    jour = date.fromisoformat(j["date"]) if j else date.today()
+    jour = date.fromisoformat(j["date"]) if j else jour_agence(u)
     garde = {"toutes": lambda e: True, "non_cotisees": lambda e: not e["date_reelle"], "cotisees": lambda e: bool(e["date_reelle"]),
              "arrieres_non_cotisees": lambda e: e["date_prevue"] < jour and not e["date_reelle"], "arrieres_cotisees": lambda e: e["date_prevue"] < jour and bool(e["date_reelle"]),
              "echues_non_cotisees": lambda e: e["date_prevue"] <= jour and not e["date_reelle"], "echues_cotisees": lambda e: e["date_prevue"] <= jour and bool(e["date_reelle"])}[filtre]

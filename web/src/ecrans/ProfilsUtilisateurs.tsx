@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr } from "../lib/dates";
+import { fr, jourDe } from "../lib/dates";
 import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture, Formulaire } from "../composants";
 
 type Utilisateur = { id: number; nom: string; login: string; agence: string };
 type Profil = { id: number; nom: string; description: string; modules: string[] };
-const jour = (iso: string) => (iso ? fr(iso.slice(0, 10)) : "");
+const jour = (iso: string) => (iso ? fr(jourDe(iso)) : "");   // jour de l'agence (point 11.4)
 
 /** S06 : Administration > Utilisateur > Gestion des profils (manuel Microfina++, p. 17) */
 export default function GestionProfilsUtilisateur() {

@@ -6,7 +6,7 @@ import { boiteOperation } from "../lib/examen";
 import type { Operation, Tiers } from "../donnees/types";
 import { useDonnees } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
-import { fr } from "../lib/dates";
+import { fr, aujourdhui } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Formulaire, Paginee, Silhouette, Specimen, Textes, Touche, type Boite, Lecture, LigneFiltres } from "../composants";
@@ -227,7 +227,7 @@ export default function GuichetDepotRetrait() {
             <button className="bouton secondaire" type="button" disabled={!fait} onClick={() => setRecu(true)}>Imprimer</button>
             <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
             <button className="bouton secondaire" type="button" disabled={!c} onClick={async () => {
-              if (!c) return; const jour = j?.date ?? new Date().toISOString().slice(0, 10);
+              if (!c) return; const jour = j?.date ?? aujourdhui();
               try { setDetail(await api.releves.releve(c.id, `${jour.slice(0, 4)}-01-01`, jour)); } catch (x) { setBoite({ type: "erreur", message: x instanceof Error ? x.message : String(x) }); }
             }}>Detail</button>
           </div>

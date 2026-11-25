@@ -130,20 +130,20 @@ export default function EngagementSignature() {
         {choisi && <ActeEngagement e={choisi} entete={ctx.entete} coopec={ctx.coopec} fermer={() => setDoc(false)} />}
       </Fiche>
       <Fiche titre="Fin de l'engagement" ouverte={!!fin && !!choisi} fermer={() => setFin(null)}>
-        {fin && choisi && <div className="pile">
+        {fin && choisi && <Formulaire className="pile" envoyer={() => setBoite({ type: "confirmation", message: "Voulez-vous vraiment mettre fin à cet engagement ?", oui: async () => {
+              try { const e = await api.engagements.finir(choisi.id, { motif: fin.motif, montant: fin.montant.trim() ? lireMontant(fin.montant) : null }); setChoisi(e); setFin(null); setRelu((x) => x + 1);
+                setBoite({ type: "succes", message: "Opération effectuée avec succès !" }); }
+              catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+            } })}>
           <p>{choisi.typeLibelle} {choisi.reference}, {choisi.client} : {montant(choisi.montant - choisi.utilise, choisi.devise as Devise)} restant.</p>
           <Champ libelle="Motif de fin : *">{(p) => <select {...p} className="saisie" value={fin.motif} onChange={(e) => setFin({ ...fin, motif: e.target.value })}>
             <option value=""></option><option value="echeance">Échéance</option><option value="mainlevee">Mainlevée</option><option value="mise_en_jeu">Mise en jeu de la garantie</option></select>}</Champ>
           {fin.motif === "mise_en_jeu" && <Champ libelle="Montant payé : *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" value={fin.montant} onChange={(e) => setFin({ ...fin, montant: e.target.value })} />}</Champ>}
           <div className="actions-onglets">
-            <button className="bouton" type="button" onClick={() => setBoite({ type: "confirmation", message: "Voulez-vous vraiment mettre fin à cet engagement ?", oui: async () => {
-              try { const e = await api.engagements.finir(choisi.id, { motif: fin.motif, montant: fin.montant.trim() ? lireMontant(fin.montant) : null }); setChoisi(e); setFin(null); setRelu((x) => x + 1);
-                setBoite({ type: "succes", message: "Opération effectuée avec succès !" }); }
-              catch (x) { setBoite({ type: "erreur", message: message(x) }); }
-            } })}>Enregistrer</button>
+            <button className="bouton" type="submit">Enregistrer</button>
             <button className="bouton secondaire" type="button" onClick={() => setFin(null)}>Fermer</button>
           </div>
-        </div>}
+        </Formulaire>}
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>

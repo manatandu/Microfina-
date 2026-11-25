@@ -124,7 +124,7 @@ export function NouvelEmploye() {
   const ouiNon = (k: string, l: string) => <fieldset className="choix-radio"><legend>{l} *</legend>{["oui", "non"].map((x) =>
     <label key={x} className="case"><input type="radio" name={k} checked={p[k] === x} onChange={() => setP({ ...p, [k]: x })} /><span>{x === "oui" ? "Oui" : "Non"}</span></label>)}</fieldset>;
   return (
-    <Formulaire className="bloc pile" label="Enregistrement d'un employé" envoyer={enregistrer}>
+    <Formulaire className="bloc pile" label="Enregistrement d'un employé" envoyer={() => (onglet === 0 || onglet === ONGLETS.length - 1 ? enregistrer() : setOnglet(onglet + 1))}>
       <h2>Enregistrement d'un employé</h2>
       <div className="actions-onglets">
         <button className="bouton secondaire" type="button" disabled={!v("typeContrat")} onClick={() => setFenetre("contrat")}>Visualiser le contrat</button>
@@ -226,7 +226,8 @@ function Maquette({ ctx }: { ctx: Ctx }) {
   const { donnees: lignes } = useDonnees(() => (emp ? api.paie.maquette(emp) : Promise.resolve([])), [emp, relu]);
   const confirmer = (t: string, faire: () => Promise<unknown>) => setBoite({ type: "confirmation", message: t, oui: async () => {
     try { await faire(); setRelu((x) => x + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } } });
-  return <section className="bloc pile" aria-label="Maquette de paie"><h2>Maquette de paie</h2>
+  return <Formulaire className="bloc pile" label="Maquette de paie" envoyer={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.paie.ajouterMaquette({
+      employeId: emp, rubriqueId: f.rubriqueId ? Number(f.rubriqueId) : null, montant: f.montant === "" ? null : Number(f.montant), session: f.session, active: f.active, intersession: f.intersession, permanente: f.permanente }))}><h2>Maquette de paie</h2>
     <fieldset className="cadre-champs formulaire"><legend className="sr-only">Saisie</legend>
       <Champ libelle="Employé *">{(pp) => <span className="avec-unite"><input {...pp} className="saisie" readOnly value={fiche ? `${fiche.matricule} ${fiche.nom} ${fiche.prenoms}` : ""} />
         <button className="bouton secondaire" type="button" aria-label="Rechercher un employé" onClick={() => setRecherche(true)}>Rechercher</button></span>}</Champ>
@@ -237,8 +238,7 @@ function Maquette({ ctx }: { ctx: Ctx }) {
       {(["active", "intersession", "permanente"] as const).map((k) => <label key={k} className="case"><input type="checkbox" checked={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.checked })} />
         <span>{{ active: "Active", intersession: "Intersession", permanente: "Permanente" }[k]}</span></label>)}
     </fieldset>
-    <div className="actions-onglets"><button className="bouton" type="button" disabled={!emp} onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.paie.ajouterMaquette({
-      employeId: emp, rubriqueId: f.rubriqueId ? Number(f.rubriqueId) : null, montant: f.montant === "" ? null : Number(f.montant), session: f.session, active: f.active, intersession: f.intersession, permanente: f.permanente }))}>Enregistrer</button></div>
+    <div className="actions-onglets"><button className="bouton" type="submit" disabled={!emp}>Enregistrer</button></div>
     <table className="grille"><caption>Rubriques de l'employé</caption>
       <thead><tr><th scope="col">Rubrique</th><th scope="col" className="num">Montant</th><th scope="col">Session</th><th scope="col">Active</th><th scope="col">Intersession</th><th scope="col">Permanente</th><th scope="col"><span className="sr-only">Retirer</span></th></tr></thead>
       <tbody>{(lignes ?? []).length === 0 && <tr><td colSpan={7}>Aucune ligne.</td></tr>}
@@ -247,7 +247,7 @@ function Maquette({ ctx }: { ctx: Ctx }) {
           <td><button className="bouton secondaire" type="button" onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.paie.retirerMaquette(l.id))}>Supprimer</button></td></tr>)}</tbody></table>
     <RechercheEmploye ouverte={recherche} fermer={() => setRecherche(false)} choisir={setEmp} />
     <Dialogue boite={boite} fermer={() => setBoite(null)} />
-  </section>;
+  </Formulaire>;
 }
 
 /** « Liste du Personnel » (capture p. 209) : recherche multicritère, Exécuter ; Exporter, Répartition par sexe */
@@ -331,7 +331,9 @@ export function RetenuesSalaire() {
     <div className="onglets" role="tablist" aria-label="Traitement retenues">
       <button type="button" role="tab" aria-selected={!visa} onClick={() => setParams({})}>Mise en place retenue</button>
       <button type="button" role="tab" aria-selected={visa} onClick={() => setParams({ page: "visa" })}>Visa de retenue</button></div>
-    {!visa && <section className="bloc pile" aria-label="Retenues sur salaire"><h2>Retenues sur salaire</h2>
+    {!visa && <Formulaire className="bloc pile" label="Retenues sur salaire" envoyer={() => confirmer("Voulez-vous vraiment enregistrer ?", async () => {
+        await api.paie.mettreEnPlace({ employeId: emp, typeId: f.typeId ? Number(f.typeId) : null, session: f.session, montant: f.montant ? Number(f.montant) : null, duree: f.duree ? Number(f.duree) : null });
+        setF({ typeId: "", session: "", montant: "", duree: "" }); })}><h2>Retenues sur salaire</h2>
       <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setListe(true)}>Liste des retenues sur salaire</button></div>
       <fieldset className="cadre-champs formulaire"><legend className="sr-only">Retenue</legend>{employe}
         <Champ libelle="Type de retenue *">{(pp) => <select {...pp} className="saisie" value={f.typeId} onChange={(e) => setF({ ...f, typeId: e.target.value })}><option value=""></option>
@@ -340,11 +342,9 @@ export function RetenuesSalaire() {
         <Champ libelle="Montant *">{(pp) => <input {...pp} className="saisie montant" inputMode="numeric" value={f.montant} onChange={(e) => setF({ ...f, montant: e.target.value.replace(/\D/g, "") })} />}</Champ>
         <Champ libelle="Durée (sessions) *">{(pp) => <input {...pp} className="saisie montant" inputMode="numeric" value={f.duree} onChange={(e) => setF({ ...f, duree: e.target.value.replace(/\D/g, "") })} />}</Champ>
       </fieldset>
-      <div className="actions-onglets"><button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", async () => {
-        await api.paie.mettreEnPlace({ employeId: emp, typeId: f.typeId ? Number(f.typeId) : null, session: f.session, montant: f.montant ? Number(f.montant) : null, duree: f.duree ? Number(f.duree) : null });
-        setF({ typeId: "", session: "", montant: "", duree: "" }); })}>Enregistrer</button></div>
+      <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button></div>
       <Textes sources={[P("p. 277 : « préciser le type de retenue et la session correspondante, le montant de la retenue et la durée du prélèvement »"), "Code du travail, art. 112 (retenues permises), art. 114 (quotité cessible)"]} />
-    </section>}
+    </Formulaire>}
     {visa && <section className="bloc pile" aria-label="Visa de retenue"><h2>Visa de retenue</h2>
       <fieldset className="cadre-champs formulaire"><legend className="sr-only">Employé</legend>{employe}</fieldset>
       {emp && grille(aViser, true)}

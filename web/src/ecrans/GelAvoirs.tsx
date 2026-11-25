@@ -4,7 +4,7 @@ import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee, LigneFiltres } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee, LigneFiltres, Formulaire } from "../composants";
 
 type Gel = Awaited<ReturnType<typeof api.conformite.gels>>[number];
 const FILTRES = [["actifs", "En vigueur"], ["leves", "Levés"], ["", "Tous"]] as const;
@@ -49,7 +49,7 @@ export default function GelAvoirs({ jour }: { jour: string }) {
         "Loi 22/069, art. 71 à 77 : gel décidé par la BCC, intérêts compris ; les sommes reçues sont gelées aussi ; information de la BCC", "Loi 22/068 modifiée, art. 162 : information sans délai du CONASAFIC et de la CENAREF",
         "Effet dans le logiciel : aucune somme ne sort des comptes ni des parts du client tant que le gel n'est pas levé"]} />
       <Fiche titre="Nouveau gel des avoirs" ouverte={!!nouveau} fermer={() => setNouveau(null)}>
-        {nouveau && <div className="pile">
+        {nouveau && <Formulaire className="pile" envoyer={() => agir("Voulez-vous vraiment geler les avoirs de ce client ?", () => api.conformite.geler(nouveau), (g) => { setNouveau(null); ouvrir(g); })}>
           <fieldset className="pile cadre-champs">
             <legend>Décision de gel</legend>
             {champ("membre", "N° client : *")}
@@ -59,10 +59,10 @@ export default function GelAvoirs({ jour }: { jour: string }) {
             <Champ libelle="Motif : *">{(p) => <textarea {...p} className="saisie" rows={2} value={nouveau.motif} onChange={(e) => setNouveau({ ...nouveau, motif: e.target.value })} />}</Champ>
           </fieldset>
           <div className="actions-onglets">
-            <button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment geler les avoirs de ce client ?", () => api.conformite.geler(nouveau), (g) => { setNouveau(null); ouvrir(g); })}>Enregistrer</button>
+            <button className="bouton" type="submit">Enregistrer</button>
             <button className="bouton secondaire" type="button" onClick={() => setNouveau(null)}>Fermer</button>
           </div>
-        </div>}
+        </Formulaire>}
       </Fiche>
       <Fiche titre={choisi ? `Gel des avoirs : ${choisi.client}` : ""} ouverte={!!choisi} fermer={() => { setChoisi(null); setRelu((v) => v + 1); }}>
         {choisi && <div className="pile">

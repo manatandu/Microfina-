@@ -2397,9 +2397,16 @@ def test_info_societe(clients):
     executer("update institution set province = 'Kinshasa'")
     assert "province du siège" in refus({"code": "0413", "nom": "Lemba", "autorisationReference": "BCC/DSIF/2026/41", "autorisationLe": "2026-10-01",
                                          "province": "Kongo central"}, "/api/societe/agences")
-    n = next(a for a in chef.post("/api/societe/agences", {"code": "0413", "nom": "Lemba", "autorisationReference": "BCC/DSIF/2026/41", "autorisationLe": "2026-10-01"},
-                                  **H).json()["agences"] if a["code"] == "0413")
-    assert n["autorisationReference"] == "BCC/DSIF/2026/41"
+    # Fuseau horaire de l'agence (plan d'allègement, point 11.4 ; registre T153) : Kinshasa ou Lubumbashi, le jour s'y calcule
+    lemba = {"code": "0413", "nom": "Lemba", "autorisationReference": "BCC/DSIF/2026/41", "autorisationLe": "2026-10-01"}
+    assert "fuseau horaire" in refus({**lemba, "fuseau": "Europe/Paris"}, "/api/societe/agences")
+    n = next(a for a in chef.post("/api/societe/agences", {**lemba, "fuseau": "Africa/Lubumbashi"}, **H).json()["agences"] if a["code"] == "0413")
+    assert (n["autorisationReference"], n["fuseau"]) == ("BCC/DSIF/2026/41", "Africa/Lubumbashi")
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    from noyau.fuseau import jour_agence
+    assert jour_agence({"agence_id": n["id"]}) == datetime.now(ZoneInfo("Africa/Lubumbashi")).date()
+    assert chef.get("/api/referentiel", **H).json()["agence"]["fuseau"] == "Africa/Kinshasa"
     assert "des clients" in refus({}, f"/api/societe/agences/{ag['id']}/suppression")
     assert chef.post(f"/api/societe/agences/{n['id']}/suppression", {}, **H).status_code == 200
 

@@ -111,8 +111,8 @@ function InformationSociete() {
   );
 }
 
-type SaisieAgence = Adresse & { code: string; nom: string; autorisationReference: string; autorisationLe: string };
-const AGENCE_VIDE: SaisieAgence = { code: "", nom: "", autorisationReference: "", autorisationLe: "", pays: "", province: "", ville: "", commune: "", quartier: "", rue: "", numeroRue: "" };
+type SaisieAgence = Adresse & { code: string; nom: string; autorisationReference: string; autorisationLe: string; fuseau: string };
+const AGENCE_VIDE: SaisieAgence = { code: "", nom: "", autorisationReference: "", autorisationLe: "", fuseau: "Africa/Kinshasa", pays: "", province: "", ville: "", commune: "", quartier: "", rue: "", numeroRue: "" };
 function Agences() {
   const [f, setF] = useState<SaisieAgence>(AGENCE_VIDE);
   const [choisi, setChoisi] = useState<number | null>(null);
@@ -127,10 +127,14 @@ function Agences() {
   } });
   const choisir = (a: SaisieAgence & { id: number }) => { setChoisi(a.id); const { id: _id, ...x } = a; setF({ ...AGENCE_VIDE, ...x }); };
   return (
-    <section className="bloc pile" id="volet-agence" role="tabpanel" aria-labelledby="onglet-agence">
+    <section className="bloc pile" id="volet-agence" role="tabpanel" aria-labelledby="onglet-agence"><Formulaire className="pile" envoyer={() => confirmer(choisi === null ? "Voulez-vous vraiment enregistrer ?" : "Voulez-vous vraiment modifier ?",
+          () => api.societe.enregistrerAgence(f, choisi ?? undefined))}>
       <div className="ligne-champ">
         <Champ libelle="Code : *">{(p) => <input {...p} className="saisie code" value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} />}</Champ>
         <Champ libelle="Nom : *">{(p) => <input {...p} className="saisie" value={f.nom} onChange={(e) => setF({ ...f, nom: e.target.value })} />}</Champ>
+        {/* Plan d'allègement, point 11.4 ; registre T153 : le jour et l'heure de l'agence se calculent dans ce fuseau */}
+        <Champ libelle="Fuseau horaire : *">{(p) => <select {...p} className="saisie" value={f.fuseau} onChange={(e) => setF({ ...f, fuseau: e.target.value })}>
+          {donnees.fuseaux.map((z) => <option key={z.code} value={z.code}>{z.libelle}</option>)}</select>}</Champ>
       </div>
       {/* A3 et B19 (confrontation du 21/11/2026) : autorisation préalable de la BCC pour ouvrir une agence (Instr. BCC 41, art. 35) */}
       <div className="ligne-champ">
@@ -143,8 +147,7 @@ function Agences() {
         <BlocAdresse valeur={f} maj={(x) => { const { adresse: _a, ...r } = x; setF({ ...f, ...r }); }} arbre={donnees.arbreLieux} ajouterQuartier={api.adresse.ajouterQuartier} />
       </fieldset>
       <div className="actions-onglets">
-        <button className="bouton" type="button" onClick={() => confirmer(choisi === null ? "Voulez-vous vraiment enregistrer ?" : "Voulez-vous vraiment modifier ?",
-          () => api.societe.enregistrerAgence(f, choisi ?? undefined))}>Enregistrer</button>
+        <button className="bouton" type="submit">Enregistrer</button>
         <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         <button className="bouton secondaire" type="button" disabled={choisi === null} onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.societe.supprimerAgence(choisi!))}>Supprimer</button>
       </div>
@@ -161,7 +164,7 @@ function Agences() {
       <Textes sources={["Manuel Microfina++, p. 42 : pages Information société, Agence et zone ; page Agence non montrée : gabarit liste (COMPLEMENTS § 4.1), code et nom",
         "Manuel Microfina++, p. 23 et 24 : le code de l'agence entre dans le numéro du client (S15)"]} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
-    </section>
+    </Formulaire></section>
   );
 }
 

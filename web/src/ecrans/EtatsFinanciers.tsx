@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr, texteEdition } from "../lib/dates";
+import { fr, texteEdition, aujourdhui } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { liasseXml, telecharger } from "../lib/liasse";
 import { decimal } from "@design/montant.js";
@@ -281,7 +281,7 @@ export function EtatsFinanciers() {
   const page = PAGES.find(([k]) => k === params.get("page"))?.[0] ?? "bilan";
   const cadre = useCadre();
   if (!cadre) return <Chargement />;
-  const jour = cadre.j?.date ?? new Date().toISOString().slice(0, 10);
+  const jour = cadre.j?.date ?? aujourdhui();
   return <>
     <ExportLiasse jour={jour} />
     <div className="onglets" role="tablist" aria-label="Etats financiers">{PAGES.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => setParams(k === "bilan" ? {} : { page: k })}>{l}</button>)}</div>
@@ -331,7 +331,7 @@ export function IndicateursFinanciers() {
   const [r, setR] = useState<Indicateurs | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   if (!cadre) return <Chargement />;
-  const { ctx } = cadre, jour = cadre.j?.date ?? new Date().toISOString().slice(0, 10);
+  const { ctx } = cadre, jour = cadre.j?.date ?? aujourdhui();
   const vide = { exercice: jour.slice(0, 4), indicateur: "mensuel", mois: String(Number(jour.slice(5, 7))) }, c = f ?? vide;
   const du = c.indicateur === "annuel" ? `${c.exercice}-01-01` : `${c.exercice}-${c.mois.padStart(2, "0")}-01`, au = c.indicateur === "annuel" ? `${c.exercice}-12-31` : finDeMois(c.exercice, Number(c.mois));
   async function rechercher() { try { setR(await api.etatsFinanciers.indicateurs({ exercice: c.exercice, indicateur: c.indicateur, mois: c.mois })); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }

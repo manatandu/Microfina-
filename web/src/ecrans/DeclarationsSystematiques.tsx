@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr } from "../lib/dates";
+import { fr, aujourdhui } from "../lib/dates";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, type Boite } from "../composants";
 
 type Etat = Awaited<ReturnType<typeof api.conformite.systematiques>>;
@@ -15,7 +15,7 @@ const STATUTS: Record<Ligne["statut"], string> = { a_declarer: "À déclarer", d
 const usd = (v: number) => `${v.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`;
 
 export default function DeclarationsSystematiques({ jour }: { jour: string }) {
-  const depart = jour || new Date().toISOString().slice(0, 10);
+  const depart = jour || aujourdhui();
   const [annee, setAnnee] = useState(Number(depart.slice(0, 4)));
   const [mois, setMois] = useState(Number(depart.slice(5, 7)));
   const [relu, setRelu] = useState(0);

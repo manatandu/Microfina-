@@ -82,7 +82,7 @@ export function ChequesClients() {
       <div className="onglets" role="tablist" aria-label="Gestion Chèque Client">
         {ONGLETS.map((o, i) => <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => changerOnglet(i)}>{o}</button>)}
       </div>
-      <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}><Formulaire className="pile" envoyer={enregistrer}>
+      <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}><Formulaire className="pile" envoyer={() => (onglet === 0 ? enregistrer() : onglet === 1 ? traiter("encaisser") : undefined)}>
         {onglet < 2 && (
           <div className="entete-ecran">
             <ChampDate libelle="Date Opération : *" valeur={date} onChange={(v) => maj({ date: v })} requis />
@@ -145,7 +145,7 @@ export function ChequesClients() {
             <fieldset className="pile cadre-champs"><legend>Infos Chèque</legend><div className="formulaire">{bancaire}</div></fieldset>
             {liste(true)}
             <div className="actions-onglets">
-              <button className="bouton" type="button" onClick={() => traiter("encaisser")}>Encaisser</button>
+              <button className="bouton" type="submit">Encaisser</button>
               <button className="bouton secondaire" type="button" onClick={() => traiter("retourner")}>Retourner</button>
               <button className="bouton secondaire" type="button" disabled title="La pièce vient avec la comptabilisation (registre S59-4)">Imprimer</button>
             </div>

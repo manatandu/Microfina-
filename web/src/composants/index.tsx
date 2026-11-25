@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { coupuresDe, entier, lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
+import { aujourdhui as jourAgence } from "../lib/dates";
 
 export function Puce({ etat, children }: { etat?: "ouverte" | "en_cloture" | "fermee"; children: ReactNode }) {
   return <span className="puce" data-etat={etat}>{children}</span>;
@@ -209,7 +210,7 @@ const deuxChiffres = (n: number) => String(n).padStart(2, "0");
  * Ouvert au clavier (Alt + flèche bas), le focus va sur le jour : flèches (jour, semaine), Début et Fin (semaine), Page préc. et suiv. (mois),
  * Entrée choisit, Tab sort. */
 function Calendrier({ valeur, ancre, clavier, choisir, fermer }: { valeur: string; ancre: HTMLInputElement; clavier: boolean; choisir: (iso: string) => void; fermer: () => void }) {
-  const jour = new Date(), aujourdhui = `${jour.getFullYear()}-${deuxChiffres(jour.getMonth() + 1)}-${deuxChiffres(jour.getDate())}`;
+  const aujourdhui = jourAgence(), anCourant = Number(aujourdhui.slice(0, 4));   // le jour de l'agence (point 11.4)
   const depart = valeur || aujourdhui;
   const [an, setAn] = useState(Number(depart.slice(0, 4)));
   const [mois, setMois] = useState(Number(depart.slice(5, 7)) - 1);
@@ -252,7 +253,7 @@ function Calendrier({ valeur, ancre, clavier, choisir, fermer }: { valeur: strin
   const decalage = (new Date(an, mois, 1).getDay() + 6) % 7, jours = new Date(an, mois + 1, 0).getDate();
   const isoDe = (j: number) => `${an}-${deuxChiffres(mois + 1)}-${deuxChiffres(j)}`;
   const aller = (d: number) => { const m = mois + d; setAn(an + Math.floor(m / 12)); setMois(((m % 12) + 12) % 12); };
-  const annees = Array.from({ length: jour.getFullYear() + 10 - 1900 + 1 }, (_, i) => 1900 + i);
+  const annees = Array.from({ length: anCourant + 10 - 1900 + 1 }, (_, i) => 1900 + i);
   return (
     <div ref={ref} className="calendrier" role="dialog" aria-label="Choisir une date" style={place ? { top: place.top, left: place.left } : { visibility: "hidden" }}>
       <div className="calendrier-tete">

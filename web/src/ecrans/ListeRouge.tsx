@@ -5,7 +5,7 @@ import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
-import { Champ, Chargement, Dialogue, Fiche, Lecture, LigneFiltres, Paginee, Textes, type Boite } from "../composants";
+import { Champ, Chargement, Dialogue, Fiche, Lecture, LigneFiltres, Paginee, Textes, type Boite, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
 
 export default function ListeRouge() {
@@ -33,7 +33,7 @@ export default function ListeRouge() {
   return (
     <>
       <h2>Gestion de la liste rouge</h2>
-      <section className="bloc pile" aria-label="Gestion de la liste rouge">
+      <Formulaire className="bloc pile" label="Gestion de la liste rouge" envoyer={() => agir("ajouter")}>
         <fieldset className="cadre-champs formulaire"><legend>Infos client</legend>
           <div className="ligne-champ"><Champ libelle="N° Client:">{(p) => <input {...p} className="saisie code" readOnly value={t?.numero ?? ""} />}</Champ>
             <button className="bouton secondaire" type="button" aria-label="Rechercher un client" onClick={() => setRecherche(true)}>Rechercher</button></div>
@@ -47,7 +47,7 @@ export default function ListeRouge() {
           {bcc && <Champ libelle="Dirigeants et associés visés" aide="Pour une société mise à l'index : un par ligne, nom ; n° de pièce">{(p) => <textarea {...p} className="saisie" rows={2} value={visees} onChange={(e) => setVisees(e.target.value)} />}</Champ>}
         </fieldset>
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={() => agir("ajouter")}>Ajouter</button>
+          <button className="bouton" type="submit">Ajouter</button>
           <button className="bouton secondaire" type="button" onClick={() => agir("retirer")}>Retirer</button>
         </div>
         <Paginee lignes={l} colonnes={(x) => [x.membre, x.client, fr(x.date), null]}>{(v) => (<div className="defile-x"><table className="grille">
@@ -61,7 +61,7 @@ export default function ListeRouge() {
         <Textes sources={["Manuel Microfina++, p. 119 et 120 : 8-Liste rouge, N° Client, motif, Ajouter ou Retirer pour confirmer l'opération ; deux captures (confirmations)",
           "Registre CR-9 : un client inscrit ne peut ni déposer une demande, ni être approuvé, ni recevoir une mise en place ; une mise à l'index de la BCC s'inscrit avec la référence de la décision",
           "Instr. BCC 13, art. 7 : la mise à l'index suspend ou interdit les services et facilités ; celle d'une personne morale touche ses dirigeants et associés, reconnus par leur pièce d'identité (dirigeants de la fiche de l'entreprise, personnes visées notées ici ; registre S97-4)"]} />
-      </section>
+      </Formulaire>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (x) => (x ? await api.tiers.rechercher(x) : [])} choisir={(x) => { choisir(x); setRecherche(false); }} fermer={() => setRecherche(false)} />
       </Fiche>

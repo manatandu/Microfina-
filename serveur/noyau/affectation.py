@@ -8,6 +8,7 @@ from datetime import date
 
 from .bd import ErreurMetier, executer, lignes, valeur
 from .services import exiger, journee_courante, titulaire
+from .fuseau import jour_agence
 
 EN_COURS = ("mis_en_place", "vise", "debloque")
 
@@ -41,7 +42,7 @@ def affecter(u, p) -> dict:
     if not set(ids) <= a_lui:
         raise ErreurMetier("Un crédit coché n'est plus dans le portefeuille de ce gestionnaire.")
     j = journee_courante(u)
-    le = date.fromisoformat(j["date"]) if j and isinstance(j["date"], str) else (j["date"] if j else date.today())
+    le = date.fromisoformat(j["date"]) if j and isinstance(j["date"], str) else (j["date"] if j else jour_agence(u))
     for cid in ids:
         executer("update credit set agent_id = %s where id = %s", (vers, cid))
         executer("insert into credit_affectation (credit_id, de, vers, le, par) values (%s, %s, %s, %s, %s)", (cid, de, vers, le, u["id"]))

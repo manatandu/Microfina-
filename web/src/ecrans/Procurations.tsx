@@ -3,7 +3,7 @@ import { enClair } from "../lib/enclair";
 import { api, MOTIFS_FIN_PROCURATION, type RepresentantSaisi, type SaisieProcuration } from "../donnees/api";
 import type { Procuration, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture, Paginee } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lecture, Paginee, Formulaire } from "../composants";
 import { ChampsRepresentant } from "./Membres";
 import { lireImage, RechercheClient, useTiersDeLAdresse } from "./Visa";
 
@@ -36,12 +36,12 @@ function NouveauType() {
   return (
     <>
       <h2>Nouveau type procuration</h2>
-      <section className="bloc pile" aria-label="Type de procuration">
+      <Formulaire className="bloc pile" label="Type de procuration" envoyer={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.procurations.creer({ libelle }))}>
         <div className="formulaire">
           <Champ libelle="Libellé *">{(p) => <input {...p} className="saisie" required autoComplete="off" value={libelle} onChange={(e) => setLibelle(e.target.value)} />}</Champ>
         </div>
         <div className="actions-onglets">
-          <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.procurations.creer({ libelle }))}>Enregistrer</button>
+          <button className="bouton" type="submit">Enregistrer</button>
           <button className="bouton secondaire" type="button" disabled={choisi === null} onClick={() => choisi !== null && confirmer("Voulez-vous vraiment supprimer ?", () => api.procurations.supprimer(choisi))}>Supprimer</button>
           <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
         </div>
@@ -59,7 +59,7 @@ function NouveauType() {
         <Textes sources={["Manuel Microfina++, p. 56 : « Gestion des procurations », écran Nouveau type procuration (Libellé*, Enregistrer, Supprimer, Annuler, Nom Type procuration)",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Instr. BCC 15, art. 11 et 16 : le mandataire est identifié et habilité ; la saisie d'une procuration n'est pas montrée par le manuel"]} />
-      </section>
+      </Formulaire>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );
@@ -123,7 +123,8 @@ function ProcurationsClient() {
             <button className="bouton secondaire" type="button" onClick={() => setChoisie(null)}>Annuler</button>
           </div>
         </fieldset>}
-        <fieldset className="pile cadre-champs">
+        <Formulaire envoyer={() => confirmer("Voulez-vous vraiment enregistrer ?",
+              () => api.procurations.enregistrer({ ...f, mandantId: t.id, typeId: f.typeId ?? 0 }), () => setF(VIDE))}><fieldset className="pile cadre-champs">
           <legend>Nouvelle procuration</legend>
           <div className="formulaire">
             <Champ libelle="Type de procuration : *">{(p) => <select {...p} className="saisie" value={f.typeId ?? ""} onChange={(e) => maj({ typeId: e.target.value ? Number(e.target.value) : undefined })}>
@@ -146,11 +147,10 @@ function ProcurationsClient() {
               </fieldset>))}
           </div>
           <div className="actions-onglets">
-            <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?",
-              () => api.procurations.enregistrer({ ...f, mandantId: t.id, typeId: f.typeId ?? 0 }), () => setF(VIDE))}>Enregistrer</button>
+            <button className="bouton" type="submit">Enregistrer</button>
             <button className="bouton secondaire" type="button" onClick={() => setF(VIDE)}>Annuler</button>
           </div>
-        </fieldset>
+        </fieldset></Formulaire>
       </>}
       <Textes sources={["Code civil, livre III, art. 526 à 548 : le mandat ; sa fin par révocation, renonciation, décès ou déconfiture (art. 544)",
         "Loi 22/068, art. 31, al. 3 : représentants habilités ; art. 33 : identité, pièce et pouvoir, dont il est pris copie ; art. 44, 2° : informations centralisées sur les mandataires",

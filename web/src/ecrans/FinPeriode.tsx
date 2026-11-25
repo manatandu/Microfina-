@@ -5,10 +5,10 @@
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr } from "../lib/dates";
+import { fr, aujourdhui } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { decimal, lireMontant } from "@design/montant.js";
-import { Champ, ChampDate, Chargement, Dialogue, type Boite, Recherche } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, type Boite, Recherche, Formulaire } from "../composants";
 
 const n = (v: number) => decimal.format(v / 100);
 type Ctx = Awaited<ReturnType<typeof api.finPeriode.contexte>>;
@@ -47,17 +47,17 @@ export function FinDeMois() {
   const [r, setR] = useState<{ dav: Dav; tenue: Tenue; sansFrais: string } | null>(null);
   const t = useTraitement();
   if (!cadre) return <Chargement />;
-  const jour = cadre.j?.date ?? new Date().toISOString().slice(0, 10);
+  const jour = cadre.j?.date ?? aujourdhui();
   const p = f ?? moisTermine(jour);
   // Sans frais de tenue paramétré (registre T135), la liste des frais reste vide et dit pourquoi ; les intérêts se calculent quand même
   const calculer = async () => { try { const [dav, tenue] = await Promise.all([api.finPeriode.apercuInteretsDav(p), api.finPeriode.apercuTenue(p).then((x) => ({ x, m: "" }), (e) => ({ x: { lignes: [] } as unknown as Tenue, m: message(e) }))]);
     setR({ dav, tenue: tenue.x, sansFrais: tenue.m }); } catch (x) { t.erreur(x); } };
   const aFaire = !!r && (r.dav.lignes.some((x) => x.etat === "À servir") || r.tenue.lignes.some((x) => x.etat === "À prélever"));
   return <section className="bloc pile" aria-label="Fin de mois de l'épargne">
-    <Periode ctx={cadre.ctx} f={p} setF={(x) => { setF(x); setR(null); }} />
-    <div className="actions-onglets"><button className="bouton" type="button" onClick={calculer}>Calculer</button>
+    <Formulaire className="pile" envoyer={calculer}><Periode ctx={cadre.ctx} f={p} setF={(x) => { setF(x); setR(null); }} />
+    <div className="actions-onglets"><button className="bouton" type="submit">Calculer</button>
       <button className="bouton secondaire" type="button" disabled={!aFaire}
-        onClick={() => t.confirmer("Voulez-vous vraiment servir les intérêts et prélever les frais de tenue de compte ?", async () => { await api.finPeriode.interetsEtFrais(p); await calculer(); })}>Valider</button></div>
+        onClick={() => t.confirmer("Voulez-vous vraiment servir les intérêts et prélever les frais de tenue de compte ?", async () => { await api.finPeriode.interetsEtFrais(p); await calculer(); })}>Valider</button></div></Formulaire>
     {r && <div className="defile-x"><table className="grille"><caption>Intérêts sur comptes à vue</caption>
       <thead><tr><th scope="col">N° compte</th><th scope="col">Client</th><th scope="col">Devise</th><th scope="col" className="num">Taux</th><th scope="col" className="num">Solde moyen</th>
         <th scope="col" className="num">Intérêt</th><th scope="col" className="num">Retenue</th><th scope="col" className="num">Net</th><th scope="col">État</th></tr></thead>
@@ -90,14 +90,13 @@ export function InteretsDat({ jour, valider }: { jour: string; valider: boolean 
   const [r, setR] = useState<Dat | null>(null);
   const t = useTraitement();
   const calculer = async () => { try { setR(await api.finPeriode.apercuInteretsDat({ date: d })); } catch (x) { t.erreur(x); } };
-  return <section className="pile" aria-label="Intérêts courus sur dépôts à terme">
+  return <Formulaire className="pile" label="Intérêts courus sur dépôts à terme" envoyer={calculer}>
     <fieldset className="cadre-champs formulaire"><legend className="sr-only">Date</legend><ChampDate libelle="Date :" valeur={d} onChange={(v) => { setD(v); setR(null); }} /></fieldset>
-    <div className="actions-onglets sans-impression"><button className="bouton" type="button" onClick={calculer}>Calculer</button>
+    <div className="actions-onglets sans-impression"><button className="bouton" type="submit">Calculer</button>
       <button className="bouton secondaire" type="button" disabled={!r} onClick={() => imprimer(".fiche .a-imprimer")}>Imprimer</button>
-      {valider && <button className="bouton secondaire" type="button" disabled={!r?.lignes.some((x) => x.aPasser)}
-        onClick={() => t.confirmer("Voulez-vous vraiment passer les intérêts courus ?", async () => setR(await api.finPeriode.passerInteretsDat({ date: d })))}>Valider</button>}</div>
+      {valider && <button className="bouton secondaire" type="button" disabled={!r?.lignes.some((x) => x.aPasser)} onClick={() => t.confirmer("Voulez-vous vraiment passer les intérêts courus ?", async () => setR(await api.finPeriode.passerInteretsDat({ date: d })))}>Valider</button>}</div>
     {r && <div className="defile-x a-imprimer"><TableDat r={r} /></div>}
-    {t.dialogue}</section>;
+    {t.dialogue}</Formulaire>;
 }
 
 /** B8 (confrontation du 21/11/2026) : intérêts courus non échus des crédits sains, aux créances rattachées (PCCI § 4.1.3, § 6.4, classe 3) ; gabarit du calcul sur DAT */
@@ -106,11 +105,10 @@ function InteretsCredits({ jour }: { jour: string }) {
   const [r, setR] = useState<Awaited<ReturnType<typeof api.finPeriode.apercuInteretsCredits>> | null>(null);
   const t = useTraitement();
   const calculer = async () => { try { setR(await api.finPeriode.apercuInteretsCredits({ date: d })); } catch (x) { t.erreur(x); } };
-  return <section className="bloc pile" aria-label="Intérêts courus sur crédits"><h2>Intérêts courus sur crédits</h2>
+  return <Formulaire className="bloc pile" label="Intérêts courus sur crédits" envoyer={calculer}><h2>Intérêts courus sur crédits</h2>
     <fieldset className="cadre-champs formulaire"><legend className="sr-only">Date</legend><ChampDate libelle="Date :" valeur={d} onChange={(v) => { setD(v); setR(null); }} /></fieldset>
-    <div className="actions-onglets"><button className="bouton" type="button" onClick={calculer}>Calculer</button>
-      <button className="bouton secondaire" type="button" disabled={!r?.lignes.some((x) => x.aPasser)}
-        onClick={() => t.confirmer("Voulez-vous vraiment passer les intérêts courus ?", async () => setR(await api.finPeriode.passerInteretsCredits({ date: d })))}>Valider</button></div>
+    <div className="actions-onglets"><button className="bouton" type="submit">Calculer</button>
+      <button className="bouton secondaire" type="button" disabled={!r?.lignes.some((x) => x.aPasser)} onClick={() => t.confirmer("Voulez-vous vraiment passer les intérêts courus ?", async () => setR(await api.finPeriode.passerInteretsCredits({ date: d })))}>Valider</button></div>
     {r && <table className="grille"><caption>Intérêts courus au {fr(r.date)}</caption>
       <thead><tr><th scope="col">N° crédit</th><th scope="col">Client</th><th scope="col">Devise</th><th scope="col" className="num">Montant prêt</th><th scope="col" className="num">Intérêt couru</th>
         <th scope="col" className="num">Déjà passé</th><th scope="col" className="num">A passer</th><th scope="col">Compte créance</th><th scope="col">Compte produit</th></tr></thead>
@@ -120,7 +118,7 @@ function InteretsCredits({ jour }: { jour: string }) {
           <td className="code">{x.compteRattache}</td><td className="code">{x.compteProduit}</td></tr>)}</tbody>
       <tfoot>{Object.entries(r.totaux).map(([dv, v]) => <tr key={dv}><th scope="row" colSpan={4}>Total {dv}</th><td className="num chiffres"><strong>{n(v.couru)}</strong></td><td></td>
         <td className="num chiffres"><strong>{n(v.aPasser)}</strong></td><td colSpan={2}></td></tr>)}</tfoot></table>}
-    {t.dialogue}</section>;
+    {t.dialogue}</Formulaire>;
 }
 
 /** Capture p. 163 : l'état des provisions de crédits (Dégré, Terme, Encours, Retard, Provisions, Compte capital, Compte provision débit, crédit) ; il se lit
@@ -147,12 +145,12 @@ function ClotureComptable({ ctx, jour }: { ctx: Ctx; jour: string }) {
   const afficher = async (x = f) => { try { setR(await api.finPeriode.apercuCloture(x)); } catch (e) { t.erreur(e); } };
   const mois = r?.mois;
   return <section className="bloc pile" aria-label="Clôture comptable"><h2>Clôture comptable</h2>
-    <Periode ctx={ctx} f={f} setF={(x) => { setF(x); setR(null); }} />
-    <div className="actions-onglets"><button className="bouton" type="button" onClick={() => afficher()}>Afficher</button>
+    <Recherche className="pile" label="Critères" envoyer={() => afficher()}><Periode ctx={ctx} f={f} setF={(x) => { setF(x); setR(null); }} />
+    <div className="actions-onglets"><button className="bouton" type="submit">Afficher</button>
       <button className="bouton secondaire" type="button" disabled={!mois || mois.mois === 12 || r?.periodes[mois.mois - 1]?.cloture}
         onClick={() => t.confirmer(`Voulez-vous vraiment clôturer ${mois?.libelle} ${r?.exercice} ?`, async () => setR(await api.finPeriode.cloturerMois(f)))}>Clôturer le mois</button>
       <button className="bouton secondaire" type="button" disabled={!r || !!r.clotureLe || r.valide}
-        onClick={() => t.confirmer(`Voulez-vous vraiment clôturer l'exercice ${r?.exercice} ?`, async () => setR(await api.finPeriode.cloturer({ exercice: f.exercice })))}>Clôturer l'exercice</button></div>
+        onClick={() => t.confirmer(`Voulez-vous vraiment clôturer l'exercice ${r?.exercice} ?`, async () => setR(await api.finPeriode.cloturer({ exercice: f.exercice })))}>Clôturer l'exercice</button></div></Recherche>
     {r && <>
       <p>Exercice {r.exercice} : {r.clotureLe ? `clôturé le ${fr(r.clotureLe)} par ${r.cloturePar}` : r.ouvert ? "ouvert" : "non ouvert"}.</p>
       <table className="grille"><caption>Périodes</caption>
@@ -234,13 +232,13 @@ function useCadreCloture() {
 export function Calculs() {
   const cadre = useCadre();
   if (!cadre) return <Chargement />;
-  return <InteretsCredits jour={cadre.j?.date ?? new Date().toISOString().slice(0, 10)} />;
+  return <InteretsCredits jour={cadre.j?.date ?? aujourdhui()} />;
 }
 
 // « Dépôt » : intérêts courus des DAT, dans Dépôts à terme (point 5.3) ; « Crédit » : l'état des provisions, dans Crédit > Balance âgée et provisions (point 6.13)
 export function Clotures() {
   const cadre = useCadreCloture();
   if (!cadre) return <Chargement />;
-  const jour = cadre.j?.date ?? new Date().toISOString().slice(0, 10);
+  const jour = cadre.j?.date ?? aujourdhui();
   return <><ClotureComptable ctx={cadre.ctx} jour={jour} /><AffectationResultat jour={jour} /></>;
 }

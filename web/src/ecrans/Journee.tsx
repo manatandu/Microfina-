@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr } from "../lib/dates";
+import { fr, heureDe, jourDe } from "../lib/dates";
 import { montant, totalComptage } from "@design/montant.js";
 import { Bloquant, Champ, Chargement, ChampDate, Dialogue, Textes, type Boite, Formulaire } from "../composants";
 import { TableFiltree } from "./Groupes";
@@ -16,8 +16,8 @@ export function EcranJournee() {
   if (!donnees) return <Chargement />;
   const { liste, ctx } = donnees;
   const nom = (id?: number) => ctx.utilisateurs.find((u) => u.id === id)?.nom ?? "";
-  const heure = (iso?: string) => (iso ? new Date(iso).toTimeString().slice(0, 8) : "");
-  const jour = (iso?: string) => (iso ? fr(new Date(iso).toLocaleDateString("sv-SE")) : "");
+  const heure = (iso?: string) => (iso ? heureDe(iso) : "");   // heure et jour de l'agence (point 11.4)
+  const jour = (iso?: string) => (iso ? fr(jourDe(iso)) : "");
   function enregistrer() {
     if (!date) { setBoite({ type: "erreur", message: "À remplir : date à ouvrir." }); return; }
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {

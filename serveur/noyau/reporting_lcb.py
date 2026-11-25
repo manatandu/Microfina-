@@ -34,7 +34,7 @@ def calculer(u: dict, annee: int, mois: int) -> dict:
                     where o.institution_id = %s and o.statut = 'validee' and o.tiers_id is not null and j.date_comptable between %s and %s""", (ins, debut, fin))
     cdf = lambda o: o["montant"] / 100 * cours(o["devise"], o["date_comptable"])
     usd = lambda o: en_usd(o["montant"], o["devise"])
-    clients = lignes("select id, type, type_client, residence from tiers where institution_id = %s and statut not in ('prospect', 'resilie') and cree_le::date <= %s", (ins, fin))
+    clients = lignes("select id, type, type_client, residence from tiers where institution_id = %s and statut not in ('prospect', 'resilie') and jour_agence(cree_le) <= %s", (ins, fin))
     niv = _niveaux(ins, fin)
     ppe = {t["id"] for t in clients if ppe_active(t["id"])}
     par_niveau = lambda n: sum(cdf(o) for o in ops if niv.get(o["tiers_id"]) == n)

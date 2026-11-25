@@ -10,11 +10,12 @@ from .bd import ErreurMetier, executer, lignes, une, valeur
 from psycopg.types.json import Jsonb
 
 from .services import exiger, journee_courante, json_lu, titulaire
+from .fuseau import jour_agence
 
 
 def jour(u) -> date:
     j = journee_courante(u)
-    return (date.fromisoformat(j["date"]) if isinstance(j["date"], str) else j["date"]) if j else date.today()
+    return (date.fromisoformat(j["date"]) if isinstance(j["date"], str) else j["date"]) if j else jour_agence(u)
 
 
 def inscription(tid: int) -> dict | None:

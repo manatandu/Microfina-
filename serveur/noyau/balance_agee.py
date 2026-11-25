@@ -11,13 +11,14 @@ from datetime import date
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .remboursements import etat
 from .services import exiger, journee_courante
+from .fuseau import jour_agence
 
 CLASSES = {"Sains": "sain", "Impayés": "impaye", "Douteux": "douteux", "Irrécupérables": "irrecuperable"}
 
 
 def jour(u) -> date:
     j = journee_courante(u)
-    return (date.fromisoformat(j["date"]) if isinstance(j["date"], str) else j["date"]) if j else date.today()
+    return (date.fromisoformat(j["date"]) if isinstance(j["date"], str) else j["date"]) if j else jour_agence(u)
 
 
 def date_lancement(u, d) -> date:

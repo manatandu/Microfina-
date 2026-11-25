@@ -275,18 +275,18 @@ function ListeRepresentants({ fiche: titre, ajouter, liste, onChange, ctx, quali
       )}
       <Fiche titre={titre} ouverte={!!fiche} fermer={() => setFiche(null)}>
         {fiche && (
-          <div className="pile">
+          <Formulaire className="pile" envoyer={() => {
+                if (!fiche.nom.trim() || !fiche.prenom.trim() || !fiche.pieceType || !fiche.pieceNumero.trim()) { erreur("À remplir : nom, prénom, type de pièce, numéro de pièce."); return; }
+                onChange([...liste, fiche]); setFiche(REPRESENTANT_VIDE);
+              }}>
             <RepriseFiche reprendre={(p) => setFiche({ ...fiche, ...p })} />
             <ChampsRepresentant r={fiche} maj={(p) => setFiche({ ...fiche, ...p })} ctx={ctx} qualite={qualite} />
             <ChargementImages key={liste.length} images={{ photo: fiche.photo, signature: fiche.signature }} onChange={(i) => setFiche({ ...fiche, ...i })} erreur={erreur} />
             <div className="actions-onglets">
               <button className="bouton secondaire" type="button" onClick={() => setFiche(null)}>Fermer</button>
-              <button className="bouton" type="button" onClick={() => {
-                if (!fiche.nom.trim() || !fiche.prenom.trim() || !fiche.pieceType || !fiche.pieceNumero.trim()) { erreur("À remplir : nom, prénom, type de pièce, numéro de pièce."); return; }
-                onChange([...liste, fiche]); setFiche(REPRESENTANT_VIDE);
-              }}>Enregistrer</button>
+              <button className="bouton" type="submit">Enregistrer</button>
             </div>
-          </div>
+          </Formulaire>
         )}
       </Fiche>
     </>

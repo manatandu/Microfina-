@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api, type ChampBudget, type FicheBudget, type LigneBudgetVue, type OptionBudget, type LigneCompte } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee } from "../composants";
+import { Champ, Chargement, Dialogue, Textes, type Boite, Paginee, Formulaire } from "../composants";
 
 type Reponse = { catalogue: { page: string; menu: string; groupe?: string; onglet?: string }[]; fiche: Omit<FicheBudget, "fixe">; options: Record<string, OptionBudget[]>; lignes: LigneBudgetVue[] };
 export interface FacadeReferentiel {
@@ -92,14 +92,14 @@ function PageReferentiel({ facade, page, sources, menu, changer }: { facade: Fac
         <section className="bloc pile" aria-label={fiche.entete ?? fiche.menu}>
           {fiche.groupe && <div className="onglets" role="tablist" aria-label={fiche.groupe}>{donnees.catalogue.filter((x) => x.groupe === fiche.groupe).map((x) =>
             <button key={x.page} type="button" role="tab" aria-selected={x.page === page} onClick={() => changer(x.page)}>{x.onglet}</button>)}</div>}
-          {cadres.map((k) => <fieldset key={k || "saisie"} className="cadre-champs formulaire"><legend className={k || fiche.cadre ? undefined : "sr-only"}>{k || fiche.cadre || "Saisie"}</legend>
+          <Formulaire className="pile" envoyer={() => faire(() => facade.enregistrer(page, envoi(), choisi ?? undefined))}>{cadres.map((k) => <fieldset key={k || "saisie"} className="cadre-champs formulaire"><legend className={k || fiche.cadre ? undefined : "sr-only"}>{k || fiche.cadre || "Saisie"}</legend>
             {fiche.champs.filter((c) => (c.cadre ?? "") === k).map(champ)}</fieldset>)}
           <div className="actions-onglets">
-            <button className="bouton" type="button" onClick={() => faire(() => facade.enregistrer(page, envoi(), choisi ?? undefined))}>Enregistrer</button>
+            <button className="bouton" type="submit">Enregistrer</button>
             <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
             <button className="bouton secondaire" type="button" disabled={choisi === null}
               onClick={() => choisi !== null && confirmer("Voulez-vous vraiment supprimer ?", () => facade.supprimer(page, choisi))}>Supprimer</button>
-          </div>
+          </div></Formulaire>
           <Paginee lignes={lignes}>{(visibles) => (<div className="defile-x"><table className="grille">
             {fiche.grille && <caption>{fiche.grille}</caption>}
             <thead>

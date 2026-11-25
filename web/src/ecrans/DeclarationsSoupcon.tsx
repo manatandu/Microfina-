@@ -5,7 +5,7 @@ import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, type Boite } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, type Boite, Formulaire } from "../composants";
 
 type Ligne = Awaited<ReturnType<typeof api.conformite.soupcons>>[number];
 const NATURES = [["", ""], ["operation", "Opération exécutée"], ["tentative", "Tentative"]] as const;
@@ -46,7 +46,7 @@ export default function DeclarationsSoupcon({ jour }: { jour: string }) {
       </table></div>
       <div className="actions-onglets"><button className="bouton" type="button" onClick={() => setNouveau({ ...VIDE, transmiseLe: jour })}>Nouvelle déclaration</button></div>
       <Fiche titre="Nouvelle déclaration de soupçon" ouverte={!!nouveau} fermer={() => setNouveau(null)}>
-        {nouveau && <div className="pile">
+        {nouveau && <Formulaire className="pile" envoyer={() => agir("Voulez-vous vraiment enregistrer cette déclaration ?", () => api.conformite.declarerSoupcon(nouveau))}>
           <fieldset className="pile cadre-champs">
             <legend>Opération</legend>
             <Champ libelle="N° client :">{(p) => <input {...p} className="saisie code" value={nouveau.membre} onChange={(e) => setNouveau({ ...nouveau, membre: e.target.value })} />}</Champ>
@@ -62,10 +62,10 @@ export default function DeclarationsSoupcon({ jour }: { jour: string }) {
             <Champ libelle="Moyen : *">{(p) => <select {...p} className="saisie" value={nouveau.moyen} onChange={(e) => setNouveau({ ...nouveau, moyen: e.target.value })}>{MOYENS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>}</Champ>
           </fieldset>
           <div className="actions-onglets">
-            <button className="bouton" type="button" onClick={() => agir("Voulez-vous vraiment enregistrer cette déclaration ?", () => api.conformite.declarerSoupcon(nouveau))}>Enregistrer</button>
+            <button className="bouton" type="submit">Enregistrer</button>
             <button className="bouton secondaire" type="button" onClick={() => setNouveau(null)}>Fermer</button>
           </div>
-        </div>}
+        </Formulaire>}
       </Fiche>
       <Fiche titre={choisi ? `Déclaration de soupçon${choisi.numero ? ` n° ${choisi.numero}` : ""}` : ""} ouverte={!!choisi} fermer={() => setChoisi(null)}>
         {choisi && <div className="pile">

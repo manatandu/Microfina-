@@ -5,6 +5,7 @@ from datetime import date
 from .bd import ErreurMetier, lignes, une, valeur
 from .remboursements import etat
 from .services import cours, exiger, journee_courante, titulaire
+from .fuseau import jour_agence
 
 ANS_DORMANT = 10     # loi 22/069, titre III, chap. Ier : dix ans sans opération ni réclamation (registre S72-6)
 
@@ -18,7 +19,7 @@ def _date(v: str, nom: str) -> date:
 
 def _jour(u) -> date:
     j = journee_courante(u)
-    return date.fromisoformat(j["date"]) if j else date.today()
+    return date.fromisoformat(j["date"]) if j else jour_agence(u)
 
 
 SQL_LIGNES = """select l.*, e.libelle, jc.date_comptable as jour, p.numero as piece, cast(substring(l.contrat_ref from 7) as bigint) as compte_id
