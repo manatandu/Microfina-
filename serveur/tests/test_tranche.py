@@ -3768,10 +3768,10 @@ def test_retenues_a_reverser(clients, journee):
 
 def test_journal_de_securite(clients, journee):
     """Écart E17 : Instr. BCC 008, art. 16"""
-    from datetime import date
     from noyau.bd import executer
+    from noyau.fuseau import jour_agence
     chef, compta = clients["chef"], clients["compta"]
-    jour = date.today().isoformat()
+    jour = jour_agence().isoformat()       # le jour de l'agence, jamais le jour UTC : le journal range les événements au jour de l'agence (point 11.4)
     assert chef.post("/api/session", {"login": "inconnu"}, **H).status_code >= 400                  # identifiant inconnu : noté
     r = chef.get(f"/api/securite/journal?du={jour}&au={jour}", **H)
     assert r.status_code == 403                                                                      # aucun profil de départ n'a SA01
@@ -5489,7 +5489,7 @@ def test_etats_numerotes(clients, journee):
     a = compta.get("/api/comptabilite/normes-prudentielles?date=2026-11-05", **H).json()["edition"]
     b = compta.get("/api/comptabilite/etats-financiers/bilan?exercice=2026&du=2026-01-01&au=2026-11-05", **H).json()
     assert b.get("edition", {}).get("numero") == a["numero"] + 1, b
-    assert a["le"][:4] == str(__import__("datetime").date.today().year)
+    assert a["le"][:4] == str(__import__("noyau.fuseau", fromlist=["jour_agence"]).jour_agence().year)
 
 
 def test_comptes_courants_debiteurs(clients, journee, monkeypatch):
