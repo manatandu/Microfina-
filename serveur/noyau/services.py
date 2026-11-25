@@ -39,7 +39,7 @@ LIBELLES_ROLES = {"caissier": "caissier", "chef_agence": "chef d'agence", "agent
 def charger_utilisateur(uid: int | None) -> dict | None:
     if not uid:
         return None
-    u = une("select id, login, nom, institution_id, agence_id from utilisateur where id = %s and actif", (uid,))
+    u = une("select id, login, nom, institution_id, agence_id, mot_de_passe_a_changer from utilisateur where id = %s and actif", (uid,))
     if not u:
         return None
     u["roles"] = [r["code"] for r in lignes(
@@ -50,7 +50,30 @@ def charger_utilisateur(uid: int | None) -> dict | None:
 
 def vue_utilisateur(u: dict) -> dict:
     from .droits import droits_utilisateur
-    return {"id": u["id"], "login": u["login"], "nom": u["nom"], "roles": u["roles"], "droits": sorted(droits_utilisateur(u["id"]))}
+    return {"id": u["id"], "login": u["login"], "nom": u["nom"], "roles": u["roles"], "droits": sorted(droits_utilisateur(u["id"])),
+            "motDePasseAChanger": bool(u.get("mot_de_passe_a_changer"))}
+
+
+def changer_mot_de_passe(u: dict, d) -> dict:
+    """Chacun change son mot de passe : l'ancien, le nouveau et sa confirmation ; règle T24 ; différent de l'ancien. Le mot de passe donné par
+    l'administrateur se change à la première connexion (Instr. BCC 008, art. 16 ; Instr. BCC 05, annexe : le préposé gère son mot de passe ; registre T207)"""
+    from .securite import controler_mot_de_passe
+    exiger(u)
+    d = d if isinstance(d, dict) else {}
+    ancien, nouveau, conf = (d.get(k) if isinstance(d.get(k), str) else "" for k in ("ancien", "nouveau", "confirmation"))
+    if not nouveau:
+        raise ErreurMetier("À remplir : Nouveau mot de passe.")
+    h = valeur("select mot_de_passe_hash from utilisateur where id = %s for update", (u["id"],))
+    if not settings.SANS_MOT_DE_PASSE and not (ancien and h and check_password(ancien, h)):
+        raise ErreurMetier("Mot de passe actuel incorrect.")
+    if nouveau != conf:
+        raise ErreurMetier("Confirmation : différente du nouveau mot de passe.")
+    if ancien and nouveau == ancien:
+        raise ErreurMetier("Nouveau mot de passe : différent de l'actuel.")
+    controler_mot_de_passe(nouveau, u["login"])
+    executer("update utilisateur set mot_de_passe_hash = %s, mot_de_passe_a_changer = false where id = %s", (make_password(nouveau), u["id"]))
+    u["mot_de_passe_a_changer"] = False
+    return vue_utilisateur(u)
 
 
 def exiger(u: dict | None, role: str | None = None) -> dict:
@@ -99,7 +122,7 @@ def utilisateur_de_session(uid, jeton) -> dict | None:
     Une seule requête pour le jeton, l'utilisateur et ses profils : cette lecture ouvre chaque appel de l'API (mesure du 21/11/2026)."""
     if not uid or not jeton:
         return None
-    return une(f"""select u.id, u.login, u.nom, u.institution_id, u.agence_id,
+    return une(f"""select u.id, u.login, u.nom, u.institution_id, u.agence_id, u.mot_de_passe_a_changer,
                           coalesce((select array_agg(p.code order by p.code) from utilisateur_profil up join profil p on p.id = up.profil_id
                                     where up.utilisateur_id = u.id and p.code is not null and not p.supprime), '{{}}') as roles
                    from utilisateur u where u.id = %s and u.actif and u.jeton_session = %s and {CONNECTE}""", (uid, jeton))

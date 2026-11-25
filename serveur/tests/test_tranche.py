@@ -1,4 +1,5 @@
 """La tranche verticale par HTTP, comme les écrans l'appelleront. Mêmes scénarios que web/src/donnees/api.test.ts."""
+import json
 import uuid
 
 import pytest
@@ -21,6 +22,7 @@ def vider_journal_securite():
     from django.db import connection
     db = connection.settings_dict
     with psycopg.connect(dbname=db["NAME"], user=db["USER"], password=db["PASSWORD"], host=db["HOST"], port=db["PORT"], autocommit=True) as c:
+        c.execute("set session_replication_role = replica")   # le journal se lit seulement (registre T208) : l'essai passe outre pour repartir de zéro
         c.execute("delete from journal_securite")
 
 
@@ -532,6 +534,24 @@ def test_connexion_avec_mot_de_passe(clients, settings):
     assert ouvrir("etest", "secret-1").status_code == 200
     assert autre.get("/api/session").json()["login"] == "etest"
     assert any(u["login"] == "jpmukendi" for u in autre.get("/api/referentiel").json()["utilisateurs"])   # après connexion : noms des rapports
+    # Registre T207 : le mot de passe donné par l'administrateur se remplace à la première connexion, avant toute écriture (Instr. BCC 008, art. 16)
+    assert autre.get("/api/session").json()["motDePasseAChanger"] is True
+    r = autre.post("/api/tiers/personnes", {}, **H)
+    assert r.status_code == 403 and "Changez d'abord votre mot de passe" in r.json()["message"]
+    changer = lambda corps: autre.post("/api/session/mot-de-passe", corps, **H)
+    assert changer({"ancien": "mauvais", "nouveau": "secret-9a", "confirmation": "secret-9a"}).json()["message"] == "Mot de passe actuel incorrect."
+    assert "Confirmation" in changer({"ancien": "secret-1", "nouveau": "secret-9a", "confirmation": "secret-9b"}).json()["message"]
+    assert "différent de l'actuel" in changer({"ancien": "secret-1", "nouveau": "secret-1", "confirmation": "secret-1"}).json()["message"]
+    assert "8 caractères" in changer({"ancien": "secret-1", "nouveau": "court1", "confirmation": "court1"}).json()["message"]
+    r = changer({"ancien": "secret-1", "nouveau": "secret-9a", "confirmation": "secret-9a"})
+    assert r.status_code == 200 and r.json()["motDePasseAChanger"] is False
+    autre.delete("/api/session")
+    assert ouvrir("etest", "secret-1").status_code == 422 and ouvrir("etest", "secret-9a").status_code == 200
+    import psycopg
+    from django.db import connection
+    db = connection.settings_dict       # le journal de sécurité s'écrit hors de la transaction du test
+    with psycopg.connect(dbname=db["NAME"], user=db["USER"], password=db["PASSWORD"], host=db["HOST"], port=db["PORT"], autocommit=True) as c:
+        assert c.execute("select count(*) from journal_securite where evenement = 'mot_de_passe_change' and login = 'etest'").fetchone()[0] == 1
 
 
 def test_mise_a_jour_entreprise_groupe(clients, journee):
@@ -3043,7 +3063,7 @@ def test_securite(clients, settings):
     db = connection.settings_dict
     with psycopg.connect(dbname=db["NAME"], user=db["USER"], password=db["PASSWORD"], host=db["HOST"], port=db["PORT"], autocommit=True) as c:
         n = c.execute("select count(*) from journal_securite where login = 'jpmukendi' and evenement in ('connexion_refusee', 'connexion_bloquee')").fetchone()[0]
-        c.execute("delete from journal_securite")          # la trace survit au refus ; on nettoie pour les autres essais
+        c.execute("set session_replication_role = replica"); c.execute("delete from journal_securite")   # la trace survit au refus ; on nettoie
     assert n >= 6
     settings.SANS_MOT_DE_PASSE = True
     chef = clients["chef"]; connecter(chef, "gmbuyi")
@@ -4158,6 +4178,40 @@ def test_centrale_risques(clients, journee):
     assert "déjà déclaré" in refus({"evenements": ev[:1], "date": "2026-11-05", "reference": "CR-2"})
     assert chef.get("/api/conformite/centrale-risques?du=2026-11-01&au=2026-11-05&statut=a_declarer", **H).json() == []
     assert caisse.get("/api/conformite/centrale-risques?du=2026-11-01&au=2026-11-05", **H).status_code == 403
+
+
+def test_journal_audit(clients):
+    """Audit du 21/11/2026, point B10 (F16, F17) : chaque changement de paramètre ou de droit s'écrit au journal d'audit (avant, après, auteur), chaîné par
+    empreinte ; le journal se lit seulement, par le responsable de la sécurité informatique (Instr. BCC 008, art. 16 ; registre T208)"""
+    from django.db import connection, transaction
+    chef, admin, agent = clients["chef"], clients["compta"], clients["agent"]
+    connecter(chef, "jpmukendi"); connecter(admin, "gmbuyi"); connecter(agent, "bkasongo")
+    assert chef.post("/api/credit-referentiels/demarches", {"libelle": "Appel téléphonique"}, **H).status_code == 200
+    nid = ident("select id from credit_demarche_nature where libelle = 'Appel téléphonique'")
+    assert chef.post(f"/api/credit-referentiels/demarches/{nid}", {"libelle": "Appel au téléphone"}, **H).status_code == 200
+    q = "?du=2000-01-01&au=2100-12-31"
+    assert agent.get("/api/securite/audit" + q, **H).status_code == 403             # droit SA01 seulement
+    j = admin.get("/api/securite/audit" + q + "&objet=credit_demarche_nature", **H).json()
+    assert j["integre"] is True
+    l = [x for x in j["lignes"] if x["objetId"] == str(nid)]
+    assert [(x["action"], x["utilisateur"], x["objet"]) for x in l] == [("Modification", "J.-P. Mukendi", "Démarche de recouvrement"),
+                                                                        ("Ajout", "J.-P. Mukendi", "Démarche de recouvrement")]
+    assert l[0]["changement"] == "libelle : Appel téléphonique → Appel au téléphone"
+    # Le mot de passe ne va jamais au journal ; son changement s'y note sans valeur
+    connection.cursor().execute("update utilisateur set mot_de_passe_hash = 'x', connecte_le = now() where login = 'bkasongo'")
+    u = admin.get("/api/securite/audit" + q + "&objet=utilisateur", **H).json()["lignes"][0]
+    assert u["changement"] == "mot_de_passe : None → changé".replace("None", "") and "hash" not in json.dumps(u)
+    # Ni modification ni suppression du journal ; une ligne retouchée en passant outre se voit dans la chaîne
+    for sql in ("delete from journal_audit", "update journal_securite set detail = 'x'"):
+        with pytest.raises(Exception, match="se lit seulement"):
+            with transaction.atomic():
+                connection.cursor().execute(sql)
+    with connection.cursor() as cur:
+        cur.execute("set session_replication_role = replica")
+        cur.execute("update journal_audit set apres = apres || '{\"libelle\": \"Autre\"}' where id = (select max(id) from journal_audit where objet = 'credit_demarche_nature')")
+        cur.execute("set session_replication_role = origin")
+    j = admin.get("/api/securite/audit" + q, **H).json()
+    assert j["integre"] is False and j["rupture"] == ident("select max(id) from journal_audit where objet = 'credit_demarche_nature'")
 
 
 def test_recouvrement(clients, journee):

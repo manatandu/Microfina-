@@ -1153,7 +1153,14 @@ const OUT = process.argv[2];
   await login('J.-P. Mukendi'); await aller('/comptabilite/s113');
   await p.getByRole('button', { name: /^Viser Remboursement de crédit par prélèvement/ }).click(); await oui(); await etape('15f-visa-remboursement');
   // la chef comptable n'a que la validation : « Opérations en attente » s'ouvre pour elle (droit S114, registre T203)
-  await login('Lucie Kabeya'); await aller('/comptabilite/s113'); await p.getByRole('heading', { name: 'Opérations en attente', exact: true }).waitFor();
+  await login('Lucie Kabeya'); await p.waitForLoadState('networkidle');
+  // Registre T207 : sur le serveur, le mot de passe donné par l'administrateur se remplace à la première connexion, avant toute autre action
+  if (await p.getByRole('heading', { name: 'Changer mon mot de passe' }).isVisible()) {
+    await etape('15g0-mot-de-passe-impose');
+    await p.getByLabel('Mot de passe actuel *').fill('secret-2'); await p.getByLabel('Nouveau mot de passe *').fill('lucie-2026');
+    await p.getByLabel('Confirmation *').fill('lucie-2026'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('navigation', { name: 'Menus' }).getByRole('button').first().waitFor();
+  }
+  await aller('/comptabilite/s113'); await p.getByRole('heading', { name: 'Opérations en attente', exact: true }).waitFor();
   await p.getByRole('button', { name: /^Valider Remboursement de crédit par prélèvement/ }).click(); await oui(); await etape('15g-validation-remboursement');
   await login('J.-P. Mukendi'); await aller('/administration/s13');
   await p.getByLabel('DU:').fill('05112026'); await p.getByLabel('AU:').fill('05112026'); await p.getByRole('button', { name: 'Afficher' }).click();

@@ -82,7 +82,10 @@ def u(request: HttpRequest) -> dict:
     if request.method not in METHODES_SURES and request.headers.get("X-Likelemba") != "1":
         raise ErreurMetier("Requête refusée.", 403)
     util = s.exiger(s.utilisateur_de_session(request.session.get("utilisateur"), request.session.get("jeton")))
+    if util.get("mot_de_passe_a_changer") and request.method not in METHODES_SURES and request.path.removeprefix("/api") != "/session/mot-de-passe":
+        raise ErreurMetier("Changez d'abord votre mot de passe : celui donné par l'administrateur se remplace à la première connexion.", 403)   # T207
     dr.verifier_route(util, request.method, request.path)      # droit de la tâche (registre S04-3)
+    executer("select set_config('exofina.utilisateur', %s, true)", (str(util["id"]),))   # auteur des changements de paramètres (registre T208)
     # Jour de l'agence dans les requêtes SQL (fonctions jour_agence ; plan d'allègement, point 11.4 ; registre T153)
     executer("select set_config('exofina.fuseau', coalesce((select fuseau from agence where id = %s), ''), false)", (util.get("agence_id"),))
     return util
@@ -130,6 +133,14 @@ def rapports_csp(request):
 def session_courante(request):
     util = s.utilisateur_de_session(request.session.get("utilisateur"), request.session.get("jeton"))
     return s.vue_utilisateur(util) if util else None
+
+
+@api.post("/session/mot-de-passe")
+def session_mot_de_passe(request, corps: dict = Body(...)):
+    util = u(request)
+    vue = s.changer_mot_de_passe(util, corps)
+    noter("mot_de_passe_change", util["login"], adresse(request), util["id"])
+    return vue
 
 
 @api.get("/session/mode")
@@ -3091,6 +3102,12 @@ def retenues_etat(request, annee: str = "", mois: str = ""):
 @api.post("/comptabilite/retenues/reversements")
 def retenues_reverser(request, corps: dict = Body(...)):
     return ret.reverser(u(request), corps)
+
+
+@api.get("/securite/audit")
+def securite_audit(request, du: str = "", au: str = "", objet: str = ""):
+    from .securite import audit
+    return audit(u(request), du, au, objet)
 
 
 @api.get("/securite/journal")

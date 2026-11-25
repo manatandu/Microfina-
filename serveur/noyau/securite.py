@@ -99,7 +99,7 @@ class LimiteRequetes:
 # Écart E17 : consultation du journal (Instr. BCC 008, art. 16). Mêmes libellés que web/src/donnees/api.ts (journalSecurite).
 EVENEMENTS = {"connexion": "Connexion", "connexion_refusee": "Connexion refusée (mot de passe)", "connexion_impossible": "Connexion impossible",
               "connexion_bloquee": "Connexion bloquée (trop d'essais)", "acces_refuse": "Accès refusé (droit manquant)", "limite_requetes": "Limite de requêtes dépassée",
-              "fonds_geles": "Opération refusée sur des fonds gelés"}   # A14 : loi 22/068, art. 162, al. 2
+              "fonds_geles": "Opération refusée sur des fonds gelés", "mot_de_passe_change": "Mot de passe changé"}   # A14 : loi 22/068, art. 162, al. 2
 
 
 def consulter(u: dict, du: str, au: str, evenement: str = "") -> list[dict]:
@@ -144,3 +144,72 @@ class FetchMetadata:
             from django.utils.cache import patch_vary_headers
             patch_vary_headers(r, ("Sec-Fetch-Site",))
         return r
+
+
+# Audit du 21/11/2026, point bloquant B10 : piste d'audit des paramètres et des droits (registre T208). Les déclencheurs de la migration 0201 écrivent
+# journal_audit ; ici, la lecture pour le responsable de la sécurité informatique (droit SA01) et le contrôle de la chaîne des empreintes.
+OBJETS_AUDIT = {
+    "institution": "Institution", "agence": "Agence", "guichet": "Guichet", "guichet_plafond": "Plafond de guichet", "jour_ferie": "Jour férié",
+    "devise": "Devise", "coupure": "Coupure", "type_monnaie": "Type de monnaie", "cours_change": "Cours du jour", "journal": "Journal",
+    "numerotation_client": "Numérotation des membres", "numerotation_compte": "Numérotation des comptes", "numerotation_piece": "Numérotation des pièces",
+    "compte": "Plan des comptes", "schema_comptable": "Schéma comptable", "taxe": "Taxe", "frais": "Frais", "parametrage_frais": "Barème des frais",
+    "parametrage_frais_adhesion": "Frais d'adhésion", "parametre_reglementaire": "Paramètre réglementaire", "fonds_propres": "Fonds propres prudentiels",
+    "produit_credit": "Produit de crédit", "produit_credit_frais": "Frais d'un produit de crédit", "produit_epargne": "Produit d'épargne",
+    "credit_modele": "Modèle de produit crédit", "credit_modele_compte": "Comptes d'un modèle de crédit", "credit_objet": "Objet du crédit",
+    "credit_type_objet": "Type d'objet du crédit", "credit_cycle": "Cycle du crédit", "credit_type_assurance": "Type d'assurance",
+    "credit_assureur": "Assureur crédit", "credit_gestionnaire": "Agent de crédit", "credit_ordre": "Ordre de remboursement",
+    "credit_degre_ordre": "Ordre par degré", "credit_demarche_nature": "Démarche de recouvrement", "liste_reference": "Liste", "zone": "Zone",
+    "profil": "Profil", "profil_droit": "Droit d'un profil", "utilisateur": "Utilisateur", "utilisateur_profil": "Profil d'un utilisateur",
+    "delegation": "Délégation", "banque": "Banque", "compte_bancaire": "Compte bancaire", "type_procuration": "Type de procuration",
+    "paie_bareme": "Barème de paie", "paie_rubrique": "Rubrique de paie", "immo_categorie": "Catégorie d'immobilisation",
+    "immo_coefficient": "Coefficient d'amortissement"}
+ACTIONS_AUDIT = {"ajout": "Ajout", "modification": "Modification", "suppression": "Suppression"}
+_NOMS = ("libelle", "nom", "designation", "code", "numero", "droit_code", "login", "devise", "cle")
+
+
+def _valeur(v) -> str:
+    return "" if v is None else ("oui" if v is True else "non" if v is False else str(v))
+
+
+def changement(action: str, avant: dict | None, apres: dict | None) -> str:
+    """En clair : les champs modifiés (avant → après), ou ce qui a été ajouté ou supprimé"""
+    if action == "modification" and avant is not None and apres is not None:
+        cles = [k for k in apres if k != "id" and avant.get(k) != apres.get(k)] + [k for k in avant if k not in apres and k != "id"]
+        return " ; ".join(f"{k} : {_valeur(avant.get(k))} → {_valeur(apres.get(k))}" for k in cles)
+    ligne = apres if apres is not None else avant or {}
+    return " ; ".join(f"{k} : {_valeur(ligne[k])}" for k in _NOMS if ligne.get(k) not in (None, ""))
+
+
+def rupture_audit() -> int | None:
+    """La première ligne dont l'empreinte ne correspond plus à son contenu ou à la ligne précédente ; None si la chaîne est intacte"""
+    from .bd import valeur
+    return valeur("""with c as (select id, empreinte, empreinte_precedente, lag(empreinte) over (order by id) as prec,
+                                    encode(sha256(convert_to(concat_ws('|', coalesce(empreinte_precedente, ''), extract(epoch from horodatage)::text,
+                                      coalesce(utilisateur_id::text, ''), action, objet, coalesce(objet_id, ''), coalesce(avant::text, ''), coalesce(apres::text, '')),
+                                      'UTF8')), 'hex') as calcul from journal_audit)
+                     select min(id) from c where calcul <> empreinte or coalesce(prec, '') <> coalesce(empreinte_precedente, '')""")
+
+
+def audit(u: dict, du: str, au: str, objet: str = "") -> dict:
+    """Changements de paramètres et de droits de l'institution, du plus récent au plus ancien, avec l'état de la chaîne des empreintes"""
+    from .bd import lignes
+    from .services import exiger, json_lu
+    from .fuseau import fuseau_de
+    exiger(u)
+    fz = fuseau_de(u)
+    for v, nom in ((du, "Du"), (au, "Au")):
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", v or ""):
+            raise ErreurMetier(f"À remplir : {nom}.")
+    if du > au:
+        raise ErreurMetier("La date de début dépasse la date de fin.")
+    if objet and objet not in OBJETS_AUDIT:
+        raise ErreurMetier("Objet inconnu.")
+    rows = lignes("""select j.*, x.nom from journal_audit j left join utilisateur x on x.id = j.utilisateur_id
+                     where (j.horodatage at time zone %(fz)s)::date between %(du)s::date and %(au)s::date and (%(o)s = '' or j.objet = %(o)s)
+                       and coalesce((coalesce(j.apres, j.avant)->>'institution_id')::bigint, x.institution_id, %(i)s) = %(i)s
+                     order by j.id desc limit 1000""", {"du": du, "au": au, "o": objet, "i": u["institution_id"], "fz": fz.key})
+    rupture = rupture_audit()
+    return {"integre": rupture is None, "rupture": rupture,
+            "lignes": [{"id": r["id"], "le": r["horodatage"].astimezone(fz).isoformat(timespec="seconds"), "utilisateur": r["nom"] or "Système",
+                        "action": ACTIONS_AUDIT.get(r["action"], r["action"]), "objet": OBJETS_AUDIT.get(r["objet"], r["objet"]), "objetId": r["objet_id"] or "",
+                        "changement": changement(r["action"], json_lu(r["avant"]), json_lu(r["apres"]))} for r in rows]}

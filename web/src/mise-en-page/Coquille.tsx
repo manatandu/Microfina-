@@ -12,7 +12,8 @@ import { definirMonnaies } from "@design/montant.js";
 import { mots } from "../lib/vocabulaire";
 import { ICONES } from "./icones";
 import { Marque } from "./Marque";
-import { MessageSucces, useSourcesEcran } from "../composants";
+import { Dialogue, Fiche, MessageSucces, useSourcesEcran, type Boite } from "../composants";
+import ChangerMotDePasse from "./MotDePasse";
 import { choisirLangue, langue } from "../lib/langue";
 import { reglesAide } from "../lib/aide";
 
@@ -29,6 +30,8 @@ export function Coquille() {
   // Téléphone : le menu d'accès rapide se replie derrière un bouton, pour que l'écran commence en haut de la page
   const [menuOuvert, setMenuOuvert] = useState(false);
   const [aide, setAide] = useState(false);
+  const [mdp, setMdp] = useState(false);
+  const [boite, setBoite] = useState<Boite | null>(null);
   useEffect(() => { setMenuOuvert(false); setAide(false); }, [lieu.pathname]);
   // Plan d'allègement, point 11.3 (guide accessibility) : chaque écran donne son titre à l'onglet du navigateur ; après une navigation, le focus va
   // au titre de l'écran, sauf si l'écran a déjà placé le focus dans sa zone de travail
@@ -56,8 +59,10 @@ export function Coquille() {
   const { u, ctx, j } = donnees;
   if (!u) return <Navigate to="/connexion" replace state={{ apres: lieu.pathname }} />;
   const application = applicationDe(lieu.pathname);
+  // Registre T207 : le mot de passe donné par l'administrateur se remplace avant toute autre action ; les menus attendent
+  const force = !!(u as { motDePasseAChanger?: boolean }).motDePasseAChanger;
   // Registre T07 : un écran absent des droits de l'utilisateur n'apparaît pas au menu
-  const permis = new Set((u as { droits?: string[] }).droits ?? []);
+  const permis = new Set(force ? [] : (u as { droits?: string[] }).droits ?? []);
   const barre = menus(application).map((x) => ({ ...x, groupes: x.groupes.map((g) => ({ ...g, ecrans: g.ecrans.filter((e) => permisPour(e, permis)) })).filter((g) => g.ecrans.length) }))
     .filter((x) => x.groupes.length);
   // Un écran ouvert par son adresse suit la même règle que le menu : sans le droit, il ne s'affiche pas (registre T07)
@@ -83,6 +88,7 @@ export function Coquille() {
                 onClick={() => { if (langue() !== code) choisirLangue(code); }}>{nom}</button>))}
           </Deroulant>
           <button type="button" className="sortir" title="Aide en ligne" aria-label="Aide en ligne" aria-expanded={aide} onClick={() => setAide((v) => !v)}>?</button>
+          {!force && <button type="button" className="sortir" title="Changer mon mot de passe" aria-label="Changer mon mot de passe" onClick={() => setMdp(true)}>{ICONES.cle}</button>}
           <button type="button" className="sortir" title="Se déconnecter" aria-label="Se déconnecter"
             onClick={async () => {   // plan 11.6 : l'écran de connexion dit si le navigateur n'a pas nettoyé le poste
               const r = await api.session.fermer() as { nettoye?: boolean } | undefined;
@@ -112,7 +118,8 @@ export function Coquille() {
           ))}
         </aside>
         <main className="page" id="contenu" tabIndex={-1} key={lieu.pathname}>{aide && <AideEnLigne chemin={lieu.pathname} fermer={() => setAide(false)} />}
-          {vise && !refuse && <h1 id="titre-ecran" tabIndex={-1}>{vise.nom}</h1>}{refuse ? <p className="attention">Droit manquant : {refuse.nom} (Administration &gt; Profil &gt; Assigner droit).</p> : <Suspense fallback={null}><Outlet /></Suspense>}</main><MessageSucces />
+          {force ? <><h1 id="titre-ecran" tabIndex={-1}>Changer mon mot de passe</h1><ChangerMotDePasse force fait={() => location.reload()} /></>
+            : <>{vise && !refuse && <h1 id="titre-ecran" tabIndex={-1}>{vise.nom}</h1>}{refuse ? <p className="attention">Droit manquant : {refuse.nom} (Administration &gt; Profil &gt; Assigner droit).</p> : <Suspense fallback={null}><Outlet /></Suspense>}</>}</main><MessageSucces />
       </div>
 
       <footer className="pied">
@@ -122,6 +129,10 @@ export function Coquille() {
         <span>Utilisateur : <strong>{u.nom}</strong></span>
         <span className="muet">{ctx.institution.nom} · agence de {ctx.agence.nom}</span>
       </footer>
+      <Fiche titre="Changer mon mot de passe" ouverte={mdp} fermer={() => setMdp(false)}>
+        <ChangerMotDePasse fait={() => { setMdp(false); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }} />
+      </Fiche>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </div>
     </NombreAttente.Provider>
   );

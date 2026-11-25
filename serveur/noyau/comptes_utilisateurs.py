@@ -58,12 +58,13 @@ def enregistrer(u, d, uid: int | None = None) -> dict:
     vals = {**v, "agenceId": agence, "controleConnecte": bool(d.get("controleConnecte"))}
     cols = list(CHAMPS)
     if uid is None:
-        uid = valeur(f"""insert into utilisateur (institution_id, {', '.join(CHAMPS[k] for k in cols)}, mot_de_passe_hash)
-                         values (%s, {', '.join(['%s'] * len(cols))}, %s) returning id""", (i, *[vals[k] for k in cols], make_password(mdp)))
+        # Un mot de passe donné par l'administrateur se change à la première connexion (Instr. BCC 008, art. 16 ; registre T207)
+        uid = valeur(f"""insert into utilisateur (institution_id, {', '.join(CHAMPS[k] for k in cols)}, mot_de_passe_hash, mot_de_passe_a_changer)
+                         values (%s, {', '.join(['%s'] * len(cols))}, %s, %s) returning id""", (i, *[vals[k] for k in cols], make_password(mdp), bool(mdp)))
     else:
         executer(f"update utilisateur set {', '.join(f'{CHAMPS[k]} = %s' for k in cols)} where id = %s", (*[vals[k] for k in cols], uid))
         if mdp:
-            executer("update utilisateur set mot_de_passe_hash = %s where id = %s", (make_password(mdp), uid))
+            executer("update utilisateur set mot_de_passe_hash = %s, mot_de_passe_a_changer = %s where id = %s", (make_password(mdp), uid != u["id"], uid))
     return lire(u)
 
 

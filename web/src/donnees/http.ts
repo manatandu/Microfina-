@@ -523,6 +523,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     },
     journalSecurite: {
       consulter: (du: string, au: string, evenement = "") => get(`/securite/journal?du=${du}&au=${au}&evenement=${evenement}`),
+      audit: (du: string, au: string, objet = "") => get(`/securite/audit?du=${du}&au=${au}&objet=${objet}`),
     },
     retenues: {
       etat: (annee: number | string, mois: number | string) => get(`/comptabilite/retenues?annee=${annee}&mois=${mois}`),
@@ -569,6 +570,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       utilisateurs: () => get("/utilisateurs"),
       courante: () => get("/session"),
       mode: () => get<{ motDePasseRequis: boolean }>("/session/mode"),
+      changerMotDePasse: (p: unknown) => post("/session/mot-de-passe", p),
       ouvrir: (login: string, motDePasse?: string) => post("/session", { login, motDePasse }),
       // Plan d'allègement, point 11.6 : la réponse demande au navigateur d'effacer les données du site (Clear-Site-Data) ; une marque
       // posée avant et retrouvée après dit qu'il ne l'a pas fait : le stockage est vidé ici, et l'écran de connexion le signale

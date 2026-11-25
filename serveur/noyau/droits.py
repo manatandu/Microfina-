@@ -318,7 +318,8 @@ LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
     (r"/conformite/apparentes", ["SC01"]),
     (r"/clients/registre-membres", ["SC04"]),
     (r"/comptabilite/retenues.*", ["SF01"]),
-    (r"/securite/journal", ["SA01"]),                  # Instr. BCC 008, art. 16 : responsable de la sécurité informatique          # données personnelles : loi 11/020, art. 60
+    (r"/securite/journal", ["SA01"]),
+    (r"/securite/audit", ["SA01"]),                    # piste d'audit des paramètres et des droits (registre T208)                  # Instr. BCC 008, art. 16 : responsable de la sécurité informatique          # données personnelles : loi 11/020, art. 60
     (r"/plaintes.*", ["SC03"]),                    # données personnelles : loi 11/020, art. 60
 ]]
 

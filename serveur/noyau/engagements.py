@@ -16,7 +16,7 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .releves import client, entete
-from .services import comptes_du_tiers, cours, est_coopec, exiger, journee_courante, nouvelle_piece, poster, titulaire
+from .services import compte_actif, comptes_du_tiers, cours, est_coopec, exiger, journee_courante, nouvelle_piece, poster, titulaire
 
 MOTIFS = {"echeance": "Échéance", "mainlevee": "Mainlevée", "mise_en_jeu": "Mise en jeu de la garantie"}
 TYPES = {"financement": ("Engagement de financement", "0001"), "aval": ("Aval", "0012"), "caution": ("Caution", "0012")}
@@ -113,6 +113,10 @@ def enregistrer(u, p) -> dict:
     if pct < 0 or pct > 100:
         raise ErreurMetier("Pourcentage : entre 0 et 100.")
     forfait, garantie = entier(p, "forfait", "Forfait"), entier(p, "garantie", "Garantie")
+    # Audit du 21/11/2026, B11 (F10) : les comptes sont verrouillés avant de lire leur disponible (ordre des id : pas d'interblocage)
+    for cid in sorted({x for x in (p.get("compteEpargneId"), p.get("compteGarantiId")) if isinstance(x, int) and not isinstance(x, bool)}):
+        if valeur("select 1 from compte_depot where id = %s and tiers_id = %s", (cid, tid)):
+            compte_actif(cid, verrou=True)
     comptes = {x["id"]: x for x in comptes_du_tiers(tid)}
     ce, cg = comptes.get(p.get("compteEpargneId")), comptes.get(p.get("compteGarantiId"))
     if not ce:

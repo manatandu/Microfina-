@@ -377,10 +377,13 @@ def rembourser_epargne(u, cid: int, p) -> dict:
     exiger(u)
     c = credit_en_cours(u, cid)
     mand = mandataire_de(p)
-    from .services import comptes_du_tiers
+    from .services import comptes_du_tiers, compte_actif
     k = next((x for x in comptes_du_tiers(c["tiers_id"]) if x["id"] == (p or {}).get("compteId")), None)
     if not k:
         raise ErreurMetier("À remplir : Compte Client.")
+    # Audit du 21/11/2026, B11 (F10) : le compte est verrouillé avant de lire son disponible ; une seconde opération simultanée attend celle-ci
+    compte_actif(k["id"], verrou=True)
+    k = next(x for x in comptes_du_tiers(c["tiers_id"]) if x["id"] == k["id"])
     if k["devise"] != c["devise"].strip():
         raise ErreurMetier("Le compte du client n'est pas dans la devise du crédit.")
     # T1 : pas de compensation contre la restitution d'un dépôt (Code civil, livre III, art. 185, 2°) ; le disponible n'est pas nanti (loi 11/020, art. 48) :

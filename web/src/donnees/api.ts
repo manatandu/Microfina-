@@ -122,6 +122,16 @@ const session = {
     E.session = u.id; noterSecurite("connexion", login, u.id); return u;
   },
   fermer() { E.session = null; enregistrer(); return undefined; },
+  /** Chacun change son mot de passe (registre T207). La démonstration ne garde pas de mot de passe (registre S05-3) : seules les règles jouent */
+  changerMotDePasse(p: { ancien?: string; nouveau?: string; confirmation?: string }) {
+    const u = exiger(), nouveau = p.nouveau ?? "";
+    if (!nouveau) throw new ErreurMetier("À remplir : Nouveau mot de passe.");
+    if (nouveau !== (p.confirmation ?? "")) throw new ErreurMetier("Confirmation : différente du nouveau mot de passe.");
+    if (p.ancien && nouveau === p.ancien) throw new ErreurMetier("Nouveau mot de passe : différent de l'actuel.");
+    if (nouveau.length < 8 || !/[A-Za-zÀ-ÿ]/.test(nouveau) || !/\d/.test(nouveau)) throw new ErreurMetier("Mot de passe : 8 caractères au moins, avec au moins une lettre et un chiffre.");
+    if (nouveau.trim().toLowerCase() === u.login.trim().toLowerCase()) throw new ErreurMetier("Mot de passe : différent du nom d'utilisateur.");
+    return session.courante();
+  },
 };
 
 function contexte() {
@@ -10926,6 +10936,14 @@ const journalSecurite = {
       .sort((a, b) => b.le.localeCompare(a.le) || b.id - a.id).slice(0, 1000)
       .map((x) => ({ le: x.le, evenement: x.evenement, evenementLibelle: EVENEMENTS_SECURITE[x.evenement] ?? x.evenement, login: x.login,
         utilisateur: nomUtilisateur(x.utilisateurId ?? undefined) || E.utilisateurs.find((y) => y.login === x.login)?.nom || "", ip: "", detail: x.detail }));
+  },
+  /** Piste d'audit des paramètres et des droits (registre T208) : tenue par la base du serveur ; la démonstration dans le navigateur n'en a pas */
+  audit(du: string, au: string, _objet = "") {
+    lectureAdmin(["SA01"]);
+    if (!DATE_ISO.test(du ?? "")) throw new ErreurMetier("À remplir : Du.");
+    if (!DATE_ISO.test(au ?? "")) throw new ErreurMetier("À remplir : Au.");
+    if (du > au) throw new ErreurMetier("La date de début dépasse la date de fin.");
+    return { integre: true, rupture: null as number | null, lignes: [] as { id: number; le: string; utilisateur: string; action: string; objet: string; objetId: string; changement: string }[] };
   },
 };
 const comptesUtilisateurs = {

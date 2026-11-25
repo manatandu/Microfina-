@@ -25,5 +25,6 @@ export const ICONES: Record<string, ReactNode> = {
   parts: <T><ellipse cx="12" cy="6" rx="7" ry="3" /><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6" /></T>,
   autres: <T><circle cx="6" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="18" cy="12" r="1.5" /></T>,
   recherche: <T><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></T>,
+  cle: <T><circle cx="8" cy="15" r="4" /><path d="M11 12l9-9M17 6l3 3M15 8l2 2" /></T>,
   sortie: <T><path d="M9 21H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h4M16 17l5-5-5-5M21 12H9" /></T>,
 };
