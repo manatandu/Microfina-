@@ -1,4 +1,4 @@
-// S59 : Banque > Gestion Chèque Client (manuel Microfina++, p. 68 et 69) : Dépôt chèque, Encaisser chèque, Historique chèque.
+// S59 : Banque > Gestion Chèque Client (manuel Microfina++, p. 68 et 69) : Dépôt chèque ; Liste des chèques (Encaisser et Historique réunis, plan d'allègement 7.16).
 // Le dépôt est enregistré en attente ; l'encaissement ou le retour se fait sur le compte bancaire choisi ; la comptabilisation vient en S111 (registre S59-4).
 import { useState } from "react";
 import { api } from "../donnees/api";
@@ -11,7 +11,7 @@ import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Lect
 import { RechercheClient } from "./Visa";
 import { ChoixBanque } from "./OperationsBanque";
 
-const ONGLETS = ["Dépôt chèque", "Encaisser chèque", "Historique chèque"] as const;
+const ONGLETS = ["Dépôt chèque", "Liste des chèques"] as const;   // plan d'allègement 7.16 : un onglet avec un filtre Statut au lieu de « Encaisser » et « Historique »
 const nomComplet = (t: Tiers) => t.intitule || [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
 const VIDE = { date: "", compte: "", numero: "", tireur: "", banqueTireur: "", montant: "", banque: "", compteBanque: "", deposant: "", pieceNumero: "", pieceType: "", etabliA: "", expire: "" };
 
@@ -26,9 +26,11 @@ export function ChequesClients() {
   const [choisi, setChoisi] = useState<number | null>(null);
   const [dateEnc, setDateEnc] = useState("");
   const [relu, setRelu] = useState(0);
+  const [statut, setStatut] = useState<"depose" | "encaisse" | "retourne" | "">("depose");
+  const [parTitulaire, setParTitulaire] = useState(true);   // Instr. BCC 15, art. 11 : le déposant qui n'est pas le titulaire est identifié
   const { donnees: comptes } = useDonnees(() => (t ? api.tiers.comptes(t.id) : Promise.resolve([])), [t?.id]);
   const cb = Number(f.compteBanque) || 0;
-  const { donnees: cheques } = useDonnees(() => (onglet > 0 && cb ? api.chequesClients.lister(cb, onglet === 1 ? "depose" : "") : Promise.resolve([])), [onglet, cb, relu]);
+  const { donnees: cheques } = useDonnees(() => (onglet > 0 && cb ? api.chequesClients.lister(cb, statut) : Promise.resolve([])), [onglet, cb, statut, relu]);
   if (!donnees) return <Chargement />;
   const { ctx, lu } = donnees;
   const maj = (p: Partial<typeof VIDE>) => setF({ ...f, ...p });
@@ -37,12 +39,13 @@ export function ChequesClients() {
   const compteF = f.compte || (comptes?.length === 1 ? String(comptes[0]!.id) : "");
   const cc = (comptes ?? []).find((c) => String(c.id) === compteF);
   const m = lireMontant(f.montant);
-  const vider = () => { setF(VIDE); setT(null); setCle(nouvelleCle()); setChoisi(null); setDateEnc(""); };
+  const vider = () => { setF(VIDE); setT(null); setCle(nouvelleCle()); setChoisi(null); setDateEnc(""); setParTitulaire(true); };
   const changerOnglet = (i: number) => { setOnglet(i); vider(); };
 
   function enregistrer() {
     const d = { cle, date, compteDepotId: compteF ? Number(compteF) : undefined, compteBancaireId: cb || undefined, numeroCheque: f.numero, tireur: f.tireur, banqueTireur: f.banqueTireur,
-      montant: m ?? 0, deposant: f.deposant, pieceType: f.pieceType, pieceNumero: f.pieceNumero, etabliA: f.etabliA, dateExpiration: f.expire };
+      montant: m ?? 0, ...(parTitulaire ? { deposant: t ? nomComplet(t) : "", pieceType: "", pieceNumero: "", etabliA: "", dateExpiration: "" }
+        : { deposant: f.deposant, pieceType: f.pieceType, pieceNumero: f.pieceNumero, etabliA: f.etabliA, dateExpiration: f.expire }) };
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try { await api.chequesClients.deposer(d); vider(); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
       catch (x) { setBoite({ type: "erreur", message: message(x) }); }
@@ -78,12 +81,12 @@ export function ChequesClients() {
 
   return (
     <>
-      <h2>{onglet === 0 ? "Enregistrement Dépôt de Chèque" : onglet === 1 ? "Encaissement de Chèque" : "Historique chèque"}</h2>
+      <h2>{onglet === 0 ? "Enregistrement Dépôt de Chèque" : "Liste des chèques"}</h2>
       <div className="onglets" role="tablist" aria-label="Gestion Chèque Client">
         {ONGLETS.map((o, i) => <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => changerOnglet(i)}>{o}</button>)}
       </div>
-      <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}><Formulaire className="pile" envoyer={() => (onglet === 0 ? enregistrer() : onglet === 1 ? traiter("encaisser") : undefined)}>
-        {onglet < 2 && (
+      <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}><Formulaire className="pile" envoyer={() => (onglet === 0 ? enregistrer() : statut === "depose" ? traiter("encaisser") : undefined)}>
+        {(onglet === 0 || statut === "depose") && (
           <div className="entete-ecran">
             <ChampDate libelle="Date Opération : *" valeur={date} onChange={(v) => maj({ date: v })} requis />
             {onglet === 1 && <ChampDate libelle="Date Encaissement *" valeur={dateEnc} onChange={setDateEnc} requis />}
@@ -118,19 +121,20 @@ export function ChequesClients() {
               <div className="formulaire">
                 <ChoixBanque lu={lu} libelleBanque="Banque" libelleCompte="Compte Banque *" banque={f.banque} compte={f.compteBanque}
                   onBanque={(v) => setF((x) => ({ ...x, banque: v, compteBanque: "" }))} onCompte={(v) => setF((x) => ({ ...x, compteBanque: v }))} />
-                <Champ libelle="Nom et Prénoms Déposant *">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.deposant} onChange={(e) => maj({ deposant: e.target.value })} />}</Champ>
               </div>
             </fieldset>
-            <fieldset className="pile cadre-champs">
-              <legend>Autre info</legend>
+            <label className="case"><input type="checkbox" checked={parTitulaire} onChange={(e) => setParTitulaire(e.target.checked)} /><span>Déposé par le titulaire du compte</span></label>
+            {!parTitulaire && <fieldset className="pile cadre-champs">
+              <legend>Déposant</legend>
               <div className="formulaire">
+                <Champ libelle="Nom et Prénoms Déposant *">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.deposant} onChange={(e) => maj({ deposant: e.target.value })} />}</Champ>
                 <Champ libelle="N° Pièce">{(p) => <input {...p} className="saisie code" autoComplete="off" value={f.pieceNumero} onChange={(e) => maj({ pieceNumero: e.target.value })} />}</Champ>
                 <Champ libelle="Pièce d'identité">{(p) => <select {...p} className="saisie" value={f.pieceType} onChange={(e) => maj({ pieceType: e.target.value })}>
                   <option value=""></option>{ctx.pieces.map((x: string) => <option key={x}>{x}</option>)}</select>}</Champ>
                 <Champ libelle="Etablie à">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.etabliA} onChange={(e) => maj({ etabliA: e.target.value })} />}</Champ>
                 <ChampDate libelle="Date d'expiration" valeur={f.expire} onChange={(v) => maj({ expire: v })} />
               </div>
-            </fieldset>
+            </fieldset>}
             <div className="actions-onglets">
               <button className="bouton" type="submit">Enregistrer</button>
               <button className="bouton secondaire" type="button" onClick={vider}>Annuler</button>
@@ -142,28 +146,22 @@ export function ChequesClients() {
 
         {onglet === 1 && (
           <>
-            <fieldset className="pile cadre-champs"><legend>Infos Chèque</legend><div className="formulaire">{bancaire}</div></fieldset>
-            {liste(true)}
-            <div className="actions-onglets">
+            <fieldset className="pile cadre-champs"><legend>Infos Chèque</legend><div className="formulaire">{bancaire}
+              <Champ libelle="Statut">{(p) => <select {...p} className="saisie" value={statut} onChange={(e) => { setStatut(e.target.value as typeof statut); setChoisi(null); }}>
+                <option value="depose">Déposé</option><option value="encaisse">Encaissé</option><option value="retourne">Retourné</option><option value="">Tous</option></select>}</Champ></div></fieldset>
+            {liste(statut === "depose")}
+            {statut === "depose" && <div className="actions-onglets">
               <button className="bouton" type="submit">Encaisser</button>
               <button className="bouton secondaire" type="button" onClick={() => traiter("retourner")}>Retourner</button>
               <button className="bouton secondaire" type="button" disabled title="La pièce vient avec la comptabilisation (registre S59-4)">Imprimer</button>
-            </div>
-          </>
-        )}
-
-        {onglet === 2 && (
-          <>
-            <fieldset className="pile cadre-champs"><legend>Banque</legend><div className="formulaire">
-              <ChoixBanque lu={lu} libelleBanque="Banque" libelleCompte="Compte" banque={f.banque} compte={f.compteBanque}
-                onBanque={(v) => setF((x) => ({ ...x, banque: v, compteBanque: "" }))} onCompte={(v) => setF((x) => ({ ...x, compteBanque: v }))} /></div></fieldset>
-            {liste(false)}
+            </div>}
           </>
         )}
         <Textes sources={["Manuel Microfina++, p. 68 : Enregistrement Dépôt de Chèque (Infos Client, Infos Chèque, Info Banque Institution, Autre info, Enregistrer, Annuler, Imprimer, montant en lettres)",
           "Manuel Microfina++, p. 68 et 69 : Encaissement de Chèque (Date Opération, Date Encaissement, Infos Chèque, Encaisser, Retourner, Imprimer) ; Historique chèque : texte seul, la liste est complétée (registre S59-1)",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
-          "Instr. BCC 52 (incidents de paiement) : le chèque impayé relève du banquier tiré ; ici le retour est seulement noté"]} />
+          "Instr. BCC 52 (incidents de paiement) : le chèque impayé relève du banquier tiré ; ici le retour est seulement noté",
+          "Plan d'allègement 7.16 : un onglet « Liste des chèques » avec un filtre Statut ; le cadre Déposant ne paraît que si le déposant n'est pas le titulaire (Instr. BCC 15, art. 11 : le représentant est identifié et son habilitation vérifiée)"]} />
       </Formulaire></section>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>
         <RechercheClient source={async (q) => (q ? (await api.tiers.rechercher(q)).filter((x) => x.statut === "actif") : [])}

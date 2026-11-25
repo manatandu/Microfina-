@@ -2,6 +2,7 @@
 // Mouvement, Montant, Utilisateur ; Numéro de pièce et Libellé : Commençant par, Contenant, Terminant par) ; Afficher ; grille Journal, N° Compte,
 // Intitulé compte, Débit, Crédit ; Total ; Exporter. Registre S115-1 à S115-4.
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { texteEdition } from "../lib/dates";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -14,8 +15,13 @@ type Schemas = Awaited<ReturnType<typeof api.etatsCompta.schemas>>;
 const comptes = (l: { compte: string; intitule: string }[]) => l.map((x) => `${x.compte} ${x.intitule}`.trim());
 const MODES: [string, string][] = [["debut", "Commencant par"], ["contient", "Contenant"], ["fin", "Terminant par"]];
 
-/** achats : onglet Journal de Comptabilité > Factures (capture « Journal achat », p. 128) : mêmes critères, sans Type journal ni Journal */
-export default function JournauxComptables({ achats = false }: { achats?: boolean }) {
+/** achats : journal des achats (capture « Journal achat », p. 128) : mêmes critères, sans Type journal ni Journal ; ouvert depuis Factures par un lien (?achats=1, plan d'allègement 7.15) */
+export default function JournauxComptables() {
+  const [params] = useSearchParams();
+  const achats = params.get("achats") === "1";
+  return <Journal key={String(achats)} achats={achats} />;
+}
+function Journal({ achats }: { achats: boolean }) {
   const { donnees: ctx } = useDonnees(() => api.etatsCompta.journauxContexte());
   const [f, setF] = useState({ exercice: "", mois: "", type: "", journal: "", mouvement: "", montant: "", utilisateur: "", piece: "", pieceMode: "debut", libelle: "", libelleMode: "debut" });
   const [r, setR] = useState<Resultat | null>(null);
@@ -38,7 +44,7 @@ export default function JournauxComptables({ achats = false }: { achats?: boolea
   return (
     <>
       {achats ? <h2>Journal achat</h2> : <h2>Journal comptables</h2>}
-      <section className={achats ? "pile" : "bloc pile"} aria-label={achats ? "Journal achat" : "Journal comptables"}><Recherche className="pile" label="Critères" envoyer={afficher}>
+      <section className="bloc pile" aria-label={achats ? "Journal achat" : "Journal comptables"}><Recherche className="pile" label="Critères" envoyer={afficher}>
         <fieldset className="cadre-champs"><legend>Critères recherche</legend>
           <div className="deux-colonnes">
             <div className="formulaire">

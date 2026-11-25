@@ -2,13 +2,13 @@
 // Le chéquier remis par la banque pour un compte de l'institution ; ses chèques alimentent la liste « N° de chèque » de S52 (registre S60-1 à S60-4).
 // « Chèque pour crédit » : l'onglet ne marche pas dans le manuel (p. 70) ; il viendra avec le déblocage de crédit par banque (S54).
 import { useState } from "react";
-import { api, FEUILLETS } from "../donnees/api";
+import { api, FEUILLETS, TYPES_CHEQUE } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { Champ, Chargement, Dialogue, Lecture, Textes, type Boite } from "../composants";
 import { ChoixBanque } from "./OperationsBanque";
 
-const VIDE = { banque: "", compte: "", nb: "", debut: "", barre: null as boolean | null, vise: null as boolean | null, certifie: null as boolean | null };
+const VIDE = { banque: "", compte: "", nb: "", debut: "", barre: null as boolean | null, type: "ordinaire" };
 
 function OuiNon({ libelle, valeur, onChange }: { libelle: string; valeur: boolean | null; onChange: (v: boolean) => void }) {
   const nom = `type-${libelle}`;
@@ -33,7 +33,7 @@ export function Chequiers() {
 
   function generer() {
     const d = { cle, compteBancaireId: f.compte ? Number(f.compte) : undefined, nbFeuillets: f.nb ? Number(f.nb) : undefined, debut,
-      barre: f.barre ?? undefined, vise: f.vise, certifie: f.certifie };
+      barre: f.barre ?? undefined, type: f.type };
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment générer ?", oui: async () => {
       try { await api.chequiers.generer(d); setF(VIDE); setCle(nouvelleCle()); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
       catch (x) { setBoite({ type: "erreur", message: message(x) }); }
@@ -59,8 +59,8 @@ export function Chequiers() {
           <fieldset className="pile cadre-champs">
             <legend>Type Cheque :</legend>
             <OuiNon libelle="Barré *" valeur={f.barre} onChange={(v) => maj({ barre: v })} />
-            <OuiNon libelle="Visé" valeur={f.vise} onChange={(v) => maj({ vise: v })} />
-            <OuiNon libelle="Certifié" valeur={f.certifie} onChange={(v) => maj({ certifie: v })} />
+            <Champ libelle="Type de chèque">{(p) => <select {...p} className="saisie" value={f.type} onChange={(e) => maj({ type: e.target.value })}>
+              {Object.entries(TYPES_CHEQUE).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ>
           </fieldset>
         </div>
         <div className="actions-onglets">
@@ -69,6 +69,7 @@ export function Chequiers() {
         <Textes sources={["Manuel Microfina++, p. 69 : capture « Numéro Chequier » (Banque*, Compte*, Nb.Feuillet*, Début*, Fin, Type Cheque : Barré*, Visé, Certifié, Generer) ; p. 70 : « Chèque pour crédit », l'onglet ne marche pas",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Instr. BCC 25 (normalisation du chèque), § 3.2 : numéro du chèque sur 8 caractères, code de type de chèque ; § 3.1 : barrement par deux barres parallèles",
+          "Registre T139 (plan d'allègement 7.16) : « Visé » et « Certifié » se règlent chèque par chèque ; le type (ordinaire, certifié, garanti, chèque de banque) est marqué sur chaque chèque généré (Instr. BCC 25, ligne CMC7, zone 4)",
           "Les chèques générés alimentent la liste « N° de chèque » de Banque > Opération (S52) ; un chèque ne sert qu'une fois"]} />
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />

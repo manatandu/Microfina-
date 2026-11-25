@@ -311,9 +311,11 @@ export interface Emprunt {   // S61
 export interface RemboursementEmprunt { id: number; cle: string; empruntId: number; date: string; amortissement: number; interet: number; commission: number; piece: string; saisiPar: number }
 
 export interface Chequier {   // S60
-  id: number; cle: string; compteBancaireId: number; nbFeuillets: number; debut: string; fin: string; barre: boolean; vise: boolean | null; certifie: boolean | null; creePar: number;
+  id: number; cle: string; compteBancaireId: number; nbFeuillets: number; debut: string; fin: string; barre: boolean; creePar: number;
 }
-export interface ChequeInstitution { id: number; chequierId: number; compteBancaireId: number; numero: string; statut: "disponible" | "utilise"; operationBanqueId: number | null }
+/** type : Instr. BCC 25, ligne CMC7, zone 4 : code de type marqué sur chaque formule (registre T139) */
+export interface ChequeInstitution { id: number; chequierId: number; compteBancaireId: number; numero: string; statut: "disponible" | "utilise"; operationBanqueId: number | null;
+  type?: "ordinaire" | "certifie" | "garanti" | "banque" }
 
 export interface ChequeClient {   // S59
   id: number; cle: string; date: string; tiersId: number; compteDepotId: number; compteBancaireId: number; numeroCheque: string; tireur: string; banqueTireur: string;

@@ -225,6 +225,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       enregistrerRapprochement: (p: unknown) => post("/comptabilite/rapprochement", p),
       nouvelleOperation: (d: unknown) => post("/comptabilite/rapprochement/operation", d),
       historique: (p: Record<string, unknown>) => get(`/comptabilite/rapprochement/historique?${requete(p)}`),
+      comptesLettrables: () => get("/comptabilite/lettrage/comptes"),
       lettrageLignes: (p: Record<string, unknown>) => get(`/comptabilite/lettrage?${requete(p)}`),
       lettrer: (p: unknown) => post("/comptabilite/lettrage", p),
       tresorerie: (p: Record<string, unknown>) => get(`/comptabilite/controle/tresorerie?${requete(p)}`),
@@ -543,6 +544,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     emprunts: {
       mettreEnPlace: (d: object) => post("/banque/emprunts", d),
       lire: (numero: number) => get(`/banque/emprunts?numero=${numero}`),
+      enCours: () => get("/banque/emprunts/en-cours"),
       rembourser: (id: number, d: object) => post(`/banque/emprunts/${id}/remboursements`, d),
     },
     chequiers: {

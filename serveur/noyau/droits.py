@@ -300,8 +300,8 @@ LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
     (r"/comptabilite/declaration-taxes", ["S108"]),
     (r"/caisse/reglements-factures", ["S82"]),
     (r"/comptabilite/rapprochement/(contexte|journal)", ["S110", "S112"]),
-    (r"/comptabilite/rapprochement/historique", ["S112"]),
-    (r"/comptabilite/lettrage", ["S119"]),
+    (r"/comptabilite/rapprochement/historique", ["S110", "S112"]),   # plan d'allègement 7.13 : l'historique s'affiche sous le compte choisi (S110)
+    (r"/comptabilite/lettrage(/comptes)?", ["S119"]),
     (r"/comptabilite/controle/tresorerie", ["S143"]),
     (r"/comptabilite/controle/annulations(/contexte)?", ["S118"]),
     (r"/comptabilite/annulation-reglement", ["S142"]),

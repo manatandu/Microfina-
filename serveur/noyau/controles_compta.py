@@ -151,6 +151,16 @@ def compte_lettrable(u, numero: str) -> dict:
     return c
 
 
+def comptes_lettrables(u) -> list[dict]:
+    """Plan d'allègement 7.13 : le compte se choisit dans la liste des comptes lettrables, ceux qui portent des lignes définitives (T13) au débit et au crédit,
+    puisqu'un lettrage rapproche des débits et des crédits égaux (registre S119-2)"""
+    exiger(u)
+    return [{"compte": r["numero"], "intitule": r["libelle"]} for r in lignes(
+        """select c.numero, c.libelle from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join journee_comptable jc on jc.id = e.journee_id
+           join compte c on c.id = l.compte_id where e.institution_id = %s and jc.statut = 'fermee'
+           group by c.numero, c.libelle having bool_or(l.sens = 'D') and bool_or(l.sens = 'C') order by c.numero""", (u["institution_id"],))]
+
+
 def lettrage_lignes(u, p: dict) -> dict:
     """Bouton Afficher : les lignes définitives du compte (journées comptabilisées, T13), non lettrées, lettrées ou toutes"""
     exiger(u)

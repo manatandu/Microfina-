@@ -71,8 +71,8 @@ export function Rapprochement() {
           <div className="actions-onglets"><button className="bouton" type="submit">Rechercher</button></div>
         </fieldset></Recherche>
         <div className="actions-onglets">
-          <button className="bouton secondaire" type="button" disabled={!f.compte} onClick={() => setNouveau({ type: "decaissement", compte: "", libelle: "", montant: "", date: "" })}>Nouveau</button>
-          <button className="bouton secondaire" type="button" disabled={!j} onClick={exporter}>Exporter</button>
+          <button className="bouton secondaire" type="button" disabled={!f.compte} onClick={() => setNouveau({ type: "decaissement", compte: "", libelle: "", montant: "", date: "" })}>Ajouter une opération du relevé</button>
+          <button className="bouton secondaire" type="button" disabled={!j} onClick={exporter}>Établir l'état de rapprochement</button>
         </div>
         <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
           <thead><tr><th scope="col"><input type="checkbox" aria-label="Tout cocher" checked={tous} onChange={() => setCoches(tous ? new Set() : new Set(lignes.map((x) => x.id)))} /></th>
@@ -81,8 +81,10 @@ export function Rapprochement() {
             {visibles.map((x) => <tr key={x.id}><td><input type="checkbox" aria-label={`Cocher ${x.libelle}`} checked={coches.has(x.id)} onChange={() => basculer(x.id)} /></td>
               <td className="chiffres">{x.piece}</td><td className="chiffres">{fr(x.date)}</td><td>{x.libelle}</td><td className="num chiffres">{x.debit ? n(x.debit) : ""}</td><td className="num chiffres">{x.credit ? n(x.credit) : ""}</td></tr>)}</tbody>
         </table>)}</Paginee>
+        {f.compte && <HistoriqueDuCompte compte={f.compte} jour={jour} relu={fait} />}
         <Textes sources={["Manuel Microfina++, p. 129 : capture « Rapprochement Bancaire » ; p. 154 et 155 : banque, compte, période, solde à rapprocher ; Rechercher fait apparaître le journal banque ; cocher les opérations du relevé ; Nouveau pour celles qui manquent à nos livres ; Exporter pour l'état",
-          TEXTE_008, "Registre S110-1 à S110-5 : lignes pas encore pointées jusqu'à la date de fin ; état du solde comptable au solde du relevé ; le rapprochement enregistré entre à l'historique (S112)"]} />
+          TEXTE_008, "Registre S110-1 à S110-5 : lignes pas encore pointées jusqu'à la date de fin ; état du solde comptable au solde du relevé ; le rapprochement enregistré entre à l'historique (S112)",
+            "Plan d'allègement 7.13 : l'historique s'affiche sous le compte choisi ; « Établir l'état de rapprochement » et « Ajouter une opération du relevé » au lieu d'« Exporter » et « Nouveau »"]} />
       </section>
       <Fiche titre="État de rapprochement bancaire" ouverte={!!etat} fermer={() => setEtat(null)}>
         {etat && <div className="pile">
@@ -105,7 +107,7 @@ export function Rapprochement() {
             <button className="bouton" type="button" disabled={fait} onClick={enregistrer}>Enregistrer</button><button className="bouton secondaire" type="button" onClick={() => setEtat(null)}>Fermer</button></div>
         </div>}
       </Fiche>
-      <Fiche titre="Nouveau" ouverte={!!nouveau} fermer={() => setNouveau(null)}>
+      <Fiche titre="Ajouter une opération du relevé" ouverte={!!nouveau} fermer={() => setNouveau(null)}>
         {nouveau && <Formulaire className="pile formulaire" envoyer={enregistrerNouveau}>
           <Champ libelle="Type operation">{(p) => <select {...p} className="saisie" value={nouveau.type} onChange={(e) => setNouveau({ ...nouveau, type: e.target.value as "encaissement" | "decaissement" })}>
             <option value="encaissement">Encaissement divers</option><option value="decaissement">Décaissement divers</option></select>}</Champ>
@@ -119,6 +121,18 @@ export function Rapprochement() {
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );
+}
+
+/** Plan d'allègement 7.13 : les rapprochements enregistrés du compte bancaire choisi, sous le rapprochement (S110) */
+function HistoriqueDuCompte({ compte, jour, relu }: { compte: string; jour: string; relu: boolean }) {
+  const { donnees: h } = useDonnees(() => api.controlesCompta.historique({ mode: "periode", du: "2000-01-01", au: jour, compteBancaireId: compte }), [compte, jour, relu]);
+  return <Paginee lignes={h ?? []}>{(visibles) => (<table className="grille"><caption>Historique des rapprochements du compte</caption>
+    <thead><tr><th scope="col">Date</th><th scope="col">Date début</th><th scope="col">Date fin</th><th scope="col" className="num">Solde début</th>
+      <th scope="col" className="num">Solde Fin</th><th scope="col" className="num">Solde comptable</th><th scope="col" className="num">Écart</th><th scope="col">Utilisateur</th></tr></thead>
+    <tbody>{(h ?? []).length === 0 && <tr><td colSpan={8}>Aucun rapprochement enregistré.</td></tr>}
+      {visibles.map((x) => <tr key={x.id}><td className="chiffres">{fr(x.date)}</td><td className="chiffres">{fr(x.du)}</td><td className="chiffres">{fr(x.au)}</td>
+        <td className="num chiffres">{n(x.soldeDebut)}</td><td className="num chiffres">{n(x.soldeReleve)}</td><td className="num chiffres">{n(x.soldeComptable)}</td><td className="num chiffres">{n(x.ecart)}</td><td>{x.preparePar}</td></tr>)}</tbody>
+  </table>)}</Paginee>;
 }
 
 /** S112 : Rechercher (Par période, Par date), Période, Elément de la recherche (période rapprochée, Banque, Compte) ; Rechercher, Effacer */
@@ -170,7 +184,8 @@ export function HistoriqueRapprochement() {
 
 /** S119 : Rechercher (Date début *, Date fin, Compte *, écritures non lettrées, lettrées, toutes), Solde sélection, Lettrer, Liste des écritures comptables */
 export function Lettrage() {
-  const { donnees: jour } = useDonnees(() => api.journees.courante());
+  const { donnees: cadre } = useDonnees(async () => ({ j: await api.journees.courante(), comptes: await api.controlesCompta.comptesLettrables() }));
+  const jour = cadre?.j;
   const vide = { du: "", au: "", compte: "", etat: "non" };
   const [f, setF] = useState(vide);
   const [r, setR] = useState<Awaited<ReturnType<typeof api.controlesCompta.lettrageLignes>> | null>(null);
@@ -194,8 +209,9 @@ export function Lettrage() {
         <div className="deux-colonnes">
           <Recherche label="Rechercher" envoyer={afficher}><fieldset className="cadre-champs pile"><legend>Rechercher</legend>
             <div className="ligne-champ"><ChampDate libelle="Date début *" valeur={du} onChange={(v) => setF({ ...f, du: v })} requis /><ChampDate libelle="Date fin" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} /></div>
-            <div className="ligne-champ"><Champ libelle="Compte *">{(p) => <input {...p} className="saisie code" inputMode="numeric" autoComplete="off" value={f.compte} onChange={(e) => setF({ ...f, compte: e.target.value })} />}</Champ>
-              <Champ libelle="Intitulé">{(p) => <Lecture {...p} value={r?.intitule ?? ""} />}</Champ></div>
+            <div className="ligne-champ"><Champ libelle="Compte *">{(p) => <select {...p} className="saisie" value={f.compte} onChange={(e) => { setF({ ...f, compte: e.target.value }); setR(null); setCoches(new Set()); }}><option value=""></option>
+                {(cadre?.comptes ?? []).map((c) => <option key={c.compte} value={c.compte}>{c.compte}</option>)}</select>}</Champ>
+              <Champ libelle="Intitulé">{(p) => <Lecture {...p} value={cadre?.comptes.find((c) => c.compte === f.compte)?.intitule ?? ""} />}</Champ></div>
             <div className="ligne-champ" role="radiogroup">{radio("non", "Ecritures non lettrées")}{radio("lettrees", "Ecritures lettrées")}{radio("toutes", "Toutes les écritures")}</div>
             <div className="actions-onglets"><button className="bouton secondaire" type="submit">Afficher</button>
               <button className="bouton secondaire" type="button" onClick={() => { setF(vide); setR(null); setCoches(new Set()); }}>Effacer</button></div>
@@ -272,13 +288,13 @@ function RapportAnnulations() {
     <div className="actions-onglets"><button className="bouton" type="submit">Rechercher</button>
       <button className="bouton secondaire" type="button" disabled={!r || r.length === 0} onClick={() => r && exporterExcel("annulations", ["N° Pièce ancien", "N° Pièce nouveau", "N° Client", "Nom Prénom", "Montant", "Date", "Type d'opération", "Utilisateur"],
         r.map((x) => [x.ancienne, x.nouvelle, x.numeroClient, x.nom, x.montant / 100, fr(x.date), x.type, x.utilisateur]))}>Exporter</button></div></Recherche>
-    <Paginee lignes={r ?? []}>{(visibles) => (<table className="grille">
+    <Paginee lignes={r ?? []}>{(visibles) => (<div className="defile-x"><table className="grille">
       <thead><tr><th scope="col">N° Pièce ancien</th><th scope="col">N° Pièce nouveau</th><th scope="col">N° Client</th><th scope="col">Nom Prénom</th><th scope="col" className="num">Montant</th>
         <th scope="col">Date</th><th scope="col">Type d'opération</th><th scope="col">Utilisateur</th></tr></thead>
       <tbody>{(r ?? []).length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
         {visibles.map((x, i) => <tr key={i}><td className="chiffres">{x.ancienne}</td><td className="chiffres">{x.nouvelle}</td><td className="chiffres">{x.numeroClient}</td><td>{x.nom}</td>
           <td className="num chiffres">{montant(x.montant, "CDF")}</td><td className="chiffres">{fr(x.date)}</td><td>{x.type}</td><td>{x.utilisateur}</td></tr>)}</tbody>
-    </table>)}</Paginee>
+    </table></div>)}</Paginee>
     <Dialogue boite={boite} fermer={() => setBoite(null)} />
   </>;
 }

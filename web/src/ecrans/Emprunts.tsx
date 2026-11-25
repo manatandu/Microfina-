@@ -10,7 +10,7 @@ import { Champ, ChampDate, Chargement, Dialogue, Lecture, Textes, type Boite, Fo
 type Vue = Awaited<ReturnType<typeof api.emprunts.lire>>;
 const ONGLETS = ["Mise en place", "Remboursement"] as const;
 const VIDE = { banque: "", reference: "", montant: "", duree: "", date: "", taux: "", interet: "", commission: "", frais: "", commentaire: "", compte: "53300000", decision: "", autorisation: "" };
-const VIDE_R = { numero: "", date: "", amortissement: "", interet: "", commission: "" };
+const VIDE_R = { emprunt: "", date: "", amortissement: "", interet: "", commission: "" };
 const m0 = (v: string) => (v.trim() ? lireMontant(v) : 0);
 
 export function Emprunts() {
@@ -22,6 +22,9 @@ export function Emprunts() {
   const [emp, setEmp] = useState<Vue | null>(null);
   const [cle, setCle] = useState(nouvelleCle);
   const [boite, setBoite] = useState<Boite | null>(null);
+  const [relu, setRelu] = useState(0);
+  // Plan d'allègement 7.16 : la liste des emprunts en cours au lieu d'un numéro tapé dans « N°Compte »
+  const { donnees: enCours } = useDonnees(() => (onglet === 1 ? api.emprunts.enCours() : Promise.resolve([])), [onglet, relu]);
   if (!lu) return <Chargement />;
   const maj = (p: Partial<typeof VIDE>) => setF((x) => ({ ...x, ...p }));
   const majR = (p: Partial<typeof VIDE_R>) => setR((x) => ({ ...x, ...p }));
@@ -42,18 +45,14 @@ export function Emprunts() {
       catch (x) { erreur(x); }
     } });
   }
-  async function chercher() {
-    if (!/^\d+$/.test(r.numero.trim())) { setEmp(null); return; }
-    try { setEmp(await api.emprunts.lire(Number(r.numero))); } catch (x) { setEmp(null); erreur(x); }
-  }
   function rembourser() {
-    if (!emp) { erreur(new Error("À remplir : N°Compte (numéro de l'emprunt).")); return; }
+    if (!emp) { erreur(new Error("À remplir : Emprunt.")); return; }
     const valeurs = [m0(r.amortissement), m0(r.interet), m0(r.commission)];
     if (valeurs.some((v) => v === null)) { erreur(new Error("Montant invalide.")); return; }
     const [am, it, co] = valeurs as [number, number, number];
     const jour = r.date || lu!.date;
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
-      try { setEmp(await api.emprunts.rembourser(emp.id, { cle, date: jour, amortissement: am, interet: it, commission: co }));
+      try { setEmp(await api.emprunts.rembourser(emp.id, { cle, date: jour, amortissement: am, interet: it, commission: co })); setRelu((v) => v + 1);
         setR((x) => ({ ...x, amortissement: "", interet: "", commission: "" })); setCle(nouvelleCle()); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
       catch (x) { erreur(x); }
     } });
@@ -102,8 +101,9 @@ export function Emprunts() {
         {onglet === 1 && (
           <>
             <div className="formulaire">
-              <Champ libelle="N°Compte">{(p) => <input {...p} className="saisie code" inputMode="numeric" autoComplete="off" value={r.numero}
-                onChange={(e) => { majR({ numero: e.target.value }); setEmp(null); }} onBlur={chercher} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); chercher(); } }} />}</Champ>
+              <Champ libelle="Emprunt">{(p) => <select {...p} className="saisie" value={r.emprunt}
+                onChange={(e) => { majR({ emprunt: e.target.value }); setEmp((enCours ?? []).find((x) => String(x.id) === e.target.value) ?? null); }}>
+                <option value=""></option>{(enCours ?? []).map((x) => <option key={x.id} value={x.id}>{`N° ${x.numero} · ${x.reference} · ${montant(x.capitalRestant, x.devise as Devise)}`}</option>)}</select>}</Champ>
               <Champ libelle="Banque">{(p) => <Lecture {...p} value={emp ? `${emp.banque} · ${emp.reference}` : ""} />}</Champ>
               <Champ libelle="Capital Restant">{(p) => <input {...p} className="saisie montant" readOnly value={emp ? montant(emp.capitalRestant, emp.devise as Devise) : ""} />}</Champ>
               <ChampDate libelle="Date" valeur={r.date || lu.date} onChange={(v) => majR({ date: v })} />

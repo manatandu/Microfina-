@@ -331,7 +331,7 @@ const OUT = process.argv[2];
   await p.getByLabel('Code Banque: *').fill('RAW'); await p.getByLabel('Libellé : *').fill('Rawbank'); await p.getByLabel('Compte Liaison *').fill('56010000');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('cell', { name: 'Rawbank' }).waitFor(); await etape('06c1-banque-client');
-  await p.getByRole('tab', { name: 'Banque Institution' }).click();
+  await p.getByRole('tab', { name: "Comptes bancaires de l'institution" }).click();
   await p.getByLabel('Banque *').selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte *').fill('5701');
   await p.getByLabel('N° Compte Bancaire : *').fill('05100-01234567-89'); await p.getByLabel('Devise *').selectOption('USD'); await p.getByLabel('Nom *').fill('Mutombo');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
@@ -874,20 +874,28 @@ const OUT = process.argv[2];
   await rch.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rch.getByRole('row').filter({ hasText: 'Kalala' }).first().click();
   await p.getByLabel('Compte *', { exact: true }).selectOption({ index: 1 });
   await p.getByLabel('N° Chèque *').fill('0001234'); await p.getByLabel('Nom et prénoms Tireur *').fill('Kabeya Jean'); await p.getByLabel('Montant *').fill('400');
-  await p.getByLabel('Nom et Prénoms Déposant *').fill('Kabeya Jean');
+  // Plan d'allègement 7.16 : le cadre Déposant ne paraît que si le déposant n'est pas le titulaire (Instr. BCC 15, art. 11)
+  if (await p.getByLabel('Nom et Prénoms Déposant *').count()) throw new Error('S59 : cadre Déposant affiché pour le titulaire');
+  await p.getByLabel('Déposé par le titulaire du compte').uncheck(); await p.getByLabel('Nom et Prénoms Déposant *').fill('Kabeya Jean');
   await p.getByLabel('Banque', { exact: true }).selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte Banque *').selectOption({ label: '05100-01234567-89 (USD)' });
   await etape('06c11-depot-cheque');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
   await succes(); await etape('06c12-depot-cheque-resultat');
+  // Un onglet « Liste des chèques » avec un filtre Statut, au lieu de « Encaisser » et « Historique »
+  await p.getByRole('tab', { name: 'Liste des chèques' }).click(); await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'Rawbank' });
+  await p.getByLabel('Compte Bancaire *').selectOption({ label: '05100-01234567-89 (USD)' }); await p.getByRole('cell', { name: '0001234' }).waitFor();
+  await p.getByLabel('Statut').selectOption(''); await p.getByRole('cell', { name: 'Déposé', exact: true }).waitFor(); await etape('06c12b-liste-cheques');
   // Chéquier de l'institution (S60) : 25 chèques sur le compte en USD ; ils apparaissent dans la liste N° de chèque de S52
   await aller('/banque/s60'); await p.getByRole('heading', { name: 'Numéro Chequier' }).waitFor();
   await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte *', { exact: true }).selectOption({ label: '05100-01234567-89 (USD)' });
   await p.getByLabel('Nb.Feuillet *').selectOption('25'); await p.getByLabel('Début *').fill('0001001');
-  await p.getByRole('radiogroup', { name: 'Barré' }).getByLabel('Oui').check(); await etape('06c13-chequier');
+  await p.getByRole('radiogroup', { name: 'Barré' }).getByLabel('Oui').check();
+  if (await p.getByRole('radiogroup', { name: 'Visé' }).count()) throw new Error('S60 : « Visé » resté au chéquier');   // 7.16, T139 : le type chèque par chèque
+  await p.getByLabel('Type de chèque').selectOption('certifie'); await etape('06c13-chequier');
   await p.getByRole('button', { name: 'Generer' }).click(); await oui();
   await aller('/banque/s52'); await p.getByLabel('Type operation').selectOption('decaissement');
   await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte Banque *').selectOption({ label: '05100-01234567-89 (USD)' });
-  await p.getByLabel('N° de chèque').selectOption('0001001'); await etape('06c14-cheque-dans-s52');
+  await p.getByLabel('N° de chèque').selectOption('0001001'); await p.getByLabel('N° de chèque').locator('option', { hasText: '0001001 (Certifié)' }).waitFor({ state: 'attached' }); await etape('06c14-cheque-dans-s52');
   // Emprunt bancaire (S61) : mise en place au compte 533, puis un remboursement
   await aller('/banque/s61'); await p.getByRole('heading', { name: "Mise en place d'emprunt" }).waitFor();
   await p.getByLabel('Banque', { exact: true }).selectOption({ label: 'Rawbank 05100-01234567-89 (USD)' });
@@ -896,7 +904,9 @@ const OUT = process.argv[2];
   await p.getByLabel("Décision du Conseil d'administration *").fill('CA du 30/10/2026, résolution 3');
   await etape('06c15-emprunt');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  await p.getByRole('tab', { name: 'Remboursement' }).click(); await p.getByLabel('N°Compte').fill('1'); await p.getByLabel('N°Compte').press('Enter');
+  // Plan d'allègement 7.16 : l'emprunt se choisit dans la liste des emprunts en cours
+  await p.getByRole('tab', { name: 'Remboursement' }).click(); await p.getByLabel('Emprunt', { exact: true }).locator('option', { hasText: 'N° 1 ·' }).waitFor({ state: 'attached' });
+  await p.getByLabel('Emprunt', { exact: true }).selectOption({ index: 1 });
   await p.getByLabel('Capital Restant').and(p.locator('[value*="10"]')).waitFor();
   await p.getByLabel('Amortissement').fill('4 000'); await p.getByLabel('Intérêt', { exact: true }).fill('100');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
@@ -1063,13 +1073,15 @@ const OUT = process.argv[2];
   await p.getByRole('table', { name: 'Soldes et totaux par devise' }).getByRole('cell', { name: 'CDF', exact: true }).waitFor(); await etape('14g-journal-caisse');   // registre S83-6
   // Comptabilité : saisie d'écriture (S109, p. 128 et 129), autres opérations (S116, p. 133 à 135), virements mensuels (S117, p. 136)
   await login('Patrick Lumbala'); await aller('/comptabilite/s109');
-  const cj = p.getByRole('dialog', { name: 'Choix du journal' });
-  await cj.getByLabel('Journal:').selectOption({ label: 'Opérations diverses' }); await cj.getByLabel('Période:').selectOption('11/2026'); await etape('14h-choix-journal');
-  await cj.getByRole('button', { name: 'OK' }).click(); await cj.waitFor({ state: 'detached' }); await p.waitForLoadState('networkidle');   // la transaction s'ouvre avant la saisie
-  await p.getByLabel('Jour: *').fill('5'); await p.getByLabel('Libellé: *').fill('Honoraires'); await p.getByLabel('Compte: *').fill('46100000'); await p.getByLabel('Crédit: *').fill('2500');
+  // Plan d'allègement 7.14 : plus de fenêtre « Choix du journal » ; journal et date en tête ; un montant et un sens par ligne ; l'équilibre sous la grille
+  if (await p.getByRole('dialog', { name: 'Choix du journal' }).count()) throw new Error('S109 : fenêtre « Choix du journal » restée');
+  await p.getByLabel('Journal: *').selectOption({ label: 'Opérations diverses' }); await p.getByLabel('Date: *').fill('05112026'); await p.getByLabel('Date: *').press('Tab');
+  await p.waitForLoadState('networkidle'); await etape('14h-choix-journal');   // la transaction s'ouvre avant la saisie
+  await p.getByLabel('Libellé: *').fill('Honoraires'); await p.getByLabel('Compte: *').fill('46100000'); await p.getByLabel('Sens:').selectOption('C'); await p.getByLabel('Montant: *').fill('2500');
   await p.getByRole('button', { name: 'Ajouter' }).click(); await p.getByRole('cell', { name: '46100000', exact: true }).waitFor();
-  await p.getByLabel('Compte: *').fill('61000000'); await p.getByLabel('Débit: *').fill('2500'); await p.getByRole('button', { name: 'Ajouter' }).click();
-  await succes(); await etape('14i-saisie-ecriture');
+  await p.getByText(/^Pièce non équilibrée : il manque .+ au débit\.$/).waitFor();
+  await p.getByLabel('Compte: *').fill('61000000'); await p.getByLabel('Sens:').selectOption('D'); await p.getByLabel('Montant: *').fill('2500'); await p.getByRole('button', { name: 'Ajouter' }).click();
+  await succes(); await p.getByText('Pièce équilibrée.').waitFor(); await etape('14i-saisie-ecriture');
   await aller('/comptabilite/s116'); await p.getByRole('heading', { name: 'Autres opérations' }).waitFor(); await etape('14j-virement-prelevement');
   await aller('/epargne/se03'); await p.getByRole('heading', { name: 'Virement entre comptes' }).waitFor(); await p.getByText('Identifiant Recepteur').waitFor(); await etape('14k-compte-a-compte');
   await aller('/comptabilite/s116'); await p.getByRole('heading', { name: 'Autres opérations' }).waitFor();
@@ -1202,10 +1214,12 @@ const OUT = process.argv[2];
   await p.getByText('116 000,00 CDF').first().waitFor(); await etape('23b-facture-saisie');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByRole('tab', { name: 'Règlement' }).click(); await p.getByRole('heading', { name: 'Règlement de factures' }).waitFor(); await etape('23c-reglement');
-  await p.getByRole('tab', { name: 'Journal' }).click(); await p.getByRole('button', { name: 'Afficher' }).click(); await etape('23d-journal-achats');
   await p.getByRole('tab', { name: 'Rapport' }).click(); await p.getByLabel('Au :').fill('30112026'); await p.getByRole('radio', { name: 'Détaillé' }).check(); await p.getByRole('radio', { name: 'Tout' }).check();
   await p.getByRole('button', { name: 'Rechercher', exact: true }).click();
-  await p.getByRole('cell', { name: 'F-2026-001' }).first().waitFor(); await etape('23e-rapport-factures');
+  await p.getByRole('cell', { name: 'F-2026-001' }).first().waitFor(); await p.getByRole('columnheader', { name: 'Net à payer' }).waitFor(); await etape('23e-rapport-factures');   // 7.15 : HT, TVA, TTC, Retenues, Net à payer
+  // Plan d'allègement 7.15 : l'onglet Journal devient un lien vers le journal des achats (S115)
+  if (await p.getByRole('tab', { name: 'Journal' }).count()) throw new Error('S107 : onglet Journal resté');
+  await p.getByRole('link', { name: 'Journal achat' }).click(); await p.getByRole('heading', { name: 'Journal achat' }).waitFor(); await p.getByRole('button', { name: 'Afficher' }).click(); await etape('23d-journal-achats');
   // Plan d'allègement 7.10 : « Déclarations fiscales du mois », l'exercice et le mois une fois, deux onglets ; échéance (O.-L. 10/001, art. 60) et quittance
   await aller('/comptabilite/s108'); await p.getByRole('region', { name: 'État de déclaration des taxes' }).waitFor();
   await p.getByLabel('Taxe :').selectOption({ index: 1 }); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByText(/^Déclaration et paiement au plus tard le/).waitFor(); await etape('23f-declaration-taxes');
@@ -1229,18 +1243,18 @@ const OUT = process.argv[2];
   // Rapprochement bancaire (S110, p. 129, 154 et 155), historique (S112, p. 130)
   await login('Patrick Lumbala'); await aller('/comptabilite/s110');
   await p.getByLabel('Banque *').selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte *').selectOption({ index: 1 });
-  await p.getByLabel('Date Fin *').fill('30112026'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('button', { name: 'Exporter' }).waitFor();
+  await p.getByLabel('Date Fin *').fill('30112026'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('button', { name: "Établir l'état de rapprochement" }).waitFor();
   await p.getByLabel('Solde Fin').fill('0'); await etape('25a-rapprochement');
-  await p.getByRole('button', { name: 'Exporter' }).click(); const er = p.getByRole('dialog', { name: 'État de rapprochement bancaire' });
+  await p.getByRole('button', { name: "Établir l'état de rapprochement" }).click(); const er = p.getByRole('dialog', { name: 'État de rapprochement bancaire' });
   await er.getByText('Solde attendu au relevé').waitFor(); await etape('25b-etat-rapprochement');
   await er.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await er.getByRole('button', { name: 'Fermer' }).click();
-  await p.getByRole('button', { name: 'Nouveau' }).click(); await p.getByRole('dialog', { name: 'Nouveau' }).waitFor(); await etape('25c-rapprochement-nouveau');
-  await p.getByRole('dialog', { name: 'Nouveau' }).getByRole('button', { name: 'Annuler' }).click();
-  await aller('/comptabilite/s112'); await p.getByLabel('Au :').fill('30112026'); await p.getByRole('button', { name: 'Rechercher' }).click();
-  await p.getByRole('cell', { name: 'Rawbank' }).first().waitFor(); await etape('25d-historique-rapprochement');
+  // Plan d'allègement 7.13 : l'historique s'affiche sous le compte choisi ; « Ajouter une opération du relevé » au lieu de « Nouveau »
+  await p.getByRole('table', { name: 'Historique des rapprochements du compte' }).getByRole('cell', { name: 'Patrick Lumbala' }).first().waitFor(); await etape('25d-historique-rapprochement');
+  await p.getByRole('button', { name: 'Ajouter une opération du relevé' }).click(); const aj = p.getByRole('dialog', { name: 'Ajouter une opération du relevé' }); await aj.waitFor(); await etape('25c-rapprochement-nouveau');
+  await aj.getByRole('button', { name: 'Annuler' }).click();
   // Lettrage (S119, p. 138 et 160) ; contrôle (S118, p. 136 à 138) ; trésorerie (S143, p. 162)
-  await aller('/comptabilite/s119'); await p.getByLabel('Compte *').fill('61000000'); await p.getByRole('radio', { name: 'Toutes les écritures' }).check();
-  await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByLabel('Intitulé').waitFor(); await etape('26a-lettrage');
+  await aller('/comptabilite/s119'); await p.getByLabel('Compte *').selectOption({ index: 1 }); await p.getByRole('radio', { name: 'Toutes les écritures' }).check();   // 7.13 : comptes lettrables
+  await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('table', { name: 'Liste des écritures comptables' }).getByRole('row').nth(1).waitFor(); await etape('26a-lettrage');
   // Plan d'allègement 7.11 : S118 ne garde que le rapport des annulations ; la trésorerie n'existe plus qu'en S143 ; l'état des revenus passe en S122
   await aller('/comptabilite/s118'); if (await p.getByRole('tab').count()) throw new Error('S118 : onglets restés');
   if (await p.getByLabel('Rapport :').count()) throw new Error('S118 : liste « Rapport » restée');

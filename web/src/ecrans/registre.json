@@ -1052,11 +1052,12 @@
   {
     "id": "S112",
     "nom": "Historique des rapprochements",
-    "acces": "Comptabilité > Contrôle > Historique",
+    "acces": "Comptabilité > Contrôle > Rapprochement > Historique",
     "but": "Retrouver un rapprochement",
     "module": "comptabilite",
     "priorite": "must",
-    "chemin": "/comptabilite/s112"
+    "chemin": "/comptabilite/s112",
+    "menu": false
   },
   {
     "id": "S115",

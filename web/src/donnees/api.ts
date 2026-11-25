@@ -7,7 +7,7 @@ import { feriesLegaux, graine } from "./graine";
 import { creerApiHttp } from "./http";
 import {
   ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type Journee, type Ligne,
-  type ChequeClient, type Chequier, type DepotTerme, type ImmoBien, type PaieEmploye, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type OperationCompta, type LigneOc, type ChargeFacture, type CommandeFournisseur, type FactureFournisseur, type ReglementFournisseur, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
+  type ChequeClient, type ChequeInstitution, type Chequier, type DepotTerme, type ImmoBien, type PaieEmploye, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type OperationCompta, type LigneOc, type ChargeFacture, type CommandeFournisseur, type FactureFournisseur, type ReglementFournisseur, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
   type AnalyseFinanciere, type DemandeCredit, type CreditPret, type GarantieCredit, type NantissementMateriel, type RemboursementCredit, type VisaCredit, type BalanceAgee, type Adresse, type Procuration, type DonneurOrdre, type BeneficiaireVirement,
@@ -1769,7 +1769,7 @@ const banqueOperations = {
       typesBudget: (E.budget["types_budget"] ?? []).filter((x) => x.actif).map((x) => ({ id: x.id, code: String(x.code ?? ""), libelle: String(x.libelle ?? "") })),
       lignesBudget: (E.budget["lignes"] ?? []).filter((x) => x.actif).map((x) => ({ id: x.id, numero: String(x.numero ?? ""), libelle: String(x.libelle ?? ""), bailleurId: (x.bailleurId as number | null) ?? null })),
       cheques: E.chequesInstitution.filter((q) => q.statut === "disponible").sort((a, b) => a.compteBancaireId - b.compteBancaireId || a.numero.localeCompare(b.numero))
-        .map(({ id, compteBancaireId, numero }) => ({ id, compteBancaireId, numero })),   // S60 : liste « N° de chèque » (registre S60-1)
+        .map(({ id, compteBancaireId, numero, type }) => ({ id, compteBancaireId, numero, type: type ?? "ordinaire" })),   // S60 : liste « N° de chèque » (registre S60-1)
     };
   },
   enregistrer: (d: SaisieOperationBanque) => enregistrerOperationBanque(d, false),
@@ -2009,8 +2009,10 @@ function enregistrerOperationBanque(d: SaisieOperationBanque, client: boolean): 
 
 // ---------- Banque > Gestion Chèque Institution > Générer chéquier (S60, manuel p. 69). Règles identiques côté serveur (noyau/chequiers.py). ----------
 export const FEUILLETS = [25, 50, 100] as const;   // registre S60-3 : à confirmer
+/** Instr. BCC 25, ligne CMC7, zone 4 : code de type de chèque, marqué sur chaque formule (registre T139, plan d'allègement 7.16). Comme chequiers.TYPES_CHEQUE */
+export const TYPES_CHEQUE: Record<string, string> = { ordinaire: "Ordinaire", certifie: "Certifié", garanti: "Garanti", banque: "Chèque de banque" };
 const chequiers = {
-  generer(d: { cle: string; compteBancaireId?: number; nbFeuillets?: number; debut: string; barre?: boolean; vise?: boolean | null; certifie?: boolean | null }) {
+  generer(d: { cle: string; compteBancaireId?: number; nbFeuillets?: number; debut: string; barre?: boolean; type?: string }) {
     const u = exiger();
     const prec = E.chequiers.find((c) => c.cle === d.cle);
     if (prec) return prec;
@@ -2023,14 +2025,16 @@ const chequiers = {
     const z = debut.length, n0 = Number(debut), fin = n0 + nb - 1;
     if (String(fin).length > z) throw new ErreurMetier(`Fin : le dernier numéro (${fin}) dépasse ${z} chiffres.`);
     if (typeof d.barre !== "boolean") throw new ErreurMetier("À remplir : Barré.");
+    const type = (d.type || "ordinaire") as NonNullable<ChequeInstitution["type"]>;
+    if (!TYPES_CHEQUE[type]) throw new ErreurMetier("Type de chèque inconnu.");
     const deja = E.chequesInstitution.filter((q) => q.compteBancaireId === b.id && Number(q.numero) >= n0 && Number(q.numero) <= fin).map((q) => q.numero).sort().slice(0, 3);
     if (deja.length) throw new ErreurMetier(`Ces numéros existent déjà pour ce compte : ${deja.join(", ")}.`);   // S60-4
     const c: Chequier = { id: prochain(E.chequiers), cle: d.cle, compteBancaireId: b.id, nbFeuillets: nb, debut: String(n0).padStart(z, "0"), fin: String(fin).padStart(z, "0"),
-      barre: d.barre, vise: typeof d.vise === "boolean" ? d.vise : null, certifie: typeof d.certifie === "boolean" ? d.certifie : null, creePar: u.id };
+      barre: d.barre, creePar: u.id };
     E.chequiers.push(c);
     let id = prochain(E.chequesInstitution);
-    for (let n = n0; n <= fin; n++) E.chequesInstitution.push({ id: id++, chequierId: c.id, compteBancaireId: b.id, numero: String(n).padStart(z, "0"), statut: "disponible", operationBanqueId: null });
-    enregistrer(); return c;
+    for (let n = n0; n <= fin; n++) E.chequesInstitution.push({ id: id++, chequierId: c.id, compteBancaireId: b.id, numero: String(n).padStart(z, "0"), statut: "disponible", operationBanqueId: null, type });
+    enregistrer(); return { ...c, type };
   },
 };
 
@@ -2079,6 +2083,11 @@ const emprunts = {
     E.emprunts.push(e); enregistrer(); return vueEmprunt(e);
   },
   /** Remboursement : l'emprunt par son numéro (champ N°Compte) */
+  /** Plan d'allègement 7.16 : les emprunts en cours (capital restant à rembourser), pour le remboursement. Comme emprunts.en_cours */
+  enCours() {
+    exiger();
+    return [...E.emprunts].sort((a, b) => a.numero - b.numero).map(vueEmprunt).filter((x) => x.capitalRestant > 0);
+  },
   lire(numero: number) {
     exiger();
     const e = E.emprunts.find((x) => x.numero === numero);
@@ -7764,7 +7773,7 @@ const controlesCompta = {
   nouvelleOperation(d: SaisieOperationBanque) { return enregistrerOperationBanque(d, false); },
   /** S112 : rapprochements enregistrés, par période ou par date ; filtres : période rapprochée, banque, compte */
   historique(p: { mode?: string; du?: string; au?: string; periodeDu?: string; periodeAu?: string; banqueId?: number | string | null; compteBancaireId?: number | string | null }) {
-    lectureAdmin(["S112"]);
+    lectureAdmin(["S110", "S112"]);
     const du = dateCc(p.du, "Date Début"), au = p.mode === "date" ? du : dateCc(p.au, "Date Fin");
     if (du > au) throw new ErreurMetier("Date Début : avant la date fin.");
     const pdu = p.periodeDu ? dateCc(p.periodeDu, "Date deb. période rapprochement") : "", pau = p.periodeAu ? dateCc(p.periodeAu, "Date fin période rapprochement") : "";
@@ -7776,6 +7785,14 @@ const controlesCompta = {
           soldeReleve: r.soldeReleve, soldeComptable: r.soldeComptable, ecart: r.ecart, preparePar: nomUtilisateur(r.preparePar), lignes: r.lignes.length }; });
   },
   /** S119, bouton Afficher : les lignes définitives du compte (journées comptabilisées, T13), non lettrées, lettrées ou toutes */
+  /** Plan d'allègement 7.13 : comptes lettrables, ceux qui portent des lignes définitives au débit et au crédit (registre S119-2). Comme controles_compta.comptes_lettrables */
+  comptesLettrables() {
+    lectureAdmin(["S119"]);
+    const sens = new Map<string, Set<string>>(), noms = intitulesComptes();
+    for (const e of E.ecritures) { if (E.journees.find((x) => x.id === e.journeeId)?.statut !== "fermee") continue;
+      for (const l of e.lignes) sens.set(l.compte, (sens.get(l.compte) ?? new Set<string>()).add(l.sens)); }
+    return [...sens.entries()].filter(([, s]) => s.has("D") && s.has("C")).map(([compte]) => ({ compte, intitule: noms.get(compte) ?? "" })).sort((a, b) => a.compte.localeCompare(b.compte));
+  },
   lettrageLignes(p: { compte?: string; du?: string; au?: string; etat?: string }) {
     lectureAdmin(["S119"]);
     const compte = texteOc(p.compte), intitule = intitulesComptes().get(compte);

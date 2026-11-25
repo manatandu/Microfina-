@@ -2,7 +2,7 @@
 // L'opération est saisie ici ; elle est visée puis validée (S57) et comptabilisée (S111) : le numéro de pièce vient à la comptabilisation (registre S52-2).
 import { useState } from "react";
 import { blocBudget } from "../lib/budget";
-import { api, type SaisieOperationBanque } from "../donnees/api";
+import { api, TYPES_CHEQUE, type SaisieOperationBanque } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Formulaire } from "../composants";
@@ -62,7 +62,7 @@ export function OperationsBanque() {
   const annuler = () => { setF(vide); setCle(nouvelleCle()); };
   // N° de chèque : chèques encore disponibles des chéquiers du compte bancaire choisi (S60, registre S60-1 et S60-2)
   const chequeVide = (actif: boolean) => <Champ libelle="N° de chèque">{(p) => <select {...p} className="saisie" disabled={!actif} value={f.cheque} onChange={(e) => maj({ cheque: e.target.value })}>
-    <option value=""></option>{lu.cheques.filter((q) => String(q.compteBancaireId) === f.compte).map((q) => <option key={q.id} value={q.numero}>{q.numero}</option>)}</select>}</Champ>;
+    <option value=""></option>{lu.cheques.filter((q) => String(q.compteBancaireId) === f.compte).map((q) => <option key={q.id} value={q.numero}>{q.type && q.type !== "ordinaire" ? `${q.numero} (${TYPES_CHEQUE[q.type]})` : q.numero}</option>)}</select>}</Champ>;
 
   return (
     <>

@@ -2792,8 +2792,13 @@ def test_chequier_institution(clients, journee):
     ch = compta.post("/api/banque/chequiers", {"cle": cle(), **base}, **H).json()
     assert (ch["debut"], ch["fin"]) == ("0001001", "0001025")
     assert "existent déjà" in refus("/api/banque/chequiers", {**base, "debut": "0001020"})
+    assert "Type de chèque" in refus("/api/banque/chequiers", {**base, "compteBancaireId": ids["R-CDF-1"], "type": "vise"})
+    compta.post("/api/banque/chequiers", {"cle": cle(), **base, "compteBancaireId": ids["R-CDF-1"], "type": "certifie"}, **H)
     lu = compta.get("/api/banque/operations").json()
     assert len([q for q in lu["cheques"] if q["compteBancaireId"] == ids["R-USD-1"]]) == 25
+    # Registre T139 (Instr. BCC 25, zone 4) : le type est marqué sur chaque chèque généré ; ordinaire par défaut
+    assert {q["type"] for q in lu["cheques"] if q["compteBancaireId"] == ids["R-USD-1"]} == {"ordinaire"}
+    assert {q["type"] for q in lu["cheques"] if q["compteBancaireId"] == ids["R-CDF-1"]} == {"certifie"}
     dec = {"type": "decaissement", "date": "2026-11-05", "compteBancaireId": ids["R-USD-1"], "compte": "67100000", "libelle": "Frais", "montant": 1000}
     n = ident("select count(*) from operation_banque")
     assert "aucun chéquier" in refus("/api/banque/operations", {**dec, "cheque": "0009999"})
@@ -2824,6 +2829,10 @@ def test_emprunts_bancaires(clients, journee):
     assert "Rien à rembourser" in refus(f"/api/banque/emprunts/{e['id']}/remboursements", {**r, "amortissement": 0, "interet": 0})
     assert compta.post(f"/api/banque/emprunts/{e['id']}/remboursements", {"cle": cle(), **r}, **H).json()["capitalRestant"] == 600000
     assert "capital restant" in refus(f"/api/banque/emprunts/{e['id']}/remboursements", {**r, "amortissement": 600001})
+    # Plan d'allègement 7.16 : le remboursement choisit l'emprunt dans la liste des emprunts en cours
+    assert [(x["numero"], x["capitalRestant"]) for x in compta.get("/api/banque/emprunts/en-cours").json()] == [(1, 600000), (2, 1000000)]
+    compta.post(f"/api/banque/emprunts/{e['id']}/remboursements", {"cle": cle(), **r, "amortissement": 600000, "interet": 0}, **H)
+    assert [x["numero"] for x in compta.get("/api/banque/emprunts/en-cours").json()] == [2]
 
 
 def test_rapport_banque(clients, journee):
@@ -4675,6 +4684,9 @@ def test_lettrage_et_controles(clients, journee):
     comptabiliser_journee(clients, journee)
     l = compta.get(L, {"compte": "46100000", "du": "2026-11-01"}, **H).json()
     assert (l["intitule"], [(x["debit"], x["credit"], x["lettre"]) for x in l["lignes"]]) == ("Créditeurs divers", [(0, 300000, ""), (300000, 0, "")])
+    # Plan d'allègement 7.13 : le compte se choisit parmi les comptes lettrables (lignes définitives au débit et au crédit)
+    cl = [x["compte"] for x in compta.get(f"{L}/comptes", **H).json()]
+    assert "46100000" in cl and "61000000" not in cl and "72700000" not in cl
     ids_ = [x["id"] for x in l["lignes"]]
     assert "au moins deux" in compta.post(L, {"compte": "46100000", "lignes": ids_[:1]}, **H).json()["message"]
     assert "Compte" in compta.post(L, {"compte": "", "lignes": ids_}, **H).json()["message"]

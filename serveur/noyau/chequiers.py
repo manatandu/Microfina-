@@ -7,6 +7,8 @@ from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import exiger
 
 FEUILLETS = (25, 50, 100)        # registre S60-3 : valeurs de la liste Nb.Feuillet, à confirmer
+# Instr. BCC 25, ligne CMC7, zone 4 : code de type de chèque, marqué sur chaque formule (registre T139, plan d'allègement 7.16)
+TYPES_CHEQUE = {"ordinaire": "Ordinaire", "certifie": "Certifié", "garanti": "Garanti", "banque": "Chèque de banque"}
 
 
 def texte(d, k):
@@ -42,27 +44,29 @@ def generer(u, d) -> dict:
         raise ErreurMetier(f"Fin : le dernier numéro ({fin}) dépasse {chiffres} chiffres.")
     if not isinstance(d.get("barre"), bool):
         raise ErreurMetier("À remplir : Barré.")
+    type_ = texte(d, "type") or "ordinaire"
+    if type_ not in TYPES_CHEQUE:
+        raise ErreurMetier("Type de chèque inconnu.")
     deja = lignes("""select numero from cheque_institution where compte_bancaire_id = %s and numero::bigint between %s and %s order by numero limit 3""", (b["id"], n0, fin))
     if deja:                                                    # registre S60-4
         raise ErreurMetier(f"Ces numéros existent déjà pour ce compte : {', '.join(x['numero'] for x in deja)}.")
-    cid = valeur("""insert into chequier (institution_id, compte_bancaire_id, nb_feuillets, debut, fin, chiffres, barre, vise, certifie, cle_idempotence, cree_par)
-                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
-                 (i, b["id"], nb, n0, fin, chiffres, d["barre"], d.get("vise") if isinstance(d.get("vise"), bool) else None,
-                  d.get("certifie") if isinstance(d.get("certifie"), bool) else None, cle, u["id"]))
+    cid = valeur("""insert into chequier (institution_id, compte_bancaire_id, nb_feuillets, debut, fin, chiffres, barre, cle_idempotence, cree_par)
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
+                 (i, b["id"], nb, n0, fin, chiffres, d["barre"], cle, u["id"]))
     for n in range(n0, fin + 1):
-        executer("insert into cheque_institution (chequier_id, compte_bancaire_id, numero) values (%s, %s, %s)", (cid, b["id"], str(n).zfill(chiffres)))
+        executer("insert into cheque_institution (chequier_id, compte_bancaire_id, numero, type) values (%s, %s, %s, %s)", (cid, b["id"], str(n).zfill(chiffres), type_))
     return vue(une("select * from chequier where id = %s", (cid,)))
 
 
 def vue(c: dict) -> dict:
     z = c["chiffres"]
     return {"id": c["id"], "compteBancaireId": c["compte_bancaire_id"], "nbFeuillets": c["nb_feuillets"], "debut": str(c["debut"]).zfill(z), "fin": str(c["fin"]).zfill(z),
-            "barre": c["barre"], "vise": c["vise"], "certifie": c["certifie"]}
+            "barre": c["barre"], "type": (une("select type from cheque_institution where chequier_id = %s limit 1", (c["id"],)) or {"type": "ordinaire"})["type"]}
 
 
 def disponibles(institution_id: int) -> list[dict]:
     """Chèques de l'institution pas encore utilisés, pour la liste « N° de chèque » de S52"""
-    return lignes("""select q.id, q.compte_bancaire_id as "compteBancaireId", q.numero from cheque_institution q join compte_bancaire b on b.id = q.compte_bancaire_id
+    return lignes("""select q.id, q.compte_bancaire_id as "compteBancaireId", q.numero, q.type from cheque_institution q join compte_bancaire b on b.id = q.compte_bancaire_id
                      where b.institution_id = %s and b.supprime_le is null and q.statut = 'disponible' order by q.compte_bancaire_id, q.numero""", (institution_id,))
 
 

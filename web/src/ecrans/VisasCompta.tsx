@@ -9,7 +9,7 @@ import { fr } from "../lib/dates";
 import { decimal, montant, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee } from "../composants";
 import VisaRetraitPlafond from "./Visas";
-import { BonCommande, FicheImputation } from "./Factures";
+import { BonCommande, FicheImputation, retenuesDe } from "./Factures";
 
 type L = LigneOperationCompta;
 type Etape = "visa" | "validation";
@@ -74,12 +74,12 @@ function ListeFactures({ etape, poser }: { etape: Etape; poser: (b: Boite | null
   return <>
     <h2>{etape === "visa" ? "Visa Facture" : "Validation Facture"}</h2>
     <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
-      <thead><tr><th scope="col"><span className="sr-only">{bouton}</span></th><th scope="col">Date</th><th scope="col">Fournisseur</th><th scope="col">Référence</th><th scope="col" className="num">Montant à payer</th>
-        <th scope="col" className="num">Montant (HT)</th><th scope="col" className="num">TVA</th><th scope="col" className="num">TTC</th><th scope="col" className="num">Totale(s) charge(s)</th></tr></thead>
+      <thead><tr><th scope="col"><span className="sr-only">{bouton}</span></th><th scope="col">Date</th><th scope="col">Fournisseur</th><th scope="col">Référence</th>
+        <th scope="col" className="num">Montant (HT)</th><th scope="col" className="num">TVA</th><th scope="col" className="num">TTC</th><th scope="col" className="num">Retenues</th><th scope="col" className="num">Net à payer</th></tr></thead>
       <tbody>{lignes.length === 0 && <tr><td colSpan={9}>Aucune ligne.</td></tr>}
         {visibles.map((x) => <tr key={x.id}><td><button className="bouton secondaire" type="button" aria-label={`${bouton} ${x.reference}`} title={bouton} onClick={() => agir(x)}>↑</button></td>
-          <td className="chiffres">{fr(x.date)}</td><td>{x.fournisseur}</td><td>{x.reference}</td><td className="num chiffres">{nb(x.aPayer)}</td><td className="num chiffres">{nb(x.ht)}</td>
-          <td className="num chiffres">{nb(x.tva)}</td><td className="num chiffres">{nb(x.ttc)}</td><td className="num chiffres">{nb(x.totalCharges)}</td></tr>)}</tbody>
+          <td className="chiffres">{fr(x.date)}</td><td>{x.fournisseur}</td><td>{x.reference}</td><td className="num chiffres">{nb(x.ht)}</td>
+          <td className="num chiffres">{nb(x.tva)}</td><td className="num chiffres">{nb(x.ttc)}</td><td className="num chiffres">{nb(retenuesDe(x.charges))}</td><td className="num chiffres">{nb(x.aPayer)}</td></tr>)}</tbody>
     </table>)}</Paginee>
   </>;
 }
@@ -207,7 +207,6 @@ export function ValidationsComptables() {
     { libelle: "Virement et prélèvement", contenu: (p) => <Liste etape="validation" liste="virement" titre="Validation prélèvement/virement" colonnes={VIREMENT} fleche vide="Aucune information" poser={p} /> },
     { libelle: "Écritures comptables", contenu: (p) => <Liste etape="validation" liste="ecriture" titre="Ecritures en attente de validation" colonnes={ECRITURE} fleche={false} vide="Aucune ligne." poser={p} /> },
     { libelle: "Commande", contenu: (p) => <ListeCommandes validees={false} poser={p} /> },
-    { libelle: "Liste de commandes", contenu: (p) => <ListeCommandes validees poser={p} /> },
     { libelle: "Facture", contenu: (p) => <ListeFactures etape="validation" poser={p} /> },
     { libelle: "Règlement", contenu: (p) => <ListeReglements etape="validation" poser={p} /> },
     { libelle: "Virement compte à compte", contenu: (p) => <Liste etape="validation" liste="compte_a_compte" titre="Compte DAV vers un Autre Compte" colonnes={COMPTE} fleche={false} vide="Aucune information" poser={p} /> },

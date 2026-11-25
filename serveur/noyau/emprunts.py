@@ -127,6 +127,12 @@ def lire(u, numero: int) -> dict:
     return vue(e)
 
 
+def en_cours(u) -> list[dict]:
+    """Plan d'allègement 7.16 : le remboursement choisit l'emprunt dans la liste des emprunts en cours (capital restant à rembourser), au lieu d'un numéro tapé"""
+    exiger(u)
+    return [x for x in (vue(e) for e in lignes("select * from emprunt where institution_id = %s order by numero", (u["institution_id"],))) if x["capitalRestant"] > 0]
+
+
 def rembourser(u, eid: int, d) -> dict:
     """Bouton Enregistrer de « Remboursement emprunt »"""
     exiger(u)

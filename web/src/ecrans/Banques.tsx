@@ -22,7 +22,7 @@ export function CreationBanque() {
     <>
       <h2>Création banque</h2>
       <div className="onglets" role="tablist" aria-label="Création banque">
-        {["Banque Client", "Banque Institution"].map((o, i) => <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{o}</button>)}
+        {["Banques", "Comptes bancaires de l'institution"].map((o, i) => <button key={o} type="button" role="tab" id={`onglet-${i}`} aria-controls="volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{o}</button>)}
       </div>
       <section className="bloc pile" id="volet" role="tabpanel" aria-labelledby={`onglet-${onglet}`}>
         {onglet === 0 ? <BanqueClient d={donnees} confirmer={confirmer} /> : <BanqueInstitution d={donnees} confirmer={confirmer} />}
@@ -47,7 +47,7 @@ function BanqueClient({ d, confirmer }: Props) {
   return (
     <>
       <Formulaire className="pile" envoyer={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.banques.enregistrerBanque(f, choisi ?? undefined), annuler)}><fieldset className="cadre-champs formulaire">
-        <legend>Info Banque Client</legend>
+        <legend>Info banque</legend>
         <Champ libelle="Code Banque: *">{(p) => <input {...p} className="saisie code" required autoComplete="off" {...t("code")} />}</Champ>
         <Champ libelle="Libellé : *">{(p) => <input {...p} className="saisie" required autoComplete="off" {...t("libelle")} />}</Champ>
         <Champ libelle="Compte Liaison *">{(p) => <input {...p} className="saisie code" required inputMode="numeric" autoComplete="off" {...t("compteLiaison")} />}</Champ>
@@ -59,7 +59,7 @@ function BanqueClient({ d, confirmer }: Props) {
         <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
       </div></Formulaire>
       <fieldset className="pile cadre-champs">
-        <legend>Liste Banque Client</legend>
+        <legend>Liste des banques</legend>
         <TableFiltree lignes={d.banques} cle={(b) => b.id} choisi={choisi}
           choisir={(b) => { setChoisi(b.id); setF({ code: b.code, libelle: b.libelle, compteLiaison: b.compteLiaison, adresse: b.adresse }); }}
           colonnes={[{ titre: "Code Banque", valeur: (b) => b.code, classe: "chiffres" }, { titre: "Compte Liaison", valeur: (b) => b.compteLiaison, classe: "chiffres" },

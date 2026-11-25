@@ -2,7 +2,8 @@
 // « Tranches de paiement »), Enregistrement, Règlement, Journal (« Journal achat »), Rapport (« Facture »). La commande est validée (S114), la facture et le
 // règlement sont visés (S113) puis validés (S114) ; le règlement en espèces se paie à la caisse (S141). Registre S107-1 à S107-12.
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { vers } from "./registre";
 import { blocBudget } from "../lib/budget";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -11,7 +12,6 @@ import { fr } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { decimal, lireMontant, montant, montantEnLettres } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee, Recherche, Formulaire } from "../composants";
-import JournauxComptables from "./JournauxComptables";
 import RetenuesReverser from "./RetenuesReverser";
 
 type Ctx = Awaited<ReturnType<typeof api.facturesFournisseurs.contexte>>;
@@ -107,7 +107,6 @@ function BonDeCommande({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
   </table></div>;
   return <>
     <h2>Commandes Fournisseurs</h2>
-    <p className="chiffres">HT : <strong>{decimal.format((faite?.ht ?? ht) / 100)}</strong> TVA : <strong>{decimal.format((faite?.tva ?? mTva) / 100)}</strong> TTC : <strong>{decimal.format((faite?.ttc ?? ht + mTva) / 100)}</strong></p>
     <div className="deux-colonnes">
       <fieldset className="cadre-champs formulaire"><legend>Référence Commande</legend>
         <Champ libelle="N° Commande">{(p) => <Lecture {...p} value={faite?.numero ?? ""} />}</Champ>
@@ -118,7 +117,6 @@ function BonDeCommande({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
         <ChampDate libelle="Date opération" valeur={f.date || ctx.date} onChange={(v) => setF({ ...f, date: v })} />
       </fieldset>
       <Formulaire className="pile" envoyer={ajouter}><fieldset className="cadre-champs formulaire"><legend>Enregistrement des Lignes de commandes</legend>
-        <div className="ligne-champ"><label className="case"><input type="checkbox" disabled /><span>Produit</span></label><label className="case"><input type="checkbox" disabled /><span>Besoin</span></label></div>
         <Champ libelle="Compte">{(p) => <input {...p} className="saisie code" inputMode="numeric" autoComplete="off" list="comptes-achat" value={l.compte} onChange={(e) => setL({ ...l, compte: e.target.value })} />}</Champ>
         <datalist id="comptes-achat">{ctx.comptes.map((c) => <option key={c.numero} value={c.numero}>{c.libelle}</option>)}</datalist>
         <Champ libelle="Intitulé">{(p) => <Lecture {...p} value={intitule} />}</Champ>
@@ -126,8 +124,7 @@ function BonDeCommande({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
         <Champ libelle="Unité">{(p) => <input {...p} className="saisie" autoComplete="off" value={l.unite} onChange={(e) => setL({ ...l, unite: e.target.value })} />}</Champ>
         <Champ libelle="Quantité *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={l.quantite} onChange={(e) => setL({ ...l, quantite: e.target.value })} />}</Champ>
         <Champ libelle="Prix U. *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" value={l.pu} onChange={(e) => setL({ ...l, pu: e.target.value })} />}</Champ>
-        <div className="ligne-champ"><label className="case"><input type="checkbox" checked={l.tva} onChange={(e) => setL({ ...l, tva: e.target.checked })} /><span>TVA</span></label>
-          <label className="case"><input type="checkbox" disabled /><span>Joindre des documents</span></label></div>
+        <div className="ligne-champ"><label className="case"><input type="checkbox" checked={l.tva} onChange={(e) => setL({ ...l, tva: e.target.checked })} /><span>TVA</span></label></div>
         <div className="ligne-champ"><label className="case"><input type="checkbox" checked={l.retenue} onChange={(e) => setL({ ...l, retenue: e.target.checked, taxe: e.target.checked ? l.taxe : "" })} /><span>Retenue</span></label>
           <Champ libelle="Taux">{(p) => <select {...p} className="saisie" disabled={!l.retenue} value={l.taxe} onChange={(e) => setL({ ...l, taxe: e.target.value })}><option value=""></option>
             {retenues.map((t) => <option key={t.id} value={t.id}>{`${t.designation} ${t.taux} %`}</option>)}</select>}</Champ></div>
@@ -144,6 +141,7 @@ function BonDeCommande({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
       </fieldset></Formulaire>
     </div>
     {grille}
+    <p className="chiffres">HT : <strong>{decimal.format((faite?.ht ?? ht) / 100)}</strong> TVA : <strong>{decimal.format((faite?.tva ?? mTva) / 100)}</strong> TTC : <strong>{decimal.format((faite?.ttc ?? ht + mTva) / 100)}</strong></p>
     <div className="actions-onglets">
       <button className="bouton secondaire" type="button" disabled={!faite} onClick={() => setFiche("bon")}>Imprimer</button>
       <button className="bouton" type="button" disabled={lignes.length === 0 || !!faite} onClick={() => setFiche("tranches")}>Enregistrer</button>
@@ -172,8 +170,29 @@ function BonDeCommande({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
       <div className="pile">{grille}<div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={() => setFiche("")}>Fermer</button></div></div>
     </Fiche>
     <Fiche titre="Bon de commande" ouverte={fiche === "bon"} fermer={() => setFiche("")}>{faite && <BonCommande id={faite.id} fermer={() => setFiche("")} />}</Fiche>
+    <CommandesValidees />
   </>;
 }
+
+/** Liste de commandes validées (capture p. 132), sortie de l'écran de validation (plan d'allègement 7.15) : Imprimer le bon de commande */
+function CommandesValidees() {
+  const [bon, setBon] = useState<number | null>(null);
+  const { donnees } = useDonnees(() => api.facturesFournisseurs.commandes("validee"));
+  const lignes = donnees ?? [];
+  return <>
+    <Paginee lignes={lignes}>{(visibles) => (<div className="defile-x"><table className="grille"><caption>Liste de commandes validées</caption>
+      <thead><tr><th scope="col"><span className="sr-only">Imprimer</span></th><th scope="col">Date</th><th scope="col">N° Commande</th><th scope="col" className="num">Montant (HT)</th>
+        <th scope="col" className="num">TVA</th><th scope="col" className="num">TTC</th><th scope="col">Fournisseur</th><th scope="col">Description</th></tr></thead>
+      <tbody>{lignes.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
+        {visibles.map((x) => <tr key={x.id}><td><button className="bouton secondaire" type="button" aria-label={`Imprimer ${x.numero}`} title="Imprimer" onClick={() => setBon(x.id)}>↑</button></td>
+          <td className="chiffres">{fr(x.date)}</td><td className="chiffres">{x.numero}</td><td className="num chiffres">{decimal.format(x.ht / 100)}</td><td className="num chiffres">{decimal.format(x.tva / 100)}</td>
+          <td className="num chiffres">{decimal.format(x.ttc / 100)}</td><td>{x.fournisseur}</td><td>{x.libelle}</td></tr>)}</tbody>
+    </table></div>)}</Paginee>
+    <Fiche titre="Bon de commande" ouverte={bon !== null} fermer={() => setBon(null)}>{bon !== null && <BonCommande id={bon} fermer={() => setBon(null)} />}</Fiche>
+  </>;
+}
+/** Plan d'allègement 7.15 : les listes de factures suivent l'ordre HT, TVA, TTC, Retenues, Net à payer */
+export const retenuesDe = (charges: { montant: number; retenue?: boolean }[]) => charges.filter((x) => x.retenue).reduce((t, x) => t + x.montant, 0);
 
 /** Liste des charges et des retenues fiscales (captures p. 126 et 150) */
 function Charges({ charges, titre }: { charges: { libelle: string; taux: string; montant: number }[]; titre: string }) {
@@ -342,15 +361,15 @@ function Rapport({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
         {v.map((x) => <tr key={x.fournisseur}><td>{x.fournisseur}</td><td className="num chiffres">{x.nombre}</td><td className="num chiffres">{n(x.ht)}</td><td className="num chiffres">{n(x.tva)}</td>
           <td className="num chiffres">{n(x.ttc)}</td><td className="num chiffres">{n(x.regle)}</td><td className="num chiffres">{n(x.reste)}</td></tr>)}</tbody></table>)}</Paginee>
       : <Paginee lignes={r.lignes}>{(v) => (<table className="grille">
-        <thead><tr><th scope="col">Date</th><th scope="col">Fournisseur</th><th scope="col">Référence</th><th scope="col" className="num">Montant à payer</th><th scope="col" className="num">Montant (HT)</th>
-          <th scope="col" className="num">TVA</th><th scope="col" className="num">TTC</th><th scope="col" className="num">Totale(s) charge(s)</th><th scope="col" className="num">Reste</th></tr></thead>
+        <thead><tr><th scope="col">Date</th><th scope="col">Fournisseur</th><th scope="col">Référence</th><th scope="col" className="num">Montant (HT)</th>
+          <th scope="col" className="num">TVA</th><th scope="col" className="num">TTC</th><th scope="col" className="num">Retenues</th><th scope="col" className="num">Net à payer</th><th scope="col" className="num">Reste</th></tr></thead>
         <tbody>{r.lignes.length === 0 && <tr><td colSpan={9}>Aucune ligne.</td></tr>}
-          {v.map((x) => <tr key={x.id}><td className="chiffres">{fr(x.date)}</td><td>{x.fournisseur}</td><td>{x.reference}</td><td className="num chiffres">{n(x.aPayer)}</td><td className="num chiffres">{n(x.ht)}</td>
-            <td className="num chiffres">{n(x.tva)}</td><td className="num chiffres">{n(x.ttc)}</td><td className="num chiffres">{n(x.totalCharges)}</td><td className="num chiffres">{n(x.reste)}</td></tr>)}</tbody></table>)}</Paginee>)}
+          {v.map((x) => <tr key={x.id}><td className="chiffres">{fr(x.date)}</td><td>{x.fournisseur}</td><td>{x.reference}</td><td className="num chiffres">{n(x.ht)}</td>
+            <td className="num chiffres">{n(x.tva)}</td><td className="num chiffres">{n(x.ttc)}</td><td className="num chiffres">{n(retenuesDe(x.charges))}</td><td className="num chiffres">{n(x.aPayer)}</td><td className="num chiffres">{n(x.reste)}</td></tr>)}</tbody></table>)}</Paginee>)}
   </>;
 }
 
-const ONGLETS = ["Bon de commande", "Enregistrement", "Règlement", "Journal", "Rapport"];
+const ONGLETS = ["Bon de commande", "Enregistrement", "Règlement", "Rapport"];   // plan d'allègement 7.15 : l'onglet Journal devient un lien
 export default function Factures() {
   const { donnees: ctx } = useDonnees(() => api.facturesFournisseurs.contexte());
   const [onglet, setOnglet] = useState(0);
@@ -362,12 +381,12 @@ export default function Factures() {
       <div className="onglets" role="tablist" aria-label="Factures">
         {ONGLETS.map((o, i) => <button key={o} type="button" role="tab" id={`fa-${i}`} aria-controls="fa-volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{o}</button>)}
       </div>
+      <p><Link to={vers("S115", "?achats=1")}>Journal achat</Link></p>
       <section className="bloc pile" id="fa-volet" role="tabpanel" aria-labelledby={`fa-${onglet}`}>
         {onglet === 0 && <BonDeCommande ctx={ctx} poser={setBoite} />}
         {onglet === 1 && <Enregistrement ctx={ctx} poser={setBoite} />}
         {onglet === 2 && <Reglement ctx={ctx} poser={setBoite} />}
-        {onglet === 3 && <JournauxComptables achats />}
-        {onglet === 4 && <Rapport ctx={ctx} poser={setBoite} />}
+        {onglet === 3 && <Rapport ctx={ctx} poser={setBoite} />}
         <Textes sources={SOURCES} />
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />

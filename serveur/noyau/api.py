@@ -1288,6 +1288,12 @@ def rappro_historique(request):
     return cc.historique(u(request), request.GET.dict())
 
 
+@api.get("/comptabilite/lettrage/comptes")
+def lettrage_comptes(request):
+    from . import controles_compta as cc
+    return cc.comptes_lettrables(u(request))
+
+
 @api.get("/comptabilite/lettrage")
 def lettrage_lignes(request):
     from . import controles_compta as cc
@@ -1588,6 +1594,11 @@ def banque_cheque_traiter(request, cid: int, action: str, corps: dict = Body(def
 @api.post("/banque/chequiers")
 def banque_chequier_generer(request, corps: dict = Body(...)):
     return chqr.generer(u(request), corps)
+
+
+@api.get("/banque/emprunts/en-cours")
+def banque_emprunts_en_cours(request):
+    return emp.en_cours(u(request))
 
 
 @api.get("/banque/emprunts")

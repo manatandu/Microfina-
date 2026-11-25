@@ -1275,9 +1275,13 @@ describe("journée de guichet", () => {
     expect([ch.debut, ch.fin]).toEqual(["0001001", "0001025"]);
     expect((await api.chequiers.generer({ ...base, cle: k })).id).toBe(ch.id);
     await expect(api.chequiers.generer({ ...base, cle: cle(), debut: "0001020" })).rejects.toThrow("existent déjà");
-    await api.chequiers.generer({ ...base, cle: cle(), compteBancaireId: b2 });          // mêmes numéros, autre compte : permis
+    // Registre T139 (Instr. BCC 25, zone 4) : le type est marqué sur chaque chèque généré ; ordinaire par défaut
+    await expect(api.chequiers.generer({ ...base, cle: cle(), compteBancaireId: b2, type: "vise" })).rejects.toThrow("Type de chèque");
+    await api.chequiers.generer({ ...base, cle: cle(), compteBancaireId: b2, type: "certifie" });          // mêmes numéros, autre compte : permis
     const lu = await api.banqueOperations.lire();
     expect(lu.cheques.filter((q) => q.compteBancaireId === b1)).toHaveLength(25);
+    expect([...new Set(lu.cheques.filter((q) => q.compteBancaireId === b1).map((q) => q.type))]).toEqual(["ordinaire"]);
+    expect([...new Set(lu.cheques.filter((q) => q.compteBancaireId === b2).map((q) => q.type))]).toEqual(["certifie"]);
     const dec = { type: "decaissement" as const, date: "2026-11-05", compteBancaireId: b1, compte: "67100000", libelle: "Frais", montant: 1000 };
     await expect(api.banqueOperations.enregistrer({ ...dec, cle: cle(), cheque: "0009999" })).rejects.toThrow("aucun chéquier");
     expect((await api.banqueOperations.enregistrer({ ...dec, cle: cle(), cheque: "0001001" })).cheque).toBe("0001001");
@@ -1313,7 +1317,10 @@ describe("journée de guichet", () => {
     await expect(api.emprunts.rembourser(e.id, { ...r, cle: cle(), amortissement: 0, interet: 0 })).rejects.toThrow("Rien à rembourser");
     await expect(api.emprunts.rembourser(e.id, { ...r, cle: cle(), date: "2026-11-04" })).rejects.toThrow("précède");
     expect((await api.emprunts.rembourser(e.id, { ...r, cle: cle() })).capitalRestant).toBe(600000);
-    await expect(api.emprunts.rembourser(e.id, { ...r, cle: cle(), amortissement: 600001 })).rejects.toThrow("capital restant");
+    expect((await api.emprunts.enCours()).map((x) => [x.numero, x.capitalRestant])).toEqual([[1, 600000], [2, 1000000]]);   // 7.16 : liste des emprunts en cours
+    await api.emprunts.rembourser(e.id, { ...r, cle: cle(), amortissement: 600000, interet: 0 });
+    expect((await api.emprunts.enCours()).map((x) => x.numero)).toEqual([2]);
+    await expect(api.emprunts.rembourser(e.id, { ...r, cle: cle(), amortissement: 1 })).rejects.toThrow("capital restant");
     await connecter("bkasongo");
     await expect(api.emprunts.mettreEnPlace({ ...base, cle: cle() })).rejects.toThrow("Droit manquant");
   });
@@ -3394,6 +3401,8 @@ describe("journée de guichet", () => {
     const h = await api.controlesCompta.historique({ du: "2000-01-01", au: "2099-12-31" });
     expect(h.map((x) => [x.soldeReleve, x.soldeComptable, x.ecart, x.lignes])).toEqual([[500000, 380000, 0, 1]]);
     expect(await api.controlesCompta.historique({ du: "2000-01-01", au: "2099-12-31", periodeDu: "2027-01-01" })).toEqual([]);
+    expect((await api.controlesCompta.comptesLettrables()).map((x) => x.compte)).toContain("46100000");   // plan d'allègement 7.13
+    expect((await api.controlesCompta.comptesLettrables()).map((x) => x.compte)).not.toContain("61100000");
     const lt = await api.controlesCompta.lettrageLignes({ compte: "46100000", du: "2026-11-01" });
     expect([lt.intitule, lt.lignes.map((x) => [x.debit, x.credit, x.lettre])]).toEqual(["Créditeurs divers", [[0, 300000, ""], [300000, 0, ""]]]);
     const ids = lt.lignes.map((x) => x.id);
