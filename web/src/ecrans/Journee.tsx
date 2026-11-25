@@ -80,9 +80,9 @@ export function EcranJournee() {
         <TableFiltree sansFiltres lignes={liste} cle={(j) => j.id} colonnes={[
           { titre: "Journée", valeur: (j) => fr(j.date), classe: "chiffres" },
           { titre: "Ouverte le", valeur: (j) => quand(j.ouverteLe), classe: "chiffres" },
-          { titre: "par", valeur: (j) => nom(j.ouvertePar) },
+          { titre: "Ouverte par", valeur: (j) => nom(j.ouvertePar) },
           { titre: "Fermée le", valeur: (j) => quand(j.fermeeLe), classe: "chiffres" },
-          { titre: "par", valeur: (j) => nom(j.fermeePar) },
+          { titre: "Fermée par", valeur: (j) => nom(j.fermeePar) },
           { titre: "État", valeur: (j) => (j.statut === "fermee" ? "Fermée" : "Ouverte") },
         ]} />
         <Textes sources={["Manuel Microfina++, p. 21 : Ouverture de journée ; p. 19 : Ouverture/Fermeture de guichets ; p. 45 et 46 : cours ; plan d'allègement, point 8.5",
