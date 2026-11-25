@@ -36,7 +36,7 @@ const abonnes = new Set<() => void>();
 function charger(): Etat {
   try {
     const s = localStorage.getItem(CLE);
-    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 83) return e; }
+    if (s) { const e = JSON.parse(s) as Etat; if (e.version === 84) return e; }
   } catch { /* stockage indisponible : on repart de la graine */ }
   neuf = true;
   return miseEnService(graine());
@@ -7647,7 +7647,23 @@ const facturesFournisseurs = {
       const m = r.charges.filter((x) => x.taxeId === t.id).reduce((s, x) => s + x.montant, 0), f = E.facturesFournisseurs.find((x) => x.id === r.factureId)!;
       if (m) lignes.push({ date: r.dateValidation!, fournisseur: vueFactureF(f).fournisseur, reference: f.reference, base: proF(f.ht, r.montant, f.du), taux: t.taux, montant: m });
     }
-    return { taxe: `${t.designation} ${t.taux} %`, lignes, totalBase: lignes.reduce((s, x) => s + x.base, 0), total: lignes.reduce((s, x) => s + x.montant, 0) };
+    // Plan d'allègement 7.10 : échéance (O.-L. 10/001, art. 60 ; loi 004/2003, art. 22 bis : le 15 du mois qui suit) et référence de la quittance
+    const rv = E.reversementsTaxes.find((x) => x.taxeId === t.id && x.annee === an && x.mois === mois), echeance = echeanceRetenue(an, mois), jour = jourConformite();
+    const statut = rv ? "reverse" : !lignes.length ? "aucune" : jour > echeance ? "en_retard" : "a_reverser";
+    return { taxe: `${t.designation} ${t.taux} %`, lignes, totalBase: lignes.reduce((s, x) => s + x.base, 0), total: lignes.reduce((s, x) => s + x.montant, 0),
+      echeance, statut, reverseLe: rv?.reverseLe ?? "", reference: rv?.reference ?? "", notePar: nomUtilisateur(rv?.notePar) };
+  },
+  /** Plan d'allègement 7.10 : la déclaration ou la quittance d'une taxe du mois se note une fois (comme les retenues, SF01). Comme factures_fournisseurs.reverser_taxe */
+  reverserTaxe(d: { exercice: number | string; mois: number | string; taxeId: number | string; date: string; reference: string }) {
+    const u = exiger();
+    const e = facturesFournisseurs.declarationTaxes(d);
+    if (e.statut === "aucune") throw new ErreurMetier("Aucune ligne ce mois-là.");
+    if (e.statut === "reverse") throw new ErreurMetier("Reversement déjà noté.");
+    if (!DATE_ISO.test(d.date ?? "") || !(d.reference ?? "").trim()) throw new ErreurMetier("À remplir : date du reversement et référence de la déclaration ou de la quittance.");
+    const j = journees.courante(); if (j && d.date > j.date) throw new ErreurMetier("La date du reversement ne peut pas dépasser la journée ouverte.");
+    E.reversementsTaxes.push({ id: Math.max(0, ...E.reversementsTaxes.map((x) => x.id)) + 1, taxeId: Number(d.taxeId), annee: Number(d.exercice), mois: Number(d.mois), reverseLe: d.date,
+      reference: d.reference.trim(), notePar: u.id });
+    enregistrer(); return facturesFournisseurs.declarationTaxes(d);
   },
 };
 function suivreFacture(quoi: string, id: number, etape: "visa" | "validation", d: { cheque?: string; compteBancaireId?: number | null; dateEmission?: string } = {}) {
@@ -7678,7 +7694,7 @@ function suivreFacture(quoi: string, id: number, etape: "visa" | "validation", d
 }
 
 // ---------- Contrôles et travaux comptables : S110 Rapprochement bancaire (p. 129, 154 et 155), S112 Historique (p. 130), S119 Lettrage (p. 138 et 160),
-// S118 Contrôle (trésorerie, annulations, revenus, p. 136 et 137), S143 Autres > Trésorerie, S142 Annulation de règlement de crédit (p. 158).
+// S118 Rapport des annulations (p. 137), S143 Trésorerie (p. 136, 162 et 163 ; plan d'allègement 7.11), S142 Annulation de règlement de crédit (p. 158).
 // Mêmes règles que serveur/noyau/controles_compta.py. Instr. BCC 008, art. 10 et 11 ; PCCI § 3.3. ----------
 const dateCc = (v: unknown, nom: string) => { const x = texteOc(v); if (!DATE_ISO.test(x)) throw new ErreurMetier(`À remplir : ${nom}.`); return x; };
 const numCc = (v: unknown) => (/^-?\d+$/.test(String(v ?? "")) ? Number(v) : null);
@@ -7794,7 +7810,7 @@ const controlesCompta = {
   },
   /** S118 et S143, bouton Afficher : soldes des caisses et des banques à la date, brouillard compris (texte p. 162) */
   tresorerie(p: { date?: string }) {
-    lectureAdmin(["S118", "S143"]);
+    lectureAdmin(["S143"]);
     const d = dateCc(p.date, "Date"), jusque = E.ecritures.filter((e) => { const x = dateEcriture(e); return x && x <= d; });
     const caisses: { compte: string; designation: string; devise: string; solde: number }[] = [];
     for (const g of [...E.guichets].sort((a, b) => a.code.localeCompare(b.code))) {
@@ -7825,20 +7841,6 @@ const controlesCompta = {
       const c = ra ? E.credits.find((x) => x.id === ra.creditId) : undefined, t = c ? E.tiers.find((x) => x.id === c.tiersId) : undefined;
       return [{ ancienne: o.piece, nouvelle: a.piece, numeroClient: t?.numero ?? "", nom: t ? titulaire(t) : "", montant: a.lignes.filter((l) => l.sens === "D").reduce((s, l) => s + l.montantCdf, 0),
         date: dateEcriture(a), type: TYPES_ANNULATION[type] ?? type, libelle: a.libelle, utilisateur: nomUtilisateur(a.saisiPar) }]; });
-  },
-  /** S118, Etat des revenus : par jour (Détaillé) ou pour la période (Synthèse) : dépenses (classe 6), recettes (classe 7), résultat ; en CDF */
-  revenus(p: { du?: string; au?: string; resultat?: string }) {
-    lectureAdmin(["S118"]);
-    const du = dateCc(p.du, "Du"), au = dateCc(p.au, "Au");
-    if (du > au) throw new ErreurMetier("Du : avant Au.");
-    const par = new Map<string, { date: string; agence: string; depenses: number; recettes: number; resultat: number }>();
-    for (const e of E.ecritures) { const d = dateEcriture(e); if (!d || d < du || d > au || e.type === "vidage") continue;
-      for (const l of e.lignes) { if (!"67".includes(l.compte[0]!)) continue;
-        const x = par.get(d) ?? { date: d, agence: E.agence.code, depenses: 0, recettes: 0, resultat: 0 }; par.set(d, x);
-        if (l.compte[0] === "6") x.depenses += l.sens === "D" ? l.montantCdf : -l.montantCdf; else x.recettes += l.sens === "C" ? l.montantCdf : -l.montantCdf; } }
-    let lignes = [...par.values()].sort((a, b) => a.date.localeCompare(b.date)).map((x) => ({ ...x, resultat: x.recettes - x.depenses }));
-    if (p.resultat === "synthese" && lignes.length) lignes = [{ date: "", agence: E.agence.code, depenses: lignes.reduce((t, x) => t + x.depenses, 0), recettes: lignes.reduce((t, x) => t + x.recettes, 0), resultat: lignes.reduce((t, x) => t + x.resultat, 0) }];
-    return { lignes, depenses: lignes.reduce((t, x) => t + x.depenses, 0), recettes: lignes.reduce((t, x) => t + x.recettes, 0), resultat: lignes.reduce((t, x) => t + x.resultat, 0) };
   },
   /** S142, recherche du « N° de pièce » : les règlements par prélèvement sur compte, le dernier de chaque crédit en cours */
   reglementsAnnulables() {
@@ -8081,7 +8083,7 @@ interface ModeleEtats { liquidites: string[]; bilan: { actif: PosteBilan[]; pass
 const ME = MODELE_ETATS as unknown as ModeleEtats;
 const TYPES_EF: Record<string, string> = { developpe: "Version développée", modele: "Modèle PCCI" }, TYPES_BILAN_EF: Record<string, string> = { ...TYPES_EF, masses: "Par masses" }, TYPES_HB: Record<string, string> = { developpe: "Hors bilan développé", modele: "Modèle PCCI" };
 const PERIODICITES_EF: Record<string, string> = { mensuel: "Mensuel", annuel: "Annuel" };
-type CriteresEf = CriteresEtat & { annexe?: string; indicateur?: string; mois?: number | string };
+type CriteresEf = CriteresEtat & { annexe?: string; indicateur?: string; mois?: number | string; parJour?: boolean };
 type CoteBilan = "actif" | "passif";
 type ValeurPoste = { valeur: number; comptes: Map<string, number> };
 const commence = (n: string, ps: string[] = []) => ps.some((x) => n.startsWith(x));
@@ -8120,6 +8122,15 @@ function partsTiersEf(au: string, vidage: boolean) {
   const out = new Map<string, [number, number]>();
   for (const [k, v] of c) { if (!v) continue; const n = k.split("|")[0]!, x = out.get(n) ?? [0, 0]; x[v > 0 ? 0 : 1] += v; out.set(n, x); }
   return out;
+}
+/** Option « Détail par jour » du compte de résultat (ancien « Etat des revenus » de S118, plan d'allègement 7.11) : par jour, charges (classe 6), produits
+ *  (classe 7) et résultat ; mêmes écritures que le compte de résultat. Comme etats_financiers.par_jour */
+function parJourEf(du: string, au: string, vidage: boolean) {
+  const par = new Map<string, { date: string; agence: string; charges: number; produits: number; resultat: number }>();
+  for (const { e, date } of ecrituresDefinitives(du, au, vidage)) for (const l of e.lignes) { if (!"67".includes(l.compte[0]!)) continue;
+    const x = par.get(date) ?? { date, agence: E.agence.code, charges: 0, produits: 0, resultat: 0 }; par.set(date, x);
+    if (l.compte[0] === "6") x.charges += l.sens === "D" ? l.montantCdf : -l.montantCdf; else x.produits += l.sens === "C" ? l.montantCdf : -l.montantCdf; }
+  return [...par.values()].sort((a, b) => a.date.localeCompare(b.date)).map((x) => ({ ...x, resultat: x.produits - x.charges }));
 }
 function mouvementsGestionEf(du: string, au: string, vidage: boolean) {
   const s = new Map<string, number>();
@@ -8751,7 +8762,8 @@ const etatsFinanciers = {
     const lignes = ME.resultat.map((r, i) => { const cles = [...new Set([...n.out[i]!.comptes.keys(), ...n1.out[i]!.comptes.keys()])].sort();
       return { signe: r.signe ?? "", solde: !!r.solde, libelle: r.libelle, n: n.out[i]!.valeur, n1: n1.out[i]!.valeur,
         comptes: cles.map((k) => ({ compte: k, intitule: noms.get(k) ?? "", n: n.out[i]!.comptes.get(k) ?? 0, n1: n1.out[i]!.comptes.get(k) ?? 0 })) }; });
-    return { du, au, exercice: ex, precedentDu, precedentAu, type, lignes, nonRattaches: n.hors.map((k) => ({ compte: k, intitule: noms.get(k) ?? "" })) };
+    return { du, au, exercice: ex, precedentDu, precedentAu, type, lignes, nonRattaches: n.hors.map((k) => ({ compte: k, intitule: noms.get(k) ?? "" })),
+      jours: p.parJour ? parJourEf(du, au, vid) : undefined };
   },
   /** Etat annexe : emplois et ressources, flux de trésorerie (PCCI 14.3), ventilations de l'Instr. BCC 009, art. 1 */
   annexe(p: CriteresEf) {
@@ -9032,7 +9044,7 @@ const etatsCompta = {
   /** B22 : schémas comptables que le logiciel applique, pour le manuel de procédures de l'institution (Instr. BCC 008, art. 9 ; PCCI § 3.1) : par évènement,
    *  les journaux, les comptes débités et crédités des écritures définitives de l'exercice (T13). Comme etats_compta.schemas. */
   schemas(p: { exercice?: unknown }) {
-    lectureAdmin(["S115"]);
+    lectureAdmin(["S30"]);   // plan d'allègement, point 7.18 : au paramétrage des journaux
     if (!/^\d+$/.test(String(p.exercice ?? ""))) throw new ErreurMetier("À remplir : Exercice.");
     const ex = Number(p.exercice), noms = intitulesComptes();
     const out = new Map<string, { evenement: string; libelle: string; journaux: Set<string>; ecritures: number; debit: Set<string>; credit: Set<string> }>();
@@ -9091,7 +9103,9 @@ const etatsCompta = {
   contexte() {
     lectureAdmin(["S120", "S121", "S122", "S123"]);
     return { agences: [{ id: E.agence.id, nom: E.agence.nom }], exercices: [...E.exercices].map((x) => x.annee).sort((a, b) => b - a),
-      typesGrandLivre: Object.entries(TYPES_GRAND_LIVRE).map(([code, libelle]) => ({ code, libelle })), typesBalance: Object.entries(TYPES_BALANCE).map(([code, libelle]) => ({ code, libelle })) };
+      typesGrandLivre: Object.entries(TYPES_GRAND_LIVRE).map(([code, libelle]) => ({ code, libelle })), typesBalance: Object.entries(TYPES_BALANCE).map(([code, libelle]) => ({ code, libelle })),
+      // « Plan : Général / Analytique » montré seulement si l'analytique est tenue : une écriture définitive porte un compte auxiliaire (allègement 7.12)
+      analytique: E.ecritures.some((e) => E.journees.find((x) => x.id === e.journeeId)?.statut === "fermee" && e.lignes.some((l) => !!l.contrat)) };
   },
   grandLivre(p: CriteresEtat, analytique = false) {
     lectureAdmin(["S120"]);

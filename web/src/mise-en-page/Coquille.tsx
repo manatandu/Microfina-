@@ -86,11 +86,17 @@ export function Coquille() {
           {barre.map((x) => (
             <details key={x.id} open={x.groupes.some((g) => g.ecrans.some((e) => lieu.pathname === e.chemin))}>
               <summary>{libelle(x)}</summary>
-              <ul>
-                {x.groupes.flatMap((g) => g.ecrans).map((e) => (
-                  <li key={e.id}><NavLink to={e.chemin} className={CONSTRUITS[e.id] ? "" : "a-construire"}>{e.nom}</NavLink></li>
-                ))}
-              </ul>
+              {/* Plan d'allègement, point 7.19 : les groupes titrés du menu (Référentiels, Saisie, Contrôle…) aussi dans l'accès rapide */}
+              {x.groupes.map((g, i) => (
+                <div key={`${g.titre || "racine"}-${i}`} className="groupe-acces">
+                  {g.titre && <p className="titre-groupe">{g.titre}</p>}
+                  <ul>
+                    {g.ecrans.map((e) => (
+                      <li key={e.id}><NavLink to={e.chemin} className={CONSTRUITS[e.id] ? "" : "a-construire"}>{e.nom}</NavLink></li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </details>
           ))}
         </aside>

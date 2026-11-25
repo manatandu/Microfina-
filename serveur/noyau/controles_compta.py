@@ -1,11 +1,10 @@
 """Contrôles et travaux comptables (manuel Microfina++) : S110 Rapprochement bancaire (p. 129 ; procédure p. 154 et 155) et S112 Historique (p. 130),
-S119 Lettrage (p. 138 et 160), S118 Contrôle (trésorerie, rapport des annulations, état des revenus, p. 136 et 137, 162 et 163), S143 Autres > Trésorerie,
+S119 Lettrage (p. 138 et 160), S118 Rapport des annulations (p. 137), S143 Trésorerie (p. 136, 162 et 163 ; plan d'allègement 7.11),
 S142 Annulation de règlement de crédit (p. 158).
 Instr. BCC 008, art. 10 et 11 : fiabilité et exhaustivité de l'enregistrement, piste d'audit, justification des soldes comptables.
 PCCI § 3.3 : toute correction se fait par inscription en négatif ; l'écriture d'annulation est liée à l'écriture d'origine.
 Mêmes règles que web/src/donnees/api.ts (controlesCompta). Registre S110, S112, S118, S119, S142, S143."""
 import uuid
-from collections import defaultdict
 from datetime import date
 
 from psycopg.types.json import Jsonb
@@ -265,30 +264,6 @@ def annulations(u, p: dict) -> list[dict]:
 
 
 # ---------- S118 : Etat des revenus ----------
-def revenus(u, p: dict) -> dict:
-    """Bouton Afficher : par jour (Détaillé) ou pour la période (Synthèse) : dépenses (classe 6), recettes (classe 7), résultat ; montants en CDF"""
-    exiger(u)
-    du, au = d_(p.get("du"), "Du"), d_(p.get("au"), "Au")
-    if du > au:
-        raise ErreurMetier("Du : avant Au.")
-    rows = lignes("""select e.date_valeur, a.code as agence,
-                            sum(case when left(c.numero, 1) = '6' then (case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end) else 0 end) as depenses,
-                            sum(case when left(c.numero, 1) = '7' then (case l.sens when 'C' then l.montant_cdf else -l.montant_cdf end) else 0 end) as recettes
-                     from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join compte c on c.id = l.compte_id join journee_comptable jc on jc.id = e.journee_id
-                     join agence a on a.id = jc.agence_id
-                     where e.institution_id = %s and e.date_valeur between %s and %s and left(c.numero, 1) in ('6', '7') and e.type <> 'vidage'
-                     group by 1, 2 order by 1, 2""", (u["institution_id"], du, au))
-    det = [{"date": r["date_valeur"].isoformat(), "agence": r["agence"], "depenses": int(r["depenses"]), "recettes": int(r["recettes"]), "resultat": int(r["recettes"] - r["depenses"])}
-           for r in rows]
-    if p.get("resultat") == "synthese":
-        g = defaultdict(lambda: [0, 0])
-        for x in det:
-            g[x["agence"]][0] += x["depenses"]
-            g[x["agence"]][1] += x["recettes"]
-        det = [{"date": "", "agence": k, "depenses": v[0], "recettes": v[1], "resultat": v[1] - v[0]} for k, v in sorted(g.items())]
-    return {"lignes": det, "depenses": sum(x["depenses"] for x in det), "recettes": sum(x["recettes"] for x in det), "resultat": sum(x["resultat"] for x in det)}
-
-
 # ---------- S142 : Annulation de règlement d'un crédit effectué par prélèvement sur compte ----------
 def reglements_annulables(u) -> list[dict]:
     """Recherche du « N° de pièce » : les remboursements par prélèvement sur compte ou par banque (plan d'allègement, point 6.9), le dernier de chaque crédit en cours"""

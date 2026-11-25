@@ -3103,6 +3103,9 @@ describe("journée de guichet", () => {
     expect([o.statut, o.piece.includes("OD")]).toEqual(["comptabilisee", true]);
     const jc = await api.etatsCompta.journauxContexte();
     expect([jc.exerciceActif, jc.mois.length]).toEqual([2026, 12]);
+    // Allègement 7.12 : « Plan : Général / Analytique » montré seulement si une écriture définitive porte un compte auxiliaire
+    const aux = _etat().ecritures.some((e) => _etat().journees.find((x) => x.id === e.journeeId)?.statut === "fermee" && e.lignes.some((l) => !!l.contrat));
+    expect((await api.etatsCompta.contexte()).analytique).toBe(aux);
     const q = (k: Record<string, unknown>) => api.etatsCompta.journaux({ exercice: 2026, mois: 11, ...k });
     const jr = await q({ journalId: od });
     expect(jr.lignes.map((x) => [x.compte, x.debit, x.credit]).sort()).toEqual([["46100000", 0, 250000], ["61000000", 200000, 0], ["61240000", 50000, 0]]);
@@ -3115,6 +3118,8 @@ describe("journée de guichet", () => {
     expect((await q({ mois: 10 })).lignes).toEqual([]);
     await expect(api.etatsCompta.journaux({})).rejects.toThrow("Exercice");
     // B22 : schémas comptables appliqués, par évènement (Instr. BCC 008, art. 9 ; PCCI § 3.1)
+    await expect(api.etatsCompta.schemas({ exercice: 2026 })).rejects.toThrow("Droit manquant");   // plan d'allègement, point 7.18 : au paramétrage des journaux (S30)
+    await connecter("jpmukendi");
     const sc = await api.etatsCompta.schemas({ exercice: 2026 });
     const em = sc.schemas.find((x) => x.evenement === "ecriture_manuelle")!;
     expect([em.libelle, em.journaux, em.ecritures, em.debit.map((x) => x.compte), em.credit.map((x) => x.compte)]).toEqual(["Écriture saisie", ["OD"], 1, ["61000000", "61240000"], ["46100000"]]);   // comme le serveur
@@ -3304,6 +3309,14 @@ describe("journée de guichet", () => {
     const dt = await api.facturesFournisseurs.declarationTaxes({ exercice: 2026, mois: 11, taxeId: tx.TVA });
     expect([dt.total, dt.totalBase, dt.lignes[0]!.reference]).toEqual([193600, 1210000, "FA-2026-118"]);
     await expect(api.facturesFournisseurs.declarationTaxes({ exercice: 2026, mois: 11 })).rejects.toThrow("Taxe");
+    // Plan d'allègement 7.10 : échéance le 15 du mois qui suit (O.-L. 10/001, art. 60 ; loi 004/2003, art. 22 bis) ; la quittance se note une fois
+    expect([dt.echeance, dt.statut, dt.reference]).toEqual(["2026-12-15", "a_reverser", ""]);
+    const bt = { exercice: 2026, mois: 11, taxeId: tx.TVA! };
+    await expect(api.facturesFournisseurs.reverserTaxe({ ...bt, date: "2026-11-05", reference: " " })).rejects.toThrow("référence");
+    await expect(api.facturesFournisseurs.reverserTaxe({ ...bt, date: "2026-11-06", reference: "Q-1" })).rejects.toThrow("journée ouverte");
+    const rt = await api.facturesFournisseurs.reverserTaxe({ ...bt, date: "2026-11-05", reference: "DGI-TVA-2026-11" });
+    expect([rt.statut, rt.reverseLe, rt.reference]).toEqual(["reverse", "2026-11-05", "DGI-TVA-2026-11"]);
+    await expect(api.facturesFournisseurs.reverserTaxe({ ...bt, date: "2026-11-05", reference: "X" })).rejects.toThrow("déjà noté");
     const ja = await api.etatsCompta.journaux({ exercice: 2026, mois: 11, achats: true });
     expect([["400", "610", "612", "432", "433"].every((n) => ja.lignes.some((x) => x.compte.startsWith(n))), ja.totalDebit === ja.totalCredit]).toEqual([true, true]);
   });
@@ -3390,9 +3403,12 @@ describe("journée de guichet", () => {
     expect((await api.controlesCompta.lettrageLignes({ compte: "46100000", du: "2026-11-01", etat: "lettrees" })).lignes.map((x) => x.lettre)).toEqual(["A", "A"]);
     const l611 = (await api.controlesCompta.lettrageLignes({ compte: "61100000", du: "2026-11-01" })).lignes;
     await expect(api.controlesCompta.lettrer({ compte: "61100000", lignes: [l611[0]!.id, l611[0]!.id] })).rejects.toThrow("total débit doit égaler");
-    const rv = await api.controlesCompta.revenus({ du: "2026-11-01", au: "2026-11-30" });
-    expect([rv.depenses, rv.recettes, rv.resultat, rv.lignes[0]!.date]).toEqual([420000, 800000, 380000, "2026-11-05"]);
-    expect((await api.controlesCompta.revenus({ du: "2026-11-01", au: "2026-11-30", resultat: "synthese" })).lignes.map((x) => [x.date, x.depenses])).toEqual([["", 420000]]);
+    // Plan d'allègement 7.11 : l'état des revenus devient l'option « Détail par jour » du compte de résultat (S122), sur les écritures définitives
+    const rj = (await api.etatsFinanciers.resultat({ du: "2026-11-01", au: "2026-11-30", parJour: true })).jours!;
+    const tot = (k: "charges" | "produits" | "resultat") => rj.reduce((t, x) => t + x[k], 0);
+    expect([tot("charges"), tot("produits"), tot("resultat"), rj[0]!.date]).toEqual([420000, 800000, 380000, "2026-11-05"]);
+    expect((await api.etatsFinanciers.resultat({ du: "2026-11-01", au: "2026-11-30" })).jours).toBeUndefined();
+    expect("revenus" in api.controlesCompta).toBe(false);
   });
 
   it("annulation d'un règlement de crédit fait par prélèvement (S142, p. 158) : écriture inverse liée, échéances d'avant retrouvées, rapport des annulations (S118)", async () => {

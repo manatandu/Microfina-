@@ -1,6 +1,7 @@
 // S116 : Comptabilité > Autres opérations (manuel Microfina++, p. 133 à 135 ; procédures p. 160 et 161). Trois onglets : Virement/Prélèvement, Opération diverse,
 // Operations deplacées ; le virement compte à compte est sous Épargne > Virement entre comptes (SE03, plan d'allègement, point 5.12). Saisies ici, visées (S113), puis validées (S114) et comptabilisées (S111), ou payées en caisse (S82). Registre S116-1 à S116-7.
 import { useState } from "react";
+import { blocBudget } from "../lib/budget";
 import { api, type LigneOperationCompta } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -175,7 +176,7 @@ function OperationDiverse({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
   function enregistrer() {
     poser({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try { await api.operationsCompta.enregistrerDiverse({ cle, sens: f.sens, date: f.date || ctx.date, multiligne: g.multi, lignes: g.envoi(),
-          typeBudgetId: f.typeBudget ? Number(f.typeBudget) : null, ligneBudgetId: f.ligneBudget ? Number(f.ligneBudget) : null });
+          ...(blocBudget(ctx.lignesBudget, g.envoi().map((x) => x.compte)) ? { typeBudgetId: f.typeBudget ? Number(f.typeBudget) : null, ligneBudgetId: f.ligneBudget ? Number(f.ligneBudget) : null } : { typeBudgetId: null, ligneBudgetId: null }) });
         annuler(); setRelu((v) => v + 1); poser({ type: "succes", message: "Enregistré avec succès !" }); }
       catch (x) { poser({ type: "erreur", message: message(x) }); }
     } });
@@ -190,13 +191,13 @@ function OperationDiverse({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
         <ChampDate libelle="Date opération" valeur={f.date || ctx.date} onChange={(v) => setF({ ...f, date: v })} />
       </div>
       <ChampsLignes g={g} ctx={ctx} devise="CDF" />
-      <div className="formulaire">
+      {blocBudget(ctx.lignesBudget, [g.s.compte, ...g.l.map((x) => x.compte)]) && <div className="formulaire">
         <Champ libelle="Type budget">{(p) => <select {...p} className="saisie" value={f.typeBudget} onChange={(e) => setF({ ...f, typeBudget: e.target.value })}>
           <option value="">Choisissez un budget</option>{ctx.typesBudget.map((t) => <option key={t.id} value={t.id}>{t.libelle}</option>)}</select>}</Champ>
         <Champ libelle="Ligne budgétaire :">{(p) => <select {...p} className="saisie" value={f.ligneBudget} onChange={(e) => setF({ ...f, ligneBudget: e.target.value })}>
           <option value="">Choisissez un financement</option>{ctx.lignesBudget.map((l) => <option key={l.id} value={l.id}>{l.numero} {l.libelle}</option>)}</select>}</Champ>
         <p>Bailleur : <strong>{ligne?.bailleur ?? ""}</strong></p>
-      </div>
+      </div>}
     </fieldset>
     <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button><button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button></div></Formulaire>
     <Paginee lignes={lignes}>{(visibles) => (<table className="grille">

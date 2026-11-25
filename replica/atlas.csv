@@ -16,7 +16,7 @@ S12,Ouverture de journée,"21 (texte), 22",A,traitement,,,1 Administration,oui
 S13,Rapport des transactions,22,A,rapport,définition d'une opération et d'une annulation,D:S118 rapport des annulations,1 Administration,oui
 S14,Général : secteur d'activité,23,A,liste,Modifier et Supprimer,G:p.12,2 Paramétrage,oui
 S14a,Général : Type d'activité,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S14 (secteur parent), S37 à S39",2 Paramétrage,oui
-S14b,Général : Profession,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37",2 Paramétrage,oui
+S14b,Général : Profession,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37",2 Paramétrage,non
 S14c,Général : Catégorie,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37 à S39, S15 (élément Categorie)",2 Paramétrage,non
 S14d,Général : Type de pièce,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37 à S39, S59 (pièce du déposant)",2 Paramétrage,non
 S14e,Général : Civilité,23 (nom dans la liste de gauche),D,liste,tout l'écran,"A:S14 (même page, même forme) ; D:S37",2 Paramétrage,non
@@ -98,7 +98,7 @@ S80,Billetage : validation,92 ; doublon 106,A,visa,,,6 Caisse,oui
 S81,"Transfert : caisse vers caisse, caisse vers banque",92 et 93 ; doublons 106 et 107,A,guichet,,R:PCCI (mouvements de fonds),6 Caisse,oui
 S82,"Valider opérations : diverses, déplacées",93 et 94 ; doublons 107 et 108,A,visa,,,6 Caisse,oui
 S83,Rapport : journal des opérations de caisse,95 ; doublon 109,A,rapport,,,6 Caisse,oui
-S141,Règlement facture espèce,84 et 97 (nom dans le menu Caisse),D,guichet,tout l'écran,"A:S107 règlement (p. 127 et 153), S78",6 Caisse,oui
+S141,Règlement facture espèce,84 et 97 (nom dans le menu Caisse),D,guichet,tout l'écran,"A:S107 règlement (p. 127 et 153), S78",6 Caisse,non
 S84,Plan d'amortissement (simulation),111,B,onglets,"pages Montant et durée, Récapitulatif, Échéancier",M:texte p. 111 ; A:S89,7 Crédit,oui
 S85,"Analyse financière : allégée, développée",112 (deux captures),B,onglets,onglets suivants,M:noms d'onglets ; P,7 Crédit,oui
 S86,Dossier : analyse (demande),113,B,onglets,page de détail après Suivant,M:texte p. 113,7 Crédit,oui

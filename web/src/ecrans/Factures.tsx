@@ -2,6 +2,8 @@
 // « Tranches de paiement »), Enregistrement, Règlement, Journal (« Journal achat »), Rapport (« Facture »). La commande est validée (S114), la facture et le
 // règlement sont visés (S113) puis validés (S114) ; le règlement en espèces se paie à la caisse (S141). Registre S107-1 à S107-12.
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { blocBudget } from "../lib/budget";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
@@ -10,6 +12,7 @@ import { exporterExcel } from "../lib/excel";
 import { decimal, lireMontant, montant, montantEnLettres } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee, Recherche, Formulaire } from "../composants";
 import JournauxComptables from "./JournauxComptables";
+import RetenuesReverser from "./RetenuesReverser";
 
 type Ctx = Awaited<ReturnType<typeof api.facturesFournisseurs.contexte>>;
 type Commande = Awaited<ReturnType<typeof api.facturesFournisseurs.enregistrerCommande>>;
@@ -128,11 +131,12 @@ function BonDeCommande({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
         <div className="ligne-champ"><label className="case"><input type="checkbox" checked={l.retenue} onChange={(e) => setL({ ...l, retenue: e.target.checked, taxe: e.target.checked ? l.taxe : "" })} /><span>Retenue</span></label>
           <Champ libelle="Taux">{(p) => <select {...p} className="saisie" disabled={!l.retenue} value={l.taxe} onChange={(e) => setL({ ...l, taxe: e.target.value })}><option value=""></option>
             {retenues.map((t) => <option key={t.id} value={t.id}>{`${t.designation} ${t.taux} %`}</option>)}</select>}</Champ></div>
+        {blocBudget(ctx.lignesBudget, [l.compte]) && <>
         <Champ libelle="Type budget">{(p) => <select {...p} className="saisie" value={l.typeBudget} onChange={(e) => setL({ ...l, typeBudget: e.target.value })}>
           <option value="">Choisissez un budget</option>{ctx.typesBudget.map((t) => <option key={t.id} value={t.id}>{t.libelle}</option>)}</select>}</Champ>
         <Champ libelle="Ligne budgétaire :">{(p) => <select {...p} className="saisie" value={l.ligneBudget} onChange={(e) => setL({ ...l, ligneBudget: e.target.value })}>
           <option value="">Choisissez un financement</option>{ctx.lignesBudget.map((x) => <option key={x.id} value={x.id}>{x.numero} {x.libelle}</option>)}</select>}</Champ>
-        <p>Bailleur : <strong>{ligneB?.bailleur ?? ""}</strong></p>
+        <p>Bailleur : <strong>{ligneB?.bailleur ?? ""}</strong></p></>}
         <div className="actions-onglets"><button className="bouton secondaire" type="submit" disabled={!!faite}>Ajouter</button>
           <button className="bouton secondaire" type="button" onClick={() => setL(vide)}>Effacer</button>
           <button className="bouton secondaire" type="button" disabled={choisie === null || !!faite} onClick={() => { setLignes(lignes.filter((_, i) => i !== choisie)); setChoisie(null); }}>Retirer</button>
@@ -372,45 +376,72 @@ export default function Factures() {
 }
 
 /** S108 : Comptabilité > Déclaration de taxe (manuel p. 128, capture « Etat de déclaration des taxes ») : Période (Exercice, Mois), Taxe ; Rechercher, Exporter */
+/** S108 et SF01 : « Déclarations fiscales du mois » (plan d'allègement 7.10) : l'exercice et le mois une fois, deux onglets ; dans chacun le total, l'échéance et la quittance */
 export function DeclarationTaxes() {
-  const { donnees: ctx } = useDonnees(() => api.facturesFournisseurs.contexte());
-  const [f, setF] = useState({ exercice: "", mois: "", taxe: "" });
-  const [r, setR] = useState<Awaited<ReturnType<typeof api.facturesFournisseurs.declarationTaxes>> | null>(null);
-  const [boite, setBoite] = useState<Boite | null>(null);
-  if (!ctx) return <Chargement />;
-  const exercice = f.exercice || (ctx.date ? ctx.date.slice(0, 4) : String(ctx.exercices[0] ?? "")), mois = f.mois || (ctx.date ? String(Number(ctx.date.slice(5, 7))) : "1");
-  const MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
-  async function rechercher() {
-    try { setR(await api.facturesFournisseurs.declarationTaxes({ exercice, mois, taxeId: f.taxe })); } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
-  }
+  const [params, setParams] = useSearchParams();
+  const { donnees } = useDonnees(async () => ({ ctx: await api.facturesFournisseurs.contexte(), u: await api.session.courante() }));
+  const [periode, setPeriode] = useState({ exercice: "", mois: "" });
+  if (!donnees) return <Chargement />;
+  const { ctx } = donnees, retenues = ((donnees.u as { droits?: string[] } | null)?.droits ?? []).includes("SF01");
+  const exercice = periode.exercice || (ctx.date ? ctx.date.slice(0, 4) : String(ctx.exercices[0] ?? "")), mois = periode.mois || (ctx.date ? String(Number(ctx.date.slice(5, 7))) : "1");
+  const page = retenues && params.get("page") === "retenues" ? "retenues" : "taxes";
   return (
     <>
-      <h2>État de déclaration des taxes</h2>
-      <section className="bloc pile" aria-label="État de déclaration des taxes"><Recherche className="pile" label="Critères" envoyer={rechercher}>
-        <div className="deux-colonnes">
-          <fieldset className="cadre-champs formulaire"><legend>Période</legend>
-            <Champ libelle="Exercice :">{(p) => <select {...p} className="saisie" value={exercice} onChange={(e) => setF({ ...f, exercice: e.target.value })}>{ctx.exercices.map((a) => <option key={a} value={a}>{a}</option>)}</select>}</Champ>
-            <Champ libelle="Mois :">{(p) => <select {...p} className="saisie" value={mois} onChange={(e) => setF({ ...f, mois: e.target.value })}>{MOIS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select>}</Champ>
-          </fieldset>
-          <fieldset className="cadre-champs formulaire"><legend>Taxe</legend>
-            <Champ libelle="Taxe :">{(p) => <select {...p} className="saisie" value={f.taxe} onChange={(e) => setF({ ...f, taxe: e.target.value })}><option value=""></option>
-              {ctx.taxes.map((t) => <option key={t.id} value={t.id}>{`${t.code} ${t.taux}%`}</option>)}</select>}</Champ>
-          </fieldset>
-        </div>
-        <div className="actions-onglets"><button className="bouton" type="submit">Rechercher</button>
-          <button className="bouton secondaire" type="button" disabled={!r || r.lignes.length === 0} onClick={() => r && exporterExcel("declaration-taxes", ["Date", "Fournisseur", "Référence", "Base", "Taux (%)", "Montant"],
-            r.lignes.map((x) => [fr(x.date), x.fournisseur, x.reference, x.base / 100, x.taux, x.montant / 100]))}>Exporter</button></div></Recherche>
-        <Paginee lignes={r?.lignes ?? []}>{(v) => (<table className="grille">
-          <thead><tr><th scope="col">Date</th><th scope="col">Fournisseur</th><th scope="col">Référence</th><th scope="col" className="num">Base</th><th scope="col" className="num">Taux (%)</th><th scope="col" className="num">Montant</th></tr></thead>
-          <tbody>{(r?.lignes ?? []).length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
-            {v.map((x, i) => <tr key={i}><td className="chiffres">{fr(x.date)}</td><td>{x.fournisseur}</td><td>{x.reference}</td><td className="num chiffres">{cdf(x.base)}</td><td className="num chiffres">{x.taux}</td><td className="num chiffres">{cdf(x.montant)}</td></tr>)}</tbody>
-          <tfoot><tr><th scope="row" colSpan={3}>Total</th><td className="num chiffres">{r ? cdf(r.totalBase) : ""}</td><td></td><td className="num chiffres">{r ? cdf(r.total) : ""}</td></tr></tfoot>
-        </table>)}</Paginee>
-        <Textes sources={["Manuel Microfina++, p. 128 : sélectionner l'Exercice, le Mois et la Taxe, puis Rechercher, ensuite Exporter ; capture « Etat de déclaration des taxes »",
-          "O.-L. 10/001, art. 35 et 43 : TVA et prorata de déduction ; loi 23/053, art. 143 : le prélèvement sur les prestataires non-résidents est exigible au paiement",
-          "Registre S108-1 à S108-3 : TVA des factures validées dans le mois ; autres taxes : retenues des règlements validés dans le mois"]} />
-      </section>
-      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+      <fieldset className="cadre-champs ligne-champ"><legend className="sr-only">Période</legend>
+        <Champ libelle="Exercice :">{(p) => <select {...p} className="saisie" value={exercice} onChange={(e) => setPeriode({ ...periode, exercice: e.target.value })}>{ctx.exercices.map((a) => <option key={a} value={a}>{a}</option>)}</select>}</Champ>
+        <Champ libelle="Mois :">{(p) => <select {...p} className="saisie" value={mois} onChange={(e) => setPeriode({ ...periode, mois: e.target.value })}>{MOIS_DECL.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select>}</Champ>
+      </fieldset>
+      {retenues && <div className="onglets" role="tablist" aria-label="Déclarations fiscales du mois">{([["taxes", "Taxes"], ["retenues", "Retenues sur intérêts"]] as const).map(([k, l]) =>
+        <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => setParams(k === "retenues" ? { page: k } : {})}>{l}</button>)}</div>}
+      {page === "taxes" ? <Taxes key={`${exercice}-${mois}`} taxes={ctx.taxes} exercice={exercice} mois={mois} jour={ctx.date ?? ""} /> : <RetenuesReverser annee={exercice} mois={mois} />}
     </>
+  );
+}
+const MOIS_DECL = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+const STATUTS_DECL: Record<string, string> = { aucune: "Aucune ligne", a_reverser: "À reverser", en_retard: "En retard", reverse: "Reversé" };
+
+function Taxes({ taxes, exercice, mois, jour }: { taxes: { id: number; code: string; taux: string }[]; exercice: string; mois: string; jour: string }) {
+  const [taxe, setTaxe] = useState("");
+  const [r, setR] = useState<Awaited<ReturnType<typeof api.facturesFournisseurs.declarationTaxes>> | null>(null);
+  const [rv, setRv] = useState({ date: "", reference: "" });
+  const [boite, setBoite] = useState<Boite | null>(null);
+  async function rechercher() {
+    try { setR(await api.facturesFournisseurs.declarationTaxes({ exercice, mois, taxeId: taxe })); } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  }
+  const reverser = () => setBoite({ type: "confirmation", message: "Voulez-vous vraiment noter ce reversement ?", oui: async () => {
+    try { setR(await api.facturesFournisseurs.reverserTaxe({ exercice, mois, taxeId: taxe, date: rv.date || jour, reference: rv.reference })); setRv({ date: "", reference: "" }); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+    catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  } });
+  const ouvert = r && (r.statut === "a_reverser" || r.statut === "en_retard");
+  return (
+    <section className="bloc pile" aria-label="État de déclaration des taxes"><Recherche className="pile" label="Critères" envoyer={rechercher}>
+      <fieldset className="cadre-champs formulaire"><legend className="sr-only">Taxe</legend>
+        <Champ libelle="Taxe :">{(p) => <select {...p} className="saisie" value={taxe} onChange={(e) => { setTaxe(e.target.value); setR(null); }}><option value=""></option>
+          {taxes.map((t) => <option key={t.id} value={t.id}>{`${t.code} ${t.taux}%`}</option>)}</select>}</Champ>
+      </fieldset>
+      <div className="actions-onglets"><button className="bouton" type="submit">Rechercher</button>
+        <button className="bouton secondaire" type="button" disabled={!r || r.lignes.length === 0} onClick={() => r && exporterExcel("declaration-taxes", ["Date", "Fournisseur", "Référence", "Base", "Taux (%)", "Montant"],
+          r.lignes.map((x) => [fr(x.date), x.fournisseur, x.reference, x.base / 100, x.taux, x.montant / 100]))}>Exporter</button></div></Recherche>
+      <Paginee lignes={r?.lignes ?? []}>{(v) => (<table className="grille">
+        <thead><tr><th scope="col">Date</th><th scope="col">Fournisseur</th><th scope="col">Référence</th><th scope="col" className="num">Base</th><th scope="col" className="num">Taux (%)</th><th scope="col" className="num">Montant</th></tr></thead>
+        <tbody>{(r?.lignes ?? []).length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
+          {v.map((x, i) => <tr key={i}><td className="chiffres">{fr(x.date)}</td><td>{x.fournisseur}</td><td>{x.reference}</td><td className="num chiffres">{cdf(x.base)}</td><td className="num chiffres">{x.taux}</td><td className="num chiffres">{cdf(x.montant)}</td></tr>)}</tbody>
+        <tfoot><tr><th scope="row" colSpan={3}>Total</th><td className="num chiffres">{r ? cdf(r.totalBase) : ""}</td><td></td><td className="num chiffres">{r ? cdf(r.total) : ""}</td></tr></tfoot>
+      </table>)}</Paginee>
+      {r && <p>Déclaration et paiement au plus tard le <span className="chiffres">{fr(r.echeance)}</span>. Statut : <strong>{STATUTS_DECL[r.statut]}</strong>{r.reverseLe ? `, le ${fr(r.reverseLe)}, référence ${r.reference} (noté par ${r.notePar})` : ""}.</p>}
+      {ouvert && <fieldset className="pile cadre-champs">
+        <legend>Reversement à l'Administration des Impôts</legend>
+        <div className="grille-deux">
+          <ChampDate libelle="Date du reversement : *" valeur={rv.date || jour} onChange={(v) => setRv({ ...rv, date: v })} />
+          <Champ libelle="Référence de la déclaration ou de la quittance : *">{(p) => <input {...p} className="saisie code" value={rv.reference} onChange={(x) => setRv({ ...rv, reference: x.target.value })} />}</Champ>
+        </div>
+        <div className="actions-onglets"><button className="bouton" type="button" onClick={reverser}>Noter le reversement</button></div>
+      </fieldset>}
+      <Textes sources={["Manuel Microfina++, p. 128 : sélectionner l'Exercice, le Mois et la Taxe, puis Rechercher, ensuite Exporter ; capture « Etat de déclaration des taxes »",
+        "O.-L. 10/001, art. 35 et 43 : TVA et prorata de déduction ; loi 23/053, art. 143 : le prélèvement sur les prestataires non-résidents est exigible au paiement",
+        "O.-L. 10/001, art. 60, modifié par la LF 25/060 : déclaration mensuelle de la TVA au plus tard le 15 du mois qui suit, accompagnée du paiement ; loi 004/2003, art. 22 bis : prélèvement sur les prestataires non-résidents, même échéance",
+        "Registre S108-1 à S108-3 : TVA des factures validées dans le mois ; autres taxes : retenues des règlements validés dans le mois ; plan d'allègement 7.10 : une entrée avec les retenues sur intérêts (SF01)"]} />
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </section>
   );
 }

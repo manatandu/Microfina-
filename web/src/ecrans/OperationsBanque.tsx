@@ -1,6 +1,7 @@
 // S52 : Banque > Opération (manuel Microfina++, p. 60 et 61, trois captures) : Encaissement / Décaissement, V. Banque vers caisse, V. Banque vers Banque.
 // L'opération est saisie ici ; elle est visée puis validée (S57) et comptabilisée (S111) : le numéro de pièce vient à la comptabilisation (registre S52-2).
 import { useState } from "react";
+import { blocBudget } from "../lib/budget";
 import { api, type SaisieOperationBanque } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
@@ -50,7 +51,7 @@ export function OperationsBanque() {
     const commun = { cle, date, montant: m ?? 0, compteBancaireId: f.compte ? Number(f.compte) : undefined };
     const d: SaisieOperationBanque = onglet === 0
       ? { ...commun, type: f.type, compte: f.contrepartie, libelle: f.libelle, cheque: f.cheque,
-          typeBudgetId: f.typeBudget ? Number(f.typeBudget) : null, ligneBudgetId: f.ligneBudget ? Number(f.ligneBudget) : null }
+          typeBudgetId: f.typeBudget && blocBudget(lu?.lignesBudget ?? [], [f.contrepartie]) ? Number(f.typeBudget) : null, ligneBudgetId: f.ligneBudget && blocBudget(lu?.lignesBudget ?? [], [f.contrepartie]) ? Number(f.ligneBudget) : null }
       : onglet === 1 ? { ...commun, type: "banque_caisse", cheque: f.cheque, guichetId: f.caisse ? Number(f.caisse) : undefined }
       : { ...commun, type: "banque_banque", compteBancaireDestId: f.compteDest ? Number(f.compteDest) : undefined };
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
@@ -88,11 +89,12 @@ export function OperationsBanque() {
               <Champ libelle="Compte *">{(p) => <input {...p} className="saisie code" inputMode="numeric" autoComplete="off" value={f.contrepartie} onChange={(e) => maj({ contrepartie: e.target.value })} />}</Champ>
               <Champ libelle="Libellé">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.libelle} onChange={(e) => maj({ libelle: e.target.value })} />}</Champ>
               <Champ libelle="Montant *">{montantSaisi}</Champ>
+              {blocBudget(lu.lignesBudget, [f.contrepartie]) && <>
               <Champ libelle="Type budget">{(p) => <select {...p} className="saisie" value={f.typeBudget} onChange={(e) => maj({ typeBudget: e.target.value })}>
                 <option value="">Choisissez un budget</option>{lu.typesBudget.map((t) => <option key={t.id} value={t.id}>{t.libelle}</option>)}</select>}</Champ>
               <Champ libelle="Ligne budgétaire :">{(p) => <select {...p} className="saisie" value={f.ligneBudget} onChange={(e) => maj({ ligneBudget: e.target.value })}>
                 <option value="">Choisissez un financement</option>{lu.lignesBudget.map((l) => <option key={l.id} value={l.id}>{l.numero} {l.libelle}</option>)}</select>}</Champ>
-              <p>Bailleur :</p>{/* nom du bailleur de la ligne : liste des bailleurs S126, pas encore construite (registre S19-7) */}
+              <p>Bailleur :</p></>}
             </div>
           </fieldset>
         )}

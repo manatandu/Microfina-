@@ -664,7 +664,38 @@ def declaration_taxes(u, p: dict) -> dict:
             if m:
                 base = int((Decimal(r["montant_ht"]) * r["montant"] / r["montant_du"]).quantize(Decimal(1), rounding=ROUND_HALF_UP))
                 out.append({"date": r["date_validation"].isoformat(), "fournisseur": r["intitule"], "reference": r["reference"], "base": base, "taux": t["taux"], "montant": m})
-    return {"taxe": f"{t['designation']} {t['taux']} %", "lignes": out, "totalBase": sum(x["base"] for x in out), "total": sum(x["montant"] for x in out)}
+    from .retenues import echeance
+    from .services import journee_courante
+    from .fuseau import jour_agence
+    rv = une("select * from reversement_taxe where institution_id = %s and taxe_id = %s and annee = %s and mois = %s", (u["institution_id"], t["id"], an, mois))
+    j = journee_courante(u)
+    jour, ech = (j["date"] if j else jour_agence(u).isoformat()), echeance(an, mois)
+    # Plan d'allègement 7.10 : échéance (O.-L. 10/001, art. 60 ; loi 004/2003, art. 22 bis : le 15 du mois qui suit) et référence de la quittance
+    statut = "reverse" if rv else ("aucune" if not out else "en_retard" if jour > ech else "a_reverser")
+    return {"taxe": f"{t['designation']} {t['taux']} %", "lignes": out, "totalBase": sum(x["base"] for x in out), "total": sum(x["montant"] for x in out),
+            "echeance": ech, "statut": statut, "reverseLe": rv["reverse_le"].isoformat() if rv else "", "reference": rv["reference"] if rv else "",
+            "notePar": nom_utilisateur(rv["note_par"]) if rv else ""}
+
+
+def reverser_taxe(u, d: dict) -> dict:
+    """Plan d'allègement 7.10 : la déclaration ou la quittance d'une taxe du mois se note une fois, par une date et une référence (comme les retenues, SF01)"""
+    exiger(u)
+    d = d if isinstance(d, dict) else {}
+    e = declaration_taxes(u, d)
+    if e["statut"] == "aucune":
+        raise ErreurMetier("Aucune ligne ce mois-là.")
+    if e["statut"] == "reverse":
+        raise ErreurMetier("Reversement déjà noté.")
+    date_, ref = str(d.get("date") or "").strip(), str(d.get("reference") or "").strip()
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", date_) or not ref:
+        raise ErreurMetier("À remplir : date du reversement et référence de la déclaration ou de la quittance.")
+    from .services import journee_courante
+    j = journee_courante(u)
+    if j and date_ > j["date"]:
+        raise ErreurMetier("La date du reversement ne peut pas dépasser la journée ouverte.")
+    executer("insert into reversement_taxe (institution_id, taxe_id, annee, mois, reverse_le, reference, note_par) values (%s, %s, %s, %s, %s, %s, %s)",
+             (u["institution_id"], int(d["taxeId"]), int(d["exercice"]), int(d["mois"]), date_, ref, u["id"]))
+    return declaration_taxes(u, d)
 
 
 def bon_de_commande(u, cid: int) -> dict:

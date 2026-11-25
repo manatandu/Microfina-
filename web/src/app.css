@@ -81,6 +81,8 @@ html { scroll-padding-block: calc(var(--mise-barre) + 2px + var(--espace-2)) cal
 .acces-rapide details[open] summary::after { rotate: 45deg; }
 .acces-rapide details[open] summary { border-bottom: 1px solid var(--trait); }
 .acces-rapide ul { list-style: none; margin: 0; padding: var(--espace-1); display: grid; }
+.acces-rapide .groupe-acces + .groupe-acces .titre-groupe { margin-top: var(--espace-2); }
+.acces-rapide .groupe-acces:has(.titre-groupe) ul { padding-top: 0; }
 .acces-rapide a { display: block; padding: 4px var(--espace-2); border-radius: var(--rayon-petit); font-size: var(--taille-courant); color: var(--encre); text-decoration: none; }
 @media (hover: hover) and (pointer: fine) { .acces-rapide a:hover { background: var(--tampon-pale); } .acces-rapide summary:hover { background: var(--bandeau-fort); } }
 .acces-rapide a.active { background: var(--tampon); color: var(--sur-tampon); font-weight: 600; }

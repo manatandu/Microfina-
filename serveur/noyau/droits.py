@@ -74,6 +74,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/conformite/attentes(/\d+/levee)?", ["SC01"]),
     (r"/epargne/inactifs/\d+/lettre", ["SE01"]),
     (r"/comptabilite/retenues/reversements", ["SF01"]),
+    (r"/comptabilite/declaration-taxes/reversements", ["S108"]),   # plan d'allègement 7.10
     (r"/conformite/cip/declarations", ["SC02"]),
     (r"/conformite/cip/icu/\d+", ["S46"]),   # l'ICU se note dans la fiche du membre (plan 3.16)
     (r"/conformite/centrale-risques/declarations", ["SC02"]),
@@ -277,7 +278,7 @@ LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
     (r"/comptabilite/operations/visas/\w+/\w+", ["S113", "S114"]),
     (r"/caisse/operations-compta/\w+", ["S82"]),
     (r"/comptabilite/journaux-comptables(/contexte)?", ["S115", "S107"]),
-    (r"/comptabilite/journaux-comptables/schemas", ["S115"]),
+    (r"/comptabilite/journaux-comptables/schemas", ["S30"]),   # plan d'allègement, point 7.18 : au paramétrage des journaux
     (r"/budget/(contexte|comptes|valeurs)", ["S124", "S125"]),
     (r"/budget/(suivi|consommation)", ["S125"]),
     (r"/autres/calculs/interets-dat", ["S68", "S128"]),   # plan d'allègement, point 5.3 : calculés et imprimés dans Dépôts à terme
@@ -301,8 +302,8 @@ LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
     (r"/comptabilite/rapprochement/(contexte|journal)", ["S110", "S112"]),
     (r"/comptabilite/rapprochement/historique", ["S112"]),
     (r"/comptabilite/lettrage", ["S119"]),
-    (r"/comptabilite/controle/tresorerie", ["S118", "S143"]),
-    (r"/comptabilite/controle/(annulations(/contexte)?|revenus)", ["S118"]),
+    (r"/comptabilite/controle/tresorerie", ["S143"]),
+    (r"/comptabilite/controle/annulations(/contexte)?", ["S118"]),
     (r"/comptabilite/annulation-reglement", ["S142"]),
     (r"/comptabilite/grand-livre", ["S120"]),
     (r"/comptabilite/balance", ["S121"]),

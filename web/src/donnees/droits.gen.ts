@@ -343,6 +343,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "facturesFournisseurs.payerReglement": [
 "S82"
 ],
+"facturesFournisseurs.reverserTaxe": [
+"S108"
+],
 "facturesFournisseurs.valider": [
 "S114"
 ],

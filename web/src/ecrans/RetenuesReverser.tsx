@@ -11,12 +11,13 @@ import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite } from "../c
 const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 const STATUTS: Record<string, string> = { aucune: "Aucune retenue", a_reverser: "À reverser", en_retard: "En retard", reverse: "Reversé" };
 
-export default function RetenuesReverser() {
+/** Plan d'allègement 7.10 : dans « Déclarations fiscales du mois » (S108), l'exercice et le mois viennent de l'écran qui l'accueille */
+export default function RetenuesReverser({ annee: anneeDonnee, mois: moisDonne }: { annee?: string; mois?: string } = {}) {
   const { donnees: j } = useDonnees(() => api.journees.courante());
   const [choix, setChoix] = useState<{ annee: string; mois: string } | null>(null);
   const [relu, setRelu] = useState(0);
-  const jour = j?.date ?? "";
-  const annee = choix?.annee ?? jour.slice(0, 4), mois = choix?.mois ?? String(Number(jour.slice(5, 7)) || "");
+  const jour = j?.date ?? "", fixe = !!(anneeDonnee && moisDonne);
+  const annee = anneeDonnee || (choix?.annee ?? jour.slice(0, 4)), mois = moisDonne || (choix?.mois ?? String(Number(jour.slice(5, 7)) || ""));
   const { donnees, erreur } = useDonnees(() => (annee && mois ? api.retenues.etat(annee, mois) : Promise.resolve(null)), [annee, mois, relu]);
   const [rv, setRv] = useState({ date: "", reference: "" });
   const [boite, setBoite] = useState<Boite | null>(null);
@@ -30,10 +31,10 @@ export default function RetenuesReverser() {
     <>
       
       <section className="bloc pile" aria-label="Retenues à reverser">
-        <div className="ligne-champ">
+        {!fixe && <div className="ligne-champ">
           <Champ libelle="Mois">{(p) => <select {...p} className="saisie" value={mois} onChange={(x) => setChoix({ annee, mois: x.target.value })}>{MOIS.map((l, i) => <option key={l} value={String(i + 1)}>{l}</option>)}</select>}</Champ>
           <Champ libelle="Année">{(p) => <input {...p} className="saisie chiffres" inputMode="numeric" value={annee} onChange={(x) => setChoix({ mois, annee: x.target.value })} />}</Champ>
-        </div>
+        </div>}
         {erreur && <p role="alert" className="erreur-champ">{erreur}</p>}
         {e && <>
           <article className="releve-std a-imprimer" aria-label="État des retenues du mois">

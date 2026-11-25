@@ -2,6 +2,7 @@
 // N° Transaction, Journal, Période, Jour *, Réf. Pièce, Libellé *, Compte auxiliaire ; cadre Ecriture (Compte *, Intitulé, Débit *, Crédit *) ; cadre Budget
 // (Type budget, Ligne budgétaire, Financement) ; Ajouter, Supprimer, Effacer. L'écriture équilibrée part au visa (S113). Registre S109-1 à S109-7.
 import { useState } from "react";
+import { blocBudget } from "../lib/budget";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { lireMontant, montant } from "@design/montant.js";
@@ -36,7 +37,7 @@ export default function SaisieEcriture() {
     try {
       const e = await api.operationsCompta.ecritureAjouter({ journalId: ecr.journalId, periode: ecr.periode, id: ecr.id, jour: f.jour.trim() ? Number(f.jour) : null, reference: f.reference,
         libelle: f.libelle, compte: f.compte.trim(), debit: f.debit.trim() ? lireMontant(f.debit) : null, credit: f.credit.trim() ? lireMontant(f.credit) : null,
-        auxiliaireId: f.auxiliaire ? Number(f.auxiliaire) : null, typeBudgetId: f.typeBudget ? Number(f.typeBudget) : null, ligneBudgetId: f.ligneBudget ? Number(f.ligneBudget) : null });
+        auxiliaireId: f.auxiliaire ? Number(f.auxiliaire) : null, typeBudgetId: f.typeBudget && blocBudget(ctx?.lignesBudget ?? [], [f.compte]) ? Number(f.typeBudget) : null, ligneBudgetId: f.ligneBudget && blocBudget(ctx?.lignesBudget ?? [], [f.compte]) ? Number(f.ligneBudget) : null });
       const partie = e.statut === "saisie" && ecr.statut !== "saisie";
       poser(e); maj({ compte: "", debit: "", credit: "", auxiliaire: "" });
       if (partie) setBoite({ type: "succes", message: "Enregistré avec succès !" });
@@ -74,7 +75,7 @@ export default function SaisieEcriture() {
           </div>
           <datalist id="comptes-saisie">{ctx.comptes.map((c) => <option key={c.numero} value={c.numero}>{c.libelle}</option>)}</datalist>
         </fieldset>
-        <fieldset className="cadre-champs"><legend>Budget</legend>
+        {blocBudget(ctx.lignesBudget, [f.compte]) && <fieldset className="cadre-champs"><legend>Budget</legend>
           <div className="ligne-champ">
             <Champ libelle="Type budget">{(p) => <select {...p} className="saisie" value={f.typeBudget} onChange={(e) => maj({ typeBudget: e.target.value })}>
               <option value=""></option>{ctx.typesBudget.map((t) => <option key={t.id} value={t.id}>{t.libelle}</option>)}</select>}</Champ>
@@ -82,7 +83,7 @@ export default function SaisieEcriture() {
               <option value=""></option>{ctx.lignesBudget.map((l) => <option key={l.id} value={l.id}>{l.numero} {l.libelle}</option>)}</select>}</Champ>
             <p>Financement: <strong>{ligne?.bailleur ?? ""}</strong></p>
           </div>
-        </fieldset>
+        </fieldset>}
         <div className="actions-onglets">
           <button className="bouton" type="button" disabled={!ecr} onClick={ajouter}>Ajouter</button>
           <button className="bouton secondaire" type="button" disabled={choisie === null} onClick={supprimer}>Supprimer</button>

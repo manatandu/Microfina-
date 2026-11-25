@@ -3,7 +3,6 @@
 // la balance analytique des comptes »). Registre S120-1 à S120-4, S121-1 à S121-4, T13 : écritures définitives seulement, montants en CDF.
 import { enClair } from "../lib/enclair";
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr, texteEdition, aujourdhui, heureDe } from "../lib/dates";
@@ -15,7 +14,6 @@ const m = (v: number) => (v ? montant(v, "CDF") : "");
 type Ctx = Awaited<ReturnType<typeof api.etatsCompta.contexte>>;
 type GL = Awaited<ReturnType<typeof api.etatsCompta.grandLivre>>;
 type Bal = Awaited<ReturnType<typeof api.etatsCompta.balance>>;
-const ONGLETS = [["general", "Général"], ["analytique", "Analytique"]] as const;
 
 /** En-tête des documents comptables (modèles FPM et CARRIGRES) : institution, période, date de tirage (registre T31) */
 async function enteteDoc(du: string, au: string) {
@@ -29,8 +27,11 @@ function useCadre() {
   const { donnees } = useDonnees(async () => ({ ctx: await api.etatsCompta.contexte(), j: await api.journees.courante() }));
   return donnees;
 }
-function Onglets({ nom, valeur, changer, libelles = ONGLETS }: { nom: string; valeur: string; changer: (k: string) => void; libelles?: readonly (readonly [string, string])[] }) {
-  return <div className="onglets" role="tablist" aria-label={nom}>{libelles.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={valeur === k} onClick={() => changer(k)}>{l}</button>)}</div>;
+/** Plan d'allègement 7.12 : les onglets Général et Analytique deviennent un champ, montré seulement si l'analytique est tenue */
+function Plan({ ctx, valeur, changer }: { ctx: Ctx; valeur: string; changer: (v: string) => void }) {
+  if (!ctx.analytique) return null;
+  return <Champ libelle="Plan :">{(p) => <select {...p} className="saisie" value={valeur} onChange={(e) => changer(e.target.value)}>
+    <option value="general">Général</option><option value="analytique">Analytique</option></select>}</Champ>;
 }
 function Communs({ ctx, f, setF }: { ctx: Ctx; f: { agence: string; exercice: string }; setF: (x: { agence: string; exercice: string }) => void }) {
   return <>
@@ -40,22 +41,20 @@ function Communs({ ctx, f, setF }: { ctx: Ctx; f: { agence: string; exercice: st
 }
 
 export function GrandLivre() {
-  const [params, setParams] = useSearchParams();
-  const page = params.get("page") === "analytique" ? "analytique" : "general";
   const cadre = useCadre();
   if (!cadre) return <Chargement />;
-  return <><Onglets nom="Grand livre" valeur={page} changer={(k) => setParams(k === "general" ? {} : { page: k })} />
-    <EditionGrandLivre key={page} analytique={page === "analytique"} ctx={cadre.ctx} jour={cadre.j?.date ?? aujourdhui()} /></>;
+  return <EditionGrandLivre ctx={cadre.ctx} jour={cadre.j?.date ?? aujourdhui()} />;
 }
 
-function EditionGrandLivre({ analytique, ctx, jour }: { analytique: boolean; ctx: Ctx; jour: string }) {
-  const vide = { type: "global", agence: "", exercice: jour.slice(0, 4), du: `${jour.slice(0, 4)}-01-01`, au: jour, vidage: false };
+function EditionGrandLivre({ ctx, jour }: { ctx: Ctx; jour: string }) {
+  const vide = { plan: "general", type: "global", agence: "", exercice: jour.slice(0, 4), du: `${jour.slice(0, 4)}-01-01`, au: jour, vidage: false };
   const [f, setF] = useState(vide);
   const [r, setR] = useState<GL | null>(null);
+  const [analytique, setAnalytique] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
-  const titre = analytique ? "Edition du grand livre analytique" : "Edition du grand livre";
+  const titre = "Edition du grand livre";
   async function rechercher() {
-    try { setR(await api.etatsCompta.grandLivre({ type: f.type, agenceId: f.agence ? Number(f.agence) : null, exercice: f.du.slice(0, 4), du: f.du, au: f.au, vidage: f.vidage }, analytique)); }
+    try { const a = f.plan === "analytique"; setR(await api.etatsCompta.grandLivre({ type: f.type, agenceId: f.agence ? Number(f.agence) : null, exercice: f.du.slice(0, 4), du: f.du, au: f.au, vidage: f.vidage }, a)); setAnalytique(a); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
   // Général : modèle CARRIGRES ; analytique : grand-livre des tiers (modèle FPM, un bloc et un total par tiers) ; registre T31
@@ -68,12 +67,13 @@ function EditionGrandLivre({ analytique, ctx, jour }: { analytique: boolean; ctx
       <h2>{titre}</h2>
       <Recherche className="pile" label="Critères" envoyer={rechercher}>
       <fieldset className="cadre-champs formulaire"><legend className="sr-only">Critères</legend>
+        <Plan ctx={ctx} valeur={f.plan} changer={(v) => setF({ ...f, plan: v })} />
         <Champ libelle="Type de grand livre">{(p) => <select {...p} className="saisie" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>
           {ctx.typesGrandLivre.map((t) => <option key={t.code} value={t.code}>{t.libelle}</option>)}</select>}</Champ>
         <Communs ctx={ctx} f={f} setF={(x) => setF({ ...f, ...x })} />
         <ChampDate libelle="Date début :" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} />
         <ChampDate libelle="Date fin :" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} />
-        <label className="case"><input type="checkbox" checked={f.vidage} onChange={(e) => setF({ ...f, vidage: e.target.checked })} /><span>Grand livre avec vidage</span></label>
+        <label className="case"><input type="checkbox" checked={f.vidage} onChange={(e) => setF({ ...f, vidage: e.target.checked })} /><span>Avec les écritures de clôture</span></label>
       </fieldset>
       <div className="actions-onglets">
         <button className="bouton" type="submit">Rechercher</button>
@@ -92,7 +92,7 @@ function EditionGrandLivre({ analytique, ctx, jour }: { analytique: boolean; ctx
         </tbody>)}
         <tfoot><tr><th scope="row" colSpan={4}>Total général</th><td className="num chiffres">{montant(r.totalDebit, "CDF")}</td><td className="num chiffres">{montant(r.totalCredit, "CDF")}</td><td /></tr></tfoot>
       </table></div>}
-      <Textes sources={[`Manuel Microfina++, p. ${analytique ? "139 : 17-2 Analytique" : "138 : 17-1 General"}, « Rentrer le type de grand livre, l'Agence, Exercice, Date début, Date fin puis cliquer sur Recherche ou Annuler » ; capture ${titre}`,
+      <Textes sources={["Manuel Microfina++, p. 138 et 139 : 17-1 General et 17-2 Analytique, « Rentrer le type de grand livre, l'Agence, Exercice, Date début, Date fin puis cliquer sur Recherche ou Annuler » ; captures « Edition du grand livre » et « Edition du grand livre analytique » ; plan d'allègement 7.12 : un formulaire, « Plan » montré si l'analytique est tenue",
         "Registre S120-1 à S120-4, T13 : écritures définitives (journées comptabilisées), en CDF ; par compte, solde d'ouverture, lignes, total et solde ; « avec vidage » ajoute les écritures de clôture des comptes de gestion ; analytique : détail par compte auxiliaire",
         "PCCI § 3.2 et § 3.3 : comptabilité tenue en monnaie nationale ; livre-journal, grand livre, balance"]} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
@@ -101,23 +101,21 @@ function EditionGrandLivre({ analytique, ctx, jour }: { analytique: boolean; ctx
 }
 
 export function BalanceComptes() {
-  const [params, setParams] = useSearchParams();
-  const page = params.get("page") === "analytique" ? "analytique" : "generale";
   const cadre = useCadre();
   if (!cadre) return <Chargement />;
-  return <><Onglets nom="Balance" valeur={page} changer={(k) => setParams(k === "generale" ? {} : { page: k })} libelles={[["generale", "Générale"], ["analytique", "Analytique"]]} />
-    <EditionBalance key={page} analytique={page === "analytique"} ctx={cadre.ctx} jour={cadre.j?.date ?? aujourdhui()} /></>;
+  return <EditionBalance ctx={cadre.ctx} jour={cadre.j?.date ?? aujourdhui()} />;
 }
 
-function EditionBalance({ analytique, ctx, jour }: { analytique: boolean; ctx: Ctx; jour: string }) {
-  const vide = { type: "8", balance: "groupee", agence: "", exercice: jour.slice(0, 4), du: `${jour.slice(0, 4)}-01-01`, au: jour, compteDe: "1", compteA: "99000000", niveau: "1", sansVidage: false };
+function EditionBalance({ ctx, jour }: { ctx: Ctx; jour: string }) {
+  const vide = { plan: "general", type: "8", balance: "groupee", agence: "", exercice: jour.slice(0, 4), du: `${jour.slice(0, 4)}-01-01`, au: jour, compteDe: "1", compteA: "99000000", niveau: "1", sansVidage: false };
   const [f, setF] = useState(vide);
   const [r, setR] = useState<Bal | null>(null);
+  const [analytique, setAnalytique] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
-  const titre = analytique ? "Edition de la balance analytique des comptes" : "Edition de la balance des comptes";
+  const titre = "Edition de la balance des comptes";
   async function rechercher() {
-    try { setR(await api.etatsCompta.balance({ type: f.type, balance: f.balance, agenceId: f.agence ? Number(f.agence) : null, exercice: f.du.slice(0, 4), du: f.du, au: f.au, compteDe: f.compteDe, compteA: f.compteA,
-      niveau: f.niveau, sansVidage: f.sansVidage }, analytique)); }
+    try { const a = f.plan === "analytique"; setR(await api.etatsCompta.balance({ type: f.type, balance: f.balance, agenceId: f.agence ? Number(f.agence) : null, exercice: f.du.slice(0, 4), du: f.du, au: f.au, compteDe: f.compteDe, compteA: f.compteA,
+      niveau: f.niveau, sansVidage: f.sansVidage }, a)); setAnalytique(a); }
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
   const groupes = r?.type === "8" ? ["Solde d'ouverture", "Mouvements", "Cumuls", "Solde"] : r?.type === "6" ? ["Solde d'ouverture", "Mouvements", "Solde"] : ["Mouvements", "Solde"];
@@ -144,7 +142,7 @@ function EditionBalance({ analytique, ctx, jour }: { analytique: boolean; ctx: C
     <section className="bloc pile" aria-label={titre}><Recherche className="pile" label="Critères" envoyer={rechercher}>
       <h2>{titre}</h2>
       <fieldset className="cadre-champs formulaire"><legend className="sr-only">Critères</legend>
-        {analytique && <Champ libelle="Plan :">{(p) => <select {...p} className="saisie" disabled><option>PCCI</option></select>}</Champ>}
+        <Plan ctx={ctx} valeur={f.plan} changer={(v) => setF({ ...f, plan: v })} />
         <Champ libelle="Type de balance :">{(p) => <select {...p} className="saisie" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>
           {ctx.typesBalance.map((t) => <option key={t.code} value={t.code}>{t.libelle}</option>)}</select>}</Champ>
         <Champ libelle="Balance :">{(p) => <select {...p} className="saisie" value={f.balance} onChange={(e) => setF({ ...f, balance: e.target.value })}>
@@ -156,7 +154,7 @@ function EditionBalance({ analytique, ctx, jour }: { analytique: boolean; ctx: C
         <Champ libelle="------- :">{(p) => <input {...p} aria-label="Compte, jusqu'à" className="saisie code" inputMode="numeric" value={f.compteA} onChange={(e) => setF({ ...f, compteA: e.target.value })} />}</Champ>
         <Champ libelle="Niveau de rupture :">{(p) => <select {...p} className="saisie court" value={f.niveau} onChange={(e) => setF({ ...f, niveau: e.target.value })}>
           {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{enClair(n)}</option>)}</select>}</Champ>
-        <label className="case"><input type="checkbox" checked={f.sansVidage} onChange={(e) => setF({ ...f, sansVidage: e.target.checked })} /><span>Balance sans VIDAGE</span></label>
+        <label className="case"><input type="checkbox" checked={f.sansVidage} onChange={(e) => setF({ ...f, sansVidage: e.target.checked })} /><span>Sans les écritures de clôture</span></label>
       </fieldset>
       <div className="actions-onglets">
         <button className="bouton" type="submit">Rechercher</button>
@@ -192,7 +190,7 @@ function EditionBalance({ analytique, ctx, jour }: { analytique: boolean; ctx: C
         <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={async () => telecharger(`grand-livre-${glCompte.compte}-${glCompte.r.au}`,
           grandLivreXml(await enteteDoc(glCompte.r.du, glCompte.r.au), glCompte.r.comptes.map(versGl)))}>Exporter</button></div></>}
       </Fiche>
-      <Textes sources={[`Manuel Microfina++, p. ${analytique ? "140 : 18-2 Analytique" : "139 : 18-1 Générale"} ; capture ${titre} (Type de balance, Balance, Agence, Exercice, Date début période, Date fin période, Compte … à …, Niveau de rupture, Balance sans VIDAGE, Rechercher, Rein. les champs)`,
+      <Textes sources={["Manuel Microfina++, p. 139 et 140 : 18-1 Générale et 18-2 Analytique ; captures « Edition de la balance des comptes » et « Edition de la balance analytique des comptes » (Type de balance, Balance, Agence, Exercice, Date début période, Date fin période, Compte … à …, Niveau de rupture, Balance sans VIDAGE, Rechercher, Rein. les champs)",
         "Registre S121-1 à S121-4, T13 : écritures définitives, en CDF ; 8 colonnes : solde d'ouverture, mouvements, cumuls, solde ; 6 colonnes sans les cumuls ; 4 colonnes : mouvements et solde ; Groupée : comptes regroupés au niveau de rupture (nombre de chiffres) ; « sans VIDAGE » écarte les écritures de clôture",
         "PCCI § 3.2 et § 3.3 : comptabilité tenue en monnaie nationale ; balance générale des comptes",
         "Registre T31 (demande du porteur, 21/11/2026) : un clic sur un compte ouvre son grand livre ; l'export suit le modèle de balance FPM et relie chaque compte à sa feuille de grand livre"]} />

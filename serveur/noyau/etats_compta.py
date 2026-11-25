@@ -31,7 +31,10 @@ def contexte(u) -> dict:
     return {"agences": lignes("select id, nom from agence where institution_id = %s and not supprime order by code", (i,)),
             "exercices": [r["annee"] for r in lignes("select annee from exercice where institution_id = %s order by annee desc", (i,))],
             "typesGrandLivre": [{"code": k, "libelle": v} for k, v in TYPES_GRAND_LIVRE.items()],
-            "typesBalance": [{"code": k, "libelle": v} for k, v in TYPES_BALANCE.items()]}
+            "typesBalance": [{"code": k, "libelle": v} for k, v in TYPES_BALANCE.items()],
+            # « Plan : Général / Analytique » montré seulement si l'analytique est tenue : une écriture définitive porte un compte auxiliaire (allègement 7.12)
+            "analytique": bool(valeur("""select exists (select 1 from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join journee_comptable jc on jc.id = e.journee_id
+                                         where e.institution_id = %s and jc.statut = 'fermee' and coalesce(l.contrat_ref, '') <> '')""", (i,)))}
 
 
 def periode(u, p: dict) -> tuple[date, date, int]:

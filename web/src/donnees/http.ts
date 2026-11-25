@@ -216,6 +216,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       payerReglement: (id: number, p: unknown) => post(`/caisse/reglements-factures/${id}/paiement`, p),
       rapport: (p: Record<string, unknown>) => get(`/comptabilite/factures/rapport?${requete(p)}`),
       declarationTaxes: (p: Record<string, unknown>) => get(`/comptabilite/declaration-taxes?${requete(p)}`),
+      reverserTaxe: (d: object) => post("/comptabilite/declaration-taxes/reversements", d),
     },
     controlesCompta: {
       rapproContexte: () => get("/comptabilite/rapprochement/contexte"),
@@ -229,7 +230,6 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       tresorerie: (p: Record<string, unknown>) => get(`/comptabilite/controle/tresorerie?${requete(p)}`),
       annulationsContexte: () => get("/comptabilite/controle/annulations/contexte"),
       annulations: (p: Record<string, unknown>) => get(`/comptabilite/controle/annulations?${requete(p)}`),
-      revenus: (p: Record<string, unknown>) => get(`/comptabilite/controle/revenus?${requete(p)}`),
       reglementsAnnulables: () => get("/comptabilite/annulation-reglement"),
       annulerReglement: (id: number) => post(`/comptabilite/annulation-reglement/${id}`),
     },

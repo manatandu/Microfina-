@@ -20,7 +20,6 @@ export default function JournauxComptables({ achats = false }: { achats?: boolea
   const [f, setF] = useState({ exercice: "", mois: "", type: "", journal: "", mouvement: "", montant: "", utilisateur: "", piece: "", pieceMode: "debut", libelle: "", libelleMode: "debut" });
   const [r, setR] = useState<Resultat | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
-  const [sch, setSch] = useState<Schemas | null>(null);   // B22 : schémas comptables appliqués (Instr. BCC 008, art. 9 ; PCCI § 3.1)
   if (!ctx) return <Chargement />;
   const maj = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p }));
   const exercice = f.exercice || String(ctx.exerciceActif ?? ctx.exercices[0] ?? "");
@@ -30,9 +29,6 @@ export default function JournauxComptables({ achats = false }: { achats?: boolea
       setR(await api.etatsCompta.journaux({ achats, exercice, mois: f.mois, type: f.type, journalId: f.journal, mouvement: f.mouvement, montant: f.montant.trim() ? lireMontant(f.montant) : null,
         utilisateurId: f.utilisateur, piece: f.piece, pieceMode: f.pieceMode, libelle: f.libelle, libelleMode: f.libelleMode }));
     } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
-  }
-  async function schemas() {
-    try { setSch(await api.etatsCompta.schemas({ exercice })); } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
   const radios = (nom: "pieceMode" | "libelleMode") => <div className="ligne-champ" role="radiogroup">{MODES.map(([v, l]) =>
     <label key={v} className="case"><input type="radio" name={nom} checked={f[nom] === v} onChange={() => maj({ [nom]: v })} /><span>{l}</span></label>)}</div>;
@@ -73,13 +69,27 @@ export default function JournauxComptables({ achats = false }: { achats?: boolea
           <tfoot><tr><th scope="row">Total</th><td></td><td></td><td className="num chiffres">{r ? montant(r.totalDebit, "CDF") : ""}</td><td className="num chiffres">{r ? montant(r.totalCredit, "CDF") : ""}</td></tr></tfoot>
         </table>)}</Paginee>
         <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={!r || r.lignes.length === 0}
-          onClick={() => r && exporterExcel("journal-comptable", ["Journal", "N° Compte", "Intitulé compte", "Débit", "Crédit"], r.lignes.map((x) => [x.journal, x.compte, x.intitule, x.debit / 100, x.credit / 100]))}>Exporter</button>
-          {!achats && <button className="bouton secondaire" type="button" onClick={schemas}>Schémas comptables</button>}</div>
+          onClick={() => r && exporterExcel("journal-comptable", ["Journal", "N° Compte", "Intitulé compte", "Débit", "Crédit"], r.lignes.map((x) => [x.journal, x.compte, x.intitule, x.debit / 100, x.credit / 100]))}>Exporter</button></div>
         {!achats && <Textes sources={["Manuel Microfina++, p. 133 : capture « Journal comptables » (critères recherche, Afficher, grille, Total, Exporter)",
           "PCCI § 3.3 : livre-journal et journaux auxiliaires, centralisés au moins une fois par mois ; § 3.4 : enregistrements définitifs après validation",
-          "Registre S115-1 à S115-4 : écritures des journées comptabilisées seulement (T13), montants en CDF ; « Journal centralisé » : totaux par journal et par compte",
-          "Instr. BCC 008, art. 9 : les manuels de procédures décrivent les schémas comptables ; PCCI § 3.1 : documentation décrivant les procédures et l'organisation comptable (registre T108)"]} />}
+          "Registre S115-1 à S115-4 : écritures des journées comptabilisées seulement (T13), montants en CDF ; « Journal centralisé » : totaux par journal et par compte"]} />}
       </section>
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </>
+  );
+}
+
+/** B22 : schémas comptables appliqués (Instr. BCC 008, art. 9 ; PCCI § 3.1 ; registre T108). Plan d'allègement, point 7.18 : ouverts depuis
+ *  Paramétrage > Comptabilité > Journal, et non plus depuis la consultation des journaux */
+export function SchemasComptables({ exercice }: { exercice: string }) {
+  const [sch, setSch] = useState<Schemas | null>(null);
+  const [boite, setBoite] = useState<Boite | null>(null);
+  async function schemas() {
+    try { setSch(await api.etatsCompta.schemas({ exercice })); } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  }
+  return (
+    <>
+      <button className="bouton secondaire" type="button" onClick={schemas}>Schémas comptables</button>
       <Fiche titre={`Schémas comptables, exercice ${sch?.exercice ?? ""}`} ouverte={sch !== null} fermer={() => setSch(null)}>
         {sch && <div className="pile">
           {sch.edition && <p className="aide">Schémas comptables{texteEdition(sch.edition)}</p>}

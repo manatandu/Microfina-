@@ -40,7 +40,7 @@ function sousMenu(e: Ecran, libelleMenu: string): string {
 
 /** Menu Crédit dans l'ordre de la vie du crédit (plan d'allègement, point 6.16) : Simulation, Analyse, Demande, Portefeuille, Déblocage, Remboursement, Garanties,
  *  Prorogation et contentieux, Liste rouge, Affectation, Balance âgée et provisions, Engagements par signature, Rapports ; les écrans hors menu ensuite */
-const ORDRE_CREDIT = ["S84", "S85", "S86", "S93", "S105", "S106", "S94", "SL01", "S97", "S96", "S99", "S128", "S100", "S101"];
+const ORDRE_CREDIT = ["S84", "S85", "S86", "S93", "S105", "S106", "S142", "S94", "SL01", "S97", "S96", "S99", "S128", "S100", "S101"];
 const ordreCredit = (l: Ecran[]) => [...l].sort((a, b) => (ORDRE_CREDIT.indexOf(a.id) + 1 || 99) - (ORDRE_CREDIT.indexOf(b.id) + 1 || 99));
 
 function construire(id: string, libelle: string, ecrans: Ecran[], tous: boolean): Menu {

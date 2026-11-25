@@ -935,7 +935,7 @@
   {
     "id": "S102",
     "nom": "Plan des comptes",
-    "acces": "Comptabilité > Plan des comptes",
+    "acces": "Comptabilité > Référentiels > Plan des comptes",
     "but": "Créer et consulter le référentiel ; modèle de plan à cinq positions ; comptes saisissables avec nature et taxe ; concordance entre plans",
     "module": "comptabilite",
     "priorite": "must",
@@ -944,7 +944,7 @@
   {
     "id": "S103",
     "nom": "Plan des tiers",
-    "acces": "Comptabilité > Plan des tiers",
+    "acces": "Comptabilité > Référentiels > Plan des tiers",
     "but": "Fournisseurs et autres tiers",
     "module": "comptabilite",
     "priorite": "must",
@@ -953,7 +953,7 @@
   {
     "id": "S104",
     "nom": "Taxes",
-    "acces": "Comptabilité > Taxes",
+    "acces": "Comptabilité > Référentiels > Taxes",
     "but": "Taux de taxe",
     "module": "comptabilite",
     "priorite": "should",
@@ -962,11 +962,202 @@
   {
     "id": "S36",
     "nom": "Facture : éléments et références",
-    "acces": "Comptabilité > Facture : éléments et références",
+    "acces": "Comptabilité > Référentiels > Facture : éléments et références",
     "but": "Éléments de facture, références de commande",
     "module": "comptabilite",
     "priorite": "could",
     "chemin": "/comptabilite/s36"
+  },
+  {
+    "id": "S109",
+    "nom": "Saisie d'écritures",
+    "acces": "Comptabilité > Saisie > Saisie d'écriture",
+    "but": "Saisir une écriture dans un journal et une période",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s109"
+  },
+  {
+    "id": "S116",
+    "nom": "Autres opérations",
+    "acces": "Comptabilité > Saisie > Autres opérations",
+    "but": "Virement et prélèvement, opération diverse (à payer en caisse ou sur compte client), opération déplacée",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s116"
+  },
+  {
+    "id": "S117",
+    "nom": "Virements mensuels",
+    "acces": "Comptabilité > Saisie > Virements mensuels",
+    "but": "Domiciliation de salaire ; salaires du personnel et prélèvement automatique « ne marchent pas » (p. 137)",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s117"
+  },
+  {
+    "id": "S107",
+    "nom": "Factures fournisseurs",
+    "acces": "Comptabilité > Saisie > Factures",
+    "but": "Bon de commande avec tranches d'acompte, facture, règlement, journal, rapport",
+    "module": "comptabilite",
+    "priorite": "should",
+    "chemin": "/comptabilite/s107"
+  },
+  {
+    "id": "S113",
+    "nom": "Visas comptables",
+    "acces": "Comptabilité > Contrôle > Visa",
+    "but": "Viser virements, retraits au-delà du plafond, opérations diverses et déplacées, écritures, factures, règlements, virements de compte à compte",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s113"
+  },
+  {
+    "id": "S114",
+    "nom": "Validations comptables",
+    "acces": "Comptabilité > Contrôle > Validation",
+    "but": "Valider les mêmes opérations après visa",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s114"
+  },
+  {
+    "id": "S111",
+    "nom": "Clôture de la journée",
+    "acces": "Comptabilité > Contrôle > Clôture de la journée",
+    "but": "Fermer la journée : les écritures en attente passent au journal avec leur N° de pièce ; ce qui bloque s'affiche avant le bouton, avec un lien vers l'écran qui le règle (plan d'allègement, point 7.7)",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s111"
+  },
+  {
+    "id": "S118",
+    "nom": "Rapport des annulations",
+    "acces": "Comptabilité > Contrôle > Rapport des annulations",
+    "but": "Voir les opérations annulées : pièce d'origine, pièce d'annulation, client, montant, utilisateur",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s118"
+  },
+  {
+    "id": "S110",
+    "nom": "Rapprochement bancaire",
+    "acces": "Comptabilité > Contrôle > Rapprochement",
+    "but": "Pointer le relevé, ajouter les opérations manquantes, éditer l'état",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s110"
+  },
+  {
+    "id": "S112",
+    "nom": "Historique des rapprochements",
+    "acces": "Comptabilité > Contrôle > Historique",
+    "but": "Retrouver un rapprochement",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s112"
+  },
+  {
+    "id": "S115",
+    "nom": "Journaux",
+    "acces": "Comptabilité > Consultation > Journaux",
+    "but": "Journaux comptables",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s115"
+  },
+  {
+    "id": "S120",
+    "nom": "Grand livre",
+    "acces": "Comptabilité > Consultation > Grand livre",
+    "but": "Général et analytique",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s120"
+  },
+  {
+    "id": "S121",
+    "nom": "Balance",
+    "acces": "Comptabilité > Consultation > Balance",
+    "but": "Générale et analytique",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s121"
+  },
+  {
+    "id": "S119",
+    "nom": "Lettrage",
+    "acces": "Comptabilité > Consultation > Lettrage",
+    "but": "Lettrer un compte",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s119"
+  },
+  {
+    "id": "S143",
+    "nom": "Trésorerie",
+    "acces": "Comptabilité > Consultation > Trésorerie",
+    "but": "Voir les soldes des caisses et des banques à une date",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s143"
+  },
+  {
+    "id": "S122",
+    "nom": "États financiers",
+    "acces": "Comptabilité > États et déclarations > États financiers",
+    "but": "Bilan, hors bilan, résultat, annexes",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s122"
+  },
+  {
+    "id": "S123",
+    "nom": "Indicateurs et normes",
+    "acces": "Comptabilité > États et déclarations > Indicateurs et normes",
+    "but": "Indicateurs de performance par mois ou par an ; normes prudentielles à une date (onglets)",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s123"
+  },
+  {
+    "id": "SN01",
+    "nom": "Normes prudentielles",
+    "acces": "Comptabilité > États et déclarations > Indicateurs et normes > Normes prudentielles",
+    "but": "Calculer à une date, sur la balance, les normes prudentielles et dire si elles sont respectées (confrontation du 21/11/2026, A2, B5, B6 ; Instr. BCC 002 ; loi 002/2002, art. 59)",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/sn01",
+    "menu": false
+  },
+  {
+    "id": "S108",
+    "nom": "Déclarations fiscales du mois",
+    "acces": "Comptabilité > États et déclarations > Déclarations fiscales du mois",
+    "but": "Taxes et retenues sur intérêts d'un mois : total, échéance, quittance (onglets)",
+    "module": "comptabilite",
+    "priorite": "should",
+    "chemin": "/comptabilite/s108"
+  },
+  {
+    "id": "SF01",
+    "nom": "Retenues à reverser",
+    "acces": "Comptabilité > États et déclarations > Déclarations fiscales du mois > Retenues sur intérêts",
+    "but": "État mensuel des retenues à la source sur les intérêts (compte 433), échéance du 15 du mois suivant, reversement noté avec sa quittance (écart E16 ; arrêté 008/2025, art. 2 ; loi 23/053, art. 120)",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/sf01",
+    "menu": false
+  },
+  {
+    "id": "S127",
+    "nom": "Clôtures",
+    "acces": "Comptabilité > Clôture > Clôture",
+    "but": "Comptabilité : clôture du mois et de l'exercice, affectation du résultat (l'état des provisions est au Crédit, plan d'allègement, point 6.13)",
+    "module": "comptabilite",
+    "priorite": "must",
+    "chemin": "/comptabilite/s127"
   },
   {
     "id": "S105",
@@ -989,182 +1180,11 @@
   {
     "id": "S142",
     "nom": "Annulation de règlement de crédit",
-    "acces": "Comptabilité > Annulation de règlement de crédit",
+    "acces": "Crédit > Annulation de règlement",
     "but": "Annuler un remboursement de crédit fait par prélèvement sur compte",
-    "module": "comptabilite",
+    "module": "credit",
     "priorite": "must",
-    "chemin": "/comptabilite/s142"
-  },
-  {
-    "id": "S107",
-    "nom": "Factures fournisseurs",
-    "acces": "Comptabilité > Factures",
-    "but": "Bon de commande avec tranches d'acompte, facture, règlement, journal, rapport",
-    "module": "comptabilite",
-    "priorite": "should",
-    "chemin": "/comptabilite/s107"
-  },
-  {
-    "id": "S108",
-    "nom": "Déclaration de taxes",
-    "acces": "Comptabilité > Déclaration",
-    "but": "Taxes d'un mois",
-    "module": "comptabilite",
-    "priorite": "should",
-    "chemin": "/comptabilite/s108"
-  },
-  {
-    "id": "S109",
-    "nom": "Saisie d'écritures",
-    "acces": "Comptabilité > Saisie d'écriture",
-    "but": "Saisir une écriture dans un journal et une période",
-    "module": "comptabilite",
-    "priorite": "must",
-    "chemin": "/comptabilite/s109"
-  },
-  {
-    "id": "S110",
-    "nom": "Rapprochement bancaire",
-    "acces": "Comptabilité > Rapprochement",
-    "but": "Pointer le relevé, ajouter les opérations manquantes, éditer l'état",
-    "module": "comptabilite",
-    "priorite": "must",
-    "chemin": "/comptabilite/s110"
-  },
-  {
-    "id": "S111",
-    "nom": "Comptabilisation",
-    "acces": "Comptabilité > Comptabilisation",
-    "but": "Passer le brouillard de la journée en comptabilité",
-    "module": "comptabilite",
-    "priorite": "must",
-    "chemin": "/comptabilite/s111"
-  },
-  {
-    "id": "S112",
-    "nom": "Historique des rapprochements",
-    "acces": "Comptabilité > Historique",
-    "but": "Retrouver un rapprochement",
-    "module": "comptabilite",
-    "priorite": "must",
-    "chemin": "/comptabilite/s112"
-  },
-  {
-    "id": "S113",
-    "nom": "Visas comptables",
-    "acces": "Comptabilité > Visa",
-    "but": "Viser virements, retraits au-delà du plafond, opérations diverses et déplacées, écritures, factures, règlements, virements de compte à compte",
-    "module": "comptabilite",
-    "priorite": "must",
-    "chemin": "/comptabilite/s113"
-  },
-  {
-    "id": "S114",
-    "nom": "Validations comptables",
-    "acces": "Comptabilité > Validation",
-    "but": "Valider les mêmes opérations après visa",
-    "module": "comptabilite",
-    "priorite": "must",
-    "chemin": "/comptabilite/s114"
-  },
-  {
-    "id": "S115",
-    "nom": "Journaux",
-    "acces": "Comptabilité > Journaux",
-    "but": "Journaux comptables",
-    "module": "comptabilite",
-    "priorite": "must",
-    "chemin": "/comptabilite/s115"
-  },
-  {
-    "id": "S116",
-    "nom": "Autres opérations",
-    "acces": "Comptabilité > Autres opérations",
-    "but": "Virement et prélèvement, opération diverse (à payer en caisse ou sur compte client), opération déplacée",
-    "module": "comptabilite",
-    "priorite": "must",
-    "chemin": "/comptabilite/s116"
-  },
-  {
-    "id": "S117",
-    "nom": "Virements mensuels",
-    "acces": "Comptabilité > Virements mensuels",
-    "but": "Domiciliation de salaire ; salaires du personnel et prélèvement automatique « ne marchent pas » (p. 137)",
-    "module": "comptabilite",
-    "priorite": "must",
-    "chemin": "/comptabilite/s117"
-  },
-  {
-    "id": "S118",
-    "nom": "Contrôles",
-    "acces": "Comptabilité > Contrôle",
-    "but": "Compte (écart gestion et comptabilité), trésorerie (soldes des caisses et banques), rapport des annulations, état des revenus",
-    "module": "comptabilite",
-    "priorite": "must",
-    "chemin": "/comptabilite/s118"
-  },
-  {
-    "id": "S119",
-    "nom": "Lettrage",
-    "acces": "Comptabilité > Lettrage",
-    "but": "Lettrer un compte",
-    "module": "comptabilite",
-    "priorite": "must",
-    "chemin": "/comptabilite/s119"
-  },
-  {
-    "id": "S120",
-    "nom": "Grand livre",
-    "acces": "Comptabilité > Grand livre",
-    "but": "Général et analytique",
-    "module": "comptabilite",
-    "priorite": "must",
-    "chemin": "/comptabilite/s120"
-  },
-  {
-    "id": "S121",
-    "nom": "Balance",
-    "acces": "Comptabilité > Balance",
-    "but": "Générale et analytique",
-    "module": "comptabilite",
-    "priorite": "must",
-    "chemin": "/comptabilite/s121"
-  },
-  {
-    "id": "S122",
-    "nom": "États financiers",
-    "acces": "Comptabilité > États financiers",
-    "but": "Bilan, hors bilan, résultat, annexes",
-    "module": "comptabilite",
-    "priorite": "must",
-    "chemin": "/comptabilite/s122"
-  },
-  {
-    "id": "S123",
-    "nom": "Indicateurs",
-    "acces": "Comptabilité > Indicateurs > Financiers",
-    "but": "Indicateurs par mois",
-    "module": "comptabilite",
-    "priorite": "must",
-    "chemin": "/comptabilite/s123"
-  },
-  {
-    "id": "SN01",
-    "nom": "Normes prudentielles",
-    "acces": "Comptabilité > Indicateurs > Normes prudentielles",
-    "but": "Calculer à une date, sur la balance, les normes prudentielles et dire si elles sont respectées (confrontation du 21/11/2026, A2, B5, B6 ; Instr. BCC 002 ; loi 002/2002, art. 59)",
-    "module": "comptabilite",
-    "priorite": "must",
-    "chemin": "/comptabilite/sn01"
-  },
-  {
-    "id": "SF01",
-    "nom": "Retenues à reverser",
-    "acces": "Comptabilité > Retenues à reverser",
-    "but": "État mensuel des retenues à la source sur les intérêts (compte 433), échéance du 15 du mois suivant, reversement noté avec sa quittance (écart E16 ; arrêté 008/2025, art. 2 ; loi 23/053, art. 120)",
-    "module": "comptabilite",
-    "priorite": "must",
-    "chemin": "/comptabilite/sf01"
+    "chemin": "/credit/s142"
   },
   {
     "id": "S124",
@@ -1192,24 +1212,6 @@
     "module": "budget",
     "priorite": "skip",
     "chemin": "/budget/s126"
-  },
-  {
-    "id": "S127",
-    "nom": "Clôtures",
-    "acces": "Comptabilité > Clôture",
-    "but": "Comptabilité : clôture du mois et de l'exercice, affectation du résultat (l'état des provisions est au Crédit, plan d'allègement, point 6.13)",
-    "module": "comptabilite",
-    "priorite": "must",
-    "chemin": "/comptabilite/s127"
-  },
-  {
-    "id": "S143",
-    "nom": "Trésorerie",
-    "acces": "Comptabilité > Trésorerie",
-    "but": "Voir les soldes des caisses et des banques à une date",
-    "module": "comptabilite",
-    "priorite": "must",
-    "chemin": "/comptabilite/s143"
   },
   {
     "id": "S128",

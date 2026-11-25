@@ -1,6 +1,5 @@
 // S110 : Comptabilité > Rapprochement bancaire (manuel Microfina++, p. 129 ; procédure p. 154 et 155) ; S112 : Historique rapprochement (p. 130) ;
-// S119 : Lettrage (p. 138 et 160) ; S118 : Contrôle (Trésorerie, Rapport annulation, Etat des revenus : p. 136 et 137, 162 et 163) ;
-// S143 : Autres > Trésorerie ; S142 : Annulation de règlement de crédit (p. 158). Registre S110, S112, S118, S119, S142, S143.
+// S119 : Lettrage (p. 138 et 160) ; S118 : Rapport des annulations (p. 137) ; S143 : Trésorerie (p. 136, 162 et 163) ; plan d'allègement 7.11 ; S142 : Annulation de règlement de crédit (p. 158). Registre S110, S112, S118, S119, S142, S143.
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -223,7 +222,7 @@ export function Lettrage() {
   );
 }
 
-/** Contrôle > Trésorerie (p. 136 et 162) : Date *, Afficher ; « Solde des caisses au … », « Solde des banques au … ». Aussi Autres > Trésorerie (S143). */
+/** Trésorerie (S143 ; p. 136 et 162) : Date *, Afficher ; « Solde des caisses au … », « Solde des banques au … » ; un seul état (plan d'allègement 7.11) */
 function EtatTresorerie() {
   const { donnees: jour } = useDonnees(() => api.journees.courante());
   const [date, setDate] = useState("");
@@ -245,7 +244,7 @@ function EtatTresorerie() {
 const SOURCES_TRESORERIE = ["Manuel Microfina++, p. 136 : renseigner le champ Date, obligatoire, puis Afficher pour le solde des caisses ; p. 162 : soldes des caisses et des banques pour la journée comptable ; capture",
   TEXTE_008, "Registre S118-1 : soldes lus au grand livre à la date, brouillard compris ; un solde par devise"];
 export function Tresorerie() {
-  return <><section className="bloc pile" aria-label="Trésorerie"><EtatTresorerie /><Textes sources={[...SOURCES_TRESORERIE, "Manuel Microfina++, p. 163 : le menu Autres affiche Clôture, Trésorerie, Calculs ; registre S143-1 : même état que Contrôle > Trésorerie"]} /></section></>;
+  return <><section className="bloc pile" aria-label="Trésorerie"><EtatTresorerie /><Textes sources={[...SOURCES_TRESORERIE, "Manuel Microfina++, p. 163 : le menu Autres affiche Clôture, Trésorerie, Calculs ; plan d'allègement 7.11 : l'état de Contrôle > Trésorerie (S118) n'en fait plus qu'un avec celui-ci"]} /></section></>;
 }
 
 function RapportAnnulations() {
@@ -259,12 +258,10 @@ function RapportAnnulations() {
     try { setR(await api.controlesCompta.annulations({ du: f.du || jour, au: f.au || jour, guichetId: f.guichet, type: f.type, utilisateurId: f.utilisateur })); } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
   return <>
-    <h2>Rapports des annulations</h2>
     <Recherche className="pile" label="Critères" envoyer={rechercher}><div className="deux-colonnes">
       <fieldset className="cadre-champs formulaire"><legend>Element de Recherche</legend>
         <Champ libelle="Guichet :">{(p) => <select {...p} className="saisie" value={f.guichet} onChange={(e) => setF({ ...f, guichet: e.target.value })}><option value=""></option>
           {ctx.c.guichets.map((g) => <option key={g.id} value={g.id}>{g.nom}</option>)}</select>}</Champ>
-        <Champ libelle="Rapport :">{(p) => <select {...p} className="saisie"><option>Les annulations</option></select>}</Champ>
         <ChampDate libelle="Du :" valeur={f.du || jour} onChange={(v) => setF({ ...f, du: v })} /><ChampDate libelle="Au :" valeur={f.au || jour} onChange={(v) => setF({ ...f, au: v })} /></fieldset>
       <fieldset className="cadre-champs formulaire"><legend>Filtre</legend>
         <Champ libelle="Type d'opération :">{(p) => <select {...p} className="saisie" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}><option value=""></option>
@@ -286,51 +283,15 @@ function RapportAnnulations() {
   </>;
 }
 
-function EtatRevenus() {
-  const { donnees: jour } = useDonnees(() => api.journees.courante());
-  const [f, setF] = useState({ du: "", au: "", resultat: "detaille" });
-  const [r, setR] = useState<Awaited<ReturnType<typeof api.controlesCompta.revenus>> | null>(null);
-  const [boite, setBoite] = useState<Boite | null>(null);
-  const du = f.du || (jour?.date ? `${jour.date.slice(0, 4)}-01-01` : ""), au = f.au || jour?.date || "";
-  async function afficher() { try { setR(await api.controlesCompta.revenus({ du, au, resultat: f.resultat })); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }
-  return <>
-    <h2>État des revenus</h2>
-    <Recherche className="pile" label="Critères" envoyer={afficher}><div className="deux-colonnes">
-      <fieldset className="cadre-champs"><legend>Période</legend><div className="ligne-champ"><ChampDate libelle="Du :" valeur={du} onChange={(v) => setF({ ...f, du: v })} /><ChampDate libelle="Au :" valeur={au} onChange={(v) => setF({ ...f, au: v })} /></div></fieldset>
-      <div className="ligne-champ" role="radiogroup">
-        <label className="case"><input type="radio" name="rv" checked={f.resultat === "detaille"} onChange={() => setF({ ...f, resultat: "detaille" })} /><span>Détaillé</span></label>
-        <label className="case"><input type="radio" name="rv" checked={f.resultat === "synthese"} onChange={() => setF({ ...f, resultat: "synthese" })} /><span>Synthèse</span></label></div>
-    </div>
-    <div className="actions-onglets"><button className="bouton" type="submit">Afficher</button></div></Recherche>
-    <Paginee lignes={r?.lignes ?? []}>{(visibles) => (<table className="grille">
-      <thead><tr><th scope="col">Date Opération</th><th scope="col">AGENCE</th><th scope="col" className="num">DEPENSES</th><th scope="col" className="num">RECETTES</th><th scope="col" className="num">RESULTATS</th></tr></thead>
-      <tbody>{(r?.lignes ?? []).length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
-        {visibles.map((x, i) => <tr key={i}><td className="chiffres">{x.date ? fr(x.date) : ""}</td><td>{x.agence}</td><td className="num chiffres">{n(x.depenses)}</td><td className="num chiffres">{n(x.recettes)}</td><td className="num chiffres">{n(x.resultat)}</td></tr>)}</tbody>
-      <tfoot><tr><td></td><td></td><td className="num chiffres">{r ? n(r.depenses) : ""}</td><td className="num chiffres">{r ? n(r.recettes) : ""}</td><td className="num chiffres">{r ? n(r.resultat) : ""}</td></tr></tfoot>
-    </table>)}</Paginee>
-    <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={!r || r.lignes.length === 0} onClick={() => r && exporterExcel("etat-des-revenus", ["Date Opération", "AGENCE", "DEPENSES", "RECETTES", "RESULTATS"],
-      r.lignes.map((x) => [x.date ? fr(x.date) : "", x.agence, x.depenses / 100, x.recettes / 100, x.resultat / 100]))}>Export</button></div>
-    <Dialogue boite={boite} fermer={() => setBoite(null)} />
-  </>;
-}
-
-/** S118 : Comptabilité > Contrôle : Trésorerie, Rapport annulation, Etat des revenus (le contrôle « Compte », écart entre gestion et comptabilité, n'est pas repris) */
+/** S118 : Comptabilité > Contrôle > Rapport des annulations (p. 137) ; trésorerie (S143) et état des revenus (S122, détail par jour) sortis (plan d'allègement 7.11) */
 export function Controles() {
-  const [onglet, setOnglet] = useState(0);
-  const ONGLETS = ["Trésorerie", "Rapport annulation", "État des revenus"];
   return (
-    <>
-      <h2>Contrôle</h2>
-      <div className="onglets" role="tablist" aria-label="Contrôle">
-        {ONGLETS.map((o, i) => <button key={o} type="button" role="tab" id={`ct-${i}`} aria-controls="ct-volet" aria-selected={i === onglet} onClick={() => setOnglet(i)}>{o}</button>)}
-      </div>
-      <section className="bloc pile" id="ct-volet" role="tabpanel" aria-labelledby={`ct-${onglet}`}>
-        {onglet === 0 && <EtatTresorerie />}{onglet === 1 && <RapportAnnulations />}{onglet === 2 && <EtatRevenus />}
-        <Textes sources={[...SOURCES_TRESORERIE, "Manuel Microfina++, p. 137 : Rapport annulation ; Etat des revenus, Détaillé ou Synthèse, Afficher ou Exporter ; captures",
-          "PCCI § 3.3 : toute correction se fait par inscription en négatif ; classes 6 (charges) et 7 (produits)",
-          "Registre S118-2 à S118-4 : annulations lues dans les écritures liées à leur écriture d'origine ; revenus : classes 6 et 7 par jour, en CDF ; le contrôle « Compte » (écart gestion et comptabilité) n'est pas repris : un seul grand livre"]} />
-      </section>
-    </>
+    <section className="bloc pile" aria-label="Rapport des annulations">
+      <RapportAnnulations />
+      <Textes sources={["Manuel Microfina++, p. 137 : 15-3 Rapport annulation ; capture", TEXTE_008,
+        "PCCI § 3.3 : toute correction se fait par inscription en négatif",
+        "Registre S118-2 et S118-3 : annulations lues dans les écritures liées à leur écriture d'origine ; plan d'allègement 7.11 : une entrée propre, sans la liste « Rapport » à une seule valeur"]} />
+    </section>
   );
 }
 

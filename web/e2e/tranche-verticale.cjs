@@ -1130,14 +1130,18 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: 'Billet de 20000 CDF' }).waitFor(); if (!(await p.getByLabel('Compte Comptable (CDF)').inputValue())) throw new Error('S80-2 : Compte Comptable vide'); await etape('16b-validation-billetage');
   await p.getByRole('button', { name: 'Valider' }).click(); await ok();
   await aller('/comptabilite/s111');
-  await p.getByRole('button', { name: 'Comptabiliser' }).click(); await ok(); await p.getByText('Aucune journée à comptabiliser.').waitFor();
+  await p.getByRole('button', { name: 'Clôturer la journée' }).click(); await ok(); await p.getByText('Aucune journée à comptabiliser.').waitFor();
   await etape('17-journee-fermee');
   await login('Patrick Lumbala'); await p.goto(B + '/comptabilite/s121'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByText(/Équilibrée/).waitFor(); await etape('18-balance');
   // Journaux comptables (S115, p. 133) : lignes définitives, journal centralisé
   await aller('/comptabilite/s115'); await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('cell', { name: /^CA / }).first().waitFor(); await etape('18e-journaux-comptables');
   // Schémas comptables appliqués (B22 ; Instr. BCC 008, art. 9 ; PCCI § 3.1) : par évènement, journaux et comptes débités et crédités
+  // Plan d'allègement, point 7.18 : ils s'ouvrent au paramétrage des journaux (Paramétrage > Comptabilité > Journal), par le chef d'agence
+  if (await p.getByRole('button', { name: 'Schémas comptables' }).count()) throw new Error('7.18 : les schémas quittent la consultation des journaux');
+  await login('J.-P. Mukendi'); await aller('/parametrage/s30');
   await p.getByRole('button', { name: 'Schémas comptables' }).click(); const fsc = p.getByRole('dialog', { name: /^Schémas comptables/ });
   await fsc.getByRole('cell', { name: 'Dépôt en espèces', exact: true }).waitFor(); await etape('18e2-schemas-comptables'); await fsc.getByRole('button', { name: 'Fermer' }).click();
+  await login('Patrick Lumbala'); await aller('/comptabilite/s115');
   // Aide en ligne (manuel p. 14, article XXI ; registre T119) : accès, but, boutons de l'écran et règles appliquées, avec leur texte
   await p.getByRole('button', { name: 'Aide en ligne' }).click(); const aide = p.getByRole('region', { name: 'Aide en ligne' });
   await aide.getByRole('heading', { name: 'Aide en ligne : Journaux' }).waitFor(); await aide.getByRole('heading', { name: 'Règles appliquées par cet écran' }).waitFor();
@@ -1146,6 +1150,8 @@ const OUT = process.argv[2];
   await etape('18e3-aide-en-ligne'); await aide.getByRole('button', { name: "Fermer l'aide" }).click();
   // Grand livre (S120, p. 138) : écritures définitives de la journée comptabilisée ; taxes (S104, p. 124) et plan des tiers (S103, p. 123)
   await aller('/comptabilite/s120'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: 'Total général' }).waitFor(); await etape('18b-grand-livre');
+  if (await p.getByRole('tab').count()) throw new Error('S120 : onglets Général et Analytique restés');   // allègement 7.12 : un formulaire, « Plan » si l'analytique est tenue
+  await p.getByLabel('Plan :').selectOption('analytique'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByText(/^Grand livre analytique du/).waitFor(); await etape('18b2-grand-livre-analytique');
   // La TVA à 16 % est dans la graine ; l'essai ajoute le taux réduit de 5 % (O.-L. 10/001, art. 35, modifié par la LF 25/060, art. 46)
   await aller('/comptabilite/s104'); await p.getByRole('cell', { name: '16,00' }).waitFor(); await p.getByLabel('Code *').fill('TVA5'); await p.getByLabel('Désignation *').fill('TVA AU TAUX REDUIT'); await p.getByLabel('Taux *').fill('5'); await p.getByLabel('Compte *').fill('43200000');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok(); await p.getByRole('cell', { name: '5,00' }).waitFor(); await etape('18c-taxes');
@@ -1200,7 +1206,11 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: 'Rapport' }).click(); await p.getByLabel('Au :').fill('30112026'); await p.getByRole('radio', { name: 'Détaillé' }).check(); await p.getByRole('radio', { name: 'Tout' }).check();
   await p.getByRole('button', { name: 'Rechercher', exact: true }).click();
   await p.getByRole('cell', { name: 'F-2026-001' }).first().waitFor(); await etape('23e-rapport-factures');
-  await aller('/comptabilite/s108'); await p.getByRole('heading', { name: 'État de déclaration des taxes' }).waitFor(); await etape('23f-declaration-taxes');
+  // Plan d'allègement 7.10 : « Déclarations fiscales du mois », l'exercice et le mois une fois, deux onglets ; échéance (O.-L. 10/001, art. 60) et quittance
+  await aller('/comptabilite/s108'); await p.getByRole('region', { name: 'État de déclaration des taxes' }).waitFor();
+  await p.getByLabel('Taxe :').selectOption({ index: 1 }); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByText(/^Déclaration et paiement au plus tard le/).waitFor(); await etape('23f-declaration-taxes');
+  await p.getByRole('tab', { name: 'Retenues sur intérêts' }).click(); await p.getByRole('article', { name: 'État des retenues du mois' }).waitFor();
+  if (await p.getByLabel('Année').count()) throw new Error('S108 : le mois se choisit deux fois'); await etape('23f2-retenues-du-mois');
   // Chef : visa de la facture (S113) ; la validation (S114) revient à une troisième personne (Instr. BCC 008, art. 66)
   await login('J.-P. Mukendi'); await aller('/comptabilite/s113'); await p.getByRole('tab', { name: 'Facture' }).click();
   await p.getByRole('button', { name: 'Visa F-2026-001' }).click(); await oui(); await etape('23g-visa-facture');
@@ -1210,7 +1220,7 @@ const OUT = process.argv[2];
   // Un écran sans droit ne s'ouvre pas, même par son adresse (registre T07) : le chef n'a pas les transferts de fonds
   await aller('/caisse/s81'); await p.getByText(/^Droit manquant : Transferts de fonds/).waitFor(); await etape('23i-droit-manquant');
   // Annulation de règlement de crédit (S142, p. 158) : le règlement par prélèvement saisi par le comptable, annulé par le chef (PCCI § 3.3)
-  await aller('/comptabilite/s142'); await p.getByRole('button', { name: 'Rechercher un règlement' }).click();
+  await aller('/credit/s142'); await p.getByRole('button', { name: 'Rechercher un règlement' }).click();
   const an = p.getByRole('dialog', { name: 'Remboursements annulables' });
   await an.getByRole('row').filter({ hasText: 'Kalala' }).first().click(); await etape('24a-annulation-reglement');
   await p.getByRole('button', { name: 'Annuler ce remboursement' }).click(); await oui(); await etape('24b-reglement-annule');
@@ -1231,21 +1241,26 @@ const OUT = process.argv[2];
   // Lettrage (S119, p. 138 et 160) ; contrôle (S118, p. 136 à 138) ; trésorerie (S143, p. 162)
   await aller('/comptabilite/s119'); await p.getByLabel('Compte *').fill('61000000'); await p.getByRole('radio', { name: 'Toutes les écritures' }).check();
   await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByLabel('Intitulé').waitFor(); await etape('26a-lettrage');
-  await aller('/comptabilite/s118'); await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByText(/^Solde des caisses au/).waitFor(); await etape('26b-controle-tresorerie');
-  await p.getByRole('tab', { name: 'Rapport annulation' }).click(); await p.getByLabel('Du :').fill('01112026'); await p.getByLabel('Au :').fill('30112026');
+  // Plan d'allègement 7.11 : S118 ne garde que le rapport des annulations ; la trésorerie n'existe plus qu'en S143 ; l'état des revenus passe en S122
+  await aller('/comptabilite/s118'); if (await p.getByRole('tab').count()) throw new Error('S118 : onglets restés');
+  if (await p.getByLabel('Rapport :').count()) throw new Error('S118 : liste « Rapport » restée');
+  await p.getByLabel('Du :').fill('01112026'); await p.getByLabel('Au :').fill('30112026');
   await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('cell', { name: /Kalala/ }).first().waitFor(); await etape('26c-rapport-annulation');
-  await p.getByRole('tab', { name: 'État des revenus' }).click(); await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('columnheader', { name: 'RECETTES' }).waitFor(); await etape('26d-etat-revenus');
-  await aller('/comptabilite/s143'); await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByText(/^Solde des banques au/).waitFor(); await etape('26e-tresorerie');
+  await aller('/comptabilite/s143'); await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByText(/^Solde des caisses au/).waitFor(); await p.getByText(/^Solde des banques au/).waitFor(); await etape('26e-tresorerie');
   // Etats financiers (S122, p. 140 et 141 ; PCCI, chap. 14) et indicateurs financiers (S123, p. 142 ; Instr. BCC 004)
   await aller('/comptabilite/s122'); await p.getByRole('heading', { name: 'Edition du bilan' }).waitFor(); await etape('27a-bilan-criteres');
+  for (const l of ['État :', 'Période :', 'Exercice :', 'Compte :']) if (await p.getByLabel(l, { exact: true }).count()) throw new Error(`S122 : champ ${l} resté`);   // allègement 7.12
+  await p.getByLabel("Date d'arrêté :").waitFor();
   await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: 'TOTAL ACTIF' }).waitFor();
   if (await p.getByText(/Le total de l'actif diffère/).count()) throw new Error('S122 : bilan déséquilibré');
   await etape('27b-bilan');
   await p.getByRole('tab', { name: 'Hors bilan' }).click(); await p.getByRole('heading', { name: "Edition de l'état hors bilan" }).waitFor(); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: 'Engagements donnés' }).waitFor(); await etape('27c-hors-bilan');
-  await p.getByRole('tab', { name: 'Résultat' }).click(); await p.getByRole('heading', { name: 'Compte de résultat' }).waitFor(); await p.getByLabel('Resultat sans VIDAGE').check(); await p.getByRole('button', { name: 'Rechercher' }).click();
+  await p.getByRole('tab', { name: 'Résultat' }).click(); await p.getByRole('heading', { name: 'Compte de résultat' }).waitFor(); await p.getByLabel('Sans les écritures de clôture').check(); await p.getByRole('button', { name: 'Rechercher' }).click();
   await p.getByRole('rowheader', { name: "Résultat net de l'exercice" }).waitFor();
   await p.getByLabel("En-tête de l'état").getByText('Dénomination ou raison sociale').waitFor(); await p.getByLabel("En-tête de l'état").getByText('NRC', { exact: true }).waitFor();   // PCCI 14.2 : en-tête du modèle
   await etape('27d-compte-de-resultat');
+  await p.getByLabel('Détail par jour').check(); await p.getByRole('button', { name: 'Rechercher' }).click();
+  await p.getByRole('columnheader', { name: 'Produits (classe 7)' }).waitFor(); await p.getByRole('columnheader', { name: 'Charges (classe 6)' }).waitFor(); await etape('27d2-detail-par-jour');
   await p.getByRole('tab', { name: 'État annexe' }).click(); await p.getByRole('heading', { name: 'Edition des états annexes' }).waitFor(); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: 'TOTAL' }).waitFor(); await etape('27e-emplois-ressources');
   await p.getByLabel('Annexe :').selectOption('flux'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: /^LIQUIDITES ET EQUIVALENTS/ }).waitFor();
   if (await p.getByText(/Les flux ne retombent pas/).count()) throw new Error('S122 : flux de trésorerie non bouclés');
@@ -1265,7 +1280,9 @@ const OUT = process.argv[2];
   await p.getByLabel('Annexe :').selectOption('depots'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: 'Epargnes et dépôts ordinaires' }).waitFor(); await etape('27g-ventilation-depots');
   await aller('/comptabilite/s123'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('cell', { name: 'Portefeuille à Risque' }).waitFor(); await etape('27h-indicateurs-financiers');
   // Normes prudentielles (SN01 ; Instr. BCC 002 ; loi 002/2002, art. 59) : état à la date de la journée
-  await aller('/comptabilite/sn01'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('cell', { name: /Liquidité immédiate/ }).waitFor(); await etape('27h2-normes-prudentielles');
+  // Plan d'allègement 7.9 : une entrée « Indicateurs et normes », deux onglets
+  await p.getByRole('tab', { name: 'Normes prudentielles' }).click(); await p.getByRole('region', { name: 'Edition des normes prudentielles' }).getByRole('button', { name: 'Rechercher' }).click();
+  await p.getByRole('cell', { name: /Liquidité immédiate/ }).waitFor(); await etape('27h2-normes-prudentielles');
   // Budgets (S124, plan 9.4) : la liste, Nouveau, Reconduire, Ouvrir ; le comptable crée le budget 2026
   await aller('/budget/s124'); await p.getByRole('button', { name: 'Nouveau' }).click(); const nbu = p.getByRole('dialog', { name: 'Nouveau budget' });
   await nbu.getByLabel('Année *').selectOption({ label: '2026' }); await nbu.getByLabel('Code *').fill('2026-PL'); await nbu.getByLabel('Libellé *').fill('PLAN BUDGETAIRE ANNEE 2026');

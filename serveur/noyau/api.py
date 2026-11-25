@@ -1232,6 +1232,12 @@ def declaration_taxes(request):
     return ff.declaration_taxes(u(request), request.GET.dict())
 
 
+@api.post("/comptabilite/declaration-taxes/reversements")
+def declaration_taxes_reverser(request, corps: dict = Body(...)):
+    from . import factures_fournisseurs as ff
+    return ff.reverser_taxe(u(request), corps)
+
+
 @api.get("/caisse/reglements-factures")
 def caisse_reglements_factures(request):
     from . import factures_fournisseurs as ff
@@ -1310,12 +1316,6 @@ def controle_annulations_contexte(request):
 def controle_annulations(request):
     from . import controles_compta as cc
     return cc.annulations(u(request), request.GET.dict())
-
-
-@api.get("/comptabilite/controle/revenus")
-def controle_revenus(request):
-    from . import controles_compta as cc
-    return cc.revenus(u(request), request.GET.dict())
 
 
 @api.get("/comptabilite/annulation-reglement")

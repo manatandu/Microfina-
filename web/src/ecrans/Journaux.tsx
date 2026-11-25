@@ -1,3 +1,5 @@
+import { SchemasComptables } from "./JournauxComptables";
+import { aujourdhui } from "../lib/dates";
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -46,7 +48,8 @@ export default function Journaux() {
         </div>
         <fieldset className="cadre-champs pile">
           <legend>Liste des Journaux</legend>
-          <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={exporter}>Exporter</button></div>
+          <div className="actions-onglets"><button className="bouton secondaire" type="button" onClick={exporter}>Exporter</button>
+            <SchemasComptables exercice={aujourdhui().slice(0, 4)} /></div>
           <Paginee lignes={liste}>{(visibles) => (<table className="grille">
             <thead><tr><th scope="col">N° Journal</th><th scope="col">Libellé</th><th scope="col">Type Journal</th><th scope="col">Actif</th></tr></thead>
             <tbody>

@@ -286,8 +286,25 @@ def resultat(u, p) -> dict:
         cles = sorted(set(n[i]["comptes"]) | set(n1[i]["comptes"]))
         lg.append({"signe": r.get("signe", ""), "solde": "solde" in r, "libelle": r["libelle"], "n": n[i]["valeur"], "n1": n1[i]["valeur"],
                    "comptes": [{"compte": k, "intitule": noms.get(k, ""), "n": n[i]["comptes"].get(k, 0), "n1": n1[i]["comptes"].get(k, 0)} for k in cles]})
-    return {"du": du.isoformat(), "au": au.isoformat(), "exercice": ex, "precedentDu": an_dernier(du).isoformat(), "precedentAu": an_dernier(au).isoformat(),
-            "type": p.get("type") or "developpe", "lignes": lg, "nonRattaches": [{"compte": k, "intitule": noms.get(k, "")} for k in hors]}
+    r = {"du": du.isoformat(), "au": au.isoformat(), "exercice": ex, "precedentDu": an_dernier(du).isoformat(), "precedentAu": an_dernier(au).isoformat(),
+         "type": p.get("type") or "developpe", "lignes": lg, "nonRattaches": [{"compte": k, "intitule": noms.get(k, "")} for k in hors]}
+    if vrai(p.get("parJour")):
+        r["jours"] = par_jour(u, du, au, vidage=vid, agence=agence)
+    return r
+
+
+def par_jour(u, du: date, au: date, *, vidage: bool, agence=None) -> list[dict]:
+    """Option « Détail par jour » (ancien « Etat des revenus » de S118, plan d'allègement 7.11) : par jour et par agence, charges (classe 6), produits
+    (classe 7) et résultat ; mêmes écritures que le compte de résultat (définitives, T13 ; agence ; écritures de clôture selon la case)"""
+    return [{"date": x["date_valeur"].isoformat(), "agence": x["agence"], "charges": int(x["charges"]), "produits": int(x["produits"]), "resultat": int(x["produits"] - x["charges"])}
+            for x in lignes(f"""select e.date_valeur, a.code as agence,
+                                     sum(case when left(c.numero, 1) = '6' then (case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end) else 0 end) as charges,
+                                     sum(case when left(c.numero, 1) = '7' then (case l.sens when 'C' then l.montant_cdf else -l.montant_cdf end) else 0 end) as produits
+                              from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join compte c on c.id = l.compte_id
+                              join journee_comptable jc on jc.id = e.journee_id join agence a on a.id = jc.agence_id
+                              where e.institution_id = %s and jc.statut = 'fermee' and e.date_valeur between %s and %s and (%s::bigint is null or jc.agence_id = %s)
+                                and left(c.numero, 1) in ('6', '7') {"" if vidage else "and e.type <> 'vidage'"} group by 1, 2 order by 1, 2""",
+                            (u["institution_id"], du, au, agence, agence))]
 
 
 # ---------- Etat annexe (p. 141) ----------

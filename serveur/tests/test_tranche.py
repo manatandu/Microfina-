@@ -4178,6 +4178,7 @@ def test_comptabilisation_banque(clients, journee):
     assert [x["compte"] for x in compta.get(f"/api/comptabilite/balance?{q}&compteDe=7&compteA=79999999", **H).json()["lignes"]] == ["72700000"]
     an = compta.get(f"/api/comptabilite/balance?{q}&analytique=true&compteDe=33&compteA=37", **H).json()["lignes"]
     assert all(x["auxiliaire"].startswith("depot:") for x in an) and an
+    assert compta.get("/api/comptabilite/etats/contexte", **H).json()["analytique"] is True    # allègement 7.12 : « Plan : Général / Analytique » montré
     assert caisse.get(f"/api/comptabilite/balance?{q}", **H).status_code == 403
 
 
@@ -4274,13 +4275,14 @@ def test_saisie_ecriture(clients, journee):
     assert q(mois=10)["lignes"] == [] and "Exercice" in compta.get("/api/comptabilite/journaux-comptables", **H).json()["message"]
     assert caisse.get("/api/comptabilite/journaux-comptables?exercice=2026", **H).status_code == 403
     # B22 : schémas comptables appliqués, par évènement (Instr. BCC 008, art. 9 ; PCCI § 3.1)
-    SC = "/api/comptabilite/journaux-comptables/schemas"
-    sc = compta.get(SC, {"exercice": 2026}, **H).json()
+    SC = "/api/comptabilite/journaux-comptables/schemas"      # plan d'allègement, point 7.18 : au paramétrage des journaux (S30)
+    assert compta.get(SC, {"exercice": 2026}, **H).status_code == 403
+    sc = chef.get(SC, {"exercice": 2026}, **H).json()
     em = next(x for x in sc["schemas"] if x["evenement"] == "ecriture_manuelle")
     assert (em["libelle"], em["journaux"], em["ecritures"]) == ("Écriture saisie", ["OD"], 1)
     assert ([x["compte"] for x in em["debit"]], [x["compte"] for x in em["credit"]]) == (["61000000", "61240000"], ["46100000"])
     assert sc["exercice"] == 2026 and sc["edition"]["numero"] >= 1 and [x["libelle"] for x in sc["schemas"]] == sorted(x["libelle"] for x in sc["schemas"])
-    assert compta.get(SC, {"exercice": 2025}, **H).json()["schemas"] == [] and "Exercice" in compta.get(SC, **H).json()["message"]
+    assert chef.get(SC, {"exercice": 2025}, **H).json()["schemas"] == [] and "Exercice" in chef.get(SC, **H).json()["message"]
     assert caisse.get(SC + "?exercice=2026", **H).status_code == 403
 
 
@@ -4573,6 +4575,16 @@ def test_factures_fournisseurs(clients, journee):
     assert compta.get("/api/comptabilite/declaration-taxes", {"exercice": 2026, "mois": 11, "taxeId": tx["PNR"]}, **H).json()["lignes"] == []
     assert "Taxe" in compta.get("/api/comptabilite/declaration-taxes", {"exercice": 2026, "mois": 11}, **H).json()["message"]
     assert caisse.get("/api/comptabilite/declaration-taxes?exercice=2026&mois=11", **H).status_code == 403
+    # Plan d'allègement 7.10 : échéance le 15 du mois qui suit (O.-L. 10/001, art. 60 ; loi 004/2003, art. 22 bis) ; la quittance se note une fois
+    assert (dt["echeance"], dt["statut"], dt["reference"]) == ("2026-12-15", "a_reverser", "")
+    RT, bt = "/api/comptabilite/declaration-taxes/reversements", {"exercice": 2026, "mois": 11, "taxeId": tx["TVA"]}
+    assert "référence" in compta.post(RT, {**bt, "date": "2026-11-05", "reference": " "}, **H).json()["message"]
+    assert "Aucune ligne" in compta.post(RT, {**bt, "taxeId": tx["PNR"], "date": "2026-11-05", "reference": "Q-1"}, **H).json()["message"]
+    assert "journée ouverte" in compta.post(RT, {**bt, "date": "2026-11-06", "reference": "Q-1"}, **H).json()["message"]
+    assert caisse.post(RT, {**bt, "date": "2026-11-05", "reference": "Q-1"}, **H).status_code == 403
+    rt = compta.post(RT, {**bt, "date": "2026-11-05", "reference": "DGI-TVA-2026-11"}, **H)
+    assert rt.status_code == 200 and (rt.json()["statut"], rt.json()["reverseLe"], rt.json()["reference"]) == ("reverse", "2026-11-05", "DGI-TVA-2026-11"), rt.content
+    assert "déjà noté" in compta.post(RT, {**bt, "date": "2026-11-05", "reference": "X"}, **H).json()["message"]
     # journal achat : les écritures des factures et de leurs règlements
     ja = compta.get("/api/comptabilite/journaux-comptables", {"exercice": 2026, "mois": 11, "achats": "1"}, **H).json()
     assert {x["compte"] for x in ja["lignes"]} >= {"40000000", "61000000", "61240000", "43200000", "43300000"} and ja["totalDebit"] == ja["totalCredit"]
@@ -4642,8 +4654,8 @@ def test_rapprochement_bancaire(clients, journee):
 
 
 def test_lettrage_et_controles(clients, journee):
-    """S119 (p. 138 et 160) : les lignes définitives d'un compte, lettrées quand le débit coché égale le crédit ; S118 (p. 136 à 138) : trésorerie
-    (caisses et banques), état des revenus ; S143 : même état de trésorerie"""
+    """S119 (p. 138 et 160) : les lignes définitives d'un compte, lettrées quand le débit coché égale le crédit ; S143 (p. 136 et 162) : trésorerie
+    (caisses et banques) ; détail par jour du compte de résultat (S122, ancien état des revenus de S118, plan d'allègement 7.11)"""
     chef, compta, caisse = clients["chef"], clients["compta"], clients["caisse"]
     od = next(j["id"] for j in compta.get(f"{OC}/contexte", **H).json()["journaux"] if j["code"] == "OD")
     base = {"journalId": od, "periode": "11/2026", "jour": 5, "libelle": "Facture à recevoir"}
@@ -4674,10 +4686,11 @@ def test_lettrage_et_controles(clients, journee):
     l610 = compta.get(L, {"compte": "61000000", "du": "2026-11-01"}, **H).json()["lignes"]
     l727 = compta.get(L, {"compte": "72700000", "du": "2026-11-01"}, **H).json()["lignes"]
     assert "total débit doit égaler" in compta.post(L, {"compte": "61000000", "lignes": [l610[0]["id"], l610[0]["id"]]}, **H).json()["message"] and l727
-    rv = compta.get("/api/comptabilite/controle/revenus", {"du": "2026-11-01", "au": "2026-11-30"}, **H).json()
-    assert (rv["depenses"], rv["recettes"], rv["resultat"], rv["lignes"][0]["date"]) == (300000, 300000, 0, "2026-11-05")
-    sy = compta.get("/api/comptabilite/controle/revenus", {"du": "2026-11-01", "au": "2026-11-30", "resultat": "synthese"}, **H).json()
-    assert [(x["date"], x["depenses"]) for x in sy["lignes"]] == [("", 300000)]
+    # Plan d'allègement 7.11 : l'état des revenus devient l'option « Détail par jour » du compte de résultat (S122) ; l'ancienne adresse n'existe plus
+    rj = compta.get("/api/comptabilite/etats-financiers/resultat", {"du": "2026-11-01", "au": "2026-11-30", "parJour": "true"}, **H).json()["jours"]
+    assert (sum(x["charges"] for x in rj), sum(x["produits"] for x in rj), sum(x["resultat"] for x in rj), rj[0]["date"]) == (300000, 300000, 0, "2026-11-05")
+    assert "jours" not in compta.get("/api/comptabilite/etats-financiers/resultat", {"du": "2026-11-01", "au": "2026-11-30"}, **H).json()
+    assert compta.get("/api/comptabilite/controle/revenus", {"du": "2026-11-01", "au": "2026-11-30"}, **H).status_code == 404
 
 
 def test_annulation_reglement_credit(clients, journee):

@@ -353,7 +353,7 @@ export type ParamAdhesion = ParamFrais & { typeMembre: string };
 export interface Produit { code: string; libelle: string; devise: Devise; numero?: number }   // numero : S27, suffixe du numéro de compte (S17-2)
 
 export interface Etat {
-  version: 83;
+  version: 84;
   institution: Institution;
   agence: Agence;
   agences: (Agence & { supprime: boolean; jours?: boolean[] })[];   // S32, page Agence ; jours : Journées de travail, Dimanche à Samedi (S34)
@@ -422,6 +422,7 @@ export interface Etat {
   visasCredit: VisaCredit[];   // S90
   declarationsRisque: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // E26, Instr. BCC 05
   reversementsRetenues: ReversementRetenue[];   // écart E16
+  reversementsTaxes: (ReversementRetenue & { taxeId: number })[];   // plan d'allègement 7.10 : déclaration ou quittance d'une taxe du mois (S108)
   journalSecurite: EvenementSecurite[];   // écart E17
   declarationsCip: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // écart E06   // S46, S42, S43
   banques: { id: number; code: string; libelle: string; compteLiaison: string; adresse: string }[];   // S58

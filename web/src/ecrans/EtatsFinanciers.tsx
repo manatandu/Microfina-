@@ -10,8 +10,9 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr, texteEdition, aujourdhui } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { liasseXml, telecharger } from "../lib/liasse";
+import NormesPrudentielles from "./NormesPrudentielles";
 import { decimal } from "@design/montant.js";
-import { Attention, Champ, ChampDate, Chargement, Dialogue, Lecture, Textes, type Boite, Recherche } from "../composants";
+import { Attention, Champ, ChampDate, Chargement, Dialogue, Lecture, Textes, type Boite, Recherche, Paginee } from "../composants";
 
 const n = (v: number | null) => (v === null ? "" : decimal.format(v / 100));
 type Ctx = Awaited<ReturnType<typeof api.etatsFinanciers.contexte>>;
@@ -22,40 +23,34 @@ type Annexe = Awaited<ReturnType<typeof api.etatsFinanciers.annexe>>;
 type Indicateurs = Awaited<ReturnType<typeof api.etatsFinanciers.indicateurs>>;
 const PAGES = [["bilan", "Bilan"], ["hors-bilan", "Hors bilan"], ["resultat", "Résultat"], ["annexe", "État annexe"]] as const;
 const PCCI_14 = "PCCI, chap. 14 « Comptes annuels » : 14.1 bilan (actif, 8 postes ; passif, 14 postes) et hors-bilan (00, 01, 04, 06), 14.2 compte de résultat, 14.3 tableau de flux de trésorerie ; colonnes N et N-1";
-const REGLES = "Registre S122 et T13 : écritures définitives seulement, en CDF ; comptes rattachés aux postes d'après le cadre des comptes (PCCI, chap. 9) ; « sans VIDAGE » écarte les écritures de clôture";
+const REGLES = "Registre S122 et T13 : écritures définitives seulement, en CDF ; comptes rattachés aux postes d'après le cadre des comptes (PCCI, chap. 9) ; « Sans les écritures de clôture » les écarte";
 
 function useCadre() {
   const { donnees } = useDonnees(async () => ({ ctx: await api.etatsFinanciers.contexte(), j: await api.journees.courante() }));
   return donnees;
 }
 const finDeMois = (annee: string, mois: number) => `${annee}-${String(mois).padStart(2, "0")}-${String(new Date(Date.UTC(Number(annee), mois, 0)).getUTCDate()).padStart(2, "0")}`;
-type Criteres = { du: string; au: string; etat: string; compteDe: string; compteA: string; type: string; agence: string; periode: string; exercice: string; sansVidage: boolean };
+type Criteres = { du: string; au: string; type: string; agence: string; sansVidage: boolean; parJour?: boolean };
 
 /** Les champs des trois fenêtres « Edition du bilan », « Edition de l'état hors bilan », « Compte de résultat » : mêmes champs, libellés propres */
-function Edition({ ctx, f, setF, libelleType, types, libelleVidage }: { ctx: Ctx; f: Criteres; setF: (x: Criteres) => void; libelleType: string; types: { code: string; libelle: string }[]; libelleVidage: string }) {
-  const periode = (v: string) => setF(v ? { ...f, periode: v, du: `${f.exercice}-${v}-01`, au: finDeMois(f.exercice, Number(v)) } : { ...f, periode: "" });
+function Edition({ ctx, f, setF, libelleType, types }: { ctx: Ctx; f: Criteres; setF: (x: Criteres) => void; libelleType: string; types: { code: string; libelle: string }[] }) {
   return <div className="deux-colonnes">
-    <fieldset className="cadre-champs formulaire"><legend className="sr-only">Période et comptes</legend>
-      <ChampDate libelle="Date début période :" valeur={f.du} onChange={(v) => setF({ ...f, du: v, periode: "" })} />
-      <ChampDate libelle="Date fin période :" valeur={f.au} onChange={(v) => setF({ ...f, au: v, periode: "" })} />
-      <Champ libelle="État :">{(p) => <select {...p} className="saisie" value={f.etat} onChange={(e) => setF({ ...f, etat: e.target.value })}><option value="creation">Création</option></select>}</Champ>
-      <Champ libelle="Compte :">{(p) => <input {...p} className="saisie code" inputMode="numeric" value={f.compteDe} onChange={(e) => setF({ ...f, compteDe: e.target.value })} />}</Champ>
-      <Champ libelle="------- :">{(p) => <input {...p} aria-label="Compte, jusqu'à" className="saisie code" inputMode="numeric" value={f.compteA} onChange={(e) => setF({ ...f, compteA: e.target.value })} />}</Champ>
+    <fieldset className="cadre-champs formulaire"><legend className="sr-only">Période</legend>
+      <ChampDate libelle="Date de début :" valeur={f.du} onChange={(v) => setF({ ...f, du: v })} />
+      <ChampDate libelle="Date d'arrêté :" valeur={f.au} onChange={(v) => setF({ ...f, au: v })} />
     </fieldset>
     <fieldset className="cadre-champs formulaire"><legend className="sr-only">État</legend>
       <Champ libelle={libelleType}>{(p) => <select {...p} className="saisie" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>
         {types.map((t) => <option key={t.code} value={t.code}>{t.libelle}</option>)}</select>}</Champ>
       {ctx.agences.length > 1 && <Champ libelle="Agence :">{(p) => <select {...p} className="saisie" value={f.agence} onChange={(e) => setF({ ...f, agence: e.target.value })}><option value="">Toutes les agences</option>
         {ctx.agences.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>}
-      <Champ libelle="Période :">{(p) => <select {...p} className="saisie" value={f.periode} onChange={(e) => periode(e.target.value)}><option value=""></option>
-        {ctx.mois.map((m, i) => <option key={m} value={String(i + 1).padStart(2, "0")}>{m}</option>)}</select>}</Champ>
-      <Champ libelle="Exercice :">{(p) => <select {...p} className="saisie court" value={f.exercice} onChange={(e) => setF({ ...f, exercice: e.target.value, periode: "" })}>
-        {ctx.exercices.map((a) => <option key={a} value={a}>{enClair(a)}</option>)}</select>}</Champ>
-      <label className="case"><input type="checkbox" checked={f.sansVidage} onChange={(e) => setF({ ...f, sansVidage: e.target.checked })} /><span>{libelleVidage}</span></label>
+      <label className="case"><input type="checkbox" checked={f.sansVidage} onChange={(e) => setF({ ...f, sansVidage: e.target.checked })} /><span>Sans les écritures de clôture</span></label>
+      {f.parJour !== undefined && <label className="case"><input type="checkbox" checked={f.parJour} onChange={(e) => setF({ ...f, parJour: e.target.checked })} /><span>Détail par jour</span></label>}
     </fieldset>
   </div>;
 }
-const envoi = (f: Criteres) => ({ du: f.du, au: f.au, exercice: f.exercice, type: f.type, agenceId: f.agence ? Number(f.agence) : null, compteDe: f.compteDe, compteA: f.compteA, sansVidage: f.sansVidage });
+
+const envoi = (f: Criteres) => ({ du: f.du, au: f.au, type: f.type, agenceId: f.agence ? Number(f.agence) : null, sansVidage: f.sansVidage, ...(f.parJour ? { parJour: true } : {}) });
 /** En-tête des modèles du PCCI (14.1 à 14.3) : dénomination ou raison sociale, n° d'agrément, sigle, date, NRC */
 function EnteteEtat({ date }: { date: string }) {
   const { donnees } = useDonnees(() => api.referentiel.contexte());
@@ -85,7 +80,7 @@ const lignesDetail = (comptes: Detail[], cle: string) => comptes.map((c, i) => <
   <td className="num chiffres">{n(c.n)}</td><td className="num chiffres">{n(c.n1)}</td></tr>);
 
 function EditionBilan({ ctx, jour }: { ctx: Ctx; jour: string }) {
-  const vide: Criteres = { du: `${jour.slice(0, 4)}-01-01`, au: jour, etat: "creation", compteDe: "1", compteA: "99000000", type: "developpe", agence: "", periode: "", exercice: jour.slice(0, 4), sansVidage: true };
+  const vide: Criteres = { du: `${jour.slice(0, 4)}-01-01`, au: jour, type: "developpe", agence: "", sansVidage: true };
   const [f, setF] = useState(vide);
   const [r, setR] = useState<Bilan | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
@@ -102,7 +97,7 @@ function EditionBilan({ ctx, jour }: { ctx: Ctx; jour: string }) {
   return (
     <section className="bloc pile" aria-label="Edition du bilan">
       <h2>Edition du bilan</h2>
-      <Recherche className="pile" label="Critères" envoyer={rechercher}><Edition ctx={ctx} f={f} setF={setF} libelleType="Type de bilan :" types={ctx.typesBilan} libelleVidage="Bilan sans VIDAGE" />
+      <Recherche className="pile" label="Critères" envoyer={rechercher}><Edition ctx={ctx} f={f} setF={setF} libelleType="Type de bilan :" types={ctx.typesBilan} />
       <Actions vider={() => { setF(vide); setR(null); }} exporter={r ? exporter : null} /></Recherche>
       {r && <div className="pile">
         <EnteteEtat date={r.au} />
@@ -120,7 +115,7 @@ function EditionBilan({ ctx, jour }: { ctx: Ctx; jour: string }) {
 }
 
 function EditionHorsBilan({ ctx, jour }: { ctx: Ctx; jour: string }) {
-  const vide: Criteres = { du: `${jour.slice(0, 4)}-01-01`, au: jour, etat: "creation", compteDe: "0", compteA: "09999999", type: "developpe", agence: "", periode: "", exercice: jour.slice(0, 4), sansVidage: false };
+  const vide: Criteres = { du: `${jour.slice(0, 4)}-01-01`, au: jour, type: "developpe", agence: "", sansVidage: false };
   const [f, setF] = useState(vide);
   const [r, setR] = useState<HorsBilan | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
@@ -131,7 +126,7 @@ function EditionHorsBilan({ ctx, jour }: { ctx: Ctx; jour: string }) {
   return (
     <section className="bloc pile" aria-label="Edition de l'état hors bilan">
       <h2>Edition de l'état hors bilan</h2>
-      <Recherche className="pile" label="Critères" envoyer={rechercher}><Edition ctx={ctx} f={f} setF={setF} libelleType="Hors bilan :" types={ctx.typesHorsBilan} libelleVidage="Bilan sans VIDAGE" />
+      <Recherche className="pile" label="Critères" envoyer={rechercher}><Edition ctx={ctx} f={f} setF={setF} libelleType="Hors bilan :" types={ctx.typesHorsBilan} />
       <Actions vider={() => { setF(vide); setR(null); }} exporter={r ? exporter : null} /></Recherche>
       {r && <EnteteEtat date={r.au} />}
       {r && <div className="defile-x"><table className="grille"><caption>HORS-BILAN au {fr(r.au)} (N), comparé au {fr(r.precedent)} (N - 1), en CDF{texteEdition(r.edition)}</caption>
@@ -148,7 +143,7 @@ function EditionHorsBilan({ ctx, jour }: { ctx: Ctx; jour: string }) {
 }
 
 function EditionResultat({ ctx, jour }: { ctx: Ctx; jour: string }) {
-  const vide: Criteres = { du: `${jour.slice(0, 4)}-01-01`, au: jour, etat: "creation", compteDe: "1", compteA: "99000000", type: "developpe", agence: "", periode: "", exercice: jour.slice(0, 4), sansVidage: false };
+  const vide: Criteres = { du: `${jour.slice(0, 4)}-01-01`, au: jour, type: "developpe", agence: "", sansVidage: false, parJour: false };
   const [f, setF] = useState(vide);
   const [r, setR] = useState<Resultat | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
@@ -159,7 +154,7 @@ function EditionResultat({ ctx, jour }: { ctx: Ctx; jour: string }) {
   return (
     <section className="bloc pile" aria-label="Compte de résultat">
       <h2>Compte de résultat</h2>
-      <Recherche className="pile" label="Critères" envoyer={rechercher}><Edition ctx={ctx} f={f} setF={setF} libelleType="Type de résultat :" types={ctx.typesResultat} libelleVidage="Resultat sans VIDAGE" />
+      <Recherche className="pile" label="Critères" envoyer={rechercher}><Edition ctx={ctx} f={f} setF={setF} libelleType="Type de résultat :" types={ctx.typesResultat} />
       <Actions vider={() => { setF(vide); setR(null); }} exporter={r ? exporter : null} /></Recherche>
       {r && <div className="pile"><EnteteEtat date={r.au} /><div className="defile-x"><table className="grille">
         <caption>COMPTE DE RESULTAT du {fr(r.du)} au {fr(r.au)} (Exercice), comparé à la période du {fr(r.precedentDu)} au {fr(r.precedentAu)} (Ex. préc.), en CDF{texteEdition(r.edition)}</caption>
@@ -169,10 +164,17 @@ function EditionResultat({ ctx, jour }: { ctx: Ctx; jour: string }) {
           ...(detail ? lignesDetail(x.comptes, String(i)) : [])])}</tbody>
       </table></div>
         {r.nonRattaches.length > 0 && <p>Comptes de gestion que le modèle ne nomme pas : {r.nonRattaches.map((x) => `${x.compte} ${x.intitule}`).join(" ; ")}</p>}
+        {r.jours && <Paginee lignes={r.jours}>{(visibles) => <div className="defile-x"><table className="grille"><caption>Détail par jour du {fr(r.du)} au {fr(r.au)}, en CDF</caption>
+          <thead><tr><th scope="col">Date</th><th scope="col">Agence</th><th scope="col" className="num">Charges (classe 6)</th><th scope="col" className="num">Produits (classe 7)</th><th scope="col" className="num">Résultat</th></tr></thead>
+          <tbody>{r.jours!.length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
+            {visibles.map((x) => <tr key={`${x.date}-${x.agence}`}><td className="chiffres">{fr(x.date)}</td><td>{x.agence}</td><td className="num chiffres">{n(x.charges)}</td><td className="num chiffres">{n(x.produits)}</td><td className="num chiffres">{n(x.resultat)}</td></tr>)}</tbody>
+          <tfoot><tr><th scope="row" colSpan={2}>Total</th>{(["charges", "produits", "resultat"] as const).map((k) => <td key={k} className="num chiffres">{n(r.jours!.reduce((t, x) => t + x[k], 0))}</td>)}</tr></tfoot>
+        </table></div>}</Paginee>}
       </div>}
       <Textes sources={["Manuel Microfina++, p. 141 : « Sélectionner l'Etat, Type de résultat, Agence, Période, Exercice et cocher Résultat sans vidange puis cliquer [Rechercher] ensuite [Exporter] ou [Rein les champs] » ; capture « Compte de résultat »",
         PCCI_14, "PCCI, classe 8 : produit net financier (80), résultat brut d'exploitation (82), résultat courant (83), résultat exceptionnel (84), impôt sur le résultat (86), résultat net (87)",
-        "Instr. BCC 009, art. 1 : tableau de formation du résultat transmis chaque mois ; registre S122-5 à S122-7 : la subvention d'exploitation entre dans le résultat brut, comme sur le modèle ; exercice précédent : mêmes dates un an plus tôt", REGLES]} />
+        "Instr. BCC 009, art. 1 : tableau de formation du résultat transmis chaque mois ; registre S122-5 à S122-7 : la subvention d'exploitation entre dans le résultat brut, comme sur le modèle ; exercice précédent : mêmes dates un an plus tôt",
+        "Plan d'allègement 7.11 : l'« Etat des revenus » (S118, manuel p. 137) devient l'option « Détail par jour » : charges (classe 6), produits (classe 7) et résultat par jour, sur les mêmes écritures que le compte de résultat", REGLES]} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </section>
   );
@@ -324,6 +326,20 @@ function ExportLiasse({ jour }: { jour: string }) {
   </div>;
 }
 
+/** S123 et SN01 : une entrée « Indicateurs et normes », deux onglets (plan d'allègement 7.9) ; l'onglet des normes suit le droit SN01 (registre T07) */
+export function IndicateursEtNormes() {
+  const [params, setParams] = useSearchParams();
+  const { donnees: u } = useDonnees(() => api.session.courante());
+  if (u === undefined) return <Chargement />;
+  const normes = ((u as { droits?: string[] } | null)?.droits ?? []).includes("SN01");
+  const page = normes && params.get("page") === "normes" ? "normes" : "indicateurs";
+  return <>
+    {normes && <div className="onglets" role="tablist" aria-label="Indicateurs et normes">{([["indicateurs", "Indicateurs"], ["normes", "Normes prudentielles"]] as const).map(([k, l]) =>
+      <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => setParams(k === "normes" ? { page: k } : {})}>{l}</button>)}</div>}
+    {page === "indicateurs" ? <IndicateursFinanciers /> : <NormesPrudentielles />}
+  </>;
+}
+
 /** S123 : « Edition des indicateurs financiers » : Exercice, Indicateur, Mois ; Date début période et Date fin période s'en déduisent */
 export function IndicateursFinanciers() {
   const cadre = useCadre();
@@ -339,7 +355,6 @@ export function IndicateursFinanciers() {
     : type === "taux" ? `${decimal.format(v)}${nombres ? "" : " %"}` : String(v));
   return (
     <>
-      <h2>Indicateurs financiers</h2>
       <section className="bloc pile" aria-label="Edition des indicateurs financiers">
         <h2>Edition des indicateurs financiers</h2>
         <Recherche className="pile" label="Critères" envoyer={rechercher}><div className="deux-colonnes">
@@ -364,7 +379,8 @@ export function IndicateursFinanciers() {
         </table></div>}
         <Textes sources={["Manuel Microfina++, p. 142 : « Sélectionner Exercice, Indicateur, Mois puis cliquer sur [Rechercher] ensuite [Exporter] ou [Rein les champs] » ; capture « Edition des indicateurs financiers » (Indicateur : Mensuel ; Mois ; dates déduites)",
           "Instr. BCC 004, art. 3 à 8 et annexe : onze ratios (qualité du portefeuille, efficacité et productivité, rentabilité, gestion du bilan), formules et normes",
-          "Instr. BCC 009, art. 1 : situations mensuelles et annuelles ; registre S123-1 à S123-3 : périodicité Mensuel ou Annuel ; même calcul que l'indicateur de gestion du Crédit (S101-9, S101-10)"]} />
+          "Instr. BCC 009, art. 1 : situations mensuelles et annuelles ; registre S123-1 à S123-3 : périodicité Mensuel ou Annuel ; même calcul que l'indicateur de gestion du Crédit (S101-9, S101-10)",
+          "Plan d'allègement 7.9 : une entrée, deux onglets (Indicateurs, Normes prudentielles) ; Instr. BCC 002"]} />
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>

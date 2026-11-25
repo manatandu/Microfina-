@@ -108,7 +108,7 @@ Plan des tiers,comptabilité,must,yes,yes,"S103 | Liste des tiers de la capture,
 Taxes et déclaration,comptabilité,should,yes,yes,S104 S108
 Déblocage sur compte d'épargne,comptabilité,must,yes,yes,"S105 | Capture p. 124 et 157 : le net du prêt est porté au compte d'épargne du client ; Prélever les frais, Echéancier, Contrat de prêt, Reconnaissance de dette (registre S105-1 à S105-4)."
 Remboursement par prélèvement sur l'épargne,comptabilité,must,yes,yes,"S106 ; virement interne gratuit (Instr. BCC 37) | Captures p. 125 et 157 : Compte Client, Solde, répartition, Imprimer, Enregistrer ; prélèvement dans la limite du disponible, sans frais (registre S106-1 à S106-4)."
-Factures fournisseurs bons de commande règlements,comptabilité,should,yes,yes,S107
+Factures fournisseurs bons de commande règlements,comptabilité,should,yes,partial,S107
 Saisie d'écritures,comptabilité,must,yes,yes,"S109 ; suppression avant le visa seulement ; écriture validée corrigée par écriture inverse (PCCI § 3.3 et 3.4 ; constat C20) | Captures p. 129 : choix du journal, lignes ajoutées une à une, visa, validation, comptabilisation (registre S109-1 à S109-8)."
 Rapprochement bancaire et historique,comptabilité,must,yes,yes,S110 S112
 Comptabilisation de la journée,comptabilité,must,yes,yes,"S111 ; principe P1 et P2 de ARCHITECTURE.md ; « la comptabilisation ou clôture des journées » (manuel, Comptabilité) | Provisoire depuis le 11/11/2026 : l'écran porte la fermeture de journée retirée de S12 (contrôles et bouton Fermer la journée). À réaligner sur le manuel : brouillard des opérations de la journée, bouton Comptabiliser."

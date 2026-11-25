@@ -131,7 +131,7 @@ const Lettrage = paresseux(() => import("./ControlesCompta"), "Lettrage");
 const Rapprochement = paresseux(() => import("./ControlesCompta"), "Rapprochement");
 const Tresorerie = paresseux(() => import("./ControlesCompta"), "Tresorerie");
 const EtatsFinanciers = paresseux(() => import("./EtatsFinanciers"), "EtatsFinanciers");
-const IndicateursFinanciers = paresseux(() => import("./EtatsFinanciers"), "IndicateursFinanciers");
+const IndicateursEtNormes = paresseux(() => import("./EtatsFinanciers"), "IndicateursEtNormes");
 const NormesPrudentielles = paresseux(() => import("./NormesPrudentielles"), "default");
 const Financement = paresseux(() => import("./Financement"), "default");
 const ConsultationBudget = paresseux(() => import("./Budgets"), "ConsultationBudget");
@@ -363,7 +363,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   S118: Controles,
   S119: Lettrage,
   S122: EtatsFinanciers,
-  S123: IndicateursFinanciers,
+  S123: IndicateursEtNormes,
   SN01: NormesPrudentielles,
   S124: NouveauBudget,
   S125: ConsultationBudget,
