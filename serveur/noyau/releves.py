@@ -73,9 +73,9 @@ def editer(u, compte_id: int, du: str, au: str) -> dict:
     r = releve(u, compte_id, du, au)
     i = u["institution_id"]
     numero = int(valeur("select coalesce(max(numero), 0) + 1 from releve_edition where institution_id = %s", (i,)))
-    valeur("""insert into releve_edition (institution_id, numero, compte_depot_id, du, au, edite_par) values (%s, %s, %s, %s, %s, %s) returning id""",
-           (i, numero, compte_id, du, au, u["id"]))
-    return r | {"numeroReleve": numero}
+    rid = valeur("""insert into releve_edition (institution_id, numero, compte_depot_id, du, au, edite_par) values (%s, %s, %s, %s, %s, %s) returning id""",
+                 (i, numero, compte_id, du, au, u["id"]))
+    return r | {"numeroReleve": numero, "releveId": int(rid)}
 
 
 def situation(u, tid: int, date: str) -> dict:

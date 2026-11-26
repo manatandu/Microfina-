@@ -13,6 +13,8 @@ import { exporterExcel } from "../lib/excel";
 import { decimal, lireMontant, montant, montantEnLettres } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee, Recherche, Formulaire } from "../composants";
 import RetenuesReverser from "./RetenuesReverser";
+import { PiedDocument, TeteA4 } from "../composants/Documents";
+import { imprimer } from "../lib/imprimer";
 
 type Ctx = Awaited<ReturnType<typeof api.facturesFournisseurs.contexte>>;
 type Commande = Awaited<ReturnType<typeof api.facturesFournisseurs.enregistrerCommande>>;
@@ -49,7 +51,7 @@ export function BonCommande({ id, fermer }: { id: number; fermer: () => void }) 
   const c = d.commande, t = d.entete;
   return <div className="pile">
     <article className="releve-std a-imprimer" aria-label="Bon de commande">
-      <header className="releve-tete"><h2 className="releve-titre">BON DE COMMANDE</h2><div className="releve-logo">{t.logo ? <img src={t.logo} alt={t.nom} /> : <strong>{t.sigle || t.nom}</strong>}<span>{t.nom}</span></div></header>
+      <TeteA4 e={t} titre="BON DE COMMANDE" />
       <dl className="infos"><div className="info-ligne"><dt>Bon de commande</dt><dd className="chiffres">{c.numero}</dd></div><div className="info-ligne"><dt>Date</dt><dd className="chiffres">{fr(c.date)}</dd></div>
         <div className="info-ligne"><dt>Fournisseur</dt><dd>{c.fournisseur}</dd></div></dl>
       <table className="grille"><thead><tr><th scope="col" className="num">QUANTITE</th><th scope="col">DESIGNATION</th><th scope="col" className="num">P.U</th><th scope="col" className="num">TVA</th>
@@ -58,8 +60,9 @@ export function BonCommande({ id, fermer }: { id: number; fermer: () => void }) 
           <td className="num chiffres">{decimal.format(l.tva / 100)}</td><td className="num chiffres">{decimal.format(l.ht / 100)}</td><td className="num chiffres">{decimal.format((l.ht + l.tva) / 100)}</td></tr>)}</tbody>
         <tfoot><tr><th scope="row" colSpan={4}>Total</th><td className="num chiffres">{decimal.format(c.ht / 100)}</td><td className="num chiffres">{decimal.format(c.ttc / 100)}</td></tr></tfoot></table>
       <p>Arrêté à la somme de : <strong>{montantEnLettres(c.ttc, "CDF")}</strong></p>
+      <PiedDocument e={t} />
     </article>
-    <div className="actions-onglets sans-impression"><button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button><button className="bouton" type="button" onClick={() => window.print()}>Imprimer</button></div>
+    <div className="actions-onglets sans-impression"><button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button><button className="bouton" type="button" onClick={() => imprimer(".fiche .a-imprimer")}>Imprimer</button></div>
   </div>;
 }
 

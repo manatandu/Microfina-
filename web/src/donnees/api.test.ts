@@ -112,6 +112,17 @@ describe("journée de guichet", () => {
     await connecter("gmbuyi");
     await expect(api.impressions.noter({ document: "recu", objet: o.id })).rejects.toThrow("Droit manquant");
   });
+  it("relevé et demande d'adhésion : au journal comme le reçu ; en-tête avec l'agrément (point B12, registre T217)", async () => {
+    await journeeOuverte();
+    const e = await api.impressions.entete();
+    expect([e.nom.length > 0, "agrement" in e]).toEqual([true, true]);
+    const r = await api.releves.editer(2, "2020-01-01", "2026-11-05");                 // le caissier tient le relevé (S64)
+    const n = [await api.impressions.noter({ document: "releve", objet: r.releveId }), await api.impressions.noter({ document: "releve", objet: r.releveId })];
+    expect(n.map((x) => x.exemplaire)).toEqual([1, 2]);
+    await expect(api.impressions.noter({ document: "demande_adhesion", objet: 1 })).rejects.toThrow("Droit manquant");   // le visa des membres (S40) n'est pas au guichet
+    await connecter("jpmukendi");
+    expect((await api.impressions.noter({ document: "demande_adhesion", objet: 1 })).exemplaire).toBe(1);
+  });
   it("dépôt puis retrait : grand livre équilibré, caisse et compte à jour", async () => {
     const { s } = await journeeOuverte();
     await api.guichet.depot({ cle: cle(), compteId: 2, montant: 5000000, coupures: { 20000: 2, 10000: 1 } });

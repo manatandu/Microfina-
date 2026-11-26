@@ -1,7 +1,7 @@
 // Écart E04 (docs/reglementaire/ECARTS-2026-11-15.md) : convention de compte remise au client à l'ouverture (loi 22/069, titre III, chap. Ier).
 // Document de l'institution cliente (registre S64-3), police 12 (Instr. BCC 40, art. 5). Registre E04-1 et E04-2.
 import { api } from "../donnees/api";
-import { MentionExemplaire, type Exemplaire } from "../composants/Documents";
+import { MentionExemplaire, PiedDocument, TeteA4, type Exemplaire } from "../composants/Documents";
 import { fr } from "../lib/dates";
 import { montant, type Devise } from "@design/montant.js";
 
@@ -28,11 +28,7 @@ export function ConventionCompte({ c, x: exemplaire = null }: { c: DonneesConven
   ];
   return (
     <article className="releve-std contrat-dat a-imprimer" aria-label="Convention de compte" translate="no">
-      <header className="releve-tete">
-        <p className="releve-num">Compte <span className="chiffres">{x.numero}</span></p>
-        <h2 className="releve-titre">CONVENTION DE COMPTE</h2>
-        <div className="releve-logo">{e.logo ? <img src={e.logo} alt={e.nom} /> : <strong>{e.sigle || e.nom}</strong>}<span>{e.nom}</span></div>
-      </header>
+      <TeteA4 e={e} num={<>Compte <span className="chiffres">{x.numero}</span></>} titre="CONVENTION DE COMPTE" />
       <table className="releve-synthese"><tbody>{lignes.map(([k, v]) => <tr key={k}><th scope="row">{k}</th><td style={{ textAlign: "left" }}>{v}</td></tr>)}</tbody></table>
       <ol className="pile">{clauses.map((t, i) => <li key={i}>{t}</li>)}</ol>
       <p>Fait en deux exemplaires, dont un remis au titulaire.</p>
@@ -41,11 +37,7 @@ export function ConventionCompte({ c, x: exemplaire = null }: { c: DonneesConven
         <div style={{ textAlign: "right" }}><strong>Pour {e.nom}</strong><br /><br /><br />Fait le {fr(x.ouvertLe)}</div>
       </div>
       <MentionExemplaire x={exemplaire} originaux={2} suite="COPIE" />
-      <footer className="releve-pied">
-        <strong>{e.nom.toUpperCase()}</strong>
-        <span>{[e.adresse, e.commune, e.ville, e.pays].filter(Boolean).join(", ")}</span>
-        <span>{[e.agrement && `Agrément BCC n° ${e.agrement}`, e.ifu && `N° impôt : ${e.ifu}`, e.bp && `B.P. ${e.bp}`].filter(Boolean).join(" · ")}</span>
-      </footer>
+      <PiedDocument e={e} />
     </article>
   );
 }

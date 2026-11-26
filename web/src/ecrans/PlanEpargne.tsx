@@ -8,6 +8,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
+import { PiedDocument, TeteA4, useEntete } from "../composants/Documents";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
 import { Champ, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
@@ -68,6 +69,7 @@ function Echeancier({ plan }: { plan: Plan | null }) {
   const [coches, setCoches] = useState<number[]>([]);
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees: tb } = useDonnees(() => (plan ? api.plansEpargne.tableau(plan.id, filtre) : Promise.resolve(null)), [plan?.id, filtre, relu]);
+  const e = useEntete();   // en-tête et pied de l'institution sur le papier seulement (loi 22/069, art. 31, al. 3)
   const dev = (tb?.plan.devise ?? "CDF") as Devise;
   const ouvert = tb?.plan.statut === "en_cours";
   const cochables = ouvert ? (tb?.lignes ?? []).filter((l) => !l.dateReelle) : [];
@@ -85,7 +87,8 @@ function Echeancier({ plan }: { plan: Plan | null }) {
         <legend>Afficher uniquement</legend>
         <div className="ligne-champ">{FILTRES.map(([k, l]) => <label key={k} className="case"><input type="radio" name="afficher" checked={filtre === k} onChange={() => { setFiltre(k); setCoches([]); }} /><span>{l}</span></label>)}</div>
       </fieldset>
-      <div className="a-imprimer pile">
+      <div className="a-imprimer contrat-dat pile">
+        {e && <div className="impression-seule"><TeteA4 e={e} num={<>Plan <span className="chiffres">{tb?.plan.numero}</span></>} titre="ÉCHÉANCIER DU PLAN ÉPARGNE" /></div>}
         <Paginee lignes={tb?.lignes ?? []}>{(visibles) => (<div className="defile-x"><table className="grille">
           <thead>
             <tr><th scope="colgroup" colSpan={3}>Echéances</th><th scope="col" rowSpan={2} className="num">Capital</th><th scope="colgroup" colSpan={2}>Montant intérêt</th><th scope="col" rowSpan={2} className="num">Cumul</th>
@@ -107,6 +110,7 @@ function Echeancier({ plan }: { plan: Plan | null }) {
             <tr className="sans-impression"><td colSpan={7} className="num">Total échéance choisie:</td><td className="num chiffres">{montant(total, dev)}</td></tr>
           </tfoot>
         </table></div>)}</Paginee>
+        {e && <div className="impression-seule"><PiedDocument e={e} /></div>}
       </div>
       <div className="actions-onglets">
         <button className="bouton" type="submit" disabled={!coches.length}>Enregistrer</button>

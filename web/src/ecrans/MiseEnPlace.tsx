@@ -7,6 +7,7 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
+import { FeuilleA4 } from "../composants/Documents";
 import { montant, type Devise } from "@design/montant.js";
 import { Champ, Chargement, Dialogue, Fiche, Lecture, Paginee, Textes, type Boite, Formulaire } from "../composants";
 
@@ -132,13 +133,15 @@ export default function MiseEnPlace() {
         </table></div>)}</Paginee>
       </Fiche>
       <Fiche titre="Echéancier" ouverte={echeancier} fermer={() => setEcheancier(false)}>
-        {s && <div className="pile" id="echeancier-mise-en-place">
+        {s && <div className="pile">
+          <FeuilleA4 id="echeancier-mise-en-place" titre="ÉCHÉANCIER" label="Échéancier">
           <div className="defile-x"><table className="grille">
             <thead><tr><th scope="col">N°</th><th scope="col">Date</th><th scope="col" className="num">Capital</th><th scope="col" className="num">Intérêt</th><th scope="col" className="num">Échéance</th><th scope="col" className="num">Capital restant</th></tr></thead>
             <tbody>{s.echeancier.map((l) => <tr key={l.rang}><td className="chiffres">{l.rang}</td><td className="chiffres">{fr(l.date)}</td><td className="num chiffres">{montant(l.capital, dv)}</td>
               <td className="num chiffres">{montant(l.interet, dv)}</td><td className="num chiffres">{montant(l.echeance, dv)}</td><td className="num chiffres">{montant(l.capitalFin, dv)}</td></tr>)}</tbody>
           </table></div>
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={() => imprimer("#echeancier-mise-en-place")}>Imprimer</button>
+          </FeuilleA4>
+          <div className="actions-onglets sans-impression"><button className="bouton" type="button" onClick={() => imprimer("#echeancier-mise-en-place")}>Imprimer</button>
             <button className="bouton secondaire" type="button" onClick={() => setEcheancier(false)}>Fermer</button></div>
         </div>}
       </Fiche>

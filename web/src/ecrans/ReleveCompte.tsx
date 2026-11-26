@@ -10,6 +10,7 @@ import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Bo
 import { RechercheClient } from "./Visa";
 import { ReleveStandard, type ReleveEdite } from "./ReleveStandard";
 import { imprimer } from "../lib/imprimer";
+import { useImpression } from "../composants/Documents";
 
 type Releve = Awaited<ReturnType<typeof api.releves.releve>>;
 type Situation = Awaited<ReturnType<typeof api.releves.situation>>;
@@ -34,6 +35,7 @@ export function ReleveCompte() {
   const [au, setAu] = useState("");
   const [recherche, setRecherche] = useState(false);
   const [releve, setReleve] = useState<ReleveEdite | null>(null);
+  const imp = useImpression("releve", releve?.releveId, ".fiche .a-imprimer");   // original, puis duplicatas (registre T217)
   const [situation, setSituation] = useState<Situation | null>(null);
   const [membres, setMembres] = useState<Tiers["membres"] | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
@@ -92,10 +94,11 @@ export function ReleveCompte() {
       </section>
 
       <Fiche titre="Relevé de compte" ouverte={!!releve} fermer={() => setReleve(null)}>
-        {releve && <ReleveStandard r={releve} />}
+        {releve && <ReleveStandard r={releve} x={imp.exemplaire} />}
+        {imp.erreur && <p className="attention" role="alert">{imp.erreur}</p>}
         <div className="actions-onglets sans-impression">
           <button className="bouton secondaire" type="button" onClick={() => setReleve(null)}>Fermer</button>
-          <button className="bouton" type="button" onClick={() => imprimer(".fiche .a-imprimer")}>Imprimer</button>
+          <button className="bouton" type="button" onClick={() => void imp.imprimer()}>Imprimer</button>
         </div>
       </Fiche>
 

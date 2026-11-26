@@ -3,7 +3,7 @@
 import { api } from "../donnees/api";
 import { useDonnees } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
-import { MentionExemplaire, useImpression } from "../composants/Documents";
+import { MentionExemplaire, PiedDocument, TeteA4, useImpression } from "../composants/Documents";
 import { montant, montantEnLettres, type Devise } from "@design/montant.js";
 import { Chargement } from "../composants";
 
@@ -25,11 +25,7 @@ export function ContratPret({ id, titre, fermer }: { id: number; titre: "Contrat
   return (
     <div className="pile">
       <article className="releve-std contrat-dat a-imprimer" id="contrat-pret" aria-label={titre}>
-        <header className="releve-tete">
-          <p className="releve-num">N° <span className="chiffres">{c.numero}</span></p>
-          <h2 className="releve-titre">{titre.toUpperCase()}</h2>
-          <div className="releve-logo">{e.logo ? <img src={e.logo} alt={e.nom} /> : <strong>{e.sigle || e.nom}</strong>}<span>{e.nom}</span></div>
-        </header>
+        <TeteA4 e={e} num={<>N° <span className="chiffres">{c.numero}</span></>} titre={titre.toUpperCase()} />
         {titre === "Contrat de prêt" ? <>
           <p>Entre {e.nom}, agence de {d.agence}, ci-après le prêteur, et {emprunteur}, {[k.adresse, k.commune, k.ville].filter(Boolean).join(", ")}, ci-après l'emprunteur,
             il est convenu ce qui suit.</p>
@@ -69,11 +65,7 @@ export function ContratPret({ id, titre, fermer }: { id: number; titre: "Contrat
           <div style={{ textAlign: "right" }}>{contrat && <strong>Pour {e.nom}</strong>}<br /><br /><br />Fait à {e.ville || d.agence}, le {fr(d.date)}{contrat ? ", en deux originaux, un pour chaque partie" : ""}</div>
         </div>
         <MentionExemplaire x={imp.exemplaire} originaux={contrat ? 2 : 1} suite="COPIE" />
-        <footer className="releve-pied">
-          <strong>{e.nom.toUpperCase()}</strong>
-          <span>{[e.adresse, e.commune, e.ville, e.pays].filter(Boolean).join(", ")}</span>
-          <span>{[e.agrement && `Agrément BCC n° ${e.agrement}`, e.ifu && `N° impôt : ${e.ifu}`, e.bp && `B.P. ${e.bp}`].filter(Boolean).join(" · ")}</span>
-        </footer>
+        <PiedDocument e={e} />
       </article>
       {contrat && !e.plaintes && <p className="attention sans-impression">Coordonnées de l'Unité des plaintes à renseigner dans Information société (Instr. BCC 40, art. 14).</p>}
       {imp.erreur && <p className="attention" role="alert">{imp.erreur}</p>}

@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
+import { MentionExemplaire, PiedDocument, TeteA4, useEntete, useImpression, type EnteteDoc, type Exemplaire } from "../composants/Documents";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { enClair } from "../lib/enclair";
 import { api, IMAGE_MAX, ageAu, MAJORITE } from "../donnees/api";
@@ -66,6 +67,8 @@ export function VisaClient({ initial, fait }: { initial?: Tiers; fait?: () => vo
   const [refus, setRefus] = useState<string | null>(null);   // A5
   const [recherche, setRecherche] = useState(false);
   const [contrat, setContrat] = useState(false);
+  const imp = useImpression("demande_adhesion", contrat ? t?.id : null, ".fiche .a-imprimer");   // original, puis duplicatas (registre T217)
+  const entete = useEntete();
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees: lies } = useDonnees(() => (t ? api.parametrage.fraisLies(t.id) : Promise.resolve([])), [t?.id]);
   const frais = lies ?? [];
@@ -179,10 +182,11 @@ export function VisaClient({ initial, fait }: { initial?: Tiers; fait?: () => vo
           choisir={(x) => void choisir(x)} fermer={() => setRecherche(false)} />
       </Fiche>
       <Fiche titre="Demande d'adhésion" ouverte={contrat} fermer={() => setContrat(false)}>
-        {t && <Contrat t={t} ctx={ctx} frais={frais} />}
+        {t && entete && <Contrat t={t} ctx={ctx} frais={frais} e={entete} x={imp.exemplaire} />}
+        {imp.erreur && <p className="attention" role="alert">{imp.erreur}</p>}
         <div className="actions-onglets sans-impression">
           <button className="bouton secondaire" type="button" onClick={() => setContrat(false)}>Fermer</button>
-          <button className="bouton" type="button" onClick={() => window.print()}>Imprimer</button>
+          <button className="bouton" type="button" disabled={!entete} onClick={() => void imp.imprimer()}>Imprimer</button>
         </div>
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
@@ -363,13 +367,14 @@ function DetailClient({ t }: { t: Tiers }) {
 }
 
 /** Contrat d'adhésion imprimé après le visa (p. 52) : versements initiaux détaillés et héritiers désignés sous leur rubrique (plan d'allègement, point 3.7). */
-function Contrat({ t, ctx, frais }: { t: Tiers; ctx: Ctx; frais: { montant: number | null; part: boolean }[] }) {
+function Contrat({ t, ctx, frais, e, x }: { t: Tiers; ctx: Ctx; frais: { montant: number | null; part: boolean }[]; e: EnteteDoc; x: Exemplaire | null }) {
   const inst = ctx.institution.nom, m = mots(ctx.institution);   // registre S40-2 : membre pour une COOPEC, client pour une IMF
   const devise = deviseDe(ctx, t), partSociale = frais.filter((x) => x.part).reduce((a, x) => a + (x.montant ?? 0), 0), droits = frais.filter((x) => !x.part).reduce((a, x) => a + (x.montant ?? 0), 0);
   const ligne = (a: string, b: string) => <p className="contrat-ligne"><span>{a}</span><strong>{b}</strong></p>;
   return (
-    <article className="contrat">
-      <h3>DEMANDE D'ADHÉSION</h3>
+    <article className="releve-std contrat-dat a-imprimer" aria-label="Demande d'adhésion">
+      <TeteA4 e={e} num={<>N° <span className="chiffres">{t.numero}</span></>} titre="DEMANDE D'ADHÉSION" />
+      <div className="contrat">
       <div className="contrat-deux">
         {ligne("Je soussigné(e) :", t.intitule || nomComplet(t))}{ligne("N°", t.numero)}
         {ligne("Profession :", t.profession)}{ligne("Né(e)", fr(t.naissance))}
@@ -401,6 +406,9 @@ function Contrat({ t, ctx, frais }: { t: Tiers; ctx: Ctx; frais: { montant: numb
       <h4>HÉRITIER DÉSIGNÉ</h4>
       <p>En cas de décès, j'autorise {inst} à déduire de mes avoirs ce que je lui dois.</p>
       <p>Par ailleurs, je lui ordonne de verser le reste de mes avoirs à</p>
+      </div>
+      <MentionExemplaire x={x} />
+      <PiedDocument e={e} />
     </article>
   );
 }

@@ -3,12 +3,13 @@
 import { decimal } from "@design/montant.js";
 import { fr } from "../lib/dates";
 import type { api } from "../donnees/api";
+import { MentionExemplaire, PiedDocument, TeteA4, type Exemplaire } from "../composants/Documents";
 
 export type ReleveEdite = Awaited<ReturnType<typeof api.releves.editer>>;
 const n = (c: number) => decimal.format(c / 100);
 const vide = (c: number) => (c ? n(c) : "");
 
-export function ReleveStandard({ r }: { r: ReleveEdite }) {
+export function ReleveStandard({ r, x = null }: { r: ReleveEdite; x?: Exemplaire | null }) {
   const e = r.entete, c = r.client;
   const nom = (c.intitule || [c.nom, c.postnom, c.prenom].filter(Boolean).join(" ")).toUpperCase();
   const synthese: [string, string][] = [
@@ -18,14 +19,7 @@ export function ReleveStandard({ r }: { r: ReleveEdite }) {
   ];
   return (
     <article className="releve-std a-imprimer" aria-label="Relevé de compte">
-      <header className="releve-tete">
-        <p className="releve-num">N° <span className="chiffres">{String(r.numeroReleve).padStart(7, "0")}</span></p>
-        <h2 className="releve-titre">RELEVÉ DE COMPTE</h2>
-        <div className="releve-logo">
-          {e.logo ? <img src={e.logo} alt={e.nom} /> : <strong>{e.sigle || e.nom}</strong>}
-          <span>{e.nom}</span>
-        </div>
-      </header>
+      <TeteA4 e={e} num={<>N° <span className="chiffres">{String(r.numeroReleve).padStart(7, "0")}</span></>} titre="RELEVÉ DE COMPTE" />
       <div className="releve-haut">
         <table className="releve-synthese">
           <tbody>{synthese.map(([k, v]) => <tr key={k}><th scope="row">{k}</th><td className="chiffres">{v}</td></tr>)}</tbody>
@@ -48,12 +42,8 @@ export function ReleveStandard({ r }: { r: ReleveEdite }) {
             <td className="montant chiffres">{n(l.solde)}</td></tr>)}
         </tbody>
       </table>
-      <footer className="releve-pied">
-        <strong>{e.nom.toUpperCase()}</strong>
-        <span>{[e.adresse, e.commune, e.ville, e.pays].filter(Boolean).join(", ")}</span>
-        <span>{[e.telephone && `Téléphone : ${e.telephone}`, e.email && `Courriel : ${e.email}`].filter(Boolean).join(" · ")}</span>
-        <span>{[e.agrement && `Agrément BCC n° ${e.agrement}`, e.ifu && `N° impôt : ${e.ifu}`, e.bp && `B.P. ${e.bp}`].filter(Boolean).join(" · ")}</span>
-      </footer>
+      <MentionExemplaire x={x} />
+      <PiedDocument e={e} />
     </article>
   );
 }

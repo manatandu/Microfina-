@@ -2256,7 +2256,7 @@ const releves = {
     const r = releves.releve(compteId, du, au);
     const numero = E.relevesEdites.reduce((m, x) => Math.max(m, x.numero), 0) + 1;
     E.relevesEdites.push({ numero, compteId, du, au, editePar: u.id }); enregistrer();
-    return { ...r, numeroReleve: numero };
+    return { ...r, numeroReleve: numero, releveId: numero };
   },
   situation(tiersId: number, date: string) {
     exiger(); controlerMasques();
@@ -10952,6 +10952,12 @@ const DOCUMENTS_IMPRIMES: Record<string, { ecrans: string[]; existe: (id: number
   reconnaissance_dette: { ecrans: ["S54", "S75", "S87", "S88", "S90", "S92", "S93", "S105"], existe: (id) => E.credits.some((c) => c.id === id) },
   convention: { ecrans: ["S63"], existe: (id) => E.comptes.some((c) => c.id === id) },
   contrat_dat: { ecrans: ["S65", "S66", "S67", "S68"], existe: (id) => E.depotsTerme.some((d) => d.id === id) },
+  avis_rupture: { ecrans: ["S65", "S66", "S67", "S68"], existe: (id) => E.depotsTerme.some((d) => d.id === id) },
+  acte_engagement: { ecrans: ["S100"], existe: (id) => (E.engagementsSignature ?? []).some((x) => x.id === id) },
+  lettre_inactivite: { ecrans: ["SE01"], existe: (id) => E.comptes.some((c) => c.id === id) },
+  accuse_plainte: { ecrans: ["SC03"], existe: (id) => E.plaintes.some((p) => p.id === id) },
+  releve: { ecrans: ["S64"], existe: (id) => E.relevesEdites.some((x) => x.numero === id) },   // la démonstration numérote ses relevés sans identifiant à part
+  demande_adhesion: { ecrans: ["S40"], existe: (id) => E.tiers.some((t) => t.id === id) },
 };
 const impressions = {
   noter(d: { document?: string; objet?: number }) {
@@ -10966,6 +10972,8 @@ const impressions = {
     l.push(x); sauver();
     return { exemplaire: n, duplicata: n - 1, le: x.le, par: u.nom };
   },
+  /** L'identité de l'institution pour les documents dont la lecture ne l'apporte pas (loi 22/069, art. 31, al. 3) */
+  entete() { exiger(); return enteteDocument(); },
 };
 const journalSecurite = {
   consulter(du: string, au: string, evenement = "") {

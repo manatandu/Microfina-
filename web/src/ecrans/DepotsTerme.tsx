@@ -7,8 +7,7 @@ import type { Beneficiaire, Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
-import { imprimer } from "../lib/imprimer";
-import { MentionExemplaire, useImpression, type Exemplaire } from "../composants/Documents";
+import { MentionExemplaire, PiedDocument, TeteA4, useImpression, type Exemplaire } from "../composants/Documents";
 import { lireMontant, montant, montantEnLettres, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee, LigneFiltres, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
@@ -218,13 +217,7 @@ export default function DepotsATerme() {
           <button className="bouton" type="button" onClick={() => void imp.imprimer()}>Imprimer</button>
         </div>
       </Fiche>
-      <Fiche titre="Avis de rupture de DAT" ouverte={!!avis} fermer={() => setAvis(null)}>
-        {avis && <AvisRupture c={avis} />}
-        <div className="actions-onglets sans-impression">
-          <button className="bouton secondaire" type="button" onClick={() => setAvis(null)}>Fermer</button>
-          <button className="bouton" type="button" onClick={() => imprimer(".fiche .a-imprimer")}>Imprimer</button>
-        </div>
-      </Fiche>
+      <FicheAvisRupture avis={avis} fermer={() => setAvis(null)} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );
@@ -246,11 +239,7 @@ function ContratDat({ c, x: exemplaire = null }: { c: Contrat; x?: Exemplaire | 
   ];
   return (
     <article className="releve-std contrat-dat a-imprimer" aria-label="Contrat de dépôt à terme">
-      <header className="releve-tete">
-        <p className="releve-num">N° <span className="chiffres">{String(x.certificat).padStart(6, "0")}</span></p>
-        <h2 className="releve-titre">CONTRAT DE DÉPÔT À TERME</h2>
-        <div className="releve-logo">{e.logo ? <img src={e.logo} alt={e.nom} /> : <strong>{e.sigle || e.nom}</strong>}<span>{e.nom}</span></div>
-      </header>
+      <TeteA4 e={e} num={<>N° <span className="chiffres">{String(x.certificat).padStart(6, "0")}</span></>} titre="CONTRAT DE DÉPÔT À TERME" />
       <table className="releve-synthese"><tbody>{lignes.map(([k, v]) => <tr key={k}><th scope="row">{k}</th><td style={{ textAlign: "left" }}>{v}</td></tr>)}</tbody></table>
       {x.observation && <p>Observation : {x.observation}</p>}
       <div className="releve-haut">
@@ -258,11 +247,7 @@ function ContratDat({ c, x: exemplaire = null }: { c: Contrat; x?: Exemplaire | 
         <div style={{ textAlign: "right" }}><strong>Pour {e.nom}</strong><br /><br /><br />Fait le {fr(x.dateDepot)}, en deux originaux, un pour chaque partie</div>
       </div>
       <MentionExemplaire x={exemplaire} originaux={2} suite="COPIE" />
-      <footer className="releve-pied">
-        <strong>{e.nom.toUpperCase()}</strong>
-        <span>{[e.adresse, e.commune, e.ville, e.pays].filter(Boolean).join(", ")}</span>
-        <span>{[e.agrement && `Agrément BCC n° ${e.agrement}`, e.ifu && `N° impôt : ${e.ifu}`, e.bp && `B.P. ${e.bp}`].filter(Boolean).join(" · ")}</span>
-      </footer>
+      <PiedDocument e={e} />
     </article>
   );
 }
@@ -343,13 +328,7 @@ function FormulaireRupture({ dat, fini }: { dat: Dat; fini: (piece?: string) => 
         </div>
       </section>
       <FicheBeneficiaires lignes={benef} fermer={() => setBenef(null)} />
-      <Fiche titre="Avis de rupture de DAT" ouverte={!!avis} fermer={() => setAvis(null)}>
-        {avis && <AvisRupture c={avis} />}
-        <div className="actions-onglets sans-impression">
-          <button className="bouton secondaire" type="button" onClick={() => setAvis(null)}>Fermer</button>
-          <button className="bouton" type="button" onClick={() => imprimer(".fiche .a-imprimer")}>Imprimer</button>
-        </div>
-      </Fiche>
+      <FicheAvisRupture avis={avis} fermer={() => setAvis(null)} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );
@@ -372,8 +351,23 @@ export function RecapRupture({ dev, capital, interet, tauxInteret, penalite, tau
   );
 }
 
+/** Avis de rupture : original, puis duplicatas numérotés au journal des impressions (registre T217) */
+function FicheAvisRupture({ avis, fermer }: { avis: Contrat | null; fermer: () => void }) {
+  const imp = useImpression("avis_rupture", avis?.dat.id, ".fiche .a-imprimer");
+  return (
+    <Fiche titre="Avis de rupture de DAT" ouverte={!!avis} fermer={fermer}>
+      {avis && <AvisRupture c={avis} x={imp.exemplaire} />}
+      {imp.erreur && <p className="attention" role="alert">{imp.erreur}</p>}
+      <div className="actions-onglets sans-impression">
+        <button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button>
+        <button className="bouton" type="button" onClick={() => void imp.imprimer()}>Imprimer</button>
+      </div>
+    </Fiche>
+  );
+}
+
 /** Document remis au client à la rupture (Instr. BCC 40, art. 13), même gabarit que le contrat (registre S67-6) */
-function AvisRupture({ c }: { c: Contrat }) {
+function AvisRupture({ c, x: exemplaire }: { c: Contrat; x: Exemplaire | null }) {
   const x = c.dat, e = c.entete, cl = c.client, dev = x.devise as Devise, r = x.rupture!;
   const nom = cl.intitule || [cl.nom, cl.postnom, cl.prenom].filter(Boolean).join(" ");
   const lignes: [string, string][] = [
@@ -386,21 +380,14 @@ function AvisRupture({ c }: { c: Contrat }) {
   ];
   return (
     <article className="releve-std contrat-dat a-imprimer" aria-label="Avis de rupture de DAT">
-      <header className="releve-tete">
-        <p className="releve-num">N° <span className="chiffres">{String(x.certificat).padStart(6, "0")}</span></p>
-        <h2 className="releve-titre">RUPTURE DE DÉPÔT À TERME</h2>
-        <div className="releve-logo">{e.logo ? <img src={e.logo} alt={e.nom} /> : <strong>{e.sigle || e.nom}</strong>}<span>{e.nom}</span></div>
-      </header>
+      <TeteA4 e={e} num={<>N° <span className="chiffres">{String(x.certificat).padStart(6, "0")}</span></>} titre="RUPTURE DE DÉPÔT À TERME" />
       <table className="releve-synthese"><tbody>{lignes.map(([k, v]) => <tr key={k}><th scope="row">{k}</th><td style={{ textAlign: "left" }}>{v}</td></tr>)}</tbody></table>
       <div className="releve-haut">
         <div><strong>Le client</strong><br /><br /><br />{nom}</div>
         <div style={{ textAlign: "right" }}><strong>Pour {e.nom}</strong><br /><br /><br />Fait le {fr(r.dateRupture)}</div>
       </div>
-      <footer className="releve-pied">
-        <strong>{e.nom.toUpperCase()}</strong>
-        <span>{[e.adresse, e.commune, e.ville, e.pays].filter(Boolean).join(", ")}</span>
-        <span>{[e.agrement && `Agrément BCC n° ${e.agrement}`, e.ifu && `N° impôt : ${e.ifu}`, e.bp && `B.P. ${e.bp}`].filter(Boolean).join(" · ")}</span>
-      </footer>
+      <MentionExemplaire x={exemplaire} />
+      <PiedDocument e={e} />
     </article>
   );
 }

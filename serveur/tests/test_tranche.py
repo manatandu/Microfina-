@@ -5875,6 +5875,25 @@ def test_impressions_original_duplicata(clients, journee):
     assert ident("select count(*) from impression where document = 'recu' and objet = %s", (o["id"],)) == 2
 
 
+def test_impressions_autres_documents(clients, journee):
+    """Point bloquant B12, suite (registre T217) : relevé, accusé de réception d'une plainte, demande d'adhésion et lettre d'inactivité
+    passent au journal des impressions comme le reçu ; l'en-tête des documents porte le numéro d'agrément (loi 22/069, art. 31, al. 3)"""
+    caisse, chef, agent = clients["caisse"], clients["chef"], clients["agent"]
+    e = caisse.get("/api/impressions/entete").json()
+    assert e["nom"] and "agrement" in e and "plaintes" in e
+    cid = C("0412-000318-02")
+    r = agent.post("/api/epargne/releve/edition", {"compteId": cid, "du": "2020-01-01", "au": "2026-11-05"}, **H).json()
+    assert [agent.post("/api/impressions", {"document": "releve", "objet": r["releveId"]}, **H).json()["exemplaire"] for _ in range(2)] == [1, 2]
+    p = caisse.post("/api/plaintes", {"cle": cle(), "tiersId": T("0412-000318"), "canal": "personne", "provenance": "guichet", "nature": "retrait",
+                                      "objet": "Attente au guichet"}, **H).json()
+    assert caisse.post("/api/impressions", {"document": "accuse_plainte", "objet": p["id"]}, **H).json()["exemplaire"] == 1
+    tid = T("0412-000318")
+    assert chef.post("/api/impressions", {"document": "demande_adhesion", "objet": tid}, **H).json()["exemplaire"] == 1
+    assert caisse.post("/api/impressions", {"document": "demande_adhesion", "objet": tid}, **H).status_code == 403   # le caissier ne vise pas les membres
+    assert chef.post("/api/impressions", {"document": "lettre_inactivite", "objet": cid}, **H).json()["exemplaire"] == 1
+    assert agent.post("/api/impressions", {"document": "releve", "objet": 999999}, **H).json()["message"] == "Document inconnu."
+
+
 def test_contrat_deux_originaux_puis_copies(clients, journee):
     """Code civil, livre III, art. 207 : le contrat de prêt se fait en deux originaux ; au-delà, chaque impression est une copie, notée au journal.
     Instr. BCC 40, art. 14 : le contrat donne les coordonnées de l'Unité de traitement des plaintes (Information société ; registres T215, T216)"""

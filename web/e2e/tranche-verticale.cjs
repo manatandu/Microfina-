@@ -447,7 +447,10 @@ const OUT = process.argv[2];
     await succes();
     if (i === 0) { await p.getByRole('button', { name: 'Imprimer Contrat' }).click(); await p.getByRole('dialog', { name: "Demande d'adhésion" }).waitFor();
       await p.getByText('Le nouveau membre est inscrit au registre des membres').waitFor();   // vocabulaire COOPEC (registre S40-2)
-      await etape('06c-contrat'); await p.getByRole('dialog', { name: "Demande d'adhésion" }).getByRole('button', { name: 'Fermer' }).click();
+      const dad = p.getByRole('dialog', { name: "Demande d'adhésion" });
+      await dad.getByRole('button', { name: 'Imprimer' }).click(); await dad.getByText('ORIGINAL', { exact: true }).waitFor();   // journal des impressions (registre T217)
+      await etape('06c-contrat'); await pdfDocument('article[aria-label="Demande d\'adhésion"]', `${OUT}/demande-adhesion-a4.pdf`, false);
+      await dad.getByRole('button', { name: 'Fermer' }).click();
       // frais d'adhésion modifiables dans la même file (ancien S41)
       await p.getByLabel("Montant de Droit d'entrée").fill('2 500'); await etape('06h-modification-frais');
       await p.getByRole('button', { name: 'Modifier' }).click(); await ok();
@@ -769,7 +772,10 @@ const OUT = process.argv[2];
   await fp.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await succes(/PL-2026-000001/);
   await p.getByRole('article', { name: 'Accusé de réception de la plainte' }).waitFor(); await etape('10h-accuse-plainte');
-  await p.getByRole('dialog', { name: 'Accusé de réception' }).getByRole('button', { name: 'Fermer' }).click();
+  const dar = p.getByRole('dialog', { name: 'Accusé de réception' });
+  await dar.getByRole('button', { name: 'Imprimer' }).click(); await dar.getByText('ORIGINAL', { exact: true }).waitFor();   // original, puis duplicatas (registre T217)
+  await pdfDocument('article[aria-label="Accusé de réception de la plainte"]', `${OUT}/accuse-plainte-a4.pdf`, false);
+  await dar.getByRole('button', { name: 'Fermer' }).click();
   await login('Esther Ngalula'); await depotRenforce(); await p.getByRole('dialog', { name: 'Reçu' }).getByText('Dépôt enregistré').waitFor(); await etape('10e-depot-autorise');
   await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
   // Déblocage du crédit visé (S75, p. 86 et 87) : retenues, billetage, Débloquer (plan 4.7) ; contrat de prêt (CR-12). Produit sans frais ni épargne obligatoire : 1 000 000 CDF remis
@@ -851,7 +857,11 @@ const OUT = process.argv[2];
   await p.getByLabel('Compte Epargne *').selectOption({ index: 1 }); await p.getByLabel('Compte Garanti *').selectOption({ index: 1 }); await etape('11m-engagement-signature');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
   await p.getByRole('cell', { name: 'ES-2026-001', exact: true }).waitFor(); await p.getByRole('button', { name: 'Imprimer' }).click();
-  await p.getByRole('heading', { name: 'ENGAGEMENT PAR SIGNATURE', exact: true }).waitFor(); await etape('11n-acte-engagement'); await p.getByRole('dialog', { name: 'Engagement par signature' }).getByRole('button', { name: 'Fermer' }).click();
+  await p.getByRole('heading', { name: 'ENGAGEMENT PAR SIGNATURE', exact: true }).waitFor();
+  const dae = p.getByRole('dialog', { name: 'Engagement par signature' });
+  await dae.getByRole('button', { name: 'Imprimer' }).click(); await dae.getByText('ORIGINAL 1 sur 2', { exact: true }).waitFor();   // Code civil, art. 207 (registre T217)
+  await etape('11n-acte-engagement'); await pdfDocument('#acte-engagement', `${OUT}/acte-engagement-a4.pdf`, false);
+  await dae.getByRole('button', { name: 'Fermer' }).click();
   // Rapports crédit (S101, p. 121) : synthèse de la balance âgée du jour, puis indicateur de gestion (Instr. BCC 004)
   await aller('/credit/s101?page=synthese'); await p.getByLabel('Date', { exact: true }).fill('05/11/2026'); await p.getByRole('button', { name: 'Afficher' }).click();
   await p.getByRole('cell', { name: 'Sains', exact: true }).waitFor(); await etape('11o-synthese-balance-agee');

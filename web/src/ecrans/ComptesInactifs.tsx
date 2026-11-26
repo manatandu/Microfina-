@@ -6,7 +6,7 @@ import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
-import { imprimer } from "../lib/imprimer";
+import { MentionExemplaire, PiedDocument, TeteA4, useImpression, type Exemplaire } from "../composants/Documents";
 import { montant, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee, LigneFiltres } from "../composants";
 
@@ -25,6 +25,7 @@ export default function ComptesInactifs() {
   const [choisi, setChoisi] = useState<Compte | null>(null);
   const [envoi, setEnvoi] = useState({ date: "", reference: "" });
   const [lettre, setLettre] = useState<Lettre | null>(null);
+  const imp = useImpression("lettre_inactivite", lettre?.compte.compteId, ".fiche .a-imprimer");
   const [boite, setBoite] = useState<Boite | null>(null);
   if (erreur) return <><p role="alert" className="erreur-champ">{erreur}</p></>;
   if (!donnees || j === undefined || !av) return <Chargement />;
@@ -115,10 +116,11 @@ export default function ComptesInactifs() {
         </div>}
       </Fiche>
       <Fiche titre="Lettre au titulaire" ouverte={!!lettre} fermer={() => setLettre(null)}>
-        {lettre && <LettreInactivite l={lettre} jour={jour} />}
+        {lettre && <LettreInactivite l={lettre} jour={jour} x={imp.exemplaire} />}
+        {imp.erreur && <p className="attention" role="alert">{imp.erreur}</p>}
         <div className="actions-onglets sans-impression">
           <button className="bouton secondaire" type="button" onClick={() => setLettre(null)}>Fermer</button>
-          <button className="bouton" type="button" onClick={() => imprimer(".fiche .a-imprimer")}>Imprimer</button>
+          <button className="bouton" type="button" onClick={() => void imp.imprimer()}>Imprimer</button>
         </div>
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
@@ -127,26 +129,20 @@ export default function ComptesInactifs() {
 }
 
 /** Lettre avec accusé de réception (loi 22/069, titre III, chap. Ier). Police 12 (Instr. BCC 40, art. 5) */
-function LettreInactivite({ l, jour }: { l: Lettre; jour: string }) {
+function LettreInactivite({ l, jour, x: exemplaire }: { l: Lettre; jour: string; x: Exemplaire | null }) {
   const e = l.entete, cl = l.client, x = l.compte;
   const nom = cl.intitule || [cl.nom, cl.postnom, cl.prenom].filter(Boolean).join(" ");
   return (
     <article className="releve-std contrat-dat a-imprimer" aria-label="Lettre au titulaire d'un compte en voie de prescription">
-      <header className="releve-tete">
-        <p className="releve-num">Compte <span className="chiffres">{x.compte}</span></p>
-        <h2 className="releve-titre">LETTRE AVEC ACCUSÉ DE RÉCEPTION</h2>
-        <div className="releve-logo">{e.logo ? <img src={e.logo} alt={e.nom} /> : <strong>{e.sigle || e.nom}</strong>}<span>{e.nom}</span></div>
-      </header>
+      <TeteA4 e={e} num={<>Compte <span className="chiffres">{x.compte}</span></>} titre="LETTRE AVEC ACCUSÉ DE RÉCEPTION" />
       <p>{e.ville ? `${e.ville}, le ` : "Le "}{fr(jour)}</p>
       <p><strong>{nom}</strong><br />{cl.adresse}</p>
       <p>Votre compte n° <strong className="chiffres">{x.compte}</strong>, au solde de <strong className="chiffres">{montant(x.solde, x.devise as Devise)}</strong>, n'a fait l'objet d'aucune opération ni réclamation depuis le <strong className="chiffres">{fr(x.derniereOperation)}</strong>.</p>
       <p>Sans opération ou réclamation de votre part, ou de vos ayants droit, avant le <strong className="chiffres">{fr(x.echeance)}</strong>, ce compte sera clôturé et ses fonds versés à la Banque Centrale du Congo, qui les gardera pour vous pendant cinq ans. Passé ce délai, ils seront acquis au Trésor public (loi n° 22/069, titre III, chapitre Ier).</p>
       <p>Une opération à un guichet ou une réclamation à une agence suffit pour garder votre compte.</p>
       <div className="releve-haut"><div /><div style={{ textAlign: "right" }}><strong>Pour {e.nom}</strong><br /><br /><br /></div></div>
-      <footer className="releve-pied">
-        <strong>{e.nom.toUpperCase()}</strong>
-        <span>{[e.adresse, e.commune, e.ville, e.pays].filter(Boolean).join(", ")}</span>
-      </footer>
+      <MentionExemplaire x={exemplaire} />
+      <PiedDocument e={e} />
     </article>
   );
 }

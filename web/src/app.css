@@ -403,10 +403,10 @@ button.lien:focus-visible { outline: 2px solid var(--tampon); outline-offset: 2p
 .contrat-deux { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espace-1) var(--espace-5); }
 .contrat-ligne { display: flex; flex-wrap: wrap; gap: var(--espace-2); }
 .contrat-signature { text-align: center; padding: var(--espace-4) 0; }
+.releve-std .contrat { font-size: inherit; }
+@media screen { .impression-seule { display: none !important; } }   /* en-tête et pied d'un document imprimé depuis un écran de travail */   /* demande d'adhésion : le corps prend la police du document (12 points à l'impression) */
 @media print {
   body * { visibility: hidden; }
-  .contrat, .contrat * { visibility: visible; }
-  .contrat { position: absolute; inset: 0; padding: 1.5cm; color: var(--encre); }
   .sans-impression { display: none !important; }
 }
 

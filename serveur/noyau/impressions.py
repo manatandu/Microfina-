@@ -13,6 +13,12 @@ DOCUMENTS = {
     "reconnaissance_dette": ("credit", ["S54", "S75", "S87", "S88", "S90", "S92", "S93", "S105"]),
     "convention": ("compte", ["S63"]),
     "contrat_dat": ("dat", ["S65", "S66", "S67", "S68"]),
+    "avis_rupture": ("dat", ["S65", "S66", "S67", "S68"]),
+    "acte_engagement": ("engagement", ["S100"]),
+    "lettre_inactivite": ("compte", ["SE01"]),
+    "accuse_plainte": ("plainte", ["SC03"]),
+    "releve": ("releve", ["S64"]),
+    "demande_adhesion": ("tiers", ["S40"]),
 }
 
 
@@ -27,7 +33,7 @@ def noter(u: dict, d) -> dict:
     sorte, ecrans = DOCUMENTS[document]
     if not droits_utilisateur(u["id"]) & set(ecrans):
         raise ErreurMetier("Droit manquant : impression de ce document (Administration > Profil > Assigner droit).", 403)
-    if une(cloison.AGENCE_DE[sorte], (objet,)) is None:               # l'objet existe (opération, crédit, compte, DAT, engagement)
+    if une(cloison.AGENCE_DE[sorte], (objet,)) is None:               # l'objet existe (opération, crédit, compte, DAT, engagement, plainte, relevé, membre)
         raise ErreurMetier("Document inconnu.")
     cloison.exiger(u, sorte, objet)                                # un membre de son agence (registre T213)
     # Un rang par document : deux impressions au même instant ne prennent pas le même numéro
@@ -37,3 +43,11 @@ def noter(u: dict, d) -> dict:
     r = une("""insert into impression (institution_id, document, objet, exemplaire, imprime_par) values (%s, %s, %s, %s, %s)
                returning imprime_le""", (u["institution_id"], document, objet, n, u["id"]))
     return {"exemplaire": n, "duplicata": n - 1, "le": r["imprime_le"].isoformat(), "par": nom_utilisateur(u["id"])}
+
+
+def entete(u: dict) -> dict:
+    """L'en-tête et le pied des documents qui n'apportent pas le leur (demande d'adhésion, accusé de réception, échéanciers) :
+    l'identité de l'institution, que tout utilisateur voit déjà (loi 22/069, art. 31, al. 3 : numéro d'inscription sur toute correspondance)"""
+    from .releves import entete as _entete
+    exiger(u)
+    return _entete(u["institution_id"])

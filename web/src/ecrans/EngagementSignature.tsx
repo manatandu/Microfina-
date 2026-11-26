@@ -7,7 +7,7 @@ import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
-import { imprimer } from "../lib/imprimer";
+import { MentionExemplaire, PiedDocument, TeteA4, useImpression } from "../composants/Documents";
 import { lireMontant, montant, montantEnLettres, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, LigneFiltres, Paginee, Textes, type Boite, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
@@ -153,14 +153,11 @@ export default function EngagementSignature() {
 /** Document imprimé (non montré par le manuel, registre S100-6) : l'acte d'engagement par signature, sur le modèle du contrat de prêt (CR-12) */
 function ActeEngagement({ e, entete: t, coopec, fermer }: { e: Engagement; entete: Awaited<ReturnType<typeof api.engagements.contexte>>["entete"]; coopec: boolean; fermer: () => void }) {
   const dv = e.devise as Devise;
+  const imp = useImpression("acte_engagement", e.id, "#acte-engagement");   // Code civil, livre III, art. 207 : deux originaux (registre T217)
   return (
     <div className="pile">
       <article className="releve-std contrat-dat a-imprimer" id="acte-engagement" aria-label="Engagement par signature">
-        <header className="releve-tete">
-          <p className="releve-num">Réf. <span className="chiffres">{e.reference}</span></p>
-          <h2 className="releve-titre">ENGAGEMENT PAR SIGNATURE</h2>
-          <div className="releve-logo">{t.logo ? <img src={t.logo} alt={t.nom} /> : <strong>{t.sigle || t.nom}</strong>}<span>{t.nom}</span></div>
-        </header>
+        <TeteA4 e={t} num={<>Réf. <span className="chiffres">{e.reference}</span></>} titre="ENGAGEMENT PAR SIGNATURE" />
         <p>{t.nom} donne, en faveur de {e.client}, {coopec ? "membre" : "client"} n° {e.membre}, l'engagement suivant : {e.typeLibelle.toLowerCase()}, {e.description}.</p>
         <p><strong>Montant :</strong> {montant(e.montant, dv)} ({montantEnLettres(e.montant, dv)}). <strong>Durée :</strong> {e.duree} mois, du {fr(e.dateDebut)} au {fr(e.dateFin)}.</p>
         <p><strong>Frais :</strong> {montant(e.frais, dv)}{e.pourcentage !== "0" ? ` (${e.pourcentage} % du montant` : " ("}{e.forfait ? `${e.pourcentage !== "0" ? ", " : ""}forfait ${montant(e.forfait, dv)})` : ")"}, prélevés sur le compte {e.compteEpargne}.
@@ -169,15 +166,13 @@ function ActeEngagement({ e, entete: t, coopec, fermer }: { e: Engagement; entet
         {e.observation && <p><strong>Observation :</strong> {e.observation}</p>}
         <div className="releve-haut">
           <div><strong>{coopec ? "Le membre" : "Le client"}</strong><br /><br /><br />{e.client}</div>
-          <div style={{ textAlign: "right" }}><strong>Pour {t.nom}</strong><br /><br /><br />Fait à {t.ville}, le {fr(e.dateDebut)}</div>
+          <div style={{ textAlign: "right" }}><strong>Pour {t.nom}</strong><br /><br /><br />Fait à {t.ville}, le {fr(e.dateDebut)}, en deux originaux, un pour chaque partie</div>
         </div>
-        <footer className="releve-pied">
-          <strong>{t.nom.toUpperCase()}</strong>
-          <span>{[t.adresse, t.commune, t.ville, t.pays].filter(Boolean).join(", ")}</span>
-          <span>{[t.agrement && `Agrément BCC n° ${t.agrement}`, t.ifu && `N° impôt : ${t.ifu}`, t.bp && `B.P. ${t.bp}`].filter(Boolean).join(" · ")}</span>
-        </footer>
+        <MentionExemplaire x={imp.exemplaire} originaux={2} suite="COPIE" />
+        <PiedDocument e={t} />
       </article>
-      <div className="actions-onglets"><button className="bouton" type="button" onClick={() => imprimer("#acte-engagement")}>Imprimer</button>
+      {imp.erreur && <p className="attention" role="alert">{imp.erreur}</p>}
+      <div className="actions-onglets"><button className="bouton" type="button" onClick={() => void imp.imprimer()}>Imprimer</button>
         <button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button></div>
     </div>
   );

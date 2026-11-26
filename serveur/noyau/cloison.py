@@ -36,6 +36,7 @@ AGENCE_DE = {
     "journee": "select agence_id from journee_comptable where id = %s",
     "caisse": "select g.agence_id from session_caisse s join guichet g on g.id = s.guichet_id where s.id = %s",
     "engagement": "select t.agence_id from engagement_signature e join tiers t on t.id = e.tiers_id where e.id = %s",
+    "releve": "select t.agence_id from releve_edition r join compte_depot c on c.id = r.compte_depot_id join tiers t on t.id = c.tiers_id where r.id = %s",
 }
 
 # Chemins qui désignent un membre ou un de ses objets par son identifiant (le premier nombre du chemin)

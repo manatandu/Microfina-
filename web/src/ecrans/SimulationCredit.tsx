@@ -9,6 +9,7 @@ import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
+import { FeuilleA4 } from "../composants/Documents";
 import { lireMontant, montant, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
@@ -97,7 +98,8 @@ export default function SimulationCredit() {
           "Registre S84-1 à S84-9 : échéance constante, taux mensuels, intérêts du différé répartis ; TEG annuel proportionnel au taux de la période (Instr. BCC 38, art. 2 et 4 ; registre T137)"]} />
       </Formulaire>
       <Fiche titre="Echéancier" ouverte={echeancier} fermer={() => setEcheancier(false)}>
-        {r && <div className="pile" id="echeancier-simulation">
+        {r && <div className="pile">
+          <FeuilleA4 id="echeancier-simulation" titre="ÉCHÉANCIER" label="Échéancier">
           {t && <p>Client : <strong>{nomComplet(t)}</strong> ({t.numero})</p>}
           <p>{r.produit} · {montant(r.montant, dv)} · {r.duree} mois · {r.nombreTraites} traites {r.libellePeriodicite.toLowerCase()} · TEG annuel {r.tauxRegle ? "sans objet" : pct(r.tegR)}</p>
           <div className="defile-x"><table className="grille">
@@ -109,7 +111,8 @@ export default function SimulationCredit() {
             <tfoot><tr><th scope="row" colSpan={3}>Total</th><td className="num chiffres">{montant(r.montant, dv)}</td><td className="num chiffres">{montant(r.totalInteret, dv)}</td>
               <td className="num chiffres">{montant(r.montant + r.totalInteret, dv)}</td><td></td></tr></tfoot>
           </table></div>
-          <div className="actions-onglets"><button className="bouton" type="button" onClick={() => imprimer("#echeancier-simulation")}>Imprimer</button>
+          </FeuilleA4>
+          <div className="actions-onglets sans-impression"><button className="bouton" type="button" onClick={() => imprimer("#echeancier-simulation")}>Imprimer</button>
             <button className="bouton secondaire" type="button" onClick={() => setEcheancier(false)}>Fermer</button></div>
         </div>}
       </Fiche>

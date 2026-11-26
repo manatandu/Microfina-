@@ -1005,6 +1005,12 @@ def operation_lire(request, oid: int):
     return s.lire_operation(oid)
 
 
+@api.get("/impressions/entete")
+def impressions_entete(request):
+    from . import impressions
+    return impressions.entete(u(request))
+
+
 @api.post("/impressions")
 def impressions_noter(request, corps: dict = Body(...)):
     from . import impressions

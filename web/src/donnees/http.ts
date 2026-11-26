@@ -524,7 +524,8 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     securite: {
       definirInactivite: (p: unknown) => post("/securite/inactivite", p),
     },
-    impressions: { noter: (d: { document: string; objet: number }) => post<{ exemplaire: number; duplicata: number; le: string; par: string }>("/impressions", d) },
+    impressions: { noter: (d: { document: string; objet: number }) => post<{ exemplaire: number; duplicata: number; le: string; par: string }>("/impressions", d),
+      entete: () => get("/impressions/entete") },
     journalSecurite: {
       consulter: (du: string, au: string, evenement = "") => get(`/securite/journal?du=${du}&au=${au}&evenement=${evenement}`),
       audit: (du: string, au: string, objet = "") => get(`/securite/audit?du=${du}&au=${au}&objet=${objet}`),

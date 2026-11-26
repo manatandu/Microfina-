@@ -7,7 +7,7 @@ import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
-import { imprimer } from "../lib/imprimer";
+import { MentionExemplaire, PiedDocument, TeteA4, useEntete, useImpression } from "../composants/Documents";
 import { exporterExcel } from "../lib/excel";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
@@ -34,6 +34,8 @@ export default function Plaintes() {
   const [choisie, setChoisie] = useState<Plainte | null>(null);
   const [r, setR] = useState<{ fondee: "" | "oui" | "non"; reponse: string; reparation: string }>({ fondee: "", reponse: "", reparation: "" });
   const [accuse, setAccuse] = useState<Plainte | null>(null);
+  const imp = useImpression("accuse_plainte", accuse?.id, ".fiche .a-imprimer");   // original, puis duplicatas (registre T217)
+  const entete = useEntete();
   const [boite, setBoite] = useState<Boite | null>(null);
   if (j === undefined) return <Chargement />;
   if (erreur) return <><p role="alert" className="erreur-champ">{erreur}</p></>;
@@ -136,16 +138,18 @@ export default function Plaintes() {
         </div>}
       </Fiche>
       <Fiche titre="Accusé de réception" ouverte={!!accuse} fermer={() => setAccuse(null)}>
-        {accuse && <article className="releve-std contrat-dat a-imprimer" aria-label="Accusé de réception de la plainte">
-          <header className="releve-tete"><p className="releve-num">Réf. <span className="chiffres">{accuse.reference}</span></p><h2 className="releve-titre">ACCUSÉ DE RÉCEPTION D'UNE PLAINTE</h2><div /></header>
+        {accuse && entete && <article className="releve-std contrat-dat a-imprimer" aria-label="Accusé de réception de la plainte">
+          <TeteA4 e={entete} num={<>Réf. <span className="chiffres">{accuse.reference}</span></>} titre="ACCUSÉ DE RÉCEPTION D'UNE PLAINTE" />
           <p>Votre plainte, reçue le {fr(accuse.recueLe)} ({accuse.canalLibelle.toLowerCase()}), porte la référence <strong className="chiffres">{accuse.reference}</strong>. Rappelez-la pour suivre son traitement.</p>
           <p>Objet : {accuse.objet}</p>
           <p>Une réponse vous sera donnée au plus tard le <strong className="chiffres">{fr(accuse.echeance)}</strong>. Sans réponse satisfaisante, vous pouvez saisir la Banque Centrale du Congo en citant cette référence (Instruction BCC n° 39, art. 5, 7 et 11). Le dépôt d'une plainte est gratuit.</p>
           <div className="releve-haut"><div><strong>Le plaignant</strong><br /><br />{accuse.plaignant}</div><div style={{ textAlign: "right" }}><strong>Reçu par</strong><br /><br />{accuse.enregistreePar}, {accuse.agence}</div></div>
+          <MentionExemplaire x={imp.exemplaire} />
+          <PiedDocument e={entete} />
         </article>}
         <div className="actions-onglets sans-impression">
           <button className="bouton secondaire" type="button" onClick={() => setAccuse(null)}>Fermer</button>
-          <button className="bouton" type="button" onClick={() => imprimer(".fiche .a-imprimer")}>Imprimer</button>
+          <button className="bouton" type="button" disabled={!entete} onClick={() => void imp.imprimer()}>Imprimer</button>
         </div>
       </Fiche>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>

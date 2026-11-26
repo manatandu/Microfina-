@@ -7,6 +7,7 @@ import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { montant, type Devise } from "@design/montant.js";
 import { Chargement, Textes } from "../composants";
+import { PiedDocument, TeteA4 } from "../composants/Documents";
 
 type Etat = Awaited<ReturnType<typeof api.conditionsBanque.etat>>;
 const pct = (v: number | null) => (v === null ? "" : `${v.toLocaleString("fr-FR", { maximumFractionDigits: 4 })} %`);
@@ -37,11 +38,7 @@ function Document({ e }: { e: Etat }) {
   const parts = e.frais.filter((f) => f.part), commissions = e.frais.filter((f) => !f.part);
   return (
     <article className="releve-std contrat-dat a-imprimer" aria-label="Conditions de banque imprimées">
-      <header className="releve-tete">
-        <p className="releve-num">{trimestre(e.date)}<br />En vigueur au <span className="chiffres">{fr(e.date)}</span></p>
-        <h2 className="releve-titre">CONDITIONS DE BANQUE</h2>
-        <div className="releve-logo">{en.logo ? <img src={en.logo} alt={en.nom} /> : <strong>{en.sigle || en.nom}</strong>}<span>{en.nom}</span></div>
-      </header>
+      <TeteA4 e={en} num={<>{trimestre(e.date)}<br />En vigueur au <span className="chiffres">{fr(e.date)}</span></>} titre="CONDITIONS DE BANQUE" />
       <h3>1. Produits d'épargne</h3>
       <table className="releve-detail">
         <thead><tr><th scope="col">Produit</th><th scope="col">Devise</th><th scope="col">Solde minimum</th><th scope="col">Retrait maximum par jour</th><th scope="col">Intérêt</th></tr></thead>
@@ -85,11 +82,7 @@ function Document({ e }: { e: Etat }) {
       <p>Retenue à la source de {e.retenueInterets} % sur les intérêts des dépôts des personnes physiques (loi n° 23/053, art. 120).</p>
       <h3>5. Dates de valeur</h3>
       <p>Toute opération prend la date de valeur du jour où elle est passée.</p>
-      <footer className="releve-pied">
-        <strong>{en.nom.toUpperCase()}</strong>
-        <span>{[en.adresse, en.commune, en.ville, en.pays].filter(Boolean).join(", ")}</span>
-        <span>Instruction BCC n° 40, art. 2 à 6</span>
-      </footer>
+      <PiedDocument e={en}><span>Instruction BCC n° 40, art. 2 à 6</span></PiedDocument>
     </article>
   );
 }
