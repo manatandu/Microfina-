@@ -42,7 +42,7 @@ const OUT = process.argv[2];
   };
   // Succès : un message qui disparaît seul (registre T121) ; une confirmation n'est demandée que pour ce qui engage
   const succes = async (texte) => { const m = p.locator('.message-succes'); await (texte ? m.filter({ hasText: texte }) : m).last().waitFor(); };
-  const oui = async () => { const b = p.getByRole('button', { name: 'Oui' });
+  const oui = async () => { const b = p.getByRole('button', { name: 'Oui', exact: true });
     if (await b.waitFor({ timeout: 2000 }).then(() => true, () => false)) await b.click(); await succes(); };
   // Ouverture de journée (S12, p. 21)
   await p.getByLabel('Date à ouvrir').fill('05112026'); await etape('02-chef-avant-ouverture');
@@ -215,7 +215,7 @@ const OUT = process.argv[2];
   await p.getByRole('row').filter({ hasText: 'gmbuyi' }).getByRole('cell', { name: /^Oui/ }).first().waitFor(); await etape('02f35-connexions');
   await p.getByRole('button', { name: 'Déconnecter gmbuyi' }).click();
   await p.getByRole('dialog', { name: 'Confirmation' }).getByText('Voulez-vous déconnecter cet utilisateur').waitFor(); await etape('02f36-deconnexion');
-  await p.getByRole('button', { name: 'Oui' }).click(); await p.getByText('bouton de sortie').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  await p.getByRole('button', { name: 'Oui', exact: true }).click(); await p.getByText('bouton de sortie').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
   // Administrateur sécurité : droits du profil CONTRÔLE INTERNE (S04, p. 15 et 16) : le menu Client lui est octroyé
   await aller('/administration/s04'); await p.getByRole('button', { name: 'CONTRÔLE INTERNE', exact: true }).click();
   await p.getByRole('checkbox', { name: 'Tout le menu : Client' }).check();
@@ -295,7 +295,7 @@ const OUT = process.argv[2];
   await p.getByRole('cell', { name: 'Mbuyi' }).waitFor(); await etape('05i-membres-groupe');
   await p.getByRole('tab', { name: 'Adresse et activité' }).click();
   await p.getByLabel('Activité :').selectOption('Pisciculture'); await etape('05i2-groupe-autres');   // registre S39-1
-  await p.getByRole('tab', { name: 'Photos et pièces' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('tab', { name: 'Photos et pièces' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await succes();
   // Entreprise : même écran, nature Entreprise (plan 3.1)
   await aller('/clients/s37?nature=entreprise');
@@ -330,7 +330,7 @@ const OUT = process.argv[2];
   await rsig.getByRole('row', { name: /Mbuyi/ }).getByRole('button', { name: 'Retirer' }).click();   // registre S38-2
   await rsig.getByRole('cell', { name: 'Mbuyi' }).waitFor({ state: 'detached' });
   await p.getByRole('region', { name: 'Signataires' }).getByRole('cell', { name: 'Ilunga' }).waitFor(); await etape('05e-signataires');
-  await p.getByRole('tab', { name: 'Photos et pièces' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('tab', { name: 'Photos et pièces' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await succes(); await etape('05f-entreprise-enregistree');
   // Chef : valider billetages et viser
   await login('J.-P. Mukendi');
@@ -342,7 +342,7 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: "Comptes bancaires de l'institution" }).click();
   await p.getByLabel('Banque *').selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte *').fill('5701');
   await p.getByLabel('N° Compte Bancaire : *').fill('05100-01234567-89'); await p.getByLabel('Devise *').selectOption('USD'); await p.getByLabel('Nom *').fill('Mutombo');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await p.getByRole('dialog', { name: 'Erreur' }).waitFor(); await etape('06c2-compte-hors-nostri'); await p.getByRole('button', { name: 'Ok' }).click();
   await p.getByLabel('Compte *').fill('56010001');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
@@ -364,7 +364,7 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await p.getByLabel('De *').selectOption({ label: 'RAW 05100-01234567-89 (USD)' }); await p.getByLabel('Vers *').selectOption({ label: 'RAW R-CDF-1 (CDF)' });
   await p.getByLabel('Montant (USD) *').fill('50');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await p.getByRole('dialog', { name: 'Erreur' }).waitFor(); await etape('06c6-banque-vers-banque-refus'); await p.getByRole('button', { name: 'Ok' }).click();
   // Virement prélèvement (S53) : un virement reçu par la banque pour le compte en dollars de Kalala
   await aller('/banque/s53'); await p.getByRole('button', { name: 'Rechercher : Identifiant Client' }).click();
@@ -421,7 +421,7 @@ const OUT = process.argv[2];
   for (const [i, nom] of ['Tshala', 'Mamans', 'Boulangerie'].entries()) {
     await file.getByRole('row').filter({ hasText: nom }).click();
     if (i === 0) { await p.getByRole('cell', { name: "Droit d'entrée" }).first().waitFor(); await etape('06b-visa-client'); }
-    await p.getByRole('button', { name: 'Viser' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+    await p.getByRole('button', { name: 'Viser' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
     await succes();
     if (i === 0) { await p.getByRole('button', { name: 'Imprimer Contrat' }).click(); await p.getByRole('dialog', { name: "Demande d'adhésion" }).waitFor();
       await p.getByText('Le nouveau membre est inscrit au registre des membres').waitFor();   // vocabulaire COOPEC (registre S40-2)
@@ -441,7 +441,7 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: 'Adresse et activité' }).click();
   await p.getByLabel('Numéro de téléphone :').fill('+243 990 000 001'); await etape('06k-mise-a-jour-saisie');
   // Mentions de l'identité exigées à la mise à jour (registre S46-3 ; Instr. BCC 15, art. 12 et 13)
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await p.getByRole('dialog', { name: 'Erreur' }).getByText(/art\. 12 et 13/).waitFor(); await etape('06k2-mentions-exigees'); await p.getByRole('button', { name: 'Ok' }).click();
   await p.getByRole('tab', { name: 'Identité' }).click(); await p.getByLabel('Date de naissance : *').fill('12041988'); await p.getByLabel('Lieu de naissance : *').fill('Kinshasa');
   await p.getByLabel('Date de délivrance : *').fill('10012024'); await p.getByLabel('Lieu de délivrance : *').fill('Kinshasa'); await p.getByLabel('Autorité de délivrance : *').fill('DGM');
@@ -469,7 +469,7 @@ const OUT = process.argv[2];
   await p.getByLabel("Charges d'exploitation").fill('500 000'); await p.getByLabel('Charges familiales').fill('300 000');
   await p.getByRole('button', { name: 'Suivant', exact: true }).click(); await p.getByRole('button', { name: 'Suivant', exact: true }).click();
   await p.getByText('13,93 %').waitFor(); await p.getByLabel('Avis *').selectOption('favorable'); await etape('06c39-analyse-financiere');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await p.getByText('Analyse N° AF000001').waitFor();
   await login('Bijou Kasongo'); await aller('/clients/s46');
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
@@ -508,11 +508,11 @@ const OUT = process.argv[2];
     }
   };
   await groupement('Grp Kinsaku', ['Kalala', 'Mwamba']); await etape('06p-groupement-membres');
-  await p.getByRole('tab', { name: 'Photos et pièces' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('tab', { name: 'Photos et pièces' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await succes(); await etape('06q-groupement-enregistre');
   // Un seul groupe solidaire à la fois (registre S44-1)
   await groupement('Grp Matete', ['Kalala']);
-  await p.getByRole('tab', { name: 'Photos et pièces' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('tab', { name: 'Photos et pièces' }).click(); await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await p.getByRole('dialog', { name: 'Erreur' }).getByText(/déjà membre du groupe « Grp Kinsaku »/).waitFor(); await etape('06q3-un-seul-groupe'); await p.getByRole('button', { name: 'Ok' }).click();
   // Prospect : la fiche physique de « Nouveau membre », enregistrée comme prospect (plan d'allègement, point 3.11)
   await aller('/clients/s37'); await p.getByRole('tab', { name: 'Identité' }).click();
@@ -576,7 +576,7 @@ const OUT = process.argv[2];
   await p.getByLabel("Compte d'épargne obligatoire").selectOption({ index: 1 }); await p.getByLabel('Compte du fonds de solidarité').selectOption({ index: 1 }); await etape('06w1-demande-credit');
   await p.getByRole('button', { name: 'Echéancier' }).click(); await p.getByRole('dialog', { name: 'Echéancier' }).getByRole('cell', { name: '97 487,13 CDF' }).first().waitFor();
   await p.getByRole('dialog', { name: 'Echéancier' }).getByRole('button', { name: 'Fermer' }).click();
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await p.getByText('Demande N° DC000001').waitFor();
   // Vérification (plan 6.1 ; Instr. BCC 008, art. 66 ; registre CR-28) : la responsable crédit ressaisit le montant sans le voir, note la Centrale des risques, donne son avis
   // Plan 6.4 : vérifier, décider et viser se font sur la ligne du portefeuille de crédits (S93)
@@ -585,7 +585,7 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Vérifier DC000001' }).click(); const ctl = p.getByRole('dialog', { name: /Vérification de la demande/ });
   await ctl.getByLabel('Montant (ressaisi) *').fill('1 000 000'); await ctl.getByLabel('Référence du rapport de la Centrale *').fill('CR-2026-0001'); await ctl.getByLabel('Accepté').check();
   await etape('06w2-controle-demande');
-  await ctl.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByText('Demande vérifiée').waitFor();
+  await ctl.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click(); await p.getByText('Demande vérifiée').waitFor();
   // Décision (plan 6.1) : la commission refuse sur un avis contraire (loi 002/2002, art. 43), puis le Conseil d'administration accorde en appel (B29 ; Instr. BCC 007,
   // art. 18) : le crédit naît et attend le visa du service financier
   await login('J.-P. Mukendi'); await portefeuille(); await p.getByRole('button', { name: 'Décider DC000001' }).click();
@@ -593,13 +593,13 @@ const OUT = process.argv[2];
   await dec.getByLabel('Montant approuvé *').fill('1 000 000');
   for (const [i, nom, avis] of [[1, 'Mbala', 'accepte'], [2, 'Ilunga', 'refuse'], [3, 'Kabeya', 'accepte']]) { await dec.getByLabel(`Membre ${i} *`, { exact: true }).fill(nom); await dec.getByLabel(`Avis du membre ${i} *`).selectOption(avis); }
   await dec.getByLabel("Motif d'un refus").fill('Capacité de remboursement à revoir'); await dec.getByLabel('N° du procès-verbal').fill('PV-2026-12'); await etape('06w3-approbation');
-  await dec.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await p.getByText('Demande refusée.').waitFor();
+  await dec.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click(); await p.getByText('Demande refusée.').waitFor();
   await portefeuille('Refusé'); await p.getByRole('button', { name: 'Appel au Conseil DC000001' }).click(); await p.getByLabel('Décision du Conseil : *').selectOption('accorde'); await p.getByLabel('Référence : *').fill('CA-2026-07');
   await etape('06w5b-appel-conseil'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();   // accordé : la demande quitte la liste des refus
   // Visa du service financier (S90 ; registre CR-5, CR-28) : le comptable
   await login('Patrick Lumbala'); await portefeuille(); await p.getByRole('button', { name: 'Viser 0412/L001/00001' }).click();
   const fv = p.getByRole('dialog', { name: /Visa du service financier/ }); await fv.getByLabel('Avis *').selectOption('accepte'); await fv.getByRole('button', { name: 'Viser' }).click();
-  await p.getByRole('button', { name: 'Oui' }).click(); await p.getByText('Visa enregistré : crédit accepté.').waitFor();
+  await p.getByRole('button', { name: 'Oui', exact: true }).click(); await p.getByText('Visa enregistré : crédit accepté.').waitFor();
   await portefeuille('Visé'); await p.getByRole('cell', { name: '0412/L001/00001', exact: true }).waitFor(); await etape('06w6-portefeuille-vise');
   await login('J.-P. Mukendi');
   // Rapports clients (S51)
@@ -628,7 +628,7 @@ const OUT = process.argv[2];
   await bil.getByLabel('Nombre de coupures de 20 000 CDF').fill('1'); await bil.getByLabel('Nombre de coupures de 5 000 CDF').fill('2'); await bil.getByLabel('Nombre de coupures de 500 CDF').fill('1');
   await etape('07-adhesion');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('dialog', { name: 'Confirmation' }).getByText(/^Adhésion/).waitFor(); await etape('07b-adhesion-recapitulatif');
-  await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Reçu' }).getByText('Adhésion enregistrée').waitFor(); await etape('08-adhesion-recu');   // reçu d'office (plan 4.3)
+  await p.getByRole('button', { name: 'Oui', exact: true }).click(); await p.getByRole('dialog', { name: 'Reçu' }).getByText('Adhésion enregistrée').waitFor(); await etape('08-adhesion-recu');   // reçu d'office (plan 4.3)
   await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
   // S43 : Date d'adhésion = date de l'adhésion encaissée (registre S43-2)
   await aller('/clients/s43'); await p.getByRole('button', { name: 'Rechercher un client' }).click();
@@ -647,7 +647,7 @@ const OUT = process.argv[2];
   await aller('/caisse/s74?op=depot'); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-02' });
   await p.getByLabel('Montant *').fill('150 000'); await p.getByLabel('Versé par').fill('Le titulaire'); await p.getByLabel('Motif:').fill('ECOLAGE');
   await p.getByLabel('Nombre de coupures de 10 000 CDF').fill('15'); await etape('09-depot');
-  await p.getByLabel('Nombre de coupures de 10 000 CDF').press('Enter'); await p.getByRole('button', { name: 'Oui' }).click();   // Entrée enregistre (plan 11.3)
+  await p.getByLabel('Nombre de coupures de 10 000 CDF').press('Enter'); await p.getByRole('button', { name: 'Oui', exact: true }).click();   // Entrée enregistre (plan 11.3)
   // l'avertissement reste dans sa boîte jusqu'à « Ok » (plan 11.3) ; registre S08-4
   const avert = p.getByRole('dialog', { name: 'Succès' }); await avert.getByText(/au-dessus du maximum autorisé/).waitFor(); await etape('09b-depot-avertissement-maximum');
   await avert.getByRole('button', { name: 'Ok' }).click();
@@ -658,10 +658,10 @@ const OUT = process.argv[2];
     await aller('/caisse/s74?op=depot'); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-02' });
     await p.getByLabel('Montant *').fill('28 500 000');
     await p.getByLabel('Nombre de coupures de 20 000 CDF').fill('1425');
-    await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+    await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   };
   await depotRenforce(); await p.getByRole('dialog', { name: 'Confirmation' }).getByText(/Transmettre l'opération à la conformité/).waitFor(); await etape('10b-examen-requis');
-  await p.getByRole('button', { name: 'Oui' }).click(); await succes(/Examen renforcé n° 1 demandé/);
+  await p.getByRole('button', { name: 'Oui', exact: true }).click(); await succes(/Examen renforcé n° 1 demandé/);
   await login('J.-P. Mukendi'); await aller('/clients/sc01'); await p.getByRole('heading', { name: 'Lutte anti-blanchiment' }).waitFor();   // plan 3.16
   await p.getByRole('row').filter({ hasText: 'Kalala' }).first().click();
   const fx = p.getByRole('dialog', { name: 'Examen renforcé n° 1' });
@@ -739,7 +739,7 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Nouvelle plainte' }).click(); const fp = p.getByRole('dialog', { name: 'Nouvelle plainte' });
   await fp.getByLabel('Plaignant : *').fill('Mbuyi Kalenga'); await fp.getByLabel('Nature de l\'opération : *').selectOption('retrait');
   await fp.getByLabel('Objet de la plainte : *').fill('Attente de deux heures au guichet'); await etape('10g-nouvelle-plainte');
-  await fp.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await fp.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await succes(/PL-2026-000001/);
   await p.getByRole('article', { name: 'Accusé de réception de la plainte' }).waitFor(); await etape('10h-accuse-plainte');
   await p.getByRole('dialog', { name: 'Accusé de réception' }).getByRole('button', { name: 'Fermer' }).click();
@@ -751,14 +751,14 @@ const OUT = process.argv[2];
   await p.getByRole('group', { name: 'Retenues' }).getByText('Montant remis').waitFor(); await etape('11d-deblocage-credit');
   await p.getByRole('group', { name: 'Billetage' }).getByLabel('Nombre de coupures de 20 000 CDF').fill('50');
   await p.getByRole('button', { name: 'Débloquer' }).click(); await p.getByRole('dialog', { name: 'Confirmation' }).getByText(/Montant remis/).waitFor(); await etape('11d2-deblocage-recapitulatif');
-  await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Reçu' }).getByText('Déblocage de crédit').waitFor(); await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
+  await p.getByRole('button', { name: 'Oui', exact: true }).click(); await p.getByRole('dialog', { name: 'Reçu' }).getByText('Déblocage de crédit').waitFor(); await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
   await p.getByRole('button', { name: 'Contrat de prêt' }).click(); await p.getByRole('article', { name: 'Contrat de prêt' }).getByText('0412/L001/00001').first().waitFor(); await etape('11d3-contrat-pret');
   await p.getByRole('dialog', { name: 'Contrat de prêt' }).getByRole('button', { name: 'Fermer' }).first().click();
   // Remboursement (S76, p. 87 et 88) : 100 000 CDF le jour du déblocage, rien d'échu : remboursement anticipé du capital (Instr. BCC 38, art. 14)
   await aller('/caisse/s76'); await client('Kalala'); await p.getByLabel('Montant à payer: *').fill('100 000');
   await p.getByText('Ordre Répartition').waitFor(); await etape('11e-remboursement-credit');
   await p.getByRole('group', { name: 'Billetage' }).getByLabel('Nombre de coupures de 20 000 CDF').fill('5');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await p.getByRole('dialog', { name: 'Reçu' }).getByText('Remboursement de crédit enregistré').waitFor(); await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
   await p.getByRole('button', { name: 'Situation', exact: true }).click(); await p.getByRole('dialog', { name: 'Brouillard des remboursements' }).getByText('100 000,00 CDF').first().waitFor();
   await etape('11e2-brouillard-remboursements'); await p.getByRole('dialog', { name: 'Brouillard des remboursements' }).getByRole('button', { name: 'Fermer' }).click();
@@ -787,7 +787,7 @@ const OUT = process.argv[2];
   await fn.getByLabel('Montant de la créance garantie: *').fill('500 000'); await fn.getByLabel("Conditions d'exigibilité: *").fill('Échéances du contrat de prêt');
   await fn.getByLabel("Registre d'inscription: *").fill('Registre du commerce, Kinshasa'); await fn.getByLabel("N° d'inscription: *").fill('NM-0001');
   await etape('11g2-nantissement-materiel');
-  await fn.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await fn.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await p.getByText(/Fiche du client incomplète : profession du client/).waitFor(); await p.locator('dialog.boite').getByRole('button', { name: 'Ok' }).click();
   await fn.getByRole('button', { name: 'Fermer' }).click();
   // Consulter un prêt (S95, p. 118 et 119)
@@ -852,7 +852,7 @@ const OUT = process.argv[2];
   await p.getByLabel('Montant *').fill('1 500'); await p.getByLabel('Motif:').fill('Loyer');
   await p.getByLabel('Nombre de coupures de 100 USD').fill('15'); await etape('11-retrait');
   // 1 500 USD dépasse le retrait plafonné : en attente du visa « Retrait plafond » (registre S08-5)
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   const visa = p.getByRole('dialog', { name: 'Succès' }); await visa.getByText(/attend le visa/).waitFor(); await etape('11a-retrait-en-attente');   // reste jusqu'à « Ok » (plan 11.3)
   await visa.getByRole('button', { name: 'Ok' }).click();
   // Plan d'allègement 7.1 : le retrait au-delà du plafond se vise dans la file « Opérations en attente »
@@ -864,7 +864,7 @@ const OUT = process.argv[2];
   await p.getByLabel('Montant *').fill('1 500'); await p.getByLabel('Motif:').fill('Loyer');
   await p.getByLabel('Remis à').selectOption({ label: 'Kasongo Albert : Passeport OB77' });   // E2 : procuration en cours
   await p.getByLabel('Nombre de coupures de 100 USD').fill('15');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('dialog', { name: 'Confirmation' }).getByText(/Remis à : Kasongo Albert/).waitFor(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('dialog', { name: 'Confirmation' }).getByText(/Remis à : Kasongo Albert/).waitFor(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await p.getByRole('dialog', { name: 'Reçu' }).getByText('Retrait enregistré').waitFor(); await etape('12-retrait-recu');
   await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
   // Adhésion par banque (S56) : la Boulangerie paie par virement sur le compte en CDF ; saisie en attente du visa (S57)
@@ -880,7 +880,7 @@ const OUT = process.argv[2];
   // Visa et validation (S57) : l'adhésion saisie attend son visa ; sa propre saisie ne se vise pas (quatre yeux)
   // Plan d'allègement 7.1 : une file « Opérations en attente » au lieu des huit listes de S57 ; sa propre saisie ne se vise ni ne se refuse
   await aller('/banque/s57'); await p.getByRole('heading', { name: 'Opérations en attente : banque' }).waitFor();
-  await p.getByRole('button', { name: /^Viser / }).first().click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('button', { name: /^Viser / }).first().click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await p.getByRole('dialog', { name: 'Erreur' }).getByText('Quatre yeux').waitFor(); await p.getByRole('button', { name: 'Ok' }).click(); await etape('06c9-visa-banque');
   await p.getByRole('button', { name: /^Refuser / }).first().click(); const mref = p.getByRole('dialog', { name: /^Refuser/ }); await mref.getByLabel('Motif du refus : *').fill('Essai');
   await mref.getByRole('button', { name: 'Refuser' }).click(); await p.getByRole('dialog', { name: 'Erreur' }).getByText('Quatre yeux').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
@@ -898,7 +898,7 @@ const OUT = process.argv[2];
   await p.getByLabel('Déposé par le titulaire du compte').uncheck(); await p.getByLabel('Nom et Prénoms Déposant *').fill('Kabeya Jean');
   await p.getByLabel('Banque', { exact: true }).selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte Banque *').selectOption({ label: '05100-01234567-89 (USD)' });
   await etape('06c11-depot-cheque');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await succes(); await etape('06c12-depot-cheque-resultat');
   // Un onglet « Liste des chèques » avec un filtre Statut, au lieu de « Encaisser » et « Historique »
   await p.getByRole('tab', { name: 'Liste des chèques' }).click(); await p.getByLabel('Banque *', { exact: true }).selectOption({ label: 'Rawbank' });
@@ -1014,7 +1014,7 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rcl = p.getByRole('dialog', { name: "Recherche d'un client" });
   await rcl.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rcl.getByRole('row').filter({ hasText: 'Kalala' }).first().click();
-  await p.getByLabel('N° compte : *').selectOption({ index: 1 }); await p.getByRole('button', { name: 'Clôturer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByLabel('N° compte : *').selectOption({ index: 1 }); await p.getByRole('button', { name: 'Clôturer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await p.getByText('encore un solde').waitFor(); await etape('06c31-cloture-refusee'); await p.getByRole('button', { name: 'Ok' }).click();
   // Blocage d'un montant puis déblocage (S71, p. 81 ; registre S71-1 à S71-5)
   await aller('/epargne/s71'); await p.getByRole('heading', { name: 'Blocage et déblocage de compte' }).waitFor();
@@ -1045,7 +1045,7 @@ const OUT = process.argv[2];
   await aller('/caisse/s74?op=retrait'); await client('Lukusa'); await p.getByLabel('N° compte').selectOption({ label: '0412-000320-02' });
   await p.getByLabel('Montant *').fill('85 000'); await p.getByLabel('Motif:').fill('Départ');
   await p.getByLabel('Nombre de coupures de 20 000 CDF').fill('4'); await p.getByLabel('Nombre de coupures de 5 000 CDF').fill('1');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await p.getByRole('dialog', { name: 'Reçu' }).getByText('Retrait enregistré').waitFor(); await etape('12a-apurement-lukusa'); await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
   // Chef : retirer à la caissière la case « Voir solde client » (S10) ; au guichet, les soldes sont masqués (registre S10-1)
   await login('J.-P. Mukendi'); await aller('/administration/s10');
@@ -1065,7 +1065,7 @@ const OUT = process.argv[2];
   await rps.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rps.getByRole('row').filter({ hasText: 'Kalala' }).click();
   await p.getByLabel('Part social à achèter *').fill('1');   // plus de N° Compte : l'achat de parts ne touche pas l'épargne (plan 4.6)
   await p.getByLabel('Nombre de coupures de 1 000 CDF').fill('4'); await etape('14b-parts-sociales');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await p.getByRole('dialog', { name: 'Reçu' }).getByText('Achat de parts enregistré').waitFor(); await etape('14c-parts-recu');
   await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
   // ED Divers (S78, p. 89 et 90 ; registre S78-1 à S78-6) : encaissement de la vente d'un livret, compte 7790 affiché, billetage
@@ -1073,7 +1073,7 @@ const OUT = process.argv[2];
   await p.getByLabel('Opérations').selectOption({ label: "Vente de livret d'épargne" }); await p.waitForFunction(() => [...document.querySelectorAll('textarea')].some((t) => t.value === '77900000'));
   await p.getByLabel('Montant (CDF) *').fill('2 000');
   await p.getByLabel('Nombre de coupures de 1 000 CDF').fill('2');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await p.getByRole('dialog', { name: 'Reçu' }).getByText('Encaissement enregistré').waitFor(); await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
   await p.getByText(/Numéro de pièce : \S+/).waitFor(); await etape('14d-ed-divers');
   // Virements internes de trésorerie (S81 ; plan d'allègement, points 4.10 et 7.5) : fonds à recevoir, puis versement de 1 000 CDF de sa caisse vers le compte CDF de Rawbank
@@ -1146,7 +1146,7 @@ const OUT = process.argv[2];
   await p.getByLabel('Montant à payer: *').fill('1000');
   await p.getByLabel('Ordre du client : *').fill('Ordre écrit du client, 14/11/2026');
   await etape('15d-remboursement-prelevement');
-  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui' }).click(); await succes('Opérations en attente');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click(); await succes('Opérations en attente');
   await aller('/credit/s105'); await p.getByRole('heading', { name: 'Déblocage' }).waitFor(); await p.getByRole('button', { name: 'Rechercher un crédit' }).click();
   await p.getByRole('dialog', { name: 'Crédits à débloquer' }).waitFor(); await etape('15e-deblocage-epargne');
   // Plan d'allègement, point 7.2 : le remboursement saisi hors guichet attend dans la file ; visé par le chef, validé par la chef comptable (Instr. BCC 008, art. 66)
@@ -1216,21 +1216,21 @@ const OUT = process.argv[2];
   const rk = p.getByRole('dialog', { name: "Recherche d'un client" });
   await rk.getByLabel('Nom:', { exact: true }).fill('Kalala'); await rk.getByRole('row').filter({ hasText: 'Kalala' }).first().click();
   await p.getByLabel('Motif *').selectOption('Décision du client');
-  await p.getByRole('button', { name: 'Résilier' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('button', { name: 'Résilier' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await p.getByRole('dialog', { name: 'Erreur' }).getByText(/Client emprunteur : il ne peut pas se retirer/).waitFor(); await etape('19a-apurement-a-faire');
   await p.getByRole('button', { name: 'Ok' }).click();
   await p.getByRole('button', { name: 'Rechercher un client' }).click();
   const rr = p.getByRole('dialog', { name: "Recherche d'un client" });
   await rr.getByLabel('Nom:', { exact: true }).fill('Lukusa'); await rr.getByRole('row').filter({ hasText: 'Lukusa' }).click();
   await p.getByLabel('Motif *').selectOption('Décision du client'); await etape('19-resiliation');
-  await p.getByRole('button', { name: 'Résilier' }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByRole('button', { name: 'Résilier' }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await succes(); await etape('20-resilie');
   // Journées en attente de comptabilisation (registre T14, S12-2, S12-5) : Journée Maxi ouvert à 2, deux journées ouvertes, la troisième refusée
   await aller('/parametrage/s32'); await p.getByLabel('Journée Maxi ouvert : *').fill('2'); await p.getByRole('tabpanel', { name: 'Information Société' }).getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await aller('/administration/s12');
   for (const d of ['06112026', '09112026']) { await p.getByLabel('Date à ouvrir').fill(d); await p.getByRole('button', { name: 'Enregistrer', exact: true }).click(); await oui();
     await p.getByRole('cell', { name: `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`, exact: true }).first().waitFor(); }
-  await p.getByLabel('Date à ouvrir').fill('10112026'); await p.getByRole('button', { name: 'Enregistrer', exact: true }).click(); await p.getByRole('button', { name: 'Oui' }).click();
+  await p.getByLabel('Date à ouvrir').fill('10112026'); await p.getByRole('button', { name: 'Enregistrer', exact: true }).click(); await p.getByRole('button', { name: 'Oui', exact: true }).click();
   await p.getByRole('dialog', { name: 'Erreur' }).getByText(/Journée Maxi ouvert atteinte \(2\)/).waitFor(); await etape('21-journee-maxi-atteinte'); await p.getByRole('button', { name: 'Ok' }).click();
   await aller('/comptabilite/s111'); await p.getByLabel('Journée non comptabilisée :').waitFor();
   if ((await p.getByLabel('Journée non comptabilisée :').locator('option').count()) !== 2) throw new Error('deux journées en attente attendues');
@@ -1259,7 +1259,7 @@ const OUT = process.argv[2];
   await login('J.-P. Mukendi'); await aller('/comptabilite/s113');
   await p.getByRole('button', { name: /^Viser Facture fournisseur F-2026-001/ }).click(); await oui(); await etape('23g-visa-facture');
   await p.getByRole('button', { name: /^Valider Facture fournisseur F-2026-001/ }).click();
-  await p.getByRole('button', { name: 'Oui' }).click(); await p.getByRole('dialog', { name: 'Erreur' }).getByText(/Quatre yeux/).waitFor(); await etape('23h-validation-quatre-yeux');
+  await p.getByRole('button', { name: 'Oui', exact: true }).click(); await p.getByRole('dialog', { name: 'Erreur' }).getByText(/Quatre yeux/).waitFor(); await etape('23h-validation-quatre-yeux');
   await p.getByRole('button', { name: 'Ok' }).click();
   // Un écran sans droit ne s'ouvre pas, même par son adresse (registre T07) : le chef n'a pas les transferts de fonds
   await aller('/caisse/s81'); await p.getByText(/^Droit manquant : Virements internes de trésorerie/).waitFor(); await etape('23i-droit-manquant');
