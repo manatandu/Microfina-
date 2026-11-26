@@ -8,9 +8,11 @@ from django.conf import settings
 from .bd import ErreurMetier, executer, lignes, une
 from .services import exiger
 
-OPTIONS = ["saisieAnalytique", "saisieEcheance", "lettrageAuto", "saisieTiers", "immobilisation", "compteTaxe", "compteTaxable"]
+# reseau : attribut « Appartenance au réseau » (PCCI § 10.3) : le compte tient les opérations avec la faîtière, les affiliées du même réseau ou les fonds
+# de garantie du réseau ; la consolidation le retire (registre T235)
+OPTIONS = ["saisieAnalytique", "saisieEcheance", "lettrageAuto", "saisieTiers", "immobilisation", "compteTaxe", "compteTaxable", "reseau"]
 COLONNES = {"saisieAnalytique": "saisie_analytique", "saisieEcheance": "saisie_echeance", "lettrageAuto": "lettrage_auto",
-            "saisieTiers": "saisie_tiers", "immobilisation": "immobilisation", "compteTaxe": "compte_taxe", "compteTaxable": "compte_taxable"}
+            "saisieTiers": "saisie_tiers", "immobilisation": "immobilisation", "compteTaxe": "compte_taxe", "compteTaxable": "compte_taxable", "reseau": "reseau"}
 # Registre S102-3 : groupes de compte des classes (PCCI § 9 : classes de bilan, de gestion, hors bilan)
 GROUPES = {0: "Hors bilan", 1: "Bilan", 2: "Bilan", 3: "Bilan", 4: "Bilan", 5: "Bilan", 6: "Gestion", 7: "Gestion", 8: "Gestion"}
 

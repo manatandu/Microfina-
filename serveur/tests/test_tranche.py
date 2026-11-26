@@ -6340,3 +6340,106 @@ def test_journal_des_ecritures_en_une_lecture(clients, journee):
     assert r.status_code == 200 and len(j) == 3 and all(len(e["lignes"]) == 2 for e in j)
     assert all(sum(l["montantCdf"] if l["sens"] == "D" else -l["montantCdf"] for l in e["lignes"]) == 0 for e in j)
     assert len(q) < 25, len(q)                                            # ne grandit pas avec le nombre d'écritures
+
+
+def test_consolidation_du_reseau(clients, journee):
+    """Consolidation d'un réseau par sa faîtière (loi 002/2002, art. 65 ; Instr. BCC 0011, art. 47 ; PCCI § 10.3 ; registre T235). Chaque institution
+    marque « Réseau » les comptes de ses opérations avec le réseau et exporte sa balance ; la faîtière importe les balances, les additionne compte du
+    PCCI par compte du PCCI et retire les comptes marqués. Les comptes réciproques doivent s'accorder : sinon l'écart est montré, sans états consolidés."""
+    from noyau.bd import executer
+    compta, caisse = clients["compta"], clients["caisse"]
+    CO, EF, jour = "/api/comptabilite/consolidation", "/api/comptabilite/etats-financiers", {"au": "2026-11-05"}
+    def refus(r):
+        assert r.status_code == 422, r.content; return r.json()["message"]
+    # 1. Sans faîtière déclarée, pas d'onglet « Réseau » ; une affiliée exporte sa balance, elle ne consolide pas
+    assert compta.get(f"{EF}/contexte", **H).json()["reseau"] is False
+    executer("update institution set faitiere_affiliation = 'COOCEC Kinshasa'")
+    assert compta.get(f"{EF}/contexte", **H).json()["reseau"] is True
+    assert compta.get(CO, jour, **H).json() == {"faitiere": False, "sigle": "CTJ", "affiliation": "COOCEC Kinshasa"}
+    assert "faîtière du réseau" in refus(compta.post(f"{CO}/import", {**jour, "contenu": "x"}, **H))
+    assert caisse.post(f"{CO}/import", {**jour, "contenu": "x"}, **H).status_code == 403
+    # 2. L'attribut « Appartenance au réseau » (PCCI § 10.3) sur les comptes de l'institution qui tiennent ces opérations
+    for parent, suite, lib in (("5622", "0001", "COOPEC Bolingo, compte à vue"), ("704", "00001", "Intérêts reçus de la COOPEC Bolingo")):
+        l = compta.post("/api/plan-comptes", {"parent": parent, "suite": suite, "libelle": lib, "ouvert": True, "saisissable": True, "reseau": True}, **H)
+        assert l.status_code == 200, l.content
+    plan = {c["numero"]: c for c in l.json()["comptes"]}
+    assert (plan["56220001"]["reseau"], plan["70400001"]["reseau"], plan["5622"]["reseau"]) == (True, True, False)
+    od = next(j["id"] for j in compta.get(f"{OC}/contexte", **H).json()["journaux"] if j["code"] == "OD")
+    e = None
+    for compte, sens, m in (("46100000", "debit", 13_000_000), ("56220001", "credit", 10_000_000), ("70400001", "credit", 3_000_000)):
+        e = compta.post("/api/comptabilite/ecritures/lignes", {"journalId": od, "periode": "11/2026", "jour": 5, "libelle": "Dépôt et intérêts, COOPEC Bolingo", "compte": compte, sens: m}, **H).json()
+    viser_valider(clients, e["id"])
+    comptabiliser_journee(clients, journee)
+    # 3. Le fichier de balance : en-tête, une ligne par compte, la colonne Réseau, les totaux
+    assert "Date d'arrêté" in refus(compta.get(f"{CO}/export", **H))
+    x = compta.get(f"{CO}/export", jour, **H).json()
+    lg = x["contenu"].split("\r\n")
+    assert x["nom"] == "balance-consolidation-CTJ-2026-11-05.csv" and lg[:3] == ["Exofina;balance pour consolidation;1", "Institution;CTJ;COOPEC Tujenge;", "Arrêté;2026-11-05"]
+    assert lg[5] == "Compte;PCCI;Libellé;Débit;Crédit;Réseau" and lg[-2].startswith("Total;;;") and lg[-1] == ""
+    assert "56220001;5622;COOPEC Bolingo, compte à vue;0.00;100000.00;O" in lg and "70400001;7040;Intérêts reçus de la COOPEC Bolingo;0.00;30000.00;O" in lg
+    assert all(l.endswith(";N") for l in lg[6:-2] if not l.startswith(("56220001", "70400001")))
+    # 4. La faîtière : sa balance se lit dans ses livres ; elle importe celle de chaque affiliée
+    executer("update institution set profil = 'faitiere'")
+    dec = lambda v: f"{v // 100}.{v % 100:02d}"
+    def fichier(sigle, nom, lignes, resultat=0, arrete="2026-11-05"):
+        corps = [f"{c};{p};{l};{dec(d)};{k and dec(k) or '0.00'};{r}" for c, p, l, d, k, r in lignes]
+        return "\r\n".join(["Exofina;balance pour consolidation;1", f"Institution;{sigle};{nom};A-{sigle}", f"Arrêté;{arrete}", f"Résultat en formation;{dec(resultat)}",
+                            "Résultats antérieurs non clôturés;0.00", "Compte;PCCI;Libellé;Débit;Crédit;Réseau", *corps,
+                            f"Total;;;{dec(sum(z[3] for z in lignes))};{dec(sum(z[4] for z in lignes))};{len(lignes)}", ""])
+    bolingo = [("57000001", "570", "Caisse", 25_000_000, 0, "N"), ("56000001", "5600", "COOCEC, compte à vue", 10_000_000, 0, "O"),
+               ("33000001", "330", "Épargne des membres", 0, 30_000_000, "N"), ("71000001", "710", "Intérêts sur crédits", 0, 8_000_000, "N"),
+               ("60410001", "6041", "Intérêts payés à la COOCEC", 3_000_000, 0, "O")]
+    bol = fichier("BOL", "COOPEC Bolingo", bolingo, 5_000_000)
+    imp = lambda contenu, q=jour: compta.post(f"{CO}/import", {**q, "contenu": contenu}, **H)
+    assert "faîtière elle-même" in refus(imp(x["contenu"]))
+    assert "pas une balance pour consolidation" in refus(imp("Compte;Débit;Crédit\r\n570;1;1\r\n" * 4))
+    assert "ligne des totaux manque" in refus(imp("\r\n".join(bol.split("\r\n")[:-2])))                              # fichier coupé
+    assert "totaux ne correspondent pas" in refus(imp(bol.replace("250000.00", "260000.00", 1)))                     # ligne modifiée
+    assert "n'est pas équilibrée" in refus(imp(fichier("BOL", "COOPEC Bolingo", bolingo, 4_000_000)))
+    assert "pas à la date demandée" in refus(imp(fichier("BOL", "COOPEC Bolingo", bolingo, 5_000_000, "2026-10-31")))
+    assert "aucun compte du PCCI" in refus(imp(fichier("BOL", "COOPEC Bolingo", [("49000001", "4900", "x", 1, 0, "N"), ("57000001", "570", "Caisse", 0, 1, "N")])))
+    assert "en double" in refus(imp(fichier("BOL", "COOPEC Bolingo", [("57000001", "570", "Caisse", 1, 0, "N"), ("57000001", "570", "Caisse", 0, 1, "N")])))
+    assert "montant illisible" in refus(imp(bol.replace("250000.00", "=1+1", 1)))
+    r = imp(bol)
+    assert r.status_code == 200, r.content
+    r = r.json()
+    assert [(b["sigle"], b["propre"], b["reseauDebit"], b["reseauCredit"]) for b in r["balances"]] == [("CTJ", True, 0, 13_000_000), ("BOL", False, 13_000_000, 0)]
+    assert (r["balances"][1]["debit"], r["balances"][1]["credit"], r["balances"][1]["agrement"], r["balances"][1]["importePar"]) == (38_000_000, 38_000_000, "A-BOL", "Patrick Lumbala")
+    assert [(z["compte"], z["debit"], z["credit"]) for z in r["retire"]] == [("5600", 10_000_000, 0), ("5622", 0, 10_000_000), ("6041", 3_000_000, 0), ("7040", 0, 3_000_000)]
+    assert (r["ecart"], r["accord"]) == ({"bilan": 0, "gestion": 0}, True)
+    # 5. Les états consolidés : la somme des deux institutions, moins ce qu'elles se doivent et se facturent
+    q = {"du": "2026-01-01", "au": "2026-11-05", "exercice": 2026}
+    seul, res = compta.get(f"{EF}/bilan", q, **H).json(), compta.get(f"{EF}/resultat", {**q, "sansVidage": True}, **H).json()
+    b, cr = r["etats"]["bilan"], r["etats"]["resultat"]
+    assert b["equilibre"] and b["totalActif"]["n"] == b["totalPassif"]["n"] == seul["totalActif"]["n"] + 25_000_000          # la caisse de l'affiliée ; son dépôt à la faîtière est retiré
+    poste = lambda etat, cote, lib: next(z for z in etat[cote] if z["libelle"].startswith(lib))
+    assert poste(b, "passif", "Dettes envers la clientèle")["n"] == poste(seul, "passif", "Dettes envers la clientèle")["n"] + 30_000_000
+    assert poste(b, "passif", "Banques, organe faîtier")["n"] == poste(seul, "passif", "Banques, organe faîtier")["n"] - 10_000_000   # le compte de l'affiliée chez la faîtière
+    comptes = [c["compte"] for cote in ("actif", "passif") for z in b[cote] for c in z["comptes"]]
+    assert "5600" not in comptes and "5622" not in comptes and "570" in comptes                                              # au niveau des comptes du PCCI
+    ligne = lambda etat, lib: next(z for z in etat["lignes"] if z["libelle"].startswith(lib))
+    assert ligne(cr, "Résultat net")["n"] == ligne(res, "Résultat net")["n"] + 5_000_000
+    assert ligne(cr, "Produits sur Opérations avec l'organe")["n"] == ligne(res, "Produits sur Opérations avec l'organe")["n"] - 3_000_000
+    assert ligne(cr, "Charges sur Opérations avec l'organe")["n"] == ligne(res, "Charges sur Opérations avec l'organe")["n"]   # la charge de l'affiliée est retirée
+    assert ligne(cr, "Produits sur Opérations avec la clientèle")["n"] == ligne(res, "Produits sur Opérations avec la clientèle")["n"] + 8_000_000
+    # une nouvelle balance de la même affiliée remplace la précédente
+    assert len(imp(bol).json()["balances"]) == 2
+    # 6. Des comptes réciproques qui ne s'accordent pas : l'écart est montré, les états consolidés ne s'établissent pas
+    kin = fichier("KIN", "COOPEC Kintambo", [("57000001", "570", "Caisse", 4_000_000, 0, "N"), ("56000001", "5600", "COOCEC, compte à vue", 4_000_000, 0, "O"),
+                                              ("33000001", "330", "Épargne des membres", 0, 8_000_000, "N")])
+    r = imp(kin).json()
+    assert (len(r["balances"]), r["ecart"], r["accord"], r["etats"]) == (3, {"bilan": 4_000_000, "gestion": 0}, False, None)
+    kid = next(z["id"] for z in r["balances"] if z["sigle"] == "KIN")
+    assert "introuvable" in refus(compta.post(f"{CO}/0/retrait", jour, **H))
+    r = compta.post(f"{CO}/{kid}/retrait", jour, **H).json()
+    assert (len(r["balances"]), r["accord"], r["etats"] is not None) == (2, True, True)
+    # la faîtière seule, sans balance d'affiliée : rien à consolider
+    r = compta.get(CO, {"au": "2026-10-31"}, **H).json()
+    assert (len(r["balances"]), r["etats"]) == (1, None)
+    # 7. L'auditeur, en lecture seule, lit la consolidation ; importer et retirer demandent le droit des Clôtures (registres T209 et T235)
+    executer("update utilisateur_profil set profil_id = (select id from profil where code = 'auditeur') where utilisateur_id = (select id from utilisateur where login = 'bkasongo')")
+    audit = Client(); connecter(audit, "bkasongo")
+    r = audit.get(CO, jour, **H)
+    assert r.status_code == 200 and r.json()["accord"] is True and r.json()["etats"] is not None
+    assert audit.get(f"{CO}/export", jour, **H).status_code == 200
+    assert (audit.post(f"{CO}/import", {**jour, "contenu": bol}, **H).status_code, audit.post(f"{CO}/{kid}/retrait", jour, **H).status_code) == (403, 403)

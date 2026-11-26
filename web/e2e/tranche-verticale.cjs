@@ -1564,6 +1564,47 @@ const OUT = process.argv[2];
   await p.getByLabel('Date de sortie *').fill('05112026'); await p.getByLabel('Prix de cession *').fill('800000'); await p.getByLabel('Compte qui reçoit le prix *').fill('57000000');
   await p.getByLabel('Autorisation BCC (au-delà de 10 % des fonds propres de base)').fill('BCC/DSIF/2026/051');
   await p.getByText('Plus-value (774)').waitFor(); await etape('32f-cession'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  // Consolidation d'un réseau par sa faîtière (loi 002/2002, art. 65 ; Instr. BCC 0011, art. 47 ; PCCI § 10.3 ; registre T235)
+  // 1. Plan des comptes : un compte de l'institution porte « Appartenance au réseau »
+  await login('Patrick Lumbala'); await aller('/comptabilite/s102');
+  await p.getByLabel('Parent *').fill('5622'); await p.getByRole('textbox', { name: 'Libellé du parent' }).waitFor();
+  await p.locator('#cp-suite').fill('0001'); await p.getByLabel('Libellé *').fill('COOPEC Bolingo, compte à vue'); await p.getByLabel('Appartenance au réseau').check();
+  await etape('33a-compte-reseau'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByLabel('Rechercher un compte').fill('56220001'); await p.getByRole('button', { name: '56220001 COOPEC Bolingo, compte à vue' }).click();
+  if (!(await p.getByLabel('Appartenance au réseau').isChecked())) throw new Error('T235 : la case « Appartenance au réseau » ne se garde pas');
+  // 2. L'affiliée : sa faîtière déclarée dans Info société ouvre l'onglet « Réseau », d'où elle exporte sa balance
+  if (await (async () => { await aller('/comptabilite/s122'); await p.getByRole('tab', { name: 'Bilan', exact: true }).waitFor(); return p.getByRole('tab', { name: 'Réseau' }).count(); })()) throw new Error('T235 : onglet « Réseau » sans réseau');
+  await login('J.-P. Mukendi'); await aller('/parametrage/s32'); await p.getByLabel("Faîtière d'affiliation :").fill('COOCEC Kinshasa');
+  await p.getByRole('tabpanel', { name: 'Information Société' }).getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await login('Patrick Lumbala'); await aller('/comptabilite/s122'); await p.getByRole('tab', { name: 'Réseau' }).click(); await p.getByRole('heading', { name: 'Réseau' }).waitFor();
+  await p.getByLabel("Date d'arrêté :").fill('05112026'); await p.getByLabel("Date d'arrêté :").press('Tab'); await etape('33b-reseau-affiliee');
+  const [tele] = await Promise.all([p.waitForEvent('download'), p.getByRole('button', { name: 'Exporter la balance' }).click()]);
+  const propre = require('fs').readFileSync(await tele.path(), 'utf8').split('\r\n');
+  if (!/^balance-consolidation-.+-2026-11-05\.csv$/.test(tele.suggestedFilename()) || propre[0] !== 'Exofina;balance pour consolidation;1' || !propre.at(-2).startsWith('Total;;;'))
+    throw new Error('T235 : fichier de balance inattendu : ' + tele.suggestedFilename());
+  // 3. La faîtière : elle importe la balance d'une affiliée ; les comptes réciproques s'accordent, le bilan et le compte de résultat consolidés s'établissent
+  await login('J.-P. Mukendi'); await aller('/parametrage/s32'); await p.getByLabel('Type base : *').selectOption('faitiere');
+  await p.getByRole('tabpanel', { name: 'Information Société' }).getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await login('Patrick Lumbala'); await aller('/comptabilite/s122'); await p.getByRole('tab', { name: 'Réseau' }).click(); await p.getByRole('heading', { name: 'Réseau' }).waitFor();
+  await p.getByLabel("Date d'arrêté :").fill('05112026'); await p.getByLabel("Date d'arrêté :").press('Tab');
+  await p.getByRole('button', { name: 'Rechercher', exact: true }).click();
+  const reunies = p.getByRole('table', { name: /^Balances réunies au 05\/11\/2026/ }); await reunies.getByRole('row').nth(1).waitFor();
+  const balance = (sigle, nom, resultat, lignes, totaux) => Buffer.from(['Exofina;balance pour consolidation;1', `Institution;${sigle};${nom};A-${sigle}`, 'Arrêté;2026-11-05', `Résultat en formation;${resultat}`,
+    'Résultats antérieurs non clôturés;0.00', 'Compte;PCCI;Libellé;Débit;Crédit;Réseau', ...lignes, `Total;;;${totaux};${lignes.length}`, ''].join('\r\n'), 'utf8');
+  const importer = async (sigle, tampon) => { await p.locator('input[type=file]').setInputFiles({ name: `balance-consolidation-${sigle}-2026-11-05.csv`, mimeType: 'text/csv', buffer: tampon });
+    await p.getByRole('button', { name: 'Importer' }).click(); await oui(); await reunies.getByRole('cell', { name: sigle, exact: true }).waitFor(); };
+  await importer('BOL', balance('BOL', 'COOPEC Bolingo', '50000.00', ['57000001;570;Caisse;350000.00;0.00;N', '33000001;330;Épargne des membres;0.00;300000.00;N', '71000001;7100;Intérêts sur crédits;0.00;50000.00;N'], '350000.00;350000.00'));
+  await p.getByText(/^BILAN CONSOLIDÉ au/).waitFor(); await p.getByRole('table', { name: 'ACTIF' }).getByRole('rowheader', { name: 'TOTAL ACTIF' }).waitFor();
+  await p.getByRole('table', { name: /^COMPTE DE RESULTAT CONSOLIDÉ/ }).getByRole('rowheader', { name: "Résultat net de l'exercice" }).waitFor(); await etape('33c-etats-consolides');
+  // 4. Une affiliée dont le compte chez la faîtière n'a pas son pendant : l'écart est montré, les états consolidés ne s'établissent plus ; la balance se retire
+  await importer('KIN', balance('KIN', 'COOPEC Kintambo', '0.00', ['57000001;570;Caisse;40000.00;0.00;N', '56000001;5600;COOCEC, compte à vue;40000.00;0.00;O', '33000001;330;Épargne des membres;0.00;80000.00;N'], '80000.00;80000.00'));
+  await p.getByText(/^Les comptes réciproques ne s'accordent pas/).waitFor(); await p.getByRole('rowheader', { name: 'Écart au bilan' }).waitFor();
+  if (await p.getByText(/^BILAN CONSOLIDÉ au/).count()) throw new Error('T235 : états consolidés malgré un écart de réciprocité');
+  await etape('33d-ecart-reciprocite');
+  await p.getByRole('button', { name: 'Retirer la balance de KIN' }).click(); await oui(); await p.getByText(/^BILAN CONSOLIDÉ au/).waitFor();
+  // l'institution redevient la COOPEC du parcours
+  await login('J.-P. Mukendi'); await aller('/parametrage/s32'); await p.getByLabel('Type base : *').selectOption('coopec');
+  await p.getByRole('tabpanel', { name: 'Information Société' }).getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   // Langue des libellés (manuel p. 14, article XX ; registre T118) : en anglais, les menus, l'écran, les données et l'aide ; puis retour au français
   await login('Patrick Lumbala'); await aller('/comptabilite/s115'); await p.getByRole('heading', { name: 'Journal comptables' }).waitFor();
   await p.locator('button[aria-controls="menu-langue"]').click(); await p.locator('#menu-langue').getByRole('button', { name: 'English' }).click();

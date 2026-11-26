@@ -3695,6 +3695,88 @@ describe("journée de guichet", () => {
     await connecter("engalula");
     await expect(api.normes.etat({ date: j })).rejects.toThrow();
   });
+  it("consolidation du réseau par la faîtière (loi 002/2002, art. 65 ; Instr. BCC 0011, art. 47 ; PCCI § 10.3 ; registre T235)", async () => {
+    const { j, s } = await journeeOuverte();
+    const co = api.consolidation, jour = { au: "2026-11-05" };
+    // 1. Sans faîtière déclarée, pas d'onglet « Réseau » ; une affiliée exporte sa balance, elle ne consolide pas
+    await connecter("plumbala");
+    expect((await api.etatsFinanciers.contexte()).reseau).toBe(false);
+    await connecter("jpmukendi");
+    await api.societe.enregistrer({ ...(await api.societe.lire()).institution, faitiereAffiliation: "COOCEC Kinshasa" });
+    await connecter("plumbala");
+    expect((await api.etatsFinanciers.contexte()).reseau).toBe(true);
+    expect(await co.etat(jour)).toEqual({ faitiere: false, sigle: "CTJ", affiliation: "COOCEC Kinshasa" });
+    await expect(co.importer({ ...jour, contenu: "x" })).rejects.toThrow("faîtière du réseau");
+    // 2. L'attribut « Appartenance au réseau » (PCCI § 10.3) sur les comptes de l'institution qui tiennent ces opérations
+    let plan = await api.comptes.enregistrer({ parent: "5622", suite: "0001", libelle: "COOPEC Bolingo, compte à vue", ouvert: true, saisissable: true, reseau: true });
+    plan = await api.comptes.enregistrer({ parent: "704", suite: "00001", libelle: "Intérêts reçus de la COOPEC Bolingo", ouvert: true, saisissable: true, reseau: true });
+    const compte = (n: string) => plan.comptes.find((c) => c.numero === n)!;
+    expect([compte("56220001").reseau, compte("70400001").reseau, !!compte("5622").reseau]).toEqual([true, true, false]);
+    const od = (await api.operationsCompta.lire()).journaux.find((x) => x.code === "OD")!.id;
+    let e = null;
+    for (const [n, sens, m] of [["46100000", "debit", 13_000_000], ["56220001", "credit", 10_000_000], ["70400001", "credit", 3_000_000]] as const)
+      e = await api.operationsCompta.ecritureAjouter({ journalId: od, periode: "11/2026", jour: 5, libelle: "Dépôt et intérêts, COOPEC Bolingo", compte: n, [sens]: m });
+    await viserValider(e!.id!);
+    await comptabiliserJournee(j.id, s.id);
+    // 3. Le fichier de balance : en-tête, une ligne par compte, la colonne Réseau, les totaux
+    await expect(co.exporter({})).rejects.toThrow("Date d'arrêté");
+    const x = await co.exporter(jour), lg = x.contenu.split("\r\n");
+    expect([x.nom, lg.slice(0, 3)]).toEqual(["balance-consolidation-CTJ-2026-11-05.csv", ["Exofina;balance pour consolidation;1", "Institution;CTJ;COOPEC Tujenge;", "Arrêté;2026-11-05"]]);
+    expect([lg[5], lg.at(-2)!.startsWith("Total;;;"), lg.at(-1)]).toEqual(["Compte;PCCI;Libellé;Débit;Crédit;Réseau", true, ""]);
+    expect(lg).toContain("56220001;5622;COOPEC Bolingo, compte à vue;0.00;100000.00;O");
+    expect(lg).toContain("70400001;7040;Intérêts reçus de la COOPEC Bolingo;0.00;30000.00;O");
+    expect(lg.slice(6, -2).filter((l) => !l.startsWith("56220001") && !l.startsWith("70400001")).every((l) => l.endsWith(";N"))).toBe(true);
+    // 4. La faîtière : sa balance se lit dans ses livres ; elle importe celle de chaque affiliée
+    _etat().institution.profil = "faitiere";
+    const dec = (v: number) => `${Math.floor(v / 100)}.${String(v % 100).padStart(2, "0")}`;
+    type L = [string, string, string, number, number, string];
+    const fichier = (sigle: string, nom: string, lignes: L[], resultat = 0, arrete = "2026-11-05") => ["Exofina;balance pour consolidation;1", `Institution;${sigle};${nom};A-${sigle}`, `Arrêté;${arrete}`,
+      `Résultat en formation;${dec(resultat)}`, "Résultats antérieurs non clôturés;0.00", "Compte;PCCI;Libellé;Débit;Crédit;Réseau", ...lignes.map(([c, p, l, d, k, r]) => `${c};${p};${l};${dec(d)};${dec(k)};${r}`),
+      `Total;;;${dec(lignes.reduce((t, z) => t + z[3], 0))};${dec(lignes.reduce((t, z) => t + z[4], 0))};${lignes.length}`, ""].join("\r\n");
+    const bolingo: L[] = [["57000001", "570", "Caisse", 25_000_000, 0, "N"], ["56000001", "5600", "COOCEC, compte à vue", 10_000_000, 0, "O"], ["33000001", "330", "Épargne des membres", 0, 30_000_000, "N"],
+      ["71000001", "710", "Intérêts sur crédits", 0, 8_000_000, "N"], ["60410001", "6041", "Intérêts payés à la COOCEC", 3_000_000, 0, "O"]];
+    const bol = fichier("BOL", "COOPEC Bolingo", bolingo, 5_000_000), imp = (contenu: string, q = jour) => co.importer({ ...q, contenu });
+    await expect(imp(x.contenu)).rejects.toThrow("faîtière elle-même");
+    await expect(imp("Compte;Débit;Crédit\r\n570;1;1\r\n".repeat(4))).rejects.toThrow("pas une balance pour consolidation");
+    await expect(imp(bol.split("\r\n").slice(0, -2).join("\r\n"))).rejects.toThrow("ligne des totaux manque");                     // fichier coupé
+    await expect(imp(bol.replace("250000.00", "260000.00"))).rejects.toThrow("totaux ne correspondent pas");                       // ligne modifiée
+    await expect(imp(fichier("BOL", "COOPEC Bolingo", bolingo, 4_000_000))).rejects.toThrow("n'est pas équilibrée");
+    await expect(imp(fichier("BOL", "COOPEC Bolingo", bolingo, 5_000_000, "2026-10-31"))).rejects.toThrow("pas à la date demandée");
+    await expect(imp(fichier("BOL", "COOPEC Bolingo", [["49000001", "4900", "x", 1, 0, "N"], ["57000001", "570", "Caisse", 0, 1, "N"]]))).rejects.toThrow("aucun compte du PCCI");
+    await expect(imp(fichier("BOL", "COOPEC Bolingo", [["57000001", "570", "Caisse", 1, 0, "N"], ["57000001", "570", "Caisse", 0, 1, "N"]]))).rejects.toThrow("en double");
+    await expect(imp(bol.replace("250000.00", "=1+1"))).rejects.toThrow("montant illisible");
+    let r = await imp(bol);
+    expect(r.balances!.map((b) => [b.sigle, b.propre, b.reseauDebit, b.reseauCredit])).toEqual([["CTJ", true, 0, 13_000_000], ["BOL", false, 13_000_000, 0]]);
+    expect([r.balances![1]!.debit, r.balances![1]!.credit, r.balances![1]!.agrement, r.balances![1]!.importePar]).toEqual([38_000_000, 38_000_000, "A-BOL", "Patrick Lumbala"]);
+    expect(r.retire!.map((z) => [z.compte, z.debit, z.credit])).toEqual([["5600", 10_000_000, 0], ["5622", 0, 10_000_000], ["6041", 3_000_000, 0], ["7040", 0, 3_000_000]]);
+    expect([r.ecart, r.accord]).toEqual([{ bilan: 0, gestion: 0 }, true]);
+    // 5. Les états consolidés : la somme des deux institutions, moins ce qu'elles se doivent et se facturent
+    const q = { du: "2026-01-01", au: "2026-11-05", exercice: 2026 };
+    const seul = await api.etatsFinanciers.bilan(q), res = await api.etatsFinanciers.resultat({ ...q, sansVidage: true }), b = r.etats!.bilan, cr = r.etats!.resultat;
+    expect([b.equilibre, b.totalActif.n, b.totalPassif.n]).toEqual([true, seul.totalActif.n + 25_000_000, seul.totalActif.n + 25_000_000]);
+    const poste = (l: { libelle: string; n: number }[], lib: string) => l.find((z) => z.libelle.startsWith(lib))!.n;
+    expect(poste(b.passif, "Dettes envers la clientèle")).toBe(poste(seul.passif, "Dettes envers la clientèle") + 30_000_000);
+    expect(poste(b.passif, "Banques, organe faîtier")).toBe(poste(seul.passif, "Banques, organe faîtier") - 10_000_000);
+    const comptes = [...b.actif, ...b.passif].flatMap((z) => z.comptes.map((c) => c.compte));
+    expect([comptes.includes("5600"), comptes.includes("5622"), comptes.includes("570")]).toEqual([false, false, true]);          // au niveau des comptes du PCCI
+    expect(poste(cr.lignes, "Résultat net")).toBe(poste(res.lignes, "Résultat net") + 5_000_000);
+    expect(poste(cr.lignes, "Produits sur Opérations avec l'organe")).toBe(poste(res.lignes, "Produits sur Opérations avec l'organe") - 3_000_000);
+    expect(poste(cr.lignes, "Charges sur Opérations avec l'organe")).toBe(poste(res.lignes, "Charges sur Opérations avec l'organe"));
+    expect(poste(cr.lignes, "Produits sur Opérations avec la clientèle")).toBe(poste(res.lignes, "Produits sur Opérations avec la clientèle") + 8_000_000);
+    expect((await imp(bol)).balances!.length).toBe(2);                                                                        // la même affiliée : remplacée
+    // 6. Des comptes réciproques qui ne s'accordent pas : l'écart est montré, les états consolidés ne s'établissent pas
+    r = await imp(fichier("KIN", "COOPEC Kintambo", [["57000001", "570", "Caisse", 4_000_000, 0, "N"], ["56000001", "5600", "COOCEC, compte à vue", 4_000_000, 0, "O"], ["33000001", "330", "Épargne des membres", 0, 8_000_000, "N"]]));
+    expect([r.balances!.length, r.ecart, r.accord, r.etats]).toEqual([3, { bilan: 4_000_000, gestion: 0 }, false, null]);
+    await expect(co.retirer(0, jour)).rejects.toThrow("introuvable");
+    r = await co.retirer(r.balances!.find((z) => z.sigle === "KIN")!.id!, jour);
+    expect([r.balances!.length, r.accord, r.etats !== null]).toEqual([2, true, true]);
+    r = await co.etat({ au: "2026-10-31" });
+    expect([r.balances!.length, r.etats]).toEqual([1, null]);
+    // Sans le droit des États financiers, ni lecture ni import
+    await connecter("engalula");
+    await expect(co.importer({ ...jour, contenu: bol })).rejects.toThrow("Droit manquant");
+  });
+
   it("états financiers (S122, p. 140 et 141 ; PCCI chap. 14) et indicateurs financiers (S123 ; Instr. BCC 004)", async () => {
     const { j, s } = await journeeOuverte();
     await connecter("jpmukendi");

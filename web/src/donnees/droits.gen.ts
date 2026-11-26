@@ -208,6 +208,12 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "connexions.deconnecter": [
 "S07"
 ],
+"consolidation.importer": [
+"S127"
+],
+"consolidation.retirer": [
+"S127"
+],
 "controlesCompta.annulerReglement": [
 "S142"
 ],
@@ -1036,6 +1042,12 @@ export const DROITS_LECTURES: Record<string, string[]> = {
 ],
 "connexions.lire": [
 "S07"
+],
+"consolidation.etat": [
+"S122"
+],
+"consolidation.exporter": [
+"S122"
 ],
 "controlesCompta.annulations": [
 "S118"

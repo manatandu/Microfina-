@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
-import { fr, texteEdition, aujourdhui } from "../lib/dates";
+import { fr, frInstant, texteEdition, aujourdhui } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { liasseXml, telecharger } from "../lib/liasse";
 import NormesPrudentielles from "./NormesPrudentielles";
@@ -21,6 +21,7 @@ type HorsBilan = Awaited<ReturnType<typeof api.etatsFinanciers.horsBilan>>;
 type Resultat = Awaited<ReturnType<typeof api.etatsFinanciers.resultat>>;
 type Annexe = Awaited<ReturnType<typeof api.etatsFinanciers.annexe>>;
 type Indicateurs = Awaited<ReturnType<typeof api.etatsFinanciers.indicateurs>>;
+type Conso = Awaited<ReturnType<typeof api.consolidation.etat>>;
 const PAGES = [["bilan", "Bilan"], ["hors-bilan", "Hors bilan"], ["resultat", "Résultat"], ["annexe", "État annexe"]] as const;
 const PCCI_14 = "PCCI, chap. 14 « Comptes annuels » : 14.1 bilan (actif, 8 postes ; passif, 14 postes) et hors-bilan (00, 01, 04, 06), 14.2 compte de résultat, 14.3 tableau de flux de trésorerie ; colonnes N et N-1";
 const REGLES = "Registre S122 et T13 : écritures définitives seulement, en CDF ; comptes rattachés aux postes d'après le cadre des comptes (PCCI, chap. 9) ; « Sans les écritures de clôture » les écarte";
@@ -278,17 +279,116 @@ function EditionAnnexes({ ctx, jour }: { ctx: Ctx; jour: string }) {
   );
 }
 
+/** Onglet « Réseau » (demande du porteur du 26/11/2026, registre T235). Une institution affiliée exporte sa balance pour sa faîtière. La faîtière importe
+ *  les balances des affiliées, voit les comptes du réseau retirés et les écarts de réciprocité, puis le bilan et le compte de résultat consolidés
+ *  (loi 002/2002, art. 65 ; Instr. BCC 0011, art. 47 ; PCCI § 10.3). */
+function Reseau({ jour }: { jour: string }) {
+  const [au, setAu] = useState(jour);
+  const [r, setR] = useState<Conso | null>(null);
+  const [fichier, setFichier] = useState<{ nom: string; contenu: string } | null>(null);
+  const [boite, setBoite] = useState<Boite | null>(null);
+  // Importer ou retirer une balance demande le droit des Clôtures ; avec le seul droit des États financiers, la consolidation se lit (registres T209 et T235)
+  const { donnees: moi } = useDonnees(async () => ({ ...(await api.consolidation.etat()), ecrit: ((await api.session.courante()) as { droits?: string[] } | null)?.droits?.includes("S127") ?? false }));
+  if (!moi) return <Chargement />;
+  const erreur = (x: unknown) => setBoite({ type: "erreur", message: message(x) });
+  const fait = (x: Conso) => { setR(x); setBoite({ type: "succes", message: "Enregistré avec succès !" }); };
+  async function rechercher() { try { setR(await api.consolidation.etat({ au })); } catch (x) { erreur(x); } }
+  async function exporterBalance() {
+    try {
+      const f = await api.consolidation.exporter({ au }), a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([f.contenu], { type: "text/csv;charset=utf-8" })); a.download = f.nom; a.click(); URL.revokeObjectURL(a.href);
+    } catch (x) { erreur(x); }
+  }
+  const lire = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) f.text().then((t) => setFichier({ nom: f.name, contenu: t }), erreur); };
+  const importer = () => fichier && setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+    try { const x = await api.consolidation.importer({ au, contenu: fichier.contenu }); setFichier(null); fait(x); } catch (x) { erreur(x); } } });
+  const retirer = (id: number) => setBoite({ type: "confirmation", message: "Voulez-vous vraiment supprimer ?", oui: async () => {
+    try { fait(await api.consolidation.retirer(id, { au })); } catch (x) { erreur(x); } } });
+  const e = r?.etats;
+  const table = (titre: string, postes: NonNullable<Conso["etats"]>["bilan"]["actif"], total: { n: number; n1: number }) => <table className="grille"><caption>{titre}</caption>
+    <thead><tr><th scope="col">N°</th><th scope="col">{titre}</th><th scope="col" className="num">N</th><th scope="col" className="num">N - 1</th></tr></thead>
+    <tbody>{postes.flatMap((x) => [<tr key={x.code}><td className="chiffres">{x.code}.</td><th scope="row">{x.libelle}</th><td className="num chiffres">{n(x.n)}</td><td className="num chiffres">{n(x.n1)}</td></tr>,
+      ...lignesDetail(x.comptes, x.code)])}</tbody>
+    <tfoot><tr><td></td><th scope="row">TOTAL {titre}</th><td className="num chiffres"><strong>{n(total.n)}</strong></td><td className="num chiffres"><strong>{n(total.n1)}</strong></td></tr></tfoot></table>;
+  const exporter = () => e && exporterExcel("États consolidés", ["État", "N°", "Poste", "Compte", "N", "N - 1"], [
+    ...(["actif", "passif"] as const).flatMap((c) => e.bilan[c].flatMap((x) => [[c === "actif" ? "BILAN, ACTIF" : "BILAN, PASSIF", x.code, x.libelle, "", x.n / 100, x.n1 / 100],
+      ...x.comptes.map((k) => ["", "", k.intitule, k.compte, k.n / 100, k.n1 / 100])])),
+    ...e.resultat.lignes.flatMap((x) => [["COMPTE DE RESULTAT", x.signe, x.libelle, "", x.n / 100, x.n1 / 100], ...x.comptes.map((k) => ["", "", k.intitule, k.compte, k.n / 100, k.n1 / 100])])]);
+  return (
+    <section className="bloc pile" aria-label="Réseau">
+      <h2>Réseau</h2>
+      <Recherche className="pile" label="Critères" envoyer={moi.faitiere ? rechercher : exporterBalance}>
+        <fieldset className="cadre-champs formulaire"><legend className="sr-only">Période</legend>
+          <ChampDate libelle="Date d'arrêté :" valeur={au} onChange={(v) => { setAu(v); setR(null); }} />
+          {moi.affiliation && <Champ libelle="Faîtière :">{(p) => <Lecture {...p} value={moi.affiliation} />}</Champ>}
+        </fieldset>
+        <div className="actions-onglets">
+          {moi.faitiere && <button className="bouton" type="submit">Rechercher</button>}
+          {moi.faitiere ? <button className="bouton secondaire" type="button" onClick={exporterBalance}>Exporter la balance</button> : <button className="bouton" type="submit">Exporter la balance</button>}
+          {moi.faitiere && <button className="bouton secondaire" type="button" disabled={!e} onClick={exporter}>Exporter</button>}
+        </div>
+      </Recherche>
+      {r?.balances && r.retire && r.ecart && <div className="pile">
+        {moi.ecrit && <fieldset className="pile cadre-champs"><legend>Balance d'une affiliée</legend>
+          <div className="ligne-champ">
+            <label className="bouton secondaire">Choisir un fichier<input className="sr-only" type="file" accept=".csv,text/csv" aria-label="Choisir : balance d'une affiliée" onChange={lire} /></label>
+            <span>{fichier?.nom ?? ""}</span>
+            <button className="bouton" type="button" disabled={!fichier} onClick={importer}>Importer</button>
+          </div>
+        </fieldset>}
+        <div className="defile-x"><table className="grille"><caption>Balances réunies au {fr(r.au ?? au)}, en CDF</caption>
+          <thead><tr><th scope="col">Sigle</th><th scope="col">Dénomination</th><th scope="col">N° Agrément</th><th scope="col" className="num">Débit</th><th scope="col" className="num">Crédit</th>
+            <th scope="col" className="num">Réseau, débit</th><th scope="col" className="num">Réseau, crédit</th><th scope="col">Importée le</th><th scope="col">Importée par</th>
+            <th scope="col"><span className="sr-only">Retirer</span></th></tr></thead>
+          <tbody>{r.balances.map((b) => <tr key={b.sigle}><td>{b.sigle}</td><td>{b.denomination}</td><td>{b.agrement}</td><td className="num chiffres">{n(b.debit)}</td><td className="num chiffres">{n(b.credit)}</td>
+            <td className="num chiffres">{n(b.reseauDebit)}</td><td className="num chiffres">{n(b.reseauCredit)}</td><td className="chiffres">{b.importeLe ? frInstant(b.importeLe) : ""}</td><td>{b.importePar}</td>
+            <td>{b.id !== null && moi.ecrit && <button className="bouton secondaire petit" type="button" aria-label={`Retirer la balance de ${b.sigle}`} onClick={() => retirer(b.id!)}>Retirer</button>}</td></tr>)}</tbody>
+        </table></div>
+        <div className="defile-x"><table className="grille"><caption>Comptes du réseau retirés, en CDF</caption>
+          <thead><tr><th scope="col">Compte</th><th scope="col">Intitulé</th><th scope="col" className="num">Débit</th><th scope="col" className="num">Crédit</th></tr></thead>
+          <tbody>{r.retire.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
+            {r.retire.map((x) => <tr key={x.compte}><td className="code">{x.compte}</td><td>{x.intitule}</td><td className="num chiffres">{n(x.debit)}</td><td className="num chiffres">{n(x.credit)}</td></tr>)}</tbody>
+          <tfoot><tr><th scope="row" colSpan={2}>Écart au bilan</th><td className="num chiffres" colSpan={2}><strong>{n(r.ecart.bilan)}</strong></td></tr>
+            <tr><th scope="row" colSpan={2}>Écart en gestion</th><td className="num chiffres" colSpan={2}><strong>{n(r.ecart.gestion)}</strong></td></tr></tfoot>
+        </table></div>
+        {!r.accord && <Attention>Les comptes réciproques ne s'accordent pas : les états consolidés s'établissent une fois l'écart levé.</Attention>}
+        {e && <>
+          <p>BILAN CONSOLIDÉ au <strong className="chiffres">{fr(e.bilan.au)}</strong> (N), comparé au <span className="chiffres">{fr(e.bilan.precedent)}</span> (N - 1), en CDF</p>
+          <div className="defile-x">{table("ACTIF", e.bilan.actif, e.bilan.totalActif)}</div>
+          <div className="defile-x">{table("PASSIF", e.bilan.passif, e.bilan.totalPassif)}</div>
+          <div className="defile-x"><table className="grille">
+            <caption>COMPTE DE RESULTAT CONSOLIDÉ du {fr(e.resultat.du)} au {fr(e.resultat.au)}, en CDF</caption>
+            <thead><tr><th scope="col"><span className="sr-only">Signe</span></th><th scope="col">RUBRIQUES</th><th scope="col" className="num">N</th><th scope="col" className="num">N - 1</th></tr></thead>
+            <tbody>{e.resultat.lignes.flatMap((x, i) => [<tr key={i}><td className="chiffres">{x.signe}</td>{x.solde ? <th scope="row">{x.libelle}</th> : <td>{x.libelle}</td>}
+              <td className="num chiffres">{x.solde ? <strong>{n(x.n)}</strong> : n(x.n)}</td><td className="num chiffres">{x.solde ? <strong>{n(x.n1)}</strong> : n(x.n1)}</td></tr>,
+              ...lignesDetail(x.comptes, `r${i}`)])}</tbody>
+          </table></div>
+        </>}
+      </div>}
+      <Textes sources={["Loi 002/2002, art. 65 : la COOCEC ou la Fédération élabore le rapport annuel sur une base consolidée pour le réseau ; transmission à la Banque Centrale dans les six mois de la clôture",
+        "Instr. BCC 0011, art. 47 : relevé de l'actif et du passif et celui des résultats de la faîtière et des assujettis, présentés sur une base consolidée suivant les principes comptables généralement reconnus",
+        "PCCI § 10.3 « Appartenance au réseau » : opérations faites avec les affiliées du même réseau et avec les fonds de garantie du réseau ; l'attribut se coche sur le compte (Plan des comptes)",
+        "Registre T235 : les balances s'additionnent compte du PCCI par compte du PCCI, puis les comptes marqués « Réseau » sont retirés ; aucun texte lu ne fixe d'autre retraitement ; le hors bilan n'est pas consolidé",
+        PCCI_14]} />
+      <Dialogue boite={boite} fermer={() => setBoite(null)} />
+    </section>
+  );
+}
+
 export function EtatsFinanciers() {
   const [params, setParams] = useSearchParams();
-  const page = PAGES.find(([k]) => k === params.get("page"))?.[0] ?? "bilan";
   const cadre = useCadre();
   if (!cadre) return <Chargement />;
+  // L'onglet « Réseau » : pour la faîtière, et pour l'institution qui a déclaré sa faîtière (Paramétrage > Info société ; registre T235)
+  const pages: readonly (readonly [string, string])[] = cadre.ctx.reseau ? [...PAGES, ["reseau", "Réseau"]] : PAGES;
+  const page = pages.find(([k]) => k === params.get("page"))?.[0] ?? "bilan";
   const jour = cadre.j?.date ?? aujourdhui();
   return <>
     <ExportLiasse jour={jour} />
-    <div className="onglets" role="tablist" aria-label="Etats financiers">{PAGES.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => setParams(k === "bilan" ? {} : { page: k })}>{l}</button>)}</div>
+    <div className="onglets" role="tablist" aria-label="Etats financiers">{pages.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => setParams(k === "bilan" ? {} : { page: k })}>{l}</button>)}</div>
     {page === "bilan" && <EditionBilan ctx={cadre.ctx} jour={jour} />}{page === "hors-bilan" && <EditionHorsBilan ctx={cadre.ctx} jour={jour} />}
-    {page === "resultat" && <EditionResultat ctx={cadre.ctx} jour={jour} />}{page === "annexe" && <EditionAnnexes ctx={cadre.ctx} jour={jour} />}</>;
+    {page === "resultat" && <EditionResultat ctx={cadre.ctx} jour={jour} />}{page === "annexe" && <EditionAnnexes ctx={cadre.ctx} jour={jour} />}
+    {page === "reseau" && <Reseau jour={jour} />}</>;
 }
 
 /** B13 : une case du rapport d'activités. Texte tel quel ; nombre selon le type de la ligne ou de la colonne (montant en centimes, taux en %, nombre) */

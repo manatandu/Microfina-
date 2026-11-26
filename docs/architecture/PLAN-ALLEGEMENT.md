@@ -484,7 +484,7 @@ Demande du porteur, 26/11/2026, après la question « le logiciel sort-il les do
 
 **12.2 Type de guichet ajouté depuis Guichets.** La fiche d'un guichet reçoit « Ajouter un type », de la même forme que « Ajouter un quartier ». La page de liste des types reste supprimée (point 2.10). Registre T234.
 
-**12.3 Consolidation d'un réseau.** Pour une faîtière (COOCEC, fédération) : les comptes du réseau sur une base consolidée. Textes : loi 002/2002, art. 65 ; Instr. BCC 0011, art. 47 ; Instr. BCC 002, art. 2 ; PCCI § 10.3.
+**12.3 Consolidation d'un réseau.** Pour une faîtière (COOCEC, fédération). Chaque institution garde son installation. Elle coche « Appartenance au réseau » sur les comptes de ses opérations avec le réseau (PCCI § 10.3) et exporte sa balance depuis l'onglet « Réseau » des États financiers. La faîtière importe les balances, le logiciel les additionne compte du PCCI par compte du PCCI et retire les comptes marqués. Les comptes réciproques doivent s'accorder : sinon l'écart est montré, sans états consolidés. Sinon sortent le bilan et le compte de résultat consolidés, aux modèles du PCCI. Aucun texte lu ne donne la méthode : le logiciel ne décide d'aucun retraitement. Textes : loi 002/2002, art. 65 ; Instr. BCC 0011, art. 47 ; PCCI § 10.3 et § 4.3.8. Registre T235.
 
 ## La barre des menus après allègement
 

@@ -103,6 +103,9 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/tiers/\d+/consentements", ["S86", "S88"]),
     (r"/tiers/\d+/frais", ["S40"]),
     (r"/guichet/(depots|retraits)", ["S74"]),
+    # Consolidation du réseau : importer ou retirer une balance revient à qui clôture les comptes ; l'auditeur, en lecture seule, lit la consolidation
+    # avec le droit des États financiers sans pouvoir la changer (registres T209 et T235)
+    (r"/comptabilite/consolidation/(import|\d+/retrait)", ["S127"]),
     (r"/guichet/parts", ["S77"]),
     (r"/guichet/ed-divers", ["S78"]),
     (r"/caisse/transferts/(caisse|banque|agence|envois/\d+/reprise)", ["S81"]),      # agence : fonds vers une autre agence (registre T233)
@@ -298,6 +301,7 @@ LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
     (r"/autres/cloture/.*", ["S127"]),
     (r"/comptabilite/etats-financiers/contexte", ["S122", "S123"]),
     (r"/comptabilite/etats-financiers/[\w-]+", ["S122"]),
+    (r"/comptabilite/consolidation(/export)?", ["S122"]),      # onglet « Réseau » des États financiers (registre T235)
     (r"/comptabilite/indicateurs-financiers", ["S123"]),
     (r"/comptabilite/normes-prudentielles", ["SN01"]),
     (r"/comptabilite/factures/contexte", ["S107", "S108", "S113", "S114"]),

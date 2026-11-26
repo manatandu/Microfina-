@@ -391,6 +391,9 @@ export interface Etat {
   paramAdhesion: ParamAdhesion[];
   modifications: { id: number; tiersId: number; avant: Tiers; apres: Tiers; modifiePar: number; modifieLe: string; validePar?: number; valideLe?: string }[];
   plaintes: Plainte[];   // écart E07
+  // Balances des affiliées importées par la faîtière pour une date d'arrêté (loi 002/2002, art. 65 ; registre T235)
+  consolidationBalances?: { id: number; date: string; sigle: string; denomination: string; agrement: string; resultat: number; anterieurs: number;
+    lignes: { compte: string; pcci: string; libelle: string; debit: number; credit: number; reseau: boolean }[]; importePar: number; importeLe: string }[];
   // Fonds envoyés à une autre agence, en route puis reçus ou repris (PCCI, compte 45 ; registre T233)
   transfertsAgence?: { id: number; origineId: number; destinationId: number; devise: Devise; montant: number; compte: "450" | "451"; statut: "envoye" | "recu" | "annule";
     envoyePar: number; envoyeLe: string; recuPar?: number; recuLe?: string; annuleLe?: string }[];
@@ -545,6 +548,7 @@ export interface OptionsCompte {
   ouvert: boolean; bloque?: boolean; saisissable: boolean; saisieAnalytique: boolean; saisieEcheance: boolean; lettrageAuto: boolean; saisieTiers: boolean;
   immobilisation: boolean; compteTaxe: boolean; compteTaxable: boolean; typeSuivi: string;
   autorisationBcc?: string;   // B19 : autorisation préalable de la BCC pour une opération hors nomenclature du PCCI (Instr. BCC 006, art. 3)
+  reseau?: boolean;   // « Appartenance au réseau » (PCCI § 10.3) : opérations avec la faîtière, les affiliées du même réseau, les fonds de garantie du réseau (T235)
 }
 export type CompteInstitution = OptionsCompte & { numero: string; libelle: string; classe: number; nature?: string };   // nature : actif, passif, charge, produit, hors bilan
 

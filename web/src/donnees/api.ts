@@ -5461,6 +5461,7 @@ const comptes = {
     // Registre T171 : Statut Ouvert, Fermé ou Bloqué (un compte bloqué est ouvert, mais ne reçoit que les écritures du logiciel)
     const v: CompteInstitution = { numero, libelle, classe: p.classe, nature: p.nature, ouvert: !!d.ouvert, bloque: !!d.bloque && !!d.ouvert, saisissable: !!d.saisissable, typeSuivi: d.typeSuivi?.trim() ?? "",
       autorisationBcc: d.autorisationBcc?.trim() ?? "",   // B19 : Instr. BCC 006, art. 3
+      reseau: !!d.reseau,   // « Appartenance au réseau » (PCCI § 10.3 ; registre T235)
       ...Object.fromEntries(OPTIONS_COMPTE.map((k) => [k, !!d[k]])) as Pick<OptionsCompte, (typeof OPTIONS_COMPTE)[number]> };
     if (numeroActuel === undefined) {
       if (planComptable().includes(numero)) throw new ErreurMetier(`Le compte ${numero} existe déjà.`);
@@ -8988,12 +8989,199 @@ const EMPLOIS_RESULTAT: Record<string, [string, string]> = { reserveGenerale: ["
 const IMPUTATIONS_RESULTAT: Record<string, [string, string]> = { reservesFacultatives: ["1112", "Prélèvement sur les réserves facultatives"],
   reservesStatutaires: ["1111", "Prélèvement sur les réserves statutaires"], reportANouveau: ["121", "Report à nouveau déficitaire"] };
 
+// ---------- Consolidation d'un réseau par sa faîtière (demande du porteur du 26/11/2026 ; registre T235). Règles identiques côté serveur
+// (noyau/consolidation.py). Loi 002/2002, art. 65 ; Instr. BCC 0011, art. 47 ; PCCI § 10.3 « Appartenance au réseau » ; PCCI § 4.3.8.
+// Aucun texte lu ne donne la méthode : les balances s'additionnent, compte du PCCI par compte du PCCI, puis les comptes que les institutions ont
+// marqués « Réseau » sont retirés. Les comptes réciproques doivent s'accorder ; sinon l'écart est montré et les états ne s'établissent pas. ----------
+type LigneBalanceReseau = { compte: string; pcci: string; libelle: string; debit: number; credit: number; reseau: boolean };
+type BalanceReseau = { sigle: string; denomination: string; agrement: string; date: string; resultat: number; anterieurs: number; lignes: LigneBalanceReseau[] };
+type BalanceReunie = BalanceReseau & { id: number | null; propre: boolean; importeLe: string; importePar: string };
+const ENTETE_CONSO = ["Exofina", "balance pour consolidation", "1"], COLONNES_CONSO = ["Compte", "PCCI", "Libellé", "Débit", "Crédit", "Réseau"];
+const MONTANT_MAX_CONSO = 9_000_000_000_000_000, LIGNES_MAX_CONSO = 20_000, TAILLE_MAX_CONSO = 2_000_000;
+const estFaitiere = () => E.institution.profil === "faitiere";
+const ENSEMBLE_PCCI = new Set(NUMEROS_PCCI);
+/** Le compte du PCCI sous lequel un compte de l'institution est ouvert : le plus long numéro du PCCI qui commence le sien */
+function pcciDe(numero: string) { for (let n = numero.length; n > 1; n--) if (ENSEMBLE_PCCI.has(numero.slice(0, n))) return numero.slice(0, n); return ""; }
+const decimalConso = (v: number) => `${v < 0 ? "-" : ""}${Math.floor(Math.abs(v) / 100)}.${String(Math.abs(v) % 100).padStart(2, "0")}`;
+const somme = (l: number[]) => l.reduce((t, x) => t + x, 0);
+/** La balance de l'institution à la date, telle qu'elle part à la faîtière. Comme le serveur (consolidation.balance_propre). */
+function balancePropre(au: string): BalanceReseau {
+  const ex = Number(au.slice(0, 4)), { s, resultat, anterieurs } = soldesEf(au, ex, true), parts = partsTiersEf(au, true), gestion = mouvementsGestionEf(`${ex}-01-01`, au, false);
+  const noms = intitulesComptes(), marques = new Set(E.comptesInstitution.filter((c) => c.reseau).map((c) => c.numero)), lignes: LigneBalanceReseau[] = [];
+  for (const n of [...new Set([...s.keys(), ...gestion.keys()])].sort()) {
+    if (!"12345678".includes(n[0]!)) continue;
+    let debit: number, credit: number;
+    if ("678".includes(n[0]!)) { const v = gestion.get(n) ?? 0; debit = Math.max(v, 0); credit = Math.max(0 - v, 0); }
+    else if (parts.has(n)) { const [d, c] = parts.get(n)!; debit = d; credit = 0 - c; }
+    else { const v = s.get(n) ?? 0; debit = Math.max(v, 0); credit = Math.max(0 - v, 0); }
+    if (debit || credit) lignes.push({ compte: n, pcci: pcciDe(n), libelle: noms.get(n) ?? "", debit, credit, reseau: marques.has(n) });
+  }
+  const i = E.institution;
+  return { sigle: (i.sigle ?? "").trim(), denomination: i.nom, agrement: i.numeroAgrement ?? "", date: au, resultat, anterieurs, lignes };
+}
+/** Ce qui manque pour que le bilan de la balance s'équilibre : actif moins passif, résultat compris */
+const equilibreConso = (b: BalanceReseau) => somme(b.lignes.filter((l) => "12345".includes(l.compte[0]!)).map((l) => l.debit - l.credit)) - b.resultat - b.anterieurs;
+/** Le fichier remis à la faîtière : texte CSV, point-virgule, montants en francs congolais avec deux décimales */
+function ecrireBalance(b: BalanceReseau) {
+  const cel = (v: string) => (/[";\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+  const rangs = [ENTETE_CONSO, ["Institution", b.sigle, b.denomination, b.agrement], ["Arrêté", b.date], ["Résultat en formation", decimalConso(b.resultat)],
+    ["Résultats antérieurs non clôturés", decimalConso(b.anterieurs)], COLONNES_CONSO,
+    ...b.lignes.map((l) => [l.compte, l.pcci, l.libelle, decimalConso(l.debit), decimalConso(l.credit), l.reseau ? "O" : "N"]),
+    ["Total", "", "", decimalConso(somme(b.lignes.map((l) => l.debit))), decimalConso(somme(b.lignes.map((l) => l.credit))), String(b.lignes.length)]];
+  return rangs.map((r) => r.map(cel).join(";") + "\r\n").join("");
+}
+/** Lecture d'un texte CSV au point-virgule, guillemets compris ; les lignes vides sont écartées */
+function lireCsvConso(texte: string) {
+  const rangs: string[][] = []; let rang: string[] = [], cel = "", entre = false;
+  const finCel = () => { rang.push(cel); cel = ""; }, finRang = () => { finCel(); if (rang.some((x) => x.trim())) rangs.push(rang); rang = []; };
+  for (let i = 0; i < texte.length; i++) {
+    const c = texte[i]!;
+    if (entre) { if (c === '"') { if (texte[i + 1] === '"') { cel += '"'; i++; } else entre = false; } else cel += c; }
+    else if (c === '"') entre = true;
+    else if (c === ";") finCel();
+    else if (c === "\n" || c === "\r") { if (c === "\r" && texte[i + 1] === "\n") i++; finRang(); }
+    else cel += c;
+  }
+  if (cel || rang.length) finRang();
+  return rangs;
+}
+function montantConso(t: string | undefined, quoi: string, signe = false) {
+  const x = (t ?? "").trim(), neg = signe && x.startsWith("-"), corps = neg ? x.slice(1) : x;
+  if (!/^[0-9]+(\.[0-9]{1,2})?$/.test(corps)) throw new ErreurMetier(`${quoi} : montant illisible.`);
+  const [ent, dec = ""] = corps.split("."), v = Number(ent) * 100 + Number(dec.padEnd(2, "0"));
+  if (!(v <= MONTANT_MAX_CONSO)) throw new ErreurMetier(`${quoi} : montant illisible.`);
+  return neg ? 0 - v : v;
+}
+/** Relit un fichier de balance. Tout est contrôlé : le fichier vient d'une autre institution. Comme le serveur (consolidation.lire_fichier). */
+function lireFichierBalance(contenu: unknown): BalanceReseau {
+  if (typeof contenu !== "string" || !contenu.trim()) throw new ErreurMetier("À remplir : Fichier de balance.");
+  if (contenu.length > TAILLE_MAX_CONSO) throw new ErreurMetier("Fichier de balance : trop lourd.");
+  const rangs = lireCsvConso(contenu.replace(/^\ufeff/, "")), net = (r?: string[]) => (r ?? []).map((x) => x.trim()), pareil = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
+  const autre = "Fichier de balance : ce n'est pas une balance pour consolidation.";
+  if (rangs.length < 7 || !pareil(net(rangs[0]).slice(0, 3), ENTETE_CONSO) || !pareil(net(rangs[5]).slice(0, 6), COLONNES_CONSO)) throw new ErreurMetier(autre);
+  const inst = net(rangs[1]), arr = net(rangs[2]);
+  if (inst.length < 3 || inst[0] !== "Institution" || !inst[1] || !inst[2] || arr.length < 2 || arr[0] !== "Arrêté") throw new ErreurMetier(autre);
+  if (inst[1]!.length > 30 || inst[2]!.length > 200) throw new ErreurMetier("Fichier de balance : sigle ou dénomination trop long.");
+  if (!DATE_ISO.test(arr[1]!) || Number.isNaN(Date.parse(`${arr[1]}T00:00:00Z`))) throw new ErreurMetier("À remplir : Date d'arrêté du fichier.");
+  const b: BalanceReseau = { sigle: inst[1]!, denomination: inst[2]!, agrement: (inst[3] ?? "").slice(0, 60), date: arr[1]!, resultat: montantConso(rangs[3]![1], "Résultat en formation", true),
+    anterieurs: montantConso(rangs[4]![1], "Résultats antérieurs non clôturés", true), lignes: [] };
+  const corps = rangs.slice(6, -1), total = net(rangs[rangs.length - 1]);
+  if (total[0] !== "Total" || total.length < 6) throw new ErreurMetier("Fichier de balance : la ligne des totaux manque ; le fichier est incomplet.");
+  if (corps.length > LIGNES_MAX_CONSO) throw new ErreurMetier("Fichier de balance : trop de lignes.");
+  const vus = new Set<string>();
+  corps.forEach((brut, i) => {
+    const k = i + 7, r = [...net(brut), "", "", "", "", "", ""], compte = r[0]!, reseau = r[5]!.toUpperCase();
+    if (!/^[1-8][0-9]{0,19}$/.test(compte)) throw new ErreurMetier(`Fichier de balance, ligne ${k} : compte illisible.`);
+    const parent = pcciDe(compte);          // le rattachement se refait ici : la colonne PCCI du fichier n'est qu'une lecture
+    if (!parent) throw new ErreurMetier(`Fichier de balance, ligne ${k} : le compte ${compte} n'est rattaché à aucun compte du PCCI.`);
+    if (vus.has(compte)) throw new ErreurMetier(`Fichier de balance, ligne ${k} : le compte ${compte} est en double.`);
+    if (reseau !== "O" && reseau !== "N") throw new ErreurMetier(`Fichier de balance, ligne ${k} : colonne Réseau, O ou N.`);
+    vus.add(compte);
+    b.lignes.push({ compte, pcci: parent, libelle: r[2]!.slice(0, 200), debit: montantConso(r[3], `Fichier de balance, ligne ${k}`), credit: montantConso(r[4], `Fichier de balance, ligne ${k}`), reseau: reseau === "O" });
+  });
+  if (montantConso(total[3], "Total") !== somme(b.lignes.map((l) => l.debit)) || montantConso(total[4], "Total") !== somme(b.lignes.map((l) => l.credit)) || total[5] !== String(b.lignes.length))
+    throw new ErreurMetier("Fichier de balance : les totaux ne correspondent pas aux lignes ; le fichier est incomplet ou modifié.");
+  const ecart = equilibreConso(b);
+  if (ecart) throw new ErreurMetier(`Fichier de balance : la balance de ${b.sigle} n'est pas équilibrée (écart de ${decimalConso(Math.abs(ecart))} CDF).`);
+  return b;
+}
+function dateConso(p: { au?: string } | undefined) { const au = p?.au ?? ""; if (!DATE_ISO.test(au) || Number.isNaN(Date.parse(`${au}T00:00:00Z`))) throw new ErreurMetier("À remplir : Date d'arrêté."); return au; }
+function exigerFaitiere() { exiger(); if (!estFaitiere()) throw new ErreurMetier("La consolidation revient à la faîtière du réseau (loi 002/2002, art. 65)."); }
+/** La balance de la faîtière, lue dans ses livres, puis celles des affiliées importées pour la date */
+function balancesReunies(au: string): BalanceReunie[] {
+  return [{ ...balancePropre(au), id: null, propre: true, importeLe: "", importePar: "" },
+    ...(E.consolidationBalances ?? []).filter((x) => x.date === au).sort((a, b) => a.sigle.localeCompare(b.sigle))
+      .map((x) => ({ sigle: x.sigle, denomination: x.denomination, agrement: x.agrement, date: au, resultat: x.resultat, anterieurs: x.anterieurs, lignes: x.lignes, id: x.id, propre: false,
+        importeLe: x.importeLe, importePar: nomUtilisateur(x.importePar) }))];
+}
+/** Addition des balances, compte du PCCI par compte du PCCI, puis retrait des comptes marqués « Réseau ». Comme le serveur (consolidation.consolider). */
+function consoliderBalances(bs: BalanceReseau[]) {
+  const cumul = new Map<string, [number, number]>(), retire = new Map<string, [number, number]>();
+  for (const b of bs) for (const l of b.lignes) { const cible = l.reseau ? retire : cumul, x = cible.get(l.pcci) ?? [0, 0]; x[0] += l.debit; x[1] += l.credit; cible.set(l.pcci, x); }
+  const ecartDe = (classes: string) => somme([...retire].filter(([n]) => classes.includes(n[0]!)).map(([, [d, c]]) => d - c));
+  return { cumul, retire, ecart: { bilan: ecartDe("12345"), gestion: ecartDe("678") }, resultat: somme(bs.map((b) => b.resultat)), anterieurs: somme(bs.map((b) => b.anterieurs)) };
+}
+/** Bilan et compte de résultat consolidés, aux modèles du PCCI (chap. 14). Comme le serveur (consolidation.etats_consolides). */
+function etatsConsolides(c: ReturnType<typeof consoliderBalances>, c1: ReturnType<typeof consoliderBalances> | null, au: string) {
+  const tout = () => true, noms = intitulesComptes(), ex = Number(au.slice(0, 4));
+  const postes = (x: ReturnType<typeof consoliderBalances> | null) => {
+    if (!x) return { a: { actif: ME.bilan.actif.map(() => ({ valeur: 0, comptes: new Map<string, number>() })), passif: ME.bilan.passif.map(() => ({ valeur: 0, comptes: new Map<string, number>() })) },
+      r: ME.resultat.map(() => ({ valeur: 0, comptes: new Map<string, number>() })) };
+    const bil = [...x.cumul].filter(([n]) => "12345".includes(n[0]!));
+    return { a: postesBilan({ s: new Map(bil.map(([n, [d, k]]) => [n, d - k])), resultat: x.resultat, anterieurs: x.anterieurs }, tout, new Map(bil.map(([n, [d, k]]) => [n, [d, 0 - k] as [number, number]]))),
+      r: rubriquesEf(new Map([...x.cumul].filter(([n]) => "678".includes(n[0]!)).map(([n, [d, k]]) => [n, d - k])), tout).out };
+  };
+  const n = postes(c), n1 = postes(c1);
+  const actif = presenterEf(ME.bilan.actif, n.a.actif, n1.a.actif, noms), passif = presenterEf(ME.bilan.passif, n.a.passif, n1.a.passif, noms);
+  const lignes = ME.resultat.map((m, i) => { const cles = [...new Set([...n.r[i]!.comptes.keys(), ...n1.r[i]!.comptes.keys()])].sort();
+    return { signe: m.signe ?? "", solde: !!m.solde, libelle: m.libelle, n: n.r[i]!.valeur, n1: n1.r[i]!.valeur,
+      comptes: cles.map((k) => ({ compte: k, intitule: noms.get(k) ?? "", n: n.r[i]!.comptes.get(k) ?? 0, n1: n1.r[i]!.comptes.get(k) ?? 0 })) }; });
+  const total = (l: { n: number; n1: number }[]) => ({ n: somme(l.map((x) => x.n)), n1: somme(l.map((x) => x.n1)) }), ta = total(actif), tp = total(passif);
+  return { bilan: { au, precedent: `${ex - 1}-12-31`, actif, passif, totalActif: ta, totalPassif: tp, equilibre: ta.n === tp.n && ta.n1 === tp.n1 },
+    resultat: { du: `${ex}-01-01`, au, lignes } };
+}
+type EtatsConsolides = ReturnType<typeof etatsConsolides>;
+type EtatConsolidation = { faitiere: boolean; sigle: string; affiliation: string; au?: string; accord?: boolean; ecart?: { bilan: number; gestion: number }; etats?: EtatsConsolides | null;
+  balances?: { id: number | null; sigle: string; denomination: string; agrement: string; propre: boolean; debit: number; credit: number; reseauDebit: number; reseauCredit: number; importeLe: string; importePar: string }[];
+  retire?: { compte: string; intitule: string; debit: number; credit: number }[] };
+const consolidation = {
+  /** L'onglet « Réseau » des États financiers : pour toute institution, l'export de sa balance ; pour la faîtière, la consolidation */
+  etat(p?: { au?: string }): EtatConsolidation {
+    lectureAdmin(["S122"]);
+    const out: EtatConsolidation = { faitiere: estFaitiere(), sigle: (E.institution.sigle ?? "").trim(), affiliation: E.institution.faitiereAffiliation ?? "" };
+    if (!out.faitiere || !p?.au) return out;
+    const au = dateConso(p), bs = balancesReunies(au), c = consoliderBalances(bs), noms = intitulesComptes();
+    const accord = !c.ecart.bilan && !c.ecart.gestion;
+    let etats: EtatsConsolides | null = null;
+    if (accord && bs.length > 1) {
+      // Colonne N-1 : la consolidation arrêtée à la fin de l'exercice précédent, quand des balances d'affiliées y ont été importées et qu'elle s'accorde
+      const avant = balancesReunies(`${Number(au.slice(0, 4)) - 1}-12-31`);
+      let c1 = avant.length > 1 ? consoliderBalances(avant) : null;
+      if (c1 && (c1.ecart.bilan || c1.ecart.gestion)) c1 = null;
+      etats = etatsConsolides(c, c1, au);
+    }
+    return { ...out, au, accord, ecart: c.ecart, etats,
+      balances: bs.map((b) => ({ id: b.id, sigle: b.sigle, denomination: b.denomination, agrement: b.agrement, propre: b.propre, debit: somme(b.lignes.map((l) => l.debit)), credit: somme(b.lignes.map((l) => l.credit)),
+        reseauDebit: somme(b.lignes.filter((l) => l.reseau).map((l) => l.debit)), reseauCredit: somme(b.lignes.filter((l) => l.reseau).map((l) => l.credit)), importeLe: b.importeLe, importePar: b.importePar })),
+      retire: [...c.retire].sort((a, b) => a[0].localeCompare(b[0])).map(([compte, [debit, credit]]) => ({ compte, intitule: noms.get(compte) ?? "", debit, credit })) };
+  },
+  /** Bouton « Exporter la balance » : le fichier que l'institution remet à sa faîtière */
+  exporter(p: { au?: string }) {
+    lectureAdmin(["S122"]);
+    const b = balancePropre(dateConso(p));
+    if (!b.sigle) throw new ErreurMetier("À remplir : Code de l'institution (Paramétrage > Info société).");
+    if (equilibreConso(b)) throw new ErreurMetier("La balance n'est pas équilibrée à cette date : elle ne s'exporte pas.");
+    return { nom: `balance-consolidation-${b.sigle}-${b.date}.csv`, contenu: ecrireBalance(b) };
+  },
+  /** Bouton « Importer » : la balance d'une affiliée pour la date d'arrêté ; une nouvelle balance de la même affiliée remplace la précédente */
+  importer(p: { au?: string; contenu?: string }) {
+    exigerFaitiere();
+    const u = exiger(), au = dateConso(p), b = lireFichierBalance(p.contenu);
+    if (b.date !== au) throw new ErreurMetier(`Ce fichier est arrêté au ${b.date.slice(8)}/${b.date.slice(5, 7)}/${b.date.slice(0, 4)}, pas à la date demandée.`);
+    if (b.sigle.toUpperCase() === (E.institution.sigle ?? "").trim().toUpperCase()) throw new ErreurMetier("Ce fichier est la balance de la faîtière elle-même : elle se lit dans ses livres.");
+    const liste = (E.consolidationBalances ??= []), ancien = liste.find((x) => x.date === au && x.sigle === b.sigle);
+    const x = { id: ancien?.id ?? prochain(liste), date: au, sigle: b.sigle, denomination: b.denomination, agrement: b.agrement, resultat: b.resultat, anterieurs: b.anterieurs, lignes: b.lignes, importePar: u.id,
+      importeLe: new Date().toISOString() };
+    if (ancien) Object.assign(ancien, x); else liste.push(x);
+    enregistrer(); return consolidation.etat(p);
+  },
+  /** Bouton « Retirer » : la balance importée par erreur sort de la consolidation */
+  retirer(id: number, p: { au?: string }) {
+    exigerFaitiere();
+    const liste = E.consolidationBalances ?? [], i = liste.findIndex((x) => x.id === id);
+    if (i < 0) throw new ErreurMetier("Balance introuvable.");
+    liste.splice(i, 1); enregistrer(); return consolidation.etat(p);
+  },
+};
+
 const etatsFinanciers = {
   contexte() {
     lectureAdmin(["S122", "S123"]);
     const liste = (o: Record<string, string>) => Object.entries(o).map(([code, libelle]) => ({ code, libelle }));
     return { agences: [{ id: E.agence.id, nom: E.agence.nom }], exercices: [...E.exercices].map((x) => x.annee).sort((a, b) => b - a), typesBilan: liste(TYPES_BILAN_EF), typesResultat: liste(TYPES_EF), typesHorsBilan: liste(TYPES_HB),
-      annexes: ME.annexes.map(({ code, libelle }) => ({ code, libelle })), periodicites: liste(PERIODICITES_EF), mois: MOIS_JC };
+      annexes: ME.annexes.map(({ code, libelle }) => ({ code, libelle })), periodicites: liste(PERIODICITES_EF), mois: MOIS_JC,
+      // Onglet « Réseau » : pour la faîtière, et pour l'institution qui a déclaré sa faîtière (Info société ; registre T235)
+      reseau: estFaitiere() || !!(E.institution.faitiereAffiliation ?? "") };
   },
   /** Bilan (PCCI 14.1) : actif, 8 postes ; passif, 14 postes ; N à la date de fin, N-1 à la fin de l'exercice précédent */
   bilan(p: CriteresEf) {
@@ -11454,6 +11642,7 @@ const construireLocale = () => ({
   comptabilisation: asynchrone(comptabilisation, "comptabilisation"),
   etatsCompta: asynchrone(numerote(etatsCompta, { journaux: "journaux", grandLivre: "grand-livre", balance: "balance", schemas: "schemas-comptables" }), "etatsCompta"),
   etatsFinanciers: asynchrone(numerote(etatsFinanciers, { bilan: "bilan", horsBilan: "hors-bilan", resultat: "resultat", annexe: "annexe", indicateurs: "indicateurs" }), "etatsFinanciers"),
+  consolidation: asynchrone(consolidation, "consolidation"),
   normes: asynchrone(numerote(normes, { etat: "normes" }), "normes"),
   decouverts: asynchrone(decouverts, "decouverts"),
   incidents: asynchrone(incidents, "incidents"),

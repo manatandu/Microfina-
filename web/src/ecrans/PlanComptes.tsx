@@ -8,7 +8,8 @@ import { Champ, Chargement, Dialogue, Textes, type Boite } from "../composants";
 const SOURCES = ["Manuel Microfina++, p. 122 : Plan général Nouveau Référentiel (Parent*, Numero*, Libelle*, Statut*, Nature*) ; p. 146 et 147 : Création des comptes d'utilisation, « Sélectionner le Parent… », Liste des Comptes d'utilisation ; Recherche par N°compte, Exporter",
   "Plan d'allègement, point 2.26 : une page, l'arbre d'emblée avec une recherche, la fiche du compte à côté ; les huit options sans effet masquées",
   "PCCI § 9 : codification décimale ; l'institution peut ouvrir tout autre compte divisionnaire ; PCCI § 13 : liste des comptes",
-  "Instr. BCC n° 006 : le PCCI est obligatoire pour les COOPEC et les IMF"];
+  "Instr. BCC n° 006 : le PCCI est obligatoire pour les COOPEC et les IMF",
+  "PCCI § 10.3 « Appartenance au réseau » : la case marque le compte des opérations avec la faîtière, les affiliées du même réseau ou les fonds de garantie du réseau (registre T235)"];
 
 /** Parent d'un compte : le plus long numéro du plan qui le précède (codification décimale, PCCI § 9) */
 function parentDe(numeros: Set<string>, numero: string) {
@@ -38,7 +39,7 @@ function Branche({ n, b }: { n: Noeud; b: Bras }) {
 }
 
 const VIDE = { parent: "", suite: "", libelle: "", ouvert: "1", saisissable: "1", typeSuivi: "", autorisationBcc: "",
-  saisieAnalytique: false, saisieEcheance: false, lettrageAuto: false, saisieTiers: false, immobilisation: false, compteTaxe: false, compteTaxable: false };
+  saisieAnalytique: false, saisieEcheance: false, lettrageAuto: false, saisieTiers: false, immobilisation: false, compteTaxe: false, compteTaxable: false, reseau: false };
 
 /** S102 : Comptabilité > Plan des comptes (manuel Microfina++, p. 122, 146, 147) : l'arbre et la fiche du compte sur une page (plan d'allègement, point 2.26) */
 export default function PlanComptes() {
@@ -75,7 +76,7 @@ export default function PlanComptes() {
     setChoisi(c.numero);
     setF({ parent: p, suite: c.numero.slice(p.length), libelle: c.libelle, ouvert: c.bloque ? "B" : c.ouvert ? "1" : "0", saisissable: c.saisissable ? "1" : "0", typeSuivi: c.typeSuivi, autorisationBcc: c.autorisationBcc ?? "",
       saisieAnalytique: c.saisieAnalytique, saisieEcheance: c.saisieEcheance, lettrageAuto: c.lettrageAuto, saisieTiers: c.saisieTiers, immobilisation: c.immobilisation,
-      compteTaxe: c.compteTaxe, compteTaxable: c.compteTaxable });
+      compteTaxe: c.compteTaxe, compteTaxable: c.compteTaxable, reseau: !!c.reseau });
   }
   return (
     <>
@@ -119,6 +120,8 @@ export default function PlanComptes() {
               {typesSuivi.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
             <Champ libelle="Autorisation BCC (opération hors nomenclature du PCCI) :">{(p) => <input {...p} className="saisie" autoComplete="off" value={f.autorisationBcc}
               onChange={(e) => setF({ ...f, autorisationBcc: e.target.value })} />}</Champ>
+            {/* PCCI § 10.3 : opérations avec la faîtière, les affiliées du même réseau ou les fonds de garantie du réseau ; la consolidation retire ce compte (T235) */}
+            <label className="case"><input type="checkbox" checked={f.reseau} onChange={(e) => setF({ ...f, reseau: e.target.checked })} /><span>Appartenance au réseau</span></label>
             <div className="actions-onglets">
               <button className="bouton" type="button" onClick={() => confirmer(choisi ? "Voulez-vous vraiment modifier ?" : "Voulez-vous vraiment enregistrer ?", () => api.comptes.enregistrer(saisie, choisi ?? undefined))}>{choisi ? "Modifier" : "Enregistrer"}</button>
               <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>

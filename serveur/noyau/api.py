@@ -1285,6 +1285,31 @@ def etats_financiers_etat(request, etat: str):
     return {**r, "edition": numeroter(u(request), etat)}
 
 
+# ---------- Consolidation d'un réseau par sa faîtière (loi 002/2002, art. 65 ; Instr. BCC 0011, art. 47 ; registre T235) ----------
+@api.get("/comptabilite/consolidation")
+def consolidation_etat(request):
+    from . import consolidation
+    return consolidation.etat(u(request), request.GET.dict())
+
+
+@api.get("/comptabilite/consolidation/export")
+def consolidation_export(request):
+    from . import consolidation
+    return consolidation.exporter(u(request), request.GET.dict())
+
+
+@api.post("/comptabilite/consolidation/import")
+def consolidation_import(request, corps: dict = Body(...)):
+    from . import consolidation
+    return consolidation.importer(u(request), corps)
+
+
+@api.post("/comptabilite/consolidation/{bid}/retrait")
+def consolidation_retrait(request, bid: int, corps: dict = Body(...)):
+    from . import consolidation
+    return consolidation.retirer(u(request), bid, corps)
+
+
 @api.get("/comptabilite/indicateurs-financiers")
 def indicateurs_financiers(request):
     from . import etats_financiers as ef

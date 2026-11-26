@@ -54,7 +54,9 @@ def contexte(u) -> dict:
             "typesBilan": [{"code": k, "libelle": v} for k, v in TYPES_BILAN.items()], "typesResultat": [{"code": k, "libelle": v} for k, v in TYPES.items()],
             "typesHorsBilan": [{"code": k, "libelle": v} for k, v in TYPES_HORS_BILAN.items()],
             "annexes": [{"code": a["code"], "libelle": a["libelle"]} for a in MODELE["annexes"]],
-            "periodicites": [{"code": k, "libelle": v} for k, v in PERIODICITES.items()], "mois": MOIS}
+            "periodicites": [{"code": k, "libelle": v} for k, v in PERIODICITES.items()], "mois": MOIS,
+            # Onglet « Réseau » : pour la faîtière, et pour l'institution qui a déclaré sa faîtière (Info société ; registre T235)
+            "reseau": bool(valeur("select profil = 'faitiere' or coalesce(faitiere_affiliation, '') <> '' from institution where id = %s", (i,)))}
 
 
 def intitules(u) -> dict:

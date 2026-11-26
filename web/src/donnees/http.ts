@@ -299,6 +299,12 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       annexe: (p: Record<string, unknown>) => get(`/comptabilite/etats-financiers/annexe?${requete(p)}`),
       indicateurs: (p: Record<string, unknown>) => get(`/comptabilite/indicateurs-financiers?${requete(p)}`),
     },
+    consolidation: {
+      etat: (p?: Record<string, unknown>) => get(`/comptabilite/consolidation?${requete(p ?? {})}`),
+      exporter: (p: Record<string, unknown>) => get(`/comptabilite/consolidation/export?${requete(p)}`),
+      importer: (p: unknown) => post("/comptabilite/consolidation/import", p),
+      retirer: (id: number, p: unknown) => post(`/comptabilite/consolidation/${id}/retrait`, p),
+    },
     normes: {
       etat: (p: Record<string, unknown>) => get(`/comptabilite/normes-prudentielles?${requete(p)}`),
     },
