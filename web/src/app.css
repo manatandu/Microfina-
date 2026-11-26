@@ -757,18 +757,19 @@ select.saisie { max-width: 100%; }
 .doc-exemplaire { margin: 0; text-align: center; }
 .doc-bon-pour { margin: 0; padding-bottom: 12mm; border-bottom: 1px dotted var(--encre); }   /* Code civil, livre III, art. 208 */
 .apercu-ticket { display: flex; justify-content: center; padding: var(--espace-3); background: var(--papier); border-radius: var(--rayon-champ); }
-.ticket { width: 72mm; box-sizing: border-box; padding: 3mm 2mm; display: grid; gap: 2mm; background: var(--feuille); color: var(--encre); font-size: 12pt; line-height: 1.3; }
+.ticket { width: 72mm; box-sizing: border-box; padding: 3mm 2mm; display: grid; gap: 2mm; background: var(--feuille); color: var(--encre); font-size: 12pt; line-height: 1.3;
+  border: 1px solid var(--trait); }
 .ticket-titre { margin: 0; padding: 1mm 0; text-align: center; font-size: 1.1em; text-transform: uppercase; letter-spacing: .03em; border-block: 1px dashed var(--encre); }
 /* Libellé et valeur sur une ligne ; une valeur trop longue passe en entier à la ligne suivante, alignée à droite */
 .ticket-lignes { display: grid; gap: 1mm; margin: 0; }
 .ticket-lignes > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 3mm; }
 .ticket-lignes dt { color: var(--encre-2); }
-.ticket-lignes dd { margin: 0 0 0 auto; text-align: right; font-variant-numeric: tabular-nums; }
-.ticket-montant dd { font-weight: 700; font-size: 1.15em; }
+.ticket-lignes dd { margin: 0 0 0 auto; text-align: right; }
+.ticket-montant dd { font-weight: 700; font-size: 1.15em; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .ticket-lettres dd { flex-basis: 100%; }
 .ticket-signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; padding-top: 12mm; text-align: center; }
 .ticket-signatures span { border-top: 1px solid var(--encre); padding-top: 1mm; }
 @media print {
   .apercu-ticket { padding: 0; background: none; border-radius: 0; }
-  .ticket { margin: 0 auto; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ticket { margin: 0 auto; border: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }

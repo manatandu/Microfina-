@@ -293,7 +293,7 @@ export function Recu({ id, onNouveau, echap = false }: { id: number; onNouveau: 
     <div className="pile">
       <p className="resultat-ok" role="status"><strong>{titre}.</strong> Pièce <span className="chiffres">{r.piece}</span>.</p>
       {/* Point bloquant B12 : ticket de 80 mm, à la taille réelle du papier (DESIGN § 2.8 ; registre T215) */}
-      <div className="papier a-imprimer apercu-ticket">
+      <div className="a-imprimer apercu-ticket">
         <article className="ticket" aria-label="Aperçu du reçu">
           <EnTeteDocument e={r.entete} agence={r.agence} />
           <h2 className="ticket-titre">{PAPIER[r.o.type] ?? titre}</h2>
