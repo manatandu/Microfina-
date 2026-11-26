@@ -71,36 +71,46 @@ def garanties(u, du: str, au: str, produit_id: int | None = None, agent_id: int 
     return sortie
 
 
-def comptes(u, du: str, au: str) -> list[dict]:
+def comptes(u, du: str, au: str, operations: bool = True) -> list[dict]:
     """7.3 Recherche multicritère (capture p. 83) : chaque compte de dépôt, son solde à la fin de la période et ses mouvements de la période ;
-    l'écran applique les éléments de la recherche aux titulaires, comme le rapport client S51 (registre S72-3)"""
+    l'écran applique les éléments de la recherche aux titulaires, comme le rapport client S51 (registre S72-3).
+    Audit du 21/11/2026, point bloquant B13 (registre T226) : soldes et totaux faits par la base en une requête (une requête par compte avant : 34 secondes
+    à 30 000 comptes) ; le détail des mouvements seulement quand le résultat demandé le montre, au plus 50 000 lignes ; comptes de son agence seulement (T213)."""
+    from .etats_compta import LIGNES_MAX
     exiger(u)
     d1, d2 = _date(du, "Date début"), _date(au, "Date Fin")
+    ag, pa = clause(u)
+    cptes = lignes(f"""select c.*, p.libelle as produit, p.code as produit_code from compte_depot c join produit_epargne p on p.id = c.produit_id
+                       join tiers t on t.id = c.tiers_id
+                       where c.institution_id = %s{ag} and coalesce(c.ouvert_le, date '1900-01-01') <= %s order by c.numero""", (u["institution_id"], *pa, d2))
+    siens = [f"depot:{c['id']}" for c in cptes]
+    base = """from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join journee_comptable jc on jc.id = e.journee_id
+              where e.institution_id = %s and l.contrat_ref like 'depot:%%' and jc.date_comptable <= %s"""
+    q = (u["institution_id"], d2)
+    totaux = {r["contrat_ref"]: r for r in lignes(f"""select l.contrat_ref, sum(case l.sens when 'C' then l.montant_devise else -l.montant_devise end)::bigint as solde,
+                                                             coalesce(sum(l.montant_devise) filter (where jc.date_comptable >= %s and l.sens = 'C'), 0)::bigint as credits,
+                                                             coalesce(sum(l.montant_devise) filter (where jc.date_comptable >= %s and l.sens = 'D'), 0)::bigint as debits
+                                                      {base} group by 1""", (d1, d1, *q))}
+    details: dict = {}
+    if operations:
+        filtre, fq = (" and l.contrat_ref = any(%s)", (list(siens),)) if ag else ("", ())      # rattaché à une agence : les comptes de ses membres seulement
+        n = valeur(f"select count(*) {base} and jc.date_comptable >= %s{filtre}", (*q, d1, *fq))
+        if n > LIGNES_MAX:
+            raise ErreurMetier(f"Opérations : {n} lignes sur la période. Réduire la période ({LIGNES_MAX} lignes au plus par édition).")
+        for x in lignes(f"""select l.contrat_ref, l.sens, l.montant_devise, jc.date_comptable as jour, e.libelle, p.numero as piece
+                            from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join journee_comptable jc on jc.id = e.journee_id left join piece p on p.id = e.piece_id
+                            where e.institution_id = %s and l.contrat_ref like 'depot:%%' and jc.date_comptable between %s and %s{filtre}
+                            order by l.contrat_ref, jc.date_comptable, l.ecriture_id, l.rang""", (u["institution_id"], d1, d2, *fq)):
+            details.setdefault(x["contrat_ref"], []).append({"date": x["jour"].isoformat(), "piece": x["piece"] or "", "libelle": x["libelle"],
+                                                             "debit": x["montant_devise"] if x["sens"] == "D" else 0, "credit": x["montant_devise"] if x["sens"] == "C" else 0})
     sortie = []
-    for c in lignes("""select c.*, p.libelle as produit, p.code as produit_code from compte_depot c join produit_epargne p on p.id = c.produit_id
-                       where c.institution_id = %s and coalesce(c.ouvert_le, date '1900-01-01') <= %s order by c.numero""", (u["institution_id"], d2)):
+    for c in cptes:
         ref = f"depot:{c['id']}"
-        m = lignes("""select l.sens, l.montant_devise, jc.date_comptable as jour, e.libelle, p.numero as piece from ligne_ecriture l join ecriture e on e.id = l.ecriture_id
-                      join journee_comptable jc on jc.id = e.journee_id left join piece p on p.id = e.piece_id
-                      where l.contrat_ref = %s and jc.date_comptable <= %s order by jc.date_comptable, l.ecriture_id, l.rang""", (ref, d2))
-        solde = sum(x["montant_devise"] if x["sens"] == "C" else -x["montant_devise"] for x in m)
-        dans = [x for x in m if x["jour"] >= d1]
+        t = totaux.get(ref) or {"solde": 0, "credits": 0, "debits": 0}
         sortie.append({"compteId": c["id"], "compte": c["numero"], "tiersId": c["tiers_id"], "produitId": c["produit_id"], "produit": c["produit"],
-                       "devise": c["devise"].strip(), "ouvertLe": c["ouvert_le"].isoformat() if c["ouvert_le"] else "", "statut": c["statut"], "solde": solde,
-                       "credits": sum(x["montant_devise"] for x in dans if x["sens"] == "C"), "debits": sum(x["montant_devise"] for x in dans if x["sens"] == "D"),
-                       "operations": [{"date": x["jour"].isoformat(), "piece": x["piece"] or "", "libelle": x["libelle"],
-                                       "debit": x["montant_devise"] if x["sens"] == "D" else 0, "credit": x["montant_devise"] if x["sens"] == "C" else 0} for x in dans]})
+                       "devise": c["devise"].strip(), "ouvertLe": c["ouvert_le"].isoformat() if c["ouvert_le"] else "", "statut": c["statut"], "solde": t["solde"],
+                       "credits": t["credits"], "debits": t["debits"], "operations": details.get(ref, [])})
     return sortie
-
-
-def _derniere(cid: int, tiers_id: int, ouvert, jusqua: date):
-    """Dernière opération (registre E11-2) : dernier mouvement hors reprise des soldes, dernière plainte, ou ouverture ; au plus la date du rapport"""
-    v = [valeur("""select max(jc.date_comptable) from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join journee_comptable jc on jc.id = e.journee_id
-                   join journal jl on jl.id = e.journal_id where l.contrat_ref = %s and jl.type <> 'a_nouveaux' and jc.date_comptable <= %s
-                     and not exists (select 1 from calcul_periodique cp where cp.ecriture_id = e.id)""", (f"depot:{cid}", jusqua)),   # opérations du titulaire seulement (loi 22/069, titre III, chap. Ier)
-         valeur("select max(recue_le) from plainte where tiers_id = %s and recue_le <= %s", (tiers_id, jusqua)), ouvert]
-    v = [x if isinstance(x, date) else None for x in v]
-    return max([x for x in v if x], default=None)
 
 
 def inactivite(u, date_: str, jours: int | None, tous: bool) -> list[dict]:
@@ -116,18 +126,33 @@ def inactivite(u, date_: str, jours: int | None, tous: bool) -> list[dict]:
             seuil = (d - date(d.year - ANS_DORMANT, 2, 28)).days
     if seuil < 0:
         raise ErreurMetier("Nombres de jours : zéro ou plus.")
+    # Audit du 21/11/2026, point bloquant B13 (registre T226) : dernières opérations, plaintes et soldes lus en trois requêtes pour tous les comptes
+    # (trois requêtes par compte avant : 12 secondes pour 6 000 comptes). Dernière opération (registre E11-2) : dernier mouvement hors reprise des soldes et hors calculs périodiques
+    # (opérations du titulaire seulement : loi 22/069, titre III, chap. Ier), dernière plainte, ou ouverture ; au plus la date du rapport.
+    i = u["institution_id"]
+    dernier_mouvement = {r["contrat_ref"]: r["jour"] for r in lignes(
+        """select l.contrat_ref, max(jc.date_comptable) as jour from ligne_ecriture l join ecriture e on e.id = l.ecriture_id
+           join journee_comptable jc on jc.id = e.journee_id join journal jl on jl.id = e.journal_id
+           where e.institution_id = %s and l.contrat_ref like 'depot:%%' and jl.type <> 'a_nouveaux' and jc.date_comptable <= %s
+             and not exists (select 1 from calcul_periodique cp where cp.ecriture_id = e.id) group by 1""", (i, d))}
+    derniere_plainte = {r["tiers_id"]: r["jour"] for r in lignes("select tiers_id, max(recue_le) as jour from plainte where recue_le <= %s and tiers_id is not null group by 1", (d,))}
+    soldes = {r["contrat_ref"]: int(r["solde"]) for r in lignes(
+        """select l.contrat_ref, sum(case l.sens when 'C' then l.montant_devise else -l.montant_devise end) as solde from ligne_ecriture l
+           join ecriture e on e.id = l.ecriture_id join journee_comptable jc on jc.id = e.journee_id
+           where e.institution_id = %s and l.contrat_ref like 'depot:%%' and jc.date_comptable <= %s group by 1""", (i, d))}
     sortie = []
-    for c in lignes("select c.*, t.numero as membre from compte_depot c join tiers t on t.id = c.tiers_id where c.institution_id = %s and c.statut = 'ouvert'"
-                    + clause(u)[0] + " order by c.numero", (u["institution_id"], *clause(u)[1])):
-        der = _derniere(c["id"], c["tiers_id"], c["ouvert_le"], d)
+    for c in lignes("""select c.*, t.numero as membre, coalesce(p.nom, m.raison_sociale) as nom, p.postnom, p.prenom from compte_depot c join tiers t on t.id = c.tiers_id
+                       left join tiers_personne p on p.tiers_id = t.id left join tiers_morale m on m.tiers_id = t.id
+                       where c.institution_id = %s and c.statut = 'ouvert'""" + clause(u)[0] + " order by c.numero", (i, *clause(u)[1])):
+        ref = f"depot:{c['id']}"
+        dates = [x for x in (dernier_mouvement.get(ref), derniere_plainte.get(c["tiers_id"]), c["ouvert_le"]) if isinstance(x, date)]
+        der = max(dates, default=None)
         if not der:
             continue
         nb = (d - der).days
-        solde = int(valeur("""select coalesce(sum(case l.sens when 'C' then l.montant_devise else -l.montant_devise end), 0) from ligne_ecriture l
-                              join ecriture e on e.id = l.ecriture_id join journee_comptable jc on jc.id = e.journee_id where l.contrat_ref = %s and jc.date_comptable <= %s""",
-                           (f"depot:{c['id']}", d)))
+        solde = soldes.get(ref, 0)
         if nb >= seuil and (tous or solde != 0):
-            sortie.append({"membre": c["membre"], "compte": c["numero"], "client": titulaire(c["tiers_id"]), "devise": c["devise"].strip(),
+            sortie.append({"membre": c["membre"], "compte": c["numero"], "client": " ".join(x for x in (c["nom"], c["postnom"], c["prenom"]) if x), "devise": c["devise"].strip(),
                            "dateCreation": c["ouvert_le"].isoformat() if c["ouvert_le"] else "", "derniere": der.isoformat(), "jours": nb, "solde": solde})
     return sortie
 

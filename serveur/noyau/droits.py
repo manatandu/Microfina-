@@ -81,6 +81,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/attente/refus", ["S57", "S113", "S114"]),   # plan d'allègement 7.1 : le droit de l'étape est vérifié dans attente.refuser
     (r"/attente/differees/\d+/\w+", ["S113", "S114"]),   # plan d'allègement, point 7.2
     (r"/conformite/cip/declarations", ["SC02"]),
+    (r"/conformite/cip/consultations", ["SC02"]),      # registre E06-2 : consultation préalable du SRCC (Instr. BCC 52, art. 13)
     (r"/conformite/cip/icu/\d+", ["S46"]),   # l'ICU se note dans la fiche du membre (plan 3.16)
     (r"/conformite/centrale-risques/declarations", ["SC02"]),
     (r"/plaintes(/\d+/reponse)?", ["SC03"]),

@@ -106,7 +106,7 @@ function Multicritere({ erreur }: Proprietes) {
           .sort((x, y) => rang.get(x.tiersId)! - rang.get(y.tiersId)! || x.certificat - y.certificat);
         setR({ comptes: [], dats, clients: new Map(retenus.map((t) => [t.id, t])), resultat: c.resultat, liste: c.liste, tri: c.tri }); return;
       }
-      const tous = await api.rapportsEpargne.comptes(du, c.au);
+      const tous = await api.rapportsEpargne.comptes(du, c.au, c.resultat === "operations");   // le détail des mouvements seulement quand le résultat le montre (registre T226)
       const comptes = tous.filter((x) => rang.has(x.tiersId) && (!c.produit || String(x.produitId) === c.produit) && (de === null || x.solde >= de) && (a === null || x.solde <= a))
         .sort((x, y) => rang.get(x.tiersId)! - rang.get(y.tiersId)! || x.compte.localeCompare(y.compte));
       setR({ comptes, dats: null, clients: new Map(retenus.map((t) => [t.id, t])), resultat: c.resultat, liste: c.liste, tri: c.tri });

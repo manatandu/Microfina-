@@ -441,7 +441,8 @@ export interface Etat {
   operationsDifferees: OperationDifferee[];   // plan d'allègement, point 7.2 : déblocages et remboursements saisis hors guichet, en attente
   journalSecurite: EvenementSecurite[];   // écart E17
   impressions?: { document: string; objet: number; exemplaire: number; par: number; le: string }[];   // point bloquant B12 : original puis duplicatas (registre T215)
-  declarationsCip: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // écart E06   // S46, S42, S43
+  declarationsCip: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];
+  consultationsSrcc?: { compteId: number; consulteLe: string; reponse: string; par: number }[];   // registre E06-2 (Instr. BCC 52, art. 13)   // écart E06   // S46, S42, S43
   banques: { id: number; code: string; libelle: string; compteLiaison: string; adresse: string }[];   // S58
   budget: Record<string, LigneBudget[]>;
   referentiels: Record<string, Record<string, LigneBudget[]>>;   // replica/referentiels.json : taxes (S104), tiers (S103), paie, immobilisations

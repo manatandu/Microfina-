@@ -2826,14 +2826,15 @@ const rapportsEpargne = {
       });
   },
   /** 7.3 Recherche multicritère (p. 83) : chaque compte, son solde à la fin de la période et ses mouvements de la période (registre S72-3) */
-  comptes(du: string, au: string) {
+  /** Le détail des mouvements seulement quand le résultat demandé le montre (audit du 21/11/2026, point B13 ; registre T226) : mêmes règles que noyau/rapports_epargne.py */
+  comptes(du: string, au: string, operations = true) {
     lectureAdmin(["S72"]); DATE_RAPPORT(du, "Date début"); DATE_RAPPORT(au, "Date Fin");
     return E.comptes.filter((c) => (c.ouvertLe ?? "1900-01-01") <= au).sort((a, b) => a.numero.localeCompare(b.numero)).map((c) => {
       const m = lignesDepot(au).filter(({ l }) => l.contrat === `depot:${c.id}`), dans = m.filter(({ d }) => d >= du);
       return { compteId: c.id, compte: c.numero, tiersId: c.tiersId, produitId: c.produitId ?? null, produit: c.intitule, devise: c.devise, ouvertLe: c.ouvertLe ?? "",
         statut: c.closLe ? "clos" : "ouvert", solde: m.reduce((s, { l }) => s + (l.sens === "C" ? l.montant : -l.montant), 0),
         credits: dans.filter(({ l }) => l.sens === "C").reduce((s, { l }) => s + l.montant, 0), debits: dans.filter(({ l }) => l.sens === "D").reduce((s, { l }) => s + l.montant, 0),
-        operations: dans.map(({ e, l, d }) => ({ date: d, piece: e.piece, libelle: e.libelle, debit: l.sens === "D" ? l.montant : 0, credit: l.sens === "C" ? l.montant : 0 })) };
+        operations: !operations ? [] : dans.map(({ e, l, d }) => ({ date: d, piece: e.piece, libelle: e.libelle, debit: l.sens === "D" ? l.montant : 0, credit: l.sens === "C" ? l.montant : 0 })) };
     });
   },
   /** 7.4 Indicateurs crédit épargne (p. 83) ; « Ajouter clients auxiliaires » compte aussi les membres auxiliaires (registre S72-4) */
@@ -5948,8 +5949,12 @@ const atypiques = {
 };
 // Écart E06 : Centrale des incidents de paiement (Instr. BCC 52, art. 10 à 15). Mêmes règles que noyau/cip.py.
 const TYPES_CIP: Record<string, string> = { ouverture_compte: "Ouverture de compte", cloture_compte: "Clôture de compte", nouveau_client: "Nouveau client", modification_client: "Client modifié" };
-/** Deux jours ouvrables après l'événement, du lundi au vendredi */
-function echeanceCip(iso: string) { const d = new Date(`${iso}T00:00:00Z`); let n = 0; while (n < 2) { d.setUTCDate(d.getUTCDate() + 1); if (d.getUTCDay() % 6 !== 0) n++; } return d.toISOString().slice(0, 10); }
+/** Deux jours ouvrables après l'événement : du lundi au vendredi, hors jours fériés de l'institution (registre E06-2) */
+function echeanceCip(iso: string) {
+  const feries = new Set((E.feries ?? []).map((x) => x.date)), d = new Date(`${iso}T00:00:00Z`); let n = 0;
+  while (n < 2) { d.setUTCDate(d.getUTCDate() + 1); if (d.getUTCDay() % 6 !== 0 && !feries.has(d.toISOString().slice(0, 10))) n++; }
+  return d.toISOString().slice(0, 10);
+}
 function evenementsCip() {
   const ev: { type: string; objetId: number; date: string; tiersId: number; compte: string; produit: string; devise: string }[] = [];
   for (const c of E.comptes) if (c.ouvertLe) { const p = E.produits.find((x) => x.id === c.produitId); ev.push({ type: "ouverture_compte", objetId: c.id, date: c.ouvertLe, tiersId: c.tiersId, compte: c.numero, produit: p?.libelle ?? c.intitule, devise: c.devise }); }
@@ -5969,7 +5974,8 @@ const cip = {
       if ((statut === "declare" && !dc) || (statut === "a_declarer" && dc)) return [];
       const t = E.tiers.find((x) => x.id === e.tiersId)!; const ech = echeanceCip(e.date);
       return [{ type: e.type, typeLibelle: TYPES_CIP[e.type]!, objetId: e.objetId, date: e.date, echeance: ech, enRetard: !dc && jour > ech, tiersId: t.id, membre: t.numero,
-        client: titulaire(t), categorie: CATEGORIES_CIP[t.type]!, compte: e.compte, produit: e.produit, devise: e.devise, icu: t.icu ?? "", declareLe: dc?.declareLe ?? "", reference: dc?.reference ?? "" }];
+        client: titulaire(t), categorie: CATEGORIES_CIP[t.type]!, compte: e.compte, produit: e.produit, devise: e.devise, icu: t.icu ?? "", declareLe: dc?.declareLe ?? "", reference: dc?.reference ?? "",
+        ...(() => { const cs = e.type === "ouverture_compte" ? (E.consultationsSrcc ?? []).find((x) => x.compteId === e.objetId) : undefined; return { consulteLe: cs?.consulteLe ?? "", reponseSrcc: cs?.reponse ?? "" }; })() }];
     });
   },
   declarer(d: { evenements: { type: string; objetId: number }[]; date: string; reference: string }) {
@@ -5985,6 +5991,18 @@ const cip = {
       E.declarationsCip.push({ type: x.type, objetId: x.objetId, dateEvenement: e.date, declareLe: d.date, reference: d.reference.trim(), declarePar: u.id });
     }
     enregistrer(); return d.evenements.map(({ type, objetId }) => ({ type, objetId }));
+  },
+  /** Art. 13 : la consultation du SRCC faite avant l'ouverture d'un compte, et la trace de la réponse (registre E06-2) */
+  noterConsultation(d: { compteId?: number; date?: string; reference?: string }) {
+    const u = exiger();
+    const c = E.comptes.find((x) => x.id === d.compteId);
+    if (!c || !c.ouvertLe) throw new ErreurMetier("Compte inconnu.");
+    const ref = (d.reference ?? "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d.date ?? "") || !ref) throw new ErreurMetier("À remplir : date de la consultation et référence de la réponse.");
+    if (d.date! > c.ouvertLe) throw new ErreurMetier("La consultation précède l'ouverture du compte : au plus tard le jour de l'ouverture.");
+    if ((E.consultationsSrcc ??= []).some((x) => x.compteId === c.id)) throw new ErreurMetier("Consultation déjà notée pour ce compte.");
+    E.consultationsSrcc.push({ compteId: c.id, consulteLe: d.date!, reponse: ref, par: u.id }); enregistrer();
+    return { compteId: c.id, consulteLe: d.date!, reponseSrcc: ref };
   },
   noterIcu(tid: number, d: { icu: string }) {
     exiger();
@@ -6462,6 +6480,7 @@ const conformite = {
   evaluerProfil: (tid: number, d: Parameters<typeof profilsRisque.evaluer>[1]) => profilsRisque.evaluer(tid, d),
   cip: (du: string, au: string, statut = "") => cip.evenements(du, au, statut),
   declarerCip: (d: Parameters<typeof cip.declarer>[0]) => cip.declarer(d),
+  noterConsultationCip: (d: Parameters<typeof cip.noterConsultation>[0]) => cip.noterConsultation(d),
   noterIcu: (tid: number, d: { icu: string }) => cip.noterIcu(tid, d),
   enregistrerPpe: (tid: number, d: Parameters<typeof ppe.enregistrer>[1]) => ppe.enregistrer(tid, d),
   ppeQualites: () => { lectureAdmin(["SC01"]); return QUALITES_PPE; },
@@ -9264,7 +9283,10 @@ const etatsCompta = {
       else if (m.date >= du) { if (m.sens === "D") c.debit += m.montantCdf; else c.credit += m.montantCdf;
         c.lignes.push({ date: m.date, journal: m.journal, piece: m.piece, reference: m.reference, libelle: m.libelle, debit: m.sens === "D" ? m.montantCdf : 0, credit: m.sens === "C" ? m.montantCdf : 0, solde: 0 }); }
     }
-    const out = [...comptes.values()].filter((c) => c.lignes.length || c.soldeInitial);
+    const out = [...comptes.values()].filter((c) => c.lignes.length || c.soldeInitial).sort((x, y) => x.compte.localeCompare(y.compte) || x.auxiliaire.localeCompare(y.auxiliaire));
+    // Audit du 21/11/2026, point B13 (registre T226) : 50 000 lignes au plus par édition, comme noyau/etats_compta.py
+    const nb = out.reduce((x, c) => x + c.lignes.length, 0), max = 50000;
+    if (nb > max) throw new ErreurMetier(`Grand livre : ${nb} lignes sur la période. Réduire la période, ou choisir un type ou un compte (${max} lignes au plus par édition).`);
     for (const c of out) { let s = c.soldeInitial; for (const l of c.lignes) { s += l.debit - l.credit; l.solde = s; } c.soldeFinal = s; }
     return { du, au, exercice: ex, comptes: out, totalDebit: out.reduce((x, c) => x + c.debit, 0), totalCredit: out.reduce((x, c) => x + c.credit, 0) };
   },

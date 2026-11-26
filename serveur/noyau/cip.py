@@ -6,20 +6,25 @@ from datetime import date, timedelta
 
 from .cloison import visibles
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import exiger, journee_courante, titulaire
+from .services import exiger, journee_courante
 from .fuseau import jour_agence
 
 TYPES = {"ouverture_compte": "Ouverture de compte", "cloture_compte": "Clôture de compte", "nouveau_client": "Nouveau client", "modification_client": "Client modifié"}
 
 
-def echeance(d: date) -> date:
-    """Deux jours ouvrables après l'événement, du lundi au vendredi (art. 10 ; « 48 heures » à l'art. 15)"""
+def echeance(d: date, feries: frozenset = frozenset()) -> date:
+    """Deux jours ouvrables après l'événement : du lundi au vendredi, hors jours fériés de l'institution (art. 10 ; « 48 heures » à l'art. 15 ; registre E06-2)"""
     n = 0
     while n < 2:
         d += timedelta(days=1)
-        if d.weekday() < 5:
+        if d.weekday() < 5 and d not in feries:
             n += 1
     return d
+
+
+def jours_feries(institution_id: int) -> frozenset:
+    """Jours fériés de l'institution (Paramétrage > Jours fériés, S34)"""
+    return frozenset(r["date_ferie"] for r in lignes("select date_ferie from jour_ferie where institution_id = %s", (institution_id,)))
 
 
 def evenements(u: dict, du: str, au: str, statut: str = "") -> list[dict]:
@@ -46,18 +51,29 @@ def evenements(u: dict, du: str, au: str, statut: str = "") -> list[dict]:
     j = journee_courante(u)
     jour = date.fromisoformat(j["date"]) if j else jour_agence(u)
     sortie = []
+    feries = jours_feries(u["institution_id"])
+    # Art. 13 : consultation préalable du SRCC à l'ouverture d'un compte, avec la trace de la réponse (registre E06-2)
+    consultations = {r["objet_id"]: r for r in lignes("select objet_id, declare_le, reference from declaration_cip where institution_id = %s and type_evenement = 'consultation_srcc'",
+                                                    (u["institution_id"],))}
+    # Audit du 21/11/2026, point bloquant B13 (registre T226) : déclarations et membres lus en deux requêtes, quel que soit le nombre d'événements
+    declarations = {(d["type_evenement"], d["objet_id"]): d for d in lignes(
+        "select type_evenement, objet_id, declare_le, reference from declaration_cip where institution_id = %s and type_evenement <> 'consultation_srcc'", (u["institution_id"],))}
+    membres = {t["id"]: t for t in lignes("""select t.id, t.type, t.icu, t.numero, coalesce(p.nom, m.raison_sociale) as nom, p.postnom, p.prenom
+                                              from tiers t left join tiers_personne p on p.tiers_id = t.id left join tiers_morale m on m.tiers_id = t.id
+                                              where t.id = any(%s)""", (list({r["tiers"] for r in rows}),))} if rows else {}
     for r in rows:
-        dc = une("select declare_le, reference from declaration_cip where institution_id = %s and type_evenement = %s and objet_id = %s",
-                 (u["institution_id"], r["type"], r["objet"]))
+        dc = declarations.get((r["type"], r["objet"]))
         if statut == "declare" and not dc or statut == "a_declarer" and dc:
             continue
-        t = une("select type, icu, numero from tiers where id = %s", (r["tiers"],))
-        e = echeance(r["d"])
+        t = membres[r["tiers"]]
+        e = echeance(r["d"], feries)
+        cs = consultations.get(r["objet"]) if r["type"] == "ouverture_compte" else None
         sortie.append({"type": r["type"], "typeLibelle": TYPES[r["type"]], "objetId": r["objet"], "date": r["d"].isoformat(), "echeance": e.isoformat(),
-                       "enRetard": not dc and jour > e, "tiersId": r["tiers"], "membre": t["numero"], "client": titulaire(r["tiers"]),
+                       "enRetard": not dc and jour > e, "tiersId": r["tiers"], "membre": t["numero"], "client": " ".join(x for x in (t["nom"], t["postnom"], t["prenom"]) if x),
                        "categorie": {"physique": "Personne physique", "morale": "Personne morale", "groupe": "Groupe"}[t["type"]],
                        "compte": r["numero"] if r["type"].endswith("compte") else "", "produit": r["produit"] or "", "devise": r["devise"] or "",
-                       "icu": t["icu"] or "", "declareLe": dc["declare_le"].isoformat() if dc else "", "reference": dc["reference"] if dc else ""})
+                       "icu": t["icu"] or "", "declareLe": dc["declare_le"].isoformat() if dc else "", "reference": dc["reference"] if dc else "",
+                       "consulteLe": cs["declare_le"].isoformat() if cs else "", "reponseSrcc": cs["reference"] if cs else ""})
     return sortie
 
 
@@ -92,6 +108,25 @@ def declarer(u: dict, d: dict) -> list[dict]:
         executer("""insert into declaration_cip (institution_id, type_evenement, objet_id, date_evenement, declare_le, reference, declare_par)
                     values (%s, %s, %s, %s, %s, %s, %s)""", (u["institution_id"], type_, oid, de, date_, ref, u["id"]))
     return [{"type": x["type"], "objetId": x["objetId"]} for x in ev]
+
+
+def noter_consultation(u: dict, d: dict) -> dict:
+    """Art. 13 : la consultation du SRCC faite avant l'ouverture d'un compte, et la trace de la réponse (registre E06-2)"""
+    exiger(u)
+    d = d if isinstance(d, dict) else {}
+    cid, date_, ref = d.get("compteId"), str(d.get("date") or "").strip(), str(d.get("reference") or "").strip()
+    c = une("select ouvert_le from compte_depot where id = %s and institution_id = %s", (cid, u["institution_id"])) if isinstance(cid, int) and not isinstance(cid, bool) else None
+    if not c or not c["ouvert_le"]:
+        raise ErreurMetier("Compte inconnu.")
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", date_) or not ref:
+        raise ErreurMetier("À remplir : date de la consultation et référence de la réponse.")
+    if date_ > c["ouvert_le"].isoformat():
+        raise ErreurMetier("La consultation précède l'ouverture du compte : au plus tard le jour de l'ouverture.")
+    if valeur("select 1 from declaration_cip where institution_id = %s and type_evenement = 'consultation_srcc' and objet_id = %s", (u["institution_id"], cid)):
+        raise ErreurMetier("Consultation déjà notée pour ce compte.")
+    executer("""insert into declaration_cip (institution_id, type_evenement, objet_id, date_evenement, declare_le, reference, declare_par)
+                values (%s, 'consultation_srcc', %s, %s, %s, %s, %s)""", (u["institution_id"], cid, c["ouvert_le"], date_, ref, u["id"]))
+    return {"compteId": cid, "consulteLe": date_, "reponseSrcc": ref}
 
 
 def noter_icu(u: dict, tid: int, d: dict) -> dict:

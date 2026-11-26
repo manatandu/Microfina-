@@ -1,7 +1,7 @@
 id,lot,titre,ecrans,statut,question,reste
 0.1,0,Sortie d'une immobilisation,S139,fait,,
 0.2,0,Création d'un bien,S137,fait,,
-0.3,0,TVA d'un remboursement de crédit,S55 S76 S106 S108,partiel,,"Écriture corrigée : la TVA va au 433. Le logiciel ne calcule pas encore de TVA sur les intérêts (toujours 0) : à prévoir sur le produit quand l'institution est assujettie (O.-L. 10/001, art. 14 : 80 millions de CDF) et le crédit taxable (art. 17, 14° et 17° ; art. 25, 5°), au lot 2 avec le produit de crédit."
+0.3,0,TVA d'un remboursement de crédit,S55 S76 S106 S108,fait,,"Fait : la TVA va au 433. La TVA sur les intérêts n'est pas construite : le crédit social ou agricole des COOPEC et des IMF est exonéré (O.-L. 10/001, art. 17, 17°) ; limite connue (registre T225)."
 0.4,0,Séparation des tâches du crédit,S54 S87 S88 S90 S105,fait,,
 0.5,0,Utilisateur qui quitte l'institution,S05 S07,fait,,
 0.6,0,Numéro du compte d'épargne au guichet d'adhésion,S73,fait,,
@@ -20,8 +20,8 @@ id,lot,titre,ecrans,statut,question,reste
 0.19,0,Fin de mois bloquée,S127 S128,fait,,
 0.20,0,Rapport des transactions,S13,fait,,
 0.21,0,Simulation de crédit,S84,fait,,
-0.22,0,Dates modifiables qui changent un calcul,S40 S63 S65 S69,fait,,Attend ta réponse : faut-il un droit à part pour enregistrer à une date antérieure à la journée ?
-0.23,0,Cases enregistrées qui n'agissent sur rien,S14 S19 S23 S26 S32 S65 S69 S102 S126 S136,partiel,,"Fait : « A échéance » (S65), « Mode règlement » (S69), compte interne (2.15), hors bilan 1 et 2 (2.21), options du plan des comptes (2.26), page Type de pièce (2.7), champs du produit de crédit (2.16). Reste, avec leurs écrans refaits : périodicité des familles de biens (9.6), financement et pages du budget (9.4)."
+0.22,0,Dates modifiables qui changent un calcul,S40 S63 S65 S69,fait,,"Pas de droit à part : une régularisation se passe sur la journée ouverte, avec la date réelle dans le libellé (registre T223)."
+0.23,0,Cases enregistrées qui n'agissent sur rien,S14 S19 S23 S26 S32 S65 S69 S102 S126 S136,fait,,
 0.24,0,Écrans non repris encore dans les menus,S129 S130,fait,,
 1.1,1,Tableau vide,,fait,,
 1.2,1,Plus un mot d'anglais,S21 S25 S37 S39 S117,fait,,
@@ -38,7 +38,7 @@ id,lot,titre,ecrans,statut,question,reste
 1.13,1,Un clic suffit,S09 S125,fait,,
 1.14,1,Pagination,,fait,,
 1.15,1,Boutons qui ne font rien de plus,S19 S65 S104 S110 S126 S132 S133 S136,fait,,
-1.16,1,"Un mot par notion, le même partout",S42 S44 S46 S48 S49 S73,partiel,,Reste : membre en COOPEC et client en IMF sur tous les libellés ; le champ « Gestionnaire » de la fiche (question au porteur)
+1.16,1,"Un mot par notion, le même partout",S42 S44 S46 S48 S49 S73,fait,,"« Agent de crédit » remplace « Gestionnaire » partout. « Membre » reste là où la loi le porte ; les libellés de saisie gardent « Client », mot de Microfina++ (registre T221)."
 1.17,1,Taux d'intérêt du crédit,S23 S25 S84 S95,fait,,
 1.18,1,"Pas de texte superflu (demande du porteur, 22/11/2026)",,fait,,
 2.1,2,Activité (l'exemple du porteur),S14 S21 S37 S38 S39 S46,fait,,
@@ -124,7 +124,7 @@ id,lot,titre,ecrans,statut,question,reste
 6.12,6,Garanties du crédit,S94,fait,,
 6.13,6,Balance âgée et provisions,S98 S99 S101 S127 S128,fait,,
 6.14,6,Autres écrans du crédit,S96 S97 S100 SL01,fait,,
-6.15,6,Rapports crédit,S101,partiel,"Le renvoi retirerait les indicateurs à l'agent de crédit : il tient S101 mais pas « Indicateurs et normes » (S123). Renvoyer quand même, ou garder l'onglet pour celui qui n'a pas S123 ?","Question au porteur : le renvoi vers « Indicateurs et normes » (7.9, fait) retirerait les indicateurs à l'agent de crédit, qui n'a pas le droit S123."
+6.15,6,Rapports crédit,S101,fait,,"L'onglet « Indicateur de Gestion » reste dans les rapports crédit, pour l'agent de crédit (registre T222)."
 6.16,6,"Menu Crédit, dans l'ordre de la vie du crédit",,fait,,
 6.17,6,Suivi du recouvrement,S21 SL01,fait,,
 10.1,10,Seuls les comptes de l'institution reçoivent des écritures,S102,fait,,
@@ -172,6 +172,6 @@ id,lot,titre,ecrans,statut,question,reste
 11.2,11,"Défauts visibles, sans changer le style",Tous les écrans,fait,,
 11.3,11,Formulaires et clavier,Tous les écrans,fait,,
 11.4,11,Dates,Tous les écrans datés,fait,,
-11.5,11,Vitesse et application installable,Application,partiel,,"Fait : paquet de départ à 144 Ko compressés, contrôlé à chaque construction ; application installable (manifeste, service worker des seuls fichiers statiques) ; délai maximal des appels. Reste : préchargement du module ouvert en priorité basse, relecture ciblée après une opération, arbre des lieux en fichier statique, annulation des appels d'un écran quitté, grand livre sans ralentissement."
-11.6,11,Sécurité dans le navigateur,"Application, serveur",partiel,,Fait : impression sans document.write ; Trusted Types imposés aux essais et observés en production (rapports reçus) ; Clear-Site-Data à la déconnexion avec message ; Fetch Metadata au serveur. Reste : imposer Trusted Types en production après la période d'observation.
+11.5,11,Vitesse et application installable,Application,fait,,"Fait : paquet de départ à 144 Ko compressés, application installable, délai maximal des appels ; grand livre et balance totalisés par la base, détail borné (essai en charge du 26/11/2026, registre T226). Non retenus : préchargement en priorité basse, relecture ciblée, arbre des lieux en fichier statique, annulation des appels d'un écran quitté ; le budget est tenu et aucune lecture ne dépasse 1,5 s à 30 000 membres."
+11.6,11,Sécurité dans le navigateur,"Application, serveur",fait,,"Trusted Types imposés en production depuis le 26/11/2026, après l'essai de la version construite : les 141 écrans s'ouvrent sans erreur."
 11.7,11,Refonte visuelle,Tous les écrans,fait,,

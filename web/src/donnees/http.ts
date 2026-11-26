@@ -22,7 +22,7 @@ const memoire = new Map<string, { jusqua: number; texte: string }>();
 const enVol = new Map<string, Promise<string>>();
 
 export function creerApiHttp(notifier: () => void): ApiDonnees {
-  async function envoyer(methode: Methode, chemin: string, corps?: unknown): Promise<string> {
+  async function envoyer(methode: Methode, chemin: string, corps?: unknown, rejoue = false): Promise<string> {
     signaler(1);
     // Plan d'allègement, point 11.5 : délai maximal d'un appel (lecture 30 s, écriture 60 s) ; repli pour les navigateurs sans AbortSignal.timeout
     const delai = methode === "GET" ? 30_000 : 60_000, arret = new AbortController(), minuterie = setTimeout(() => arret.abort(), delai);
@@ -41,6 +41,9 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
         throw new ErreurMetier(methode === "GET" ? "Le serveur n'a pas répondu à temps. Réessayez."
           : "Le serveur n'a pas répondu à temps : vérifiez si l'opération est passée avant de la refaire.");
       }
+      // Audit du 21/11/2026, point B13 (registre T226) : la même opération partie deux fois au même instant (double clic). Le serveur n'en passe
+      // qu'une et répond 409 à l'autre : le poste la renvoie une fois, avec la même clé, et reçoit le résultat de l'opération passée
+      if (r.status === 409 && !rejoue) { await new Promise((f) => setTimeout(f, 300)); return await envoyer(methode, chemin, corps, true); }
       if (!r.ok) {
         let message = "Le serveur ne répond pas comme prévu.";
         try { message = ((await r.json()) as { message?: string }).message ?? message; } catch { /* réponse vide */ }
@@ -122,7 +125,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       virements: (du: string, au: string) => get(`/epargne/rapports/virements?du=${du}&au=${au}`),
       garanties: (du: string, au: string, produitId?: number | null, agentId?: number | null) =>
         get(`/epargne/rapports/garanties?du=${du}&au=${au}${produitId ? `&produitId=${produitId}` : ""}${agentId ? `&agentId=${agentId}` : ""}`),
-      comptes: (du: string, au: string) => get(`/epargne/rapports/comptes?du=${du}&au=${au}`),
+      comptes: (du: string, au: string, operations = true) => get(`/epargne/rapports/comptes?du=${du}&au=${au}&operations=${operations}`),
       indicateurs: (date: string, auxiliaires: boolean) => get(`/epargne/rapports/indicateurs?date=${date}&auxiliaires=${auxiliaires}`),
       inactivite: (date: string, jours: number | null, tous: boolean) => get(`/epargne/rapports/inactivite?date=${date}${jours === null ? "" : `&jours=${jours}`}&tous=${tous}`),
     },
@@ -505,6 +508,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       evaluerProfil: (tid: number, d: object) => post(`/conformite/profils/${tid}`, d),
       cip: (du: string, au: string, statut = "") => get(`/conformite/cip?du=${du}&au=${au}&statut=${statut}`),
       declarerCip: (d: object) => post("/conformite/cip/declarations", d),
+      noterConsultationCip: (d: object) => post("/conformite/cip/consultations", d),
       noterIcu: (tid: number, d: object) => post(`/conformite/cip/icu/${tid}`, d),
       enregistrerPpe: (tid: number, d: object) => post(`/conformite/ppe/${tid}`, d),
       ppeQualites: () => get("/conformite/ppe-qualites"),

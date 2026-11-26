@@ -21,6 +21,8 @@ export default function CentraleIncidents() {
   const { donnees, erreur } = useDonnees(() => (debut && fin ? api.conformite.cip(debut, fin, statut) : Promise.resolve([])), [debut, fin, statut, relu]);
   const [choisis, setChoisis] = useState<Set<string>>(new Set());
   const [decl, setDecl] = useState<{ date: string; reference: string } | null>(null);
+  // Art. 13 : consultation préalable du SRCC à l'ouverture d'un compte, avec la trace de la réponse (registre E06-2)
+  const [consultation, setConsultation] = useState<{ e: Evenement; date: string; reference: string } | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   if (j === undefined) return <Chargement />;
   if (erreur) return <><p role="alert" className="erreur-champ">{erreur}</p></>;
@@ -35,8 +37,16 @@ export default function CentraleIncidents() {
       catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
   }
-  const exporter = () => exporterExcel("declarations-cip", ["Événement", "Date", "Échéance", "N° client", "Client", "Catégorie", "ICU", "Compte", "Produit", "Devise", "Déclaré le", "Référence"],
-    lignes.map((e) => [e.typeLibelle, fr(e.date), fr(e.echeance), e.membre, e.client, e.categorie, e.icu, e.compte, e.produit, e.devise, fr(e.declareLe), e.reference]));
+  function noterConsultation() {
+    if (!consultation) return;
+    const c = consultation;
+    setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+      try { await api.conformite.noterConsultationCip({ compteId: c.e.objetId, date: c.date || c.e.date, reference: c.reference }); setConsultation(null); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
+      catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+    } });
+  }
+  const exporter = () => exporterExcel("declarations-cip", ["Événement", "Date", "Échéance", "N° client", "Client", "Catégorie", "ICU", "Compte", "Produit", "Devise", "SRCC consulté le", "Réponse du SRCC", "Déclaré le", "Référence"],
+    lignes.map((e) => [e.typeLibelle, fr(e.date), fr(e.echeance), e.membre, e.client, e.categorie, e.icu, e.compte, e.produit, e.devise, fr(e.consulteLe), e.reponseSrcc, fr(e.declareLe), e.reference]));
   return (
     <>
       
@@ -47,11 +57,11 @@ export default function CentraleIncidents() {
           <ChampDate libelle="Du" valeur={debut} onChange={setDu} />
           <ChampDate libelle="Au" valeur={fin} onChange={setAu} />
         </div>
-        <Paginee lignes={lignes} colonnes={(e) => [null, e.typeLibelle, fr(e.date), fr(e.echeance), e.membre, e.client, e.icu, e.compte, e.devise, fr(e.declareLe), e.reference]}>{(visibles) => (<div className="defile-x"><table className="grille">
+        <Paginee lignes={lignes} colonnes={(e) => [null, e.typeLibelle, fr(e.date), fr(e.echeance), e.membre, e.client, e.icu, e.compte, e.devise, e.consulteLe ? `${fr(e.consulteLe)} ${e.reponseSrcc}` : "", fr(e.declareLe), e.reference]}>{(visibles) => (<div className="defile-x"><table className="grille">
           <thead><tr><th scope="col"><span className="sr-only">Choisir</span></th><th scope="col">Événement</th><th scope="col">Date</th><th scope="col">Échéance</th><th scope="col">N° client</th>
-            <th scope="col">Client</th><th scope="col">ICU</th><th scope="col">Compte</th><th scope="col">Devise</th><th scope="col">Déclaré le</th><th scope="col">Référence</th></tr><LigneFiltres titres={[null, "Événement", "Date", "Échéance", "N° client", "Client", "ICU", "Compte", "Devise", "Déclaré le", "Référence"]} /></thead>
+            <th scope="col">Client</th><th scope="col">ICU</th><th scope="col">Compte</th><th scope="col">Devise</th><th scope="col">SRCC consulté</th><th scope="col">Déclaré le</th><th scope="col">Référence</th></tr><LigneFiltres titres={[null, "Événement", "Date", "Échéance", "N° client", "Client", "ICU", "Compte", "Devise", "SRCC consulté", "Déclaré le", "Référence"]} /></thead>
           <tbody>
-            {visibles.length === 0 && <tr><td colSpan={11}>Aucune ligne.</td></tr>}
+            {visibles.length === 0 && <tr><td colSpan={12}>Aucune ligne.</td></tr>}
             {visibles.map((e) => (
               <tr key={cleDe(e)}>
                 <td>{!e.declareLe && <input type="checkbox" aria-label={`Choisir : ${e.typeLibelle} ${e.compte || e.membre}`} checked={choisis.has(cleDe(e))} onChange={() => basculer(e)} />}</td>
@@ -59,7 +69,10 @@ export default function CentraleIncidents() {
                 <td className="chiffres">{fr(e.echeance)}{e.enRetard ? <strong> · en retard</strong> : ""}</td>
                 <td className="chiffres">{e.membre}</td><td>{e.client}</td>
                 <td className="chiffres">{e.icu}</td>
-                <td className="chiffres">{e.compte}</td><td>{e.devise}</td><td className="chiffres">{fr(e.declareLe)}</td><td className="chiffres">{e.reference}</td>
+                <td className="chiffres">{e.compte}</td><td>{e.devise}</td>
+                <td className="chiffres">{e.type !== "ouverture_compte" ? "" : e.consulteLe ? `${fr(e.consulteLe)} · ${e.reponseSrcc}`
+                  : <button className="bouton secondaire petit" type="button" aria-label={`Noter la consultation : ${e.compte}`} onClick={() => setConsultation({ e, date: "", reference: "" })}>Noter</button>}</td>
+                <td className="chiffres">{fr(e.declareLe)}</td><td className="chiffres">{e.reference}</td>
               </tr>))}
           </tbody>
         </table></div>)}</Paginee>
@@ -70,7 +83,8 @@ export default function CentraleIncidents() {
         </div>
         <Textes sources={["Instr. BCC 52, art. 10 et 15 : ouvertures et clôtures de comptes, création et modification des clients déclarées à la CIP dans les deux jours ouvrables, sur papier ou par voie électronique",
           "Instr. BCC 52, art. 13 : la BCC attribue ou confirme l'identifiant client unique (ICU) ; art. 14 : identité du titulaire, type, nature, RIB, devise et statut du compte",
-          "Échéance : deux jours comptés du lundi au vendredi ; les jours fériés ne sont pas encore retirés"]} />
+          "Instr. BCC 52, art. 13 : l'ouverture d'un compte requiert la consultation préalable du SRCC ; l'établissement garde la trace de la réponse (registre E06-2)",
+          "Échéance : deux jours comptés du lundi au vendredi, hors jours fériés de l'institution (Paramétrage > Jours fériés)"]} />
       </section>
       <Fiche titre="Déclaration à la CIP" ouverte={!!decl} fermer={() => setDecl(null)}>
         {decl && <Formulaire className="pile" envoyer={declarer}>
@@ -80,6 +94,16 @@ export default function CentraleIncidents() {
             <Champ libelle="Référence : *">{(p) => <input {...p} className="saisie code" value={decl.reference} onChange={(e) => setDecl({ ...decl, reference: e.target.value })} />}</Champ>
           </div>
           <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button><button className="bouton secondaire" type="button" onClick={() => setDecl(null)}>Fermer</button></div>
+        </Formulaire>}
+      </Fiche>
+      <Fiche titre="Consultation du SRCC" ouverte={!!consultation && !boite} fermer={() => setConsultation(null)}>
+        {consultation && <Formulaire className="pile" envoyer={noterConsultation}>
+          <p>{`Compte ${consultation.e.compte}, ouvert le ${fr(consultation.e.date)}.`}</p>
+          <div className="grille-deux">
+            <ChampDate libelle="Date de la consultation : *" valeur={consultation.date || consultation.e.date} onChange={(v) => setConsultation({ ...consultation, date: v })} />
+            <Champ libelle="Référence de la réponse : *">{(p) => <input {...p} className="saisie code" value={consultation.reference} onChange={(x) => setConsultation({ ...consultation, reference: x.target.value })} />}</Champ>
+          </div>
+          <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button><button className="bouton secondaire" type="button" onClick={() => setConsultation(null)}>Fermer</button></div>
         </Formulaire>}
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />

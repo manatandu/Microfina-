@@ -3913,6 +3913,23 @@ def test_centrale_incidents(clients, journee):
     assert [(e["membre"], e["reference"]) for e in chef.get("/api/conformite/cip?du=2026-11-01&au=2026-11-30&statut=declare", **H).json()] == [(t["numero"], "CIP-1")]
     assert chef.post(f"/api/conformite/cip/icu/{t['id']}", {"icu": "ICU-0001"}, **H).status_code == 200
     assert "déjà noté" in chef.post(f"/api/conformite/cip/icu/{T('0412-000318')}", {"icu": "ICU-0001"}, **H).json()["message"]
+    # Registre E06-2 (Instr. BCC 52, art. 13) : la consultation préalable du SRCC se note pour une ouverture de compte, avec la trace de la réponse
+    tous = chef.get("/api/conformite/cip?du=2000-01-01&au=2026-11-30", **H).json()
+    oc = next(e for e in tous if e["type"] == "ouverture_compte")
+    assert (oc["consulteLe"], oc["reponseSrcc"]) == ("", "")
+    noter = lambda corps: chef.post("/api/conformite/cip/consultations", corps, **H)
+    assert "À remplir" in noter({"compteId": oc["objetId"], "date": oc["date"], "reference": ""}).json()["message"]
+    assert "précède l'ouverture" in noter({"compteId": oc["objetId"], "date": "2026-11-30", "reference": "SRCC-77"}).json()["message"]
+    assert noter({"compteId": 999999, "date": oc["date"], "reference": "SRCC-77"}).json()["message"] == "Compte inconnu."
+    assert noter({"compteId": oc["objetId"], "date": oc["date"], "reference": "SRCC-77"}).json()["reponseSrcc"] == "SRCC-77"
+    assert "déjà notée" in noter({"compteId": oc["objetId"], "date": oc["date"], "reference": "SRCC-78"}).json()["message"]
+    relu = next(e for e in chef.get("/api/conformite/cip?du=2000-01-01&au=2026-11-30", **H).json() if e["type"] == "ouverture_compte" and e["objetId"] == oc["objetId"])
+    assert (relu["consulteLe"], relu["reponseSrcc"]) == (oc["date"], "SRCC-77")
+    assert clients["caisse"].post("/api/conformite/cip/consultations", {"compteId": oc["objetId"], "date": oc["date"], "reference": "X"}, **H).status_code == 403
+    # Les jours fériés de l'institution sortent de l'échéance : jeudi 5, vendredi 6 férié, donc mardi 10
+    from datetime import date as _d
+    from noyau.cip import echeance as _ech
+    assert _ech(_d(2026, 11, 5)) == _d(2026, 11, 9) and _ech(_d(2026, 11, 5), frozenset({_d(2026, 11, 6)})) == _d(2026, 11, 10)
 
 
 def test_visa_sans_copie_piece(clients, journee):
@@ -5832,6 +5849,10 @@ def test_cloisonnement_agences(clients, journee):
     assert r.status_code == 403 and r.json()["message"] == "Ce membre relève d'une autre agence."
     assert agent.get(f"/api/tiers/{k}/comptes", **H).status_code == 403
     assert "0412-000318" not in chef.get("/api/rapports/clients", **H).content.decode()
+    # Point B13 (registre T226) : le rapport des comptes d'épargne ne rend que les comptes de ses membres (il rendait ceux de toute l'institution)
+    connecter(chef, "jpmukendi")
+    comptes = chef.get("/api/epargne/rapports/comptes?du=2026-01-01&au=2026-11-05", **H).json()
+    assert comptes and "0412-000318-02" not in [x["compte"] for x in comptes] and "0412-000319-02" in [x["compte"] for x in comptes]
     assert T("0412-000319") in [x["id"] for x in agent.get("/api/tiers?q=0412-000319", **H).json()]          # ses membres, toujours
     # Agir : un dépôt au guichet sur le compte d'un membre d'une autre agence
     r = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}, "mandataire": ""}, **H)
@@ -5980,6 +6001,58 @@ def test_registre_des_sauvegardes(clients, settings):
     settings.ALERTE_COURRIELS, settings.EMAIL_HOST = ["exploitation@exemple.cd"], "smtp.exemple.cd"
     call_command("alerter", "Sauvegarde : ÉCHEC. pg_dump a échoué.")
     assert mail.outbox[-1].to == ["exploitation@exemple.cd"] and "pg_dump" in mail.outbox[-1].body
+
+
+def test_lectures_a_volume_et_doublon(clients, journee, monkeypatch):
+    """Point bloquant B13 (constats F22 et F23 ; registre T226) : les grandes lectures ne lisent plus membre par membre, le grand livre borne son détail,
+    et la même opération envoyée deux fois au même instant reçoit une réponse 409, pas une erreur du serveur"""
+    from django.db import connection
+    from noyau import etats_compta
+    from noyau.bd import executer
+    chef, caisse, compta = clients["chef"], clients["caisse"], clients["compta"]
+    caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000319-02"), "montant": 1000000, "coupures": {"10000": 1}, "mandataire": ""}, **H)
+    # Rapport des clients : la fiche réduite aux champs des rapports, en une requête ; registre des membres : deux requêtes
+    def requetes(client, chemin):
+        n = [0]
+        def compter(execute, sql, params, many, context):
+            n[0] += 1
+            return execute(sql, params, many, context)
+        with connection.execute_wrapper(compter):
+            r = client.get(chemin, **H)
+        assert r.status_code == 200, r.content
+        return n[0], r.json()
+    n, l = requetes(chef, "/api/rapports/clients")
+    assert n < 20 and {"id", "numero", "statut", "nom", "dateVisa", "gestionnaireId"} <= set(l[0]) and "beneficiaires" not in l[0] and len(l) >= 3
+    n, r = requetes(chef, "/api/clients/registre-membres")
+    assert n < 25 and [m["numero"] for m in r["membres"]][:1] and all(m["partsLiberees"] >= 0 for m in r["membres"])
+    n, _ = requetes(chef, "/api/conformite/cip?du=2026-01-01&au=2026-12-31")
+    assert n < 30
+    n, _ = requetes(chef, "/api/epargne/rapports/inactivite?date=2026-11-05&tous=true")
+    assert n < 25
+    # Rapport des comptes d'épargne : les soldes sans le détail, ou le détail borné
+    sans = chef.get("/api/epargne/rapports/comptes?du=2026-01-01&au=2026-11-05&operations=false", **H).json()
+    avec = chef.get("/api/epargne/rapports/comptes?du=2026-01-01&au=2026-11-05", **H).json()
+    c = next(x for x in avec if x["compte"] == "0412-000319-02")
+    assert c["operations"] and c["credits"] >= 1000000 and next(x for x in sans if x["compte"] == "0412-000319-02")["operations"] == []
+    assert [(x["compte"], x["solde"]) for x in sans] == [(x["compte"], x["solde"]) for x in avec]
+    monkeypatch.setattr(etats_compta, "LIGNES_MAX", 0)
+    r = chef.get("/api/epargne/rapports/comptes?du=2026-01-01&au=2026-11-05", **H)
+    assert r.status_code == 422 and "lignes au plus par édition" in r.json()["message"]
+    # Grand livre : au-delà de la borne, il demande une période plus courte ou un compte ; la balance, elle, reste entière
+    connecter(compta, "plumbala")                                       # les écritures de la reprise des soldes sont définitives (journée du 04/11 fermée)
+    r = compta.get("/api/comptabilite/grand-livre?du=2026-01-01&au=2026-12-31&exercice=2026&type=global", **H)
+    assert r.status_code == 422 and "Grand livre :" in r.json()["message"] and "0 lignes au plus par édition" in r.json()["message"]
+    monkeypatch.undo()
+    assert compta.get("/api/comptabilite/grand-livre?du=2026-01-01&au=2026-12-31&exercice=2026&type=global", **H).status_code == 200
+    b = compta.get("/api/comptabilite/balance?du=2026-01-01&au=2026-12-31&exercice=2026&type=8", **H).json()
+    assert b["equilibree"] and b["lignes"]
+    # Doublon : une opération de même clé déjà en cours (ici posée à la main, non validée) : réponse 409 avec un message, et rien n'est écrit
+    k = cle()
+    executer("""insert into operation (institution_id, agence_id, journee_id, type, montant, devise, statut, cle_idempotence, saisi_par)
+                select o.institution_id, o.agence_id, o.journee_id, 'depot', 1000000, 'CDF', 'saisie', %s, o.saisi_par from operation o order by o.id desc limit 1""", (k,))
+    avant = ident("select count(*) from ecriture")
+    r = caisse.post("/api/guichet/depots", {"cle": k, "compteId": C("0412-000319-02"), "montant": 1000000, "coupures": {"10000": 1}, "mandataire": ""}, **H)
+    assert r.status_code == 409 and "ne passe qu'une fois" in r.json()["message"] and ident("select count(*) from ecriture") == avant
 
 
 def test_impressions_original_duplicata(clients, journee):

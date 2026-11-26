@@ -774,6 +774,10 @@ const OUT = process.argv[2];
   // Centrale des incidents de paiement (écart E06) : les ouvertures et nouveaux clients du jour à déclarer, avec leur échéance
   await aller('/clients/sc02'); await p.getByRole('heading', { name: 'Centrales de la BCC' }).waitFor(); await p.getByRole('cell', { name: 'Nouveau client' }).first().waitFor();
   await etape('10f-centrale-incidents');
+  // Registre E06-2 (Instr. BCC 52, art. 13) : la consultation préalable du SRCC se note pour une ouverture de compte, avec la référence de la réponse
+  await p.getByRole('button', { name: /^Noter la consultation/ }).first().click(); const fsr = p.getByRole('dialog', { name: 'Consultation du SRCC' });
+  await fsr.getByLabel('Référence de la réponse : *').fill('SRCC-2026-001'); await etape('10f2-consultation-srcc');
+  await fsr.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByText('SRCC-2026-001').first().waitFor();
   // Plainte (écart E07 ; Instr. BCC 39) : enregistrée avec sa référence unique, accusé de réception remis au client
   await aller('/clients/sc03'); await p.getByRole('heading', { name: 'Plaintes' }).waitFor();
   await p.getByRole('button', { name: 'Nouvelle plainte' }).click(); const fp = p.getByRole('dialog', { name: 'Nouvelle plainte' });

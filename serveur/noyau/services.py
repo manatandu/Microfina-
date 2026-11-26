@@ -337,19 +337,21 @@ def contexte(u: dict) -> dict:
 
 # ---------- Journées ----------
 
-def vue_journee(j: dict | None) -> dict | None:
+def vue_journee(j: dict | None, fuseau=None) -> dict | None:
     if not j:
         return None
-    ag = {"agence_id": j["agence_id"]}   # heures lues dans le fuseau de l'agence (point 11.4)
+    fz = fuseau or fuseau_agence(j["agence_id"])   # heures lues dans le fuseau de l'agence (point 11.4)
+    heure = lambda d: d.astimezone(fz).isoformat(timespec="seconds") if d else None
     return {"id": j["id"], "date": j["date_comptable"].isoformat(), "statut": j["statut"], "ouvertePar": j["ouverte_par"], "fermeePar": j["fermee_par"], "agenceId": j["agence_id"],
-            "ouverteLe": instant_agence(j["ouverte_le"], ag) if j.get("ouverte_le") else None,
-            "fermeeLe": instant_agence(j["fermee_le"], ag) if j.get("fermee_le") else None}
+            "ouverteLe": heure(j.get("ouverte_le")), "fermeeLe": heure(j.get("fermee_le"))}
 
 
 def journees(u: dict) -> list[dict]:
-    """S12 (manuel p. 21) : liste des journées de l'agence, la plus récente d'abord"""
+    """S12 (manuel p. 21) : liste des journées de l'agence, la plus récente d'abord. Le fuseau de l'agence se lit une fois, pas deux fois par journée
+    (audit du 21/11/2026, point B13 : 435 requêtes pour 215 journées)"""
     exiger(u)
-    return [vue_journee(j) for j in lignes("select * from journee_comptable where agence_id = %s order by date_comptable desc", (u["agence_id"],))]
+    fz = fuseau_agence(u.get("agence_id"))
+    return [vue_journee(j, fz) for j in lignes("select * from journee_comptable where agence_id = %s order by date_comptable desc", (u["agence_id"],))]
 
 
 def journee_courante(u: dict) -> dict | None:
@@ -1547,11 +1549,22 @@ def creer_consentement(u: dict, tid: int, d: dict) -> list[dict]:
     return consentements(u, tid)
 
 
+def vue_tiers_rapport(t: dict) -> dict:
+    """La fiche réduite aux champs que lisent les rapports (web/src/lib/rapports.ts) : aucune requête de plus par membre, ni photo ni proches.
+    Audit du 21/11/2026, point bloquant B13 (registre T226) : à 30 000 membres, la fiche entière demandait 150 000 requêtes et 7 secondes."""
+    return {"id": t["id"], "numero": t["numero"], "statut": t["statut"], "type": t["type"], "nom": t["nom"], "postnom": t["postnom"] or "", "prenom": t["prenom"] or "",
+            "sexe": t["sexe"] or "", "naissance": iso(t["date_naissance"]), "profession": t["profession"] or "", "quartier": t["quartier"] or "", "zone": t["zone_nom"] or "",
+            "typeClient": t["type_client"] or "", "nationalite": t["nationalite"] or "", "secteurActivite": t["secteur_activite"] or "", "intitule": t["intitule"] or "",
+            "gestionnaireId": t["gestionnaire_agent_id"], "commercialId": t["commercial_id"], "sensibilisateurId": t["sensibilisateur_id"],
+            "dateVisa": iso(t["date_visa"]), "dateDemande": iso(t["date_demande"]), "creeLe": t["cree_le"].isoformat() if t.get("cree_le") else "",
+            "resilieLe": iso(t.get("resilie_le")), "motifDepart": t.get("motif_depart") or ""}
+
+
 def rapport_clients(u: dict) -> list[dict]:
     """S51 : tous les clients et prospects de l'institution, filtrés à l'écran (Client > Rapport, manuel p. 58 et 59)"""
     exiger(u)
     ag, pa = clause(u)
-    return [vue_tiers(t) for t in lignes(SQL_TIERS + f" where t.institution_id = %s{ag} order by t.numero", (u["institution_id"], *pa))]
+    return [vue_tiers_rapport(t) for t in lignes(SQL_TIERS + f" where t.institution_id = %s{ag} order by t.numero", (u["institution_id"], *pa))]
 
 
 def rapport_modifications(u: dict) -> list[dict]:

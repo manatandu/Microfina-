@@ -645,6 +645,15 @@ describe("journée de guichet", () => {
     expect((await api.conformite.cip("2026-11-01", "2026-11-30", "declare")).map((e) => [e.membre, e.reference])).toEqual([[t.numero, "CIP-1"]]);
     await api.conformite.noterIcu(t.id, { icu: "ICU-0001" });
     await expect(api.conformite.noterIcu(1, { icu: "ICU-0001" })).rejects.toThrow("déjà noté");
+    // Registre E06-2 (Instr. BCC 52, art. 13) : consultation préalable du SRCC notée pour une ouverture de compte ; jours fériés hors de l'échéance
+    const oc = (await api.conformite.cip("2000-01-01", "2026-11-30")).find((e) => e.type === "ouverture_compte")!;
+    expect([oc.consulteLe, oc.reponseSrcc]).toEqual(["", ""]);
+    await expect(api.conformite.noterConsultationCip({ compteId: oc.objetId, date: "2026-11-30", reference: "SRCC-77" })).rejects.toThrow("précède l'ouverture");
+    await api.conformite.noterConsultationCip({ compteId: oc.objetId, date: oc.date, reference: "SRCC-77" });
+    await expect(api.conformite.noterConsultationCip({ compteId: oc.objetId, date: oc.date, reference: "SRCC-78" })).rejects.toThrow("déjà notée");
+    expect((await api.conformite.cip("2000-01-01", "2026-11-30")).find((e) => e.type === "ouverture_compte" && e.objetId === oc.objetId)!.reponseSrcc).toBe("SRCC-77");
+    _etat().feries.push({ date: "2026-11-06", description: "Essai", exercice: 2026 });
+    expect((await api.conformite.cip("2026-11-01", "2026-11-30")).find((e) => e.type === "nouveau_client" && e.tiersId === t.id)!.echeance).toBe("2026-11-10");
   });
 
   it("visa refusé sans copie de la pièce d'identité (écart E03, décision du porteur ; Instr. BCC 15, art. 12 et 29)", async () => {

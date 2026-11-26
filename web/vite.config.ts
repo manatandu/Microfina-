@@ -24,7 +24,8 @@ const reportingLcb = fileURLToPath(new URL("../replica/reporting-lcb.json", impo
 const ppeQualites = fileURLToPath(new URL("../replica/ppe-qualites.json", import.meta.url));
 
 // Plan d'allègement, point 11.6 : Trusted Types imposés pendant le développement et les essais de bout en bout (toute affectation d'une chaîne
-// à innerHTML, document.write ou script.src y est une erreur) ; en production, l'en-tête Report-Only les observe d'abord (firebase.json)
+// à innerHTML, document.write ou script.src y est une erreur) ; en production, l'en-tête de firebase.json les impose depuis le 26/11/2026,
+// après l'essai de la version construite : les 141 écrans s'ouvrent sans erreur, le service worker s'enregistre par la politique « exofina-sw »
 const trustedTypesEnEssai = {
   name: "trusted-types-essai", apply: "serve" as const,
   transformIndexHtml: () => [{ tag: "meta", attrs: { "http-equiv": "Content-Security-Policy", content: "require-trusted-types-for 'script'" }, injectTo: "head-prepend" as const }],

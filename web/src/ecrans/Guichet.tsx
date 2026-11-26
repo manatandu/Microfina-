@@ -176,8 +176,10 @@ export default function GuichetDepotRetrait() {
           {(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}
           <p>Date Opération : <strong className="chiffres">{j ? fr(j.date) : ""}</strong></p>
         </div>
-        <div className="grille-cadres client-large">
-          <fieldset className="pile cadre-champs">
+        {/* Décision D02-6 (densité du guichet) : deux colonnes, la saisie et ses boutons à gauche, le compte et le billetage à droite ;
+            le bouton principal tient dans un écran de 768 px. L'ordre de saisie au clavier reste : client, montant, billetage, Enregistrer */}
+        <div className="guichet-zones">
+          <fieldset className="pile cadre-champs zone-client">
             <legend>Info client</legend>
             <div className="ligne-champ">
               <ChampClient client={t} desactive={!!fait} choisir={(x) => { setT(x); setCompteId(0); setCoupures({}); nouvelle(); }} />
@@ -191,7 +193,7 @@ export default function GuichetDepotRetrait() {
             <Champ libelle="Intitulé">{(p) => <textarea {...p} className="saisie" rows={2} readOnly value={t ? nomComplet(t) : ""} />}</Champ>
             <Champ libelle="Type compte">{(p) => <Lecture {...p} value={c?.intitule ?? ""} />}</Champ>
           </fieldset>
-          <fieldset className="pile cadre-champs">
+          <fieldset className="pile cadre-champs zone-compte">
             <legend>Info compte</legend>
             <dl className="infos">
               {/* Registre S10-1 : sans « Voir solde client » (S10), les soldes sont masqués */}
@@ -200,10 +202,7 @@ export default function GuichetDepotRetrait() {
                   <dd className="chiffres">{!c ? "" : c.masque ? <span className="muet" title={MASQUE}>•••••</span> : montant(c[k], c.devise)}</dd></div>))}
             </dl>
           </fieldset>
-        </div>
-        <div className="pile">
-          <div className="deux-colonnes">
-            <fieldset className="pile cadre-champs">
+            <fieldset className="pile cadre-champs zone-saisie">
               <legend>{cadre}</legend>
               <Champ libelle="Montant *">{(p) => <input {...p} className="saisie montant" inputMode="decimal" autoComplete="off" readOnly={!!fait} value={saisie}
                 onChange={(e) => { setSaisie(e.target.value); nouvelle(); }} />}</Champ>
@@ -216,11 +215,10 @@ export default function GuichetDepotRetrait() {
               <Champ libelle="Motif:">{(p) => <input {...p} className="saisie" readOnly={!!fait} value={motif} onChange={(e) => setMotif(e.target.value)} />}</Champ>
             </fieldset>
             {/* Ni « Total frais » ni « Frais d'opération » : dépôt et retrait d'espèces sont gratuits (Instr. BCC 37, art. 2, 3 et annexe ; plan d'allègement, point 0.15) */}
-            {c && m && !fait ? <fieldset className="pile cadre-champs"><legend>Billetage</legend>
+            {c && m && !fait ? <fieldset className="pile cadre-champs zone-billetage"><legend>Billetage</legend>
               <Billetage devise={devise} comptage={coupures} onChange={(x) => { setCoupures(x); nouvelle(); }} stock={op === "retrait" ? stock : undefined}
                 cible={m} sens={op === "retrait" ? "remise" : "recue"} /></fieldset> : null}
-          </div>
-          <div className="actions-onglets">
+          <div className="actions-onglets zone-actions">
             {/* Billetage pas juste : le bouton reste inactif (DESIGN § 2.2) mais atteignable, et dit pourquoi (guide accessibility, aria-disabled) */}
             <button className="bouton" type="submit" disabled={!t || !!fait} aria-disabled={!billetageBon(coupures, m) || undefined}
               aria-describedby={c && m && !billetageBon(coupures, m) ? `ecart-${devise}` : undefined}>Enregistrer</button>
@@ -231,7 +229,7 @@ export default function GuichetDepotRetrait() {
               try { setDetail(await api.releves.releve(c.id, `${jour.slice(0, 4)}-01-01`, jour)); } catch (x) { setBoite({ type: "erreur", message: x instanceof Error ? x.message : String(x) }); }
             }}>Detail</button>
           </div>
-          <p className="montant-lettres">{m ? montantEnLettres(m, devise) : ""}</p>
+          <p className="montant-lettres zone-lettres">{m ? montantEnLettres(m, devise) : ""}</p>
         </div>
         <Textes sources={["Manuel Microfina++, p. 86 : Info client, Info compte, Info guichet, Dépôt en espèce / Retrait en espèce, Montant*, Total frais, Mandataire, Motif, Frais d'opération, Enregistrer, Imprimer, Effacer, Billetage, Detail, montant en lettres",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",

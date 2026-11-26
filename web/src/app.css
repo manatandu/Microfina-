@@ -776,3 +776,11 @@ select.saisie { max-width: 100%; }
 
 /* ---------- Second facteur (registre T218) : la clé se recopie dans l'application d'authentification, par groupes de quatre ---------- */
 .cle-second-facteur { margin: 0; font-family: ui-monospace, "Cascadia Mono", Consolas, "Liberation Mono", monospace; font-size: 1.125rem; letter-spacing: .08em; overflow-wrap: anywhere; user-select: all; }
+
+/* ---------- Guichet, dépôt et retrait (décision D02-6 : le bouton principal dans un écran de 768 px) ----------
+   Deux colonnes : le client, la saisie et les boutons à gauche ; le compte et le billetage à droite. L'ordre du document reste celui de la saisie. */
+.guichet-zones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto auto auto auto 1fr; gap: var(--espace-4) var(--espace-7); align-items: start;
+  grid-template-areas: "client compte" "client billetage" "saisie billetage" "actions billetage" "lettres billetage"; }
+.zone-client { grid-area: client; } .zone-compte { grid-area: compte; } .zone-saisie { grid-area: saisie; } .zone-billetage { grid-area: billetage; }
+.zone-actions { grid-area: actions; } .zone-lettres { grid-area: lettres; }
+@media (max-width: 720px) { .guichet-zones { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "client" "compte" "saisie" "billetage" "actions" "lettres"; } }

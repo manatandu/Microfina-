@@ -1,7 +1,7 @@
 """API HTTP de Likelemba (Django Ninja). Une route par fonction de la façade web/src/donnees/api.ts, mêmes données.
 Chaque route lit l'utilisateur de la session ; les droits sont vérifiés dans les services (exiger)."""
 from django.conf import settings
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from ninja import Body, NinjaAPI
 
@@ -77,6 +77,20 @@ def refus(request, exc: ErreurMetier):
     if exc.statut == 403:                                            # refus de droit ou requête forgée : noté au journal de sécurité (registre T26)
         noter("acces_refuse", ip=adresse(request), utilisateur_id=request.session.get("utilisateur"), detail=f"{request.method} {request.path} : {exc.message}")
     return api.create_response(request, {"message": exc.message}, status=exc.statut)
+
+
+MESSAGE_DOUBLON = "Opération déjà en cours d'enregistrement : elle ne passe qu'une fois."
+
+
+@api.exception_handler(IntegrityError)
+def doublon(request, exc: IntegrityError):
+    """Audit du 21/11/2026, point bloquant B13 (registre T226) : la même opération envoyée deux fois au même instant (double clic, renvoi après
+    une coupure). La clé unique de la base n'en laisse passer qu'une ; l'autre reçoit une réponse 409 que le poste comprend, au lieu d'une
+    erreur du serveur : il relit alors le résultat de l'opération passée. Toute autre atteinte à l'intégrité reste une erreur du serveur."""
+    transaction.set_rollback(True)
+    if "cle_idempotence" in str(exc):
+        return api.create_response(request, {"message": MESSAGE_DOUBLON}, status=409)
+    raise exc
 
 
 def u(request: HttpRequest) -> dict:
@@ -1932,8 +1946,8 @@ def epargne_rapport_garanties(request, du: str = "", au: str = "", produitId: in
 
 
 @api.get("/epargne/rapports/comptes")
-def epargne_rapport_comptes(request, du: str = "", au: str = ""):
-    return rep.comptes(u(request), du, au)
+def epargne_rapport_comptes(request, du: str = "", au: str = "", operations: bool = True):
+    return rep.comptes(u(request), du, au, operations)
 
 
 @api.get("/epargne/rapports/indicateurs")
@@ -3224,6 +3238,11 @@ def cip_evenements(request, du: str = "", au: str = "", statut: str = ""):
 @api.post("/conformite/cip/declarations")
 def cip_declarer(request, corps: dict = Body(...)):
     return cip.declarer(u(request), corps)
+
+
+@api.post("/conformite/cip/consultations")
+def conformite_cip_consultation(request, corps: dict = Body(...)):
+    return cip.noter_consultation(u(request), corps)
 
 
 @api.post("/conformite/cip/icu/{tid}")

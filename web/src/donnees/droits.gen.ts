@@ -193,6 +193,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "conformite.mettreEnAttente": [
 "SC01"
 ],
+"conformite.noterConsultationCip": [
+"SC02"
+],
 "conformite.noterIcu": [
 "S46"
 ],

@@ -48,20 +48,19 @@ def periode(u, p: dict) -> tuple[date, date, int]:
     return du, au, ex
 
 
-def mouvements(u, jusqua: date, *, vidage: bool, agence_id=None) -> list[dict]:
-    """Lignes définitives jusqu'à la date : écritures des journées comptabilisées (T13)"""
-    return lignes(f"""select c.numero as compte, c.libelle as intitule, e.date_valeur, j.code as journal, p.numero as piece, e.numero as reference, e.libelle,
-                             l.sens, l.montant_cdf, coalesce(l.contrat_ref, '') as auxiliaire
-                      from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join journee_comptable jc on jc.id = e.journee_id
-                      join compte c on c.id = l.compte_id join journal j on j.id = e.journal_id join piece p on p.id = e.piece_id
-                      where e.institution_id = %s and jc.statut = 'fermee' and e.date_valeur <= %s and (%s::bigint is null or jc.agence_id = %s)
-                      {"" if vidage else "and e.type <> 'vidage'"} order by c.numero, e.date_valeur, e.id, l.rang""",
-                  (u["institution_id"], jusqua, agence_id, agence_id))
+# Audit du 21/11/2026, point bloquant B13 (constat F23 ; registre T226) : la base fait les totaux. Avant, la balance et le grand livre chargeaient
+# toutes les lignes d'écriture en mémoire (750 000 lignes pour 30 000 membres et dix mois de guichet) avant de calculer.
+LIGNES_MAX = 50_000          # détail d'un grand livre : au plus 50 000 lignes par édition ; au-delà, réduire la période ou choisir un compte
 
 
-def ouverture(m: dict, du: date, exercice: int) -> bool:
-    """La ligne compte-t-elle dans le solde d'ouverture ? Comptes de gestion (6, 7) : depuis le 1er janvier de l'exercice seulement"""
-    return m["date_valeur"] < du and (m["compte"][0] not in "67" or m["date_valeur"].year == exercice)
+def base_definitive(u, au: date, exercice: int, *, vidage: bool, agence_id=None, jointures: str = "") -> tuple[str, tuple]:
+    """Lignes définitives jusqu'à la date : écritures des journées comptabilisées (T13). Comptes de gestion (6, 7) : exercice demandé seulement"""
+    return (f"""from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join journee_comptable jc on jc.id = e.journee_id
+                join compte c on c.id = l.compte_id {jointures}
+                where e.institution_id = %s and jc.statut = 'fermee' and e.date_valeur <= %s and (%s::bigint is null or jc.agence_id = %s)
+                {"" if vidage else "and e.type <> 'vidage'"}
+                and (left(c.numero, 1) not in ('6', '7') or extract(year from e.date_valeur) = %s)""",
+            (u["institution_id"], au, agence_id, agence_id, exercice))
 
 
 def grand_livre(u, p, analytique: bool = False) -> dict:
@@ -72,28 +71,45 @@ def grand_livre(u, p, analytique: bool = False) -> dict:
     if t not in TYPES_GRAND_LIVRE:
         raise ErreurMetier("Type de grand livre inconnu.")
     agence = int(p["agenceId"]) if str(p.get("agenceId") or "").isdigit() else None
+    from .cloison import agence as agence_de
+    if agence_de(u) is not None:                          # rattaché à une agence : les écritures de ses journées seulement, leurs libellés nomment des membres (T213)
+        agence = agence_de(u)
     prefixe = str(p.get("compte") or "").strip()          # compte cliqué dans la balance (demande du porteur, 21/11/2026 ; registre T31)
     if prefixe and not prefixe.isdigit():
         raise ErreurMetier("Compte : chiffres seulement.")
+    vidage = str(p.get("vidage")) in ("True", "true", "1")
+    filtres, fq = "", []
+    if t != "global":
+        filtres += " and left(c.numero, 1) = %s"
+        fq.append(t[-1])
+    if prefixe:
+        filtres += " and c.numero like %s"
+        fq.append(prefixe + "%")
+    aux = "coalesce(l.contrat_ref, '')" if analytique else "''"
+    base, q = base_definitive(u, au, ex, vidage=vidage, agence_id=agence)
     comptes: dict = {}
-    for m in mouvements(u, au, vidage=str(p.get("vidage")) in ("True", "true", "1"), agence_id=agence):
-        if t != "global" and m["compte"][0] != t[-1]:
-            continue
-        if prefixe and not m["compte"].startswith(prefixe):
-            continue
-        if m["compte"][0] in "67" and m["date_valeur"].year != ex:
-            continue
-        k = (m["compte"], m["auxiliaire"] if analytique else "")
-        c = comptes.setdefault(k, {"compte": m["compte"], "intitule": m["intitule"], "auxiliaire": k[1], "soldeInitial": 0, "lignes": [], "debit": 0, "credit": 0})
-        signe = m["montant_cdf"] if m["sens"] == "D" else -m["montant_cdf"]
-        if ouverture(m, du, ex):
-            c["soldeInitial"] += signe
-        elif m["date_valeur"] >= du:
-            c["debit" if m["sens"] == "D" else "credit"] += m["montant_cdf"]
-            c["lignes"].append({"date": m["date_valeur"].isoformat(), "journal": m["journal"], "piece": m["piece"], "reference": m["reference"], "libelle": m["libelle"],
-                                "debit": m["montant_cdf"] if m["sens"] == "D" else 0, "credit": m["montant_cdf"] if m["sens"] == "C" else 0})
+
+    def compte(numero, intitule, auxiliaire):
+        return comptes.setdefault((numero, auxiliaire), {"compte": numero, "intitule": intitule, "auxiliaire": auxiliaire, "soldeInitial": 0, "lignes": [], "debit": 0, "credit": 0})
+
+    # Solde d'ouverture : la somme des lignes d'avant la période, faite par la base
+    for r in lignes(f"""select c.numero as compte, c.libelle as intitule, {aux} as auxiliaire,
+                               sum(case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end)::bigint as solde
+                        {base}{filtres} and e.date_valeur < %s group by 1, 2, 3""", (*q, *fq, du)):
+        compte(r["compte"], r["intitule"], r["auxiliaire"])["soldeInitial"] = r["solde"]
+    n = valeur(f"select count(*) {base}{filtres} and e.date_valeur >= %s", (*q, *fq, du))
+    if n > LIGNES_MAX:
+        raise ErreurMetier(f"Grand livre : {n} lignes sur la période. Réduire la période, ou choisir un type ou un compte ({LIGNES_MAX} lignes au plus par édition).")
+    base, q = base_definitive(u, au, ex, vidage=vidage, agence_id=agence, jointures="join journal j on j.id = e.journal_id join piece p on p.id = e.piece_id")
+    for m in lignes(f"""select c.numero as compte, c.libelle as intitule, {aux} as auxiliaire, e.date_valeur, j.code as journal, p.numero as piece, e.numero as reference,
+                               e.libelle, l.sens, l.montant_cdf
+                        {base}{filtres} and e.date_valeur >= %s order by c.numero, e.date_valeur, e.id, l.rang""", (*q, *fq, du)):
+        c = compte(m["compte"], m["intitule"], m["auxiliaire"])
+        c["debit" if m["sens"] == "D" else "credit"] += m["montant_cdf"]
+        c["lignes"].append({"date": m["date_valeur"].isoformat(), "journal": m["journal"], "piece": m["piece"], "reference": m["reference"], "libelle": m["libelle"],
+                            "debit": m["montant_cdf"] if m["sens"] == "D" else 0, "credit": m["montant_cdf"] if m["sens"] == "C" else 0})
     out = []
-    for c in comptes.values():
+    for _, c in sorted(comptes.items()):
         s = c["soldeInitial"]
         for l in c["lignes"]:
             s += l["debit"] - l["credit"]
@@ -121,22 +137,24 @@ def balance(u, p, analytique: bool = False) -> dict:
     sans_vidage = str(p.get("sansVidage")) in ("True", "true", "1")
     noms = {r["numero"]: r["libelle"] for r in lignes("select numero, libelle from compte where institution_id is null or institution_id = %s", (u["institution_id"],))}
     g = defaultdict(lambda: [0, 0, 0, 0])                              # ouverture D-C, mouvements D, mouvements C, (réserve)
-    for m in mouvements(u, au, vidage=not sans_vidage, agence_id=agence):
+    base, q = base_definitive(u, au, ex, vidage=not sans_vidage, agence_id=agence)
+    aux = "coalesce(l.contrat_ref, '')" if analytique else "''"
+    # Une ligne par compte, auxiliaire, sens, avant ou dans la période : la somme est faite par la base
+    for m in lignes(f"""select c.numero as compte, {aux} as auxiliaire, (e.date_valeur < %s) as avant, l.sens, sum(l.montant_cdf)::bigint as montant_cdf
+                        {base} group by 1, 2, 3, 4""", (du, *q)):
         n = m["compte"]
-        if m["compte"][0] in "67" and m["date_valeur"].year != ex:
-            continue
         if (de and n.ljust(8, "0") < de.ljust(8, "0")) or (a and n.ljust(8, "0")[:len(a.ljust(8, "0"))] > a.ljust(8, "0")):
             continue
         cle = n[:niveau] if groupee and niveau else n
-        k = (cle, m["auxiliaire"] if analytique else "")
-        if ouverture(m, du, ex):
+        k = (cle, m["auxiliaire"])
+        if m["avant"]:
             g[k][0] += m["montant_cdf"] if m["sens"] == "D" else -m["montant_cdf"]
-        elif m["date_valeur"] >= du:
+        else:
             g[k][1 if m["sens"] == "D" else 2] += m["montant_cdf"]
     out = []
-    for (cle, aux), (ouv, md, mc, _) in sorted(g.items()):
+    for (cle, aux_), (ouv, md, mc, _) in sorted(g.items()):
         fin = ouv + md - mc
-        out.append({"compte": cle, "intitule": noms.get(cle, ""), "auxiliaire": aux, "ouvertureDebit": max(ouv, 0), "ouvertureCredit": max(-ouv, 0),
+        out.append({"compte": cle, "intitule": noms.get(cle, ""), "auxiliaire": aux_, "ouvertureDebit": max(ouv, 0), "ouvertureCredit": max(-ouv, 0),
                     "mouvementDebit": md, "mouvementCredit": mc, "cumulDebit": max(ouv, 0) + md, "cumulCredit": max(-ouv, 0) + mc,
                     "soldeDebit": max(fin, 0), "soldeCredit": max(-fin, 0)})
     tot = {k: sum(x[k] for x in out) for k in ("ouvertureDebit", "ouvertureCredit", "mouvementDebit", "mouvementCredit", "cumulDebit", "cumulCredit", "soldeDebit", "soldeCredit")}
