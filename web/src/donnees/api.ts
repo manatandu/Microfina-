@@ -10970,7 +10970,7 @@ const comptesUtilisateurs = {
     return { agences: E.agences.filter((a) => !a.supprime).map(({ id, nom }) => ({ id, nom })),
       utilisateurs: [...E.utilisateurs].sort((a, b) => a.nom.localeCompare(b.nom)).map((x) => ({ id: x.id, nom: x.nom, login: x.login, agenceId: x.agenceId ?? null,
         controleConnecte: !!x.controleConnecte, rue: x.rue ?? "", adresse: x.adresse ?? "", bp: x.bp ?? "", telephoneFixe: x.telephoneFixe ?? "", portable: x.portable ?? "",
-        email: x.email ?? "", agence: E.agences.find((a) => a.id === x.agenceId)?.nom ?? "", actif: x.actif !== false,
+        email: x.email ?? "", agence: E.agences.find((a) => a.id === x.agenceId)?.nom ?? "Toutes les agences", actif: x.actif !== false,   // registre T213
         derniereActivation: (() => { const h = (E.activationsUtilisateurs ?? []).filter((y) => y.utilisateurId === x.id).at(-1);
           return h ? `${h.motif} (${h.le.slice(8, 10)}/${h.le.slice(5, 7)}/${h.le.slice(0, 4)}, ${E.utilisateurs.find((p) => p.id === h.par)?.nom ?? ""})` : ""; })() }))
         .sort((a, b) => Number(!a.actif) - Number(!b.actif)) };

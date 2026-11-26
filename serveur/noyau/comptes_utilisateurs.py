@@ -18,7 +18,7 @@ def lire(u) -> dict:
     exiger(u)
     i = u["institution_id"]
     return {"agences": lignes("select id, nom from agence where institution_id = %s and not supprime order by code", (i,)),
-            "utilisateurs": lignes(f"""select x.id, {', '.join(f'x.{c} as "{k}"' for k, c in CHAMPS.items())}, coalesce(a.nom, '') as agence, x.actif,
+            "utilisateurs": lignes(f"""select x.id, {', '.join(f'x.{c} as "{k}"' for k, c in CHAMPS.items())}, coalesce(a.nom, 'Toutes les agences') as agence, x.actif,
                                          coalesce((select h.motif || ' (' || to_char(h.le, 'DD/MM/YYYY') || ', ' || p.nom || ')' from utilisateur_activation h
                                                    join utilisateur p on p.id = h.par where h.utilisateur_id = x.id order by h.id desc limit 1), '') as "derniereActivation"
                                        from utilisateur x left join agence a on a.id = x.agence_id
