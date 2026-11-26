@@ -105,8 +105,13 @@ type LignePf = Awaited<ReturnType<typeof api.etatCredits.portefeuille>>[number];
 export function Portefeuille() {
   const navigate = useNavigate();
   // listes des filtres : chacun ne lit que ce que ses droits ouvrent (le comptable vise sans lire les dossiers)
-  const { donnees: ctx } = useDonnees(() => Promise.all([api.visasCredit.contexte().catch(() => ({ agents: [] as { id: number; nom: string }[] })), api.session.courante(),
-    api.produitsCredit.lire().catch(() => ({ produits: [] as { id: number; nom: string }[] })), api.dossiers.contexte().catch(() => ({ coopec: false }))]));
+  // la liste des agents vient des visas : demandée seulement avec un de leurs droits, sinon le journal de sécurité noterait un refus à chaque ouverture
+  const { donnees: ctx } = useDonnees(async () => {
+    const u = await api.session.courante();
+    const visa = ((u as { droits?: string[] } | null)?.droits ?? []).some((x) => ["S90", "S91", "S92"].includes(x));
+    return Promise.all([visa ? api.visasCredit.contexte().catch(() => ({ agents: [] as { id: number; nom: string }[] })) : { agents: [] as { id: number; nom: string }[] }, u,
+      api.produitsCredit.lire().catch(() => ({ produits: [] as { id: number; nom: string }[] })), api.dossiers.contexte().catch(() => ({ coopec: false }))]);
+  });
   const [f, setF] = useState({ du: debutAnnee(), au: aujourdhui(), etat: "", produit: "", niveau: "", agent: "", operateur: "", montant: "", archives: false });
   const [l, setL] = useState<LignePf[] | null>(null);
   const [fiche, setFiche] = useState<{ id: number; devise: Devise; quoi: "plan" | "contrat" } | null>(null);
