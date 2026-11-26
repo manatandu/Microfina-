@@ -107,3 +107,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Mot de passe exigé par défaut (registre S01-2 : site en ligne). Démonstration et essais : LIKELEMBA_SANS_MOT_DE_PASSE=1 (décision du porteur, 05/11/2026)
 SANS_MOT_DE_PASSE = os.environ.get("LIKELEMBA_SANS_MOT_DE_PASSE", "0") == "1"
+# Nombre de relais de confiance placés devant le serveur (hébergeur, répartiteur, proxy de l'agence) : sert à lire l'adresse du poste dans
+# X-Forwarded-For sans croire ce que le poste y écrit lui-même (audit du 21/11/2026, constat F19 ; registre T229). 0 : aucun relais, l'adresse
+# est celle de la connexion. Non réglé : première adresse de l'en-tête, comme avant (le blocage par adresse se contourne alors).
+_relais = os.environ.get("LIKELEMBA_RELAIS_DE_CONFIANCE", "").strip()
+if _relais and not _relais.isdigit():
+    raise RuntimeError("LIKELEMBA_RELAIS_DE_CONFIANCE : un nombre entier, 0 ou plus")
+RELAIS_DE_CONFIANCE = int(_relais) if _relais else None

@@ -73,6 +73,12 @@ function sortiesEnAttente(c: CompteDepot, sauf?: number) {
       .reduce((t, o) => t + o.lignes.filter((l) => l.compteDepotId === c.id).reduce((x, l) => x + l.montant, 0), 0);
 }
 const prochain = (l: { id: number }[]) => l.reduce((m, x) => Math.max(m, x.id), 0) + 1;
+/** Numéro de l'écriture suivante du journal dans l'exercice : un compteur par journal et par exercice, sans trou (PCCI § 3.3 et 3.4 ; registre T228) */
+const numeroEcriture = (journal: string, jour: string) => {
+  const prefixe = `${journal}-${jour.slice(0, 4)}-`;
+  const dernier = E.ecritures.reduce((m, x) => (x.numero.startsWith(prefixe) ? Math.max(m, Number(x.numero.slice(prefixe.length)) || 0) : m), 0);
+  return prefixe + String(dernier + 1).padStart(6, "0");
+};
 /** Numéro suivant d'une table à suppression logique : les lignes supprimées gardent leur numéro, jamais repris (comme la séquence du serveur) */
 const prochainSans = (table: string, l: { id: number }[]) =>
   Math.max(prochain(l), ...E.supprimes.filter((s) => s.table === table).map((s) => ((s.ligne as { id?: number })?.id ?? 0) + 1));
@@ -194,7 +200,7 @@ function poster(e: Omit<Ecriture, "id" | "numero"> & { evenement: string }): Ecr
       throw new ErreurMetier(`Le compte ${c.numero} passerait en solde négatif : une épargne ne devient pas débitrice (PCCI, compte 33 ; registre S27-4).`);
   }
   const id = prochain(E.ecritures);
-  const ecr: Ecriture = Object.freeze({ ...e, id, numero: `${e.journal}-${j.date.slice(0, 4)}-${String(id).padStart(6, "0")}`, lignes: Object.freeze(l.map((x) => Object.freeze({ ...x }))) });
+  const ecr: Ecriture = Object.freeze({ ...e, id, numero: numeroEcriture(e.journal, j.date), lignes: Object.freeze(l.map((x) => Object.freeze({ ...x }))) });
   E.ecritures.push(ecr);
   return ecr;
 }
@@ -8422,7 +8428,7 @@ function dateArrete(p: { date?: string }) {
 function ecrireCloture(journeeId: number, libelle: string, type: "reevaluation" | "vidage", lignes: Ligne[]) {
   if (lignes.reduce((s, x) => s + (x.sens === "D" ? x.montantCdf : -x.montantCdf), 0) !== 0) throw new ErreurMetier("Écriture déséquilibrée en CDF (PCCI § 3.2).");
   const j = E.journees.find((x) => x.id === journeeId)!, id = prochain(E.ecritures), u = exiger();
-  E.ecritures.push(Object.freeze({ id, numero: `OD-${j.date.slice(0, 4)}-${String(id).padStart(6, "0")}`, journal: "OD", evenement: type === "reevaluation" ? "reevaluation" : "cloture_exercice", journeeId, libelle, piece: pieceJournee("OD", j), saisiPar: u.id, validePar: u.id,
+  E.ecritures.push(Object.freeze({ id, numero: numeroEcriture("OD", j.date), journal: "OD", evenement: type === "reevaluation" ? "reevaluation" : "cloture_exercice", journeeId, libelle, piece: pieceJournee("OD", j), saisiPar: u.id, validePar: u.id,
     type, lignes: Object.freeze(lignes.map((x) => Object.freeze({ ...x, compte: compteEcriture(E, x.compte, x.contrat, x.devise) ?? x.compte }))) }));   // lot 10 (T168)
 }
 const derniereJournee = (a: number, m: number | null) => E.journees.filter((j) => j.date >= `${a}-${String(m ?? 1).padStart(2, "0")}-01` && j.date <= finMois(a, m ?? 12)).sort((x, y) => y.date.localeCompare(x.date))[0];
@@ -8860,7 +8866,7 @@ const finPeriode = {
     } else {
       for (const [k, v] of vus) lg.push(ligne(table[k]![0], "D", v)); lg.push(ligne("131", "C", -a.resultat));
     }
-    E.ecritures.push(Object.freeze({ id: prochain(E.ecritures), numero: `OD-${j.date.slice(0, 4)}-${String(prochain(E.ecritures)).padStart(6, "0")}`, journal: "OD", evenement: "affectation_resultat", journeeId: j.id,
+    E.ecritures.push(Object.freeze({ id: prochain(E.ecritures), numero: numeroEcriture("OD", j.date), journal: "OD", evenement: "affectation_resultat", journeeId: j.id,
       libelle: `Affectation du résultat ${a.exercice} : ${ref}`, piece: pieceJournee("OD", j), saisiPar: u.id, validePar: u.id,
       lignes: Object.freeze(lg.map((x) => Object.freeze({ ...x, compte: compteEcriture(E, x.compte, x.contrat, x.devise) ?? x.compte }))) }));   // lot 10 (T168)
     (E.affectationsResultat ??= []).push({ exercice: a.exercice, resultat: a.resultat, decisionReference: ref, decisionLe: le, lignes: lg.map((x) => ({ compte: x.compte, sens: x.sens, montant: x.montant })), saisiPar: u.id });

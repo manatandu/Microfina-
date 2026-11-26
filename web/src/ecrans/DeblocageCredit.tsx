@@ -112,29 +112,33 @@ export function DeblocageGuichet() {
       <OngletsGuichet version={fait?.id} />
       <Formulaire className="bloc pile" label="Déblocage crédit" envoyer={debloquer}>
         <div className="entete-ecran">{(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}<p>Date Opération : <strong className="chiffres">{fr(j?.date ?? "")}</strong></p></div>
-        <div className="grille-deux">
+        {/* Décision D02-6 : sur un écran large, trois colonnes (le crédit ; le client et les retenues ; le billetage et les boutons) : « Débloquer »
+            tient dans un écran de 768 px. L'ordre de lecture et de saisie ne change pas */}
+        <div className="deblocage-colonnes">
           <fieldset className="cadre-champs formulaire"><legend>Info crédit</legend>
             <Champ libelle="N° crédit">{(p) => <input {...p} className="saisie code" readOnly value={d?.numero ?? ""} />}</Champ>
             <div className="ligne-champ"><ChoixCredit choisir={(x) => { effacer(); setCid(x); }} /></div>
             <InfosCredit d={d} />
           </fieldset>
+          <div className="pile">
           <fieldset className="cadre-champs formulaire"><legend>Info client</legend>
             <Champ libelle="N° client">{(p) => <Lecture {...p} value={d?.membre ?? ""} />}</Champ>
             <Champ libelle="Intitulé du compte">{(p) => <Lecture {...p} value={d?.client ?? ""} />}</Champ>
             <Champ libelle="Numéro compte">{(p) => <Lecture {...p} value={d?.compteClient ?? ""} />}</Champ>
           </fieldset>
-        </div>
-        {d && !fait && <div className="deux-colonnes">
-          <fieldset className="pile cadre-champs"><legend>Retenues</legend><Retenues d={d} /></fieldset>
-          <fieldset className="pile cadre-champs"><legend>Billetage</legend>
-            <Billetage devise={dv} comptage={coupures} onChange={(c) => { setCoupures(c); setCle(nouvelleCle()); }} cible={d.retenues.net} sens="remise" stock={stock} /></fieldset>
-        </div>}
+          {d && !fait && <fieldset className="pile cadre-champs"><legend>Retenues</legend><Retenues d={d} /></fieldset>}
+          </div>
+          <div className="pile">
+          {d && !fait && <fieldset className="pile cadre-champs"><legend>Billetage</legend>
+            <Billetage devise={dv} comptage={coupures} onChange={(c) => { setCoupures(c); setCle(nouvelleCle()); }} cible={d.retenues.net} sens="remise" stock={stock} /></fieldset>}
         <div className="actions-onglets">
           <button className="bouton secondaire" type="button" disabled={!d} onClick={() => setFiche("echeancier")}>Echéancier</button>
           <button className="bouton" type="submit" disabled={!d || !!fait} aria-disabled={(!!d && !billetageBon(coupures, d.retenues.net)) || undefined} aria-describedby={d && !billetageBon(coupures, d.retenues.net) ? `ecart-${dv}` : undefined}>Débloquer</button>
           <button className="bouton secondaire" type="button" disabled={!cid} onClick={() => setFiche("reconnaissance")}>Reconnaissance de dette</button>
           <button className="bouton secondaire" type="button" disabled={!cid} onClick={() => setFiche("contrat")}>Contrat de prêt</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
+        </div>
+          </div>
         </div>
         <Textes sources={["Manuel Microfina++, p. 86 : sélectionner le crédit à décaisser, Débloquer ; visualiser l'échéancier et le contrat de prêt ; capture p. 87. L'étape « Encaisser frais », qui n'écrivait rien, disparaît (plan d'allègement, point 4.7)",
           "Registre CR-6 : frais, assurance, épargne obligatoire et fonds de solidarité retenus sur le prêt ; l'épargne obligatoire est bloquée en garantie (Instr. BCC 38, art. 9)",

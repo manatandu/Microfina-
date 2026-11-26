@@ -409,7 +409,8 @@ def ecrire(u, journee_id: int, jour: date, libelle: str, type_: str, evenement: 
         raise ErreurMetier("Le journal OD n'est pas actif (Comptabilité > Journal).")
     piece = nouvelle_piece(u, "OD", jour)
     pid = valeur("insert into piece (institution_id, numero, type, date_piece) values (%s, %s, 'bordereau', %s) returning id", (u["institution_id"], piece, jour))
-    numero = f"OD-{jour.year}-{valeur('select nextval(%s)', ('numero_ecriture',)):06d}"
+    from .services import numero_ecriture
+    numero = numero_ecriture(u["institution_id"], "OD", jour.year)
     eid = valeur("""insert into ecriture (institution_id, numero, journal_id, journee_id, date_valeur, libelle, piece_id, evenement_id, schema_id, saisi_par, valide_par, type)
                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
                  (u["institution_id"], numero, jid, journee_id, jour, libelle, pid, str(uuid.uuid4()), schema_valide(u, evenement), u["id"], u["id"], type_))

@@ -63,6 +63,16 @@ LISTES_CLIENT = {
 }
 # Sous types de client (S14h) : ceux des deux captures p. 25 (« Homme » dans la seconde)
 SOUS_TYPES = ("Personne physique", "Entreprise", "Groupe")   # les frais se règlent par nature du membre (plan d'allègement, point 2.2)
+# Motifs de départ : exemples de la capture du manuel (p. 26) ; décès et exclusion : loi 002/2002, art. 24 et 25 (registre S18-1 ; plan 2.8)
+MOTIFS_DEPART = ("Départ du pays", "Déménagement", "Décision du client", "Décès", "Exclusion par le Conseil d'administration",
+                 "Transfert sur une autre agence", "Autres")
+TYPES_GROUPE = ("Groupement solidaire", "Association", "ONG")          # S14f : types de groupe nommés par le manuel, p. 47 (registre S39-2)
+TYPES_GUICHET = (("1", "PRINCIPALE"), ("2", "SECONDAIRE"))             # S14n : ceux de la capture p. 19 (registre S08-1)
+# Objet du crédit : la catégorisation des produits de l'Instr. BCC 38, art. 6 (plan d'allègement, point 2.1)
+OBJETS_CREDIT = ("Prêt à la consommation", "Prêt commercial", "Crédit de trésorerie", "Prêt d'investissement")
+# Ordres de remboursement (S22) : ceux des captures p. 34 et 37
+ORDRES_CREDIT = (("CIPES", "Capital Intérêt Pénalité Epargne Solidarité"), ("CPIES", "Capital Pénalité Intérêt Epargne Solidarité"),
+                 ("PICES", "Pénalité Intérêt Capital Epargne Solidarité"))
 
 
 def completer(ins: int) -> int:
@@ -206,13 +216,17 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **opts):
+        if valeur("select count(*) from institution where not demonstration"):
+            # Audit du 21/11/2026, point B5 (registre T227) : une institution réelle ne reçoit jamais les données fictives
+            self.stdout.write("Institution réelle : la graine ne s'y applique pas. Rien d'ajouté.")
+            return
         if valeur("select count(*) from institution"):
             n = completer(valeur("select min(id) from institution"))
             executer("select comptes_parametres(id) from institution")   # lot 10 : paramétrages sur les comptes de l'institution (T172)
             self.stdout.write(f"Base déjà remplie : {n} élément(s) ajouté(s), rien d'effacé ni modifié.")
             return
         # Institution fictive de la démonstration : ses mots de passe n'expirent pas (registre T218) ; une institution réelle reçoit 90 jours par défaut
-        ins = valeur("insert into institution (nom, sigle, profil, pays, ville, commune, quartier, mot_de_passe_jours) values ('COOPEC Tujenge', 'CTJ', 'coopec', 'République démocratique du Congo', 'Kinshasa', 'Matete', 'Kinsaku', 0) returning id")
+        ins = valeur("insert into institution (nom, sigle, profil, pays, ville, commune, quartier, mot_de_passe_jours, demonstration) values ('COOPEC Tujenge', 'CTJ', 'coopec', 'République démocratique du Congo', 'Kinshasa', 'Matete', 'Kinsaku', 0, true) returning id")
         # Écart E05 : le Conseil d'Administration délègue l'admission des membres (décision fictive de démonstration)
         executer("update institution set delegation_admission = %s where id = %s", ("Décision du Conseil d'Administration n° 01/2026 du 05/01/2026", ins))
         # Professions fictives
@@ -227,8 +241,7 @@ class Command(BaseCommand):
         for c, pr in PROFESSIONS:
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'profession', %s, %s)", (ins, c, pr))
         # Motifs de départ : exemples de la capture du manuel (p. 26), dans le moteur des listes (S18, registre S18-1)
-        for n, mo in enumerate(("Départ du pays", "Déménagement", "Décision du client", "Décès", "Exclusion par le Conseil d'administration",
-                                "Transfert sur une autre agence", "Autres"), 1):
+        for n, mo in enumerate(MOTIFS_DEPART, 1):
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'motif_depart', %s, %s)", (ins, str(n), mo))
         for n, st in enumerate(SOUS_TYPES, 1):   # sous types de client (S14h), captures p. 25
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'sous_type_client', %s, %s)", (ins, str(n), st))
@@ -271,7 +284,7 @@ class Command(BaseCommand):
         # S14g : type client « Client », valeur de la capture p. 49 (registre S37-2)
         executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'type_client', '1', 'Client')", (ins,))
         # S14f : types de groupe nommés par le manuel, p. 47 (registre S39-2)
-        for n, tg in enumerate(("Groupement solidaire", "Association", "ONG"), 1):
+        for n, tg in enumerate(TYPES_GROUPE, 1):
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'type_groupe', %s, %s)", (ins, str(n), tg))
         # S14i : formes de société en démonstration, gardées et complétées par le porteur le 22/11/2026 (registre S38-4) ; S14o : formes des groupes (S39-5)
         for n, fj in enumerate(FORMES_JURIDIQUES, 1):
@@ -315,7 +328,7 @@ class Command(BaseCommand):
         for c, l, s in TYPES_ACTIVITE:
             executer("insert into liste_reference (institution_id, liste, code, libelle, parent_id) values (%s, 'type_activite', %s, %s, %s)", (ins, c, l, secteur(s)))
         # Objet du crédit : la catégorisation des produits de l'Instr. BCC 38, art. 6 (plan d'allègement, point 2.1)
-        for l in ("Prêt à la consommation", "Prêt commercial", "Crédit de trésorerie", "Prêt d'investissement"):
+        for l in OBJETS_CREDIT:
             executer("insert into credit_objet (institution_id, libelle) values (%s, %s)", (ins, l))
         for c, l in (("C01", "Premier cycle"), ("C02", "Deuxième cycle")):
             executer("insert into credit_cycle (institution_id, code, libelle) values (%s, %s, %s)", (ins, c, l))
@@ -324,9 +337,7 @@ class Command(BaseCommand):
         for l in NATURES_DEMARCHE:
             executer("insert into credit_demarche_nature (institution_id, libelle) values (%s, %s)", (ins, l))
         # Ordres de remboursement (S22) : ceux des captures p. 34 et 37 ; Sains et Impayés en PICES, les autres degrés en CIPES (capture p. 34)
-        od = {c: valeur("insert into credit_ordre (institution_id, code, libelle) values (%s, %s, %s) returning id", (ins, c, l)) for c, l in (
-            ("CIPES", "Capital Intérêt Pénalité Epargne Solidarité"), ("CPIES", "Capital Pénalité Intérêt Epargne Solidarité"),
-            ("PICES", "Pénalité Intérêt Capital Epargne Solidarité"))}
+        od = {c: valeur("insert into credit_ordre (institution_id, code, libelle) values (%s, %s, %s) returning id", (ins, c, l)) for c, l in ORDRES_CREDIT}
         for rang in range(1, 8):
             executer("insert into credit_degre_ordre (institution_id, rang, ordre_id) values (%s, %s, %s)", (ins, rang, od["PICES" if rang <= 2 else "CIPES"]))
         # Modèle pour crédit (S26) : « Model normal » de la capture p. 40, avec les comptes proposés par le PCCI
@@ -336,7 +347,7 @@ class Command(BaseCommand):
             executer("insert into credit_modele_compte (modele_id, degre, terme, compte_capital, compte_interne, compte_interet) values (%s, %s, %s, %s, %s, %s)",
                      (mo, c["degre"], c["terme"], c["compteCapital"], c["compteInterne"], c["compteInteret"]))
         # Types de guichet (S14n), ceux de la capture p. 19 (registre S08-1)
-        for c, l in (("1", "PRINCIPALE"), ("2", "SECONDAIRE")):
+        for c, l in TYPES_GUICHET:
             executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'type_guichet', %s, %s)", (ins, c, l))
         for ev in EVENEMENTS:
             executer("""insert into schema_comptable (institution_id, type_evenement, version, date_effet, lignes, propose_par, valide_par)
@@ -386,6 +397,7 @@ class Command(BaseCommand):
         e = valeur("""insert into ecriture (institution_id, numero, journal_id, journee_id, date_valeur, libelle, piece_id, evenement_id, schema_id, saisi_par, valide_par)
                       values (%s, 'AN-2026-000001', %s, %s, '2026-11-04', 'Reprise des soldes au 04/11/2026', %s, %s, %s, %s, %s) returning id""",
                    (ins, jan, j, pid, str(uuid.uuid4()), sch, compta, chef))
+        executer("update journal_detail set compteur_ecriture = 1 where institution_id = %s and annee = 2026 and journal_id = %s", (ins, jan))   # registre T228
         tot = lambda d: sum(v * 100 * n for v, n in FONDS_G2[d].items())
         usd = lambda m: round(m * COURS)
         cours_id = valeur("select id from cours_change")

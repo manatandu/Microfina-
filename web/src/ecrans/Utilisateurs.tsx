@@ -212,15 +212,14 @@ function ChangerProfil({ l, fermer, fait }: { l: Ligne; fermer: () => void; fait
   );
 }
 
-/** Ajout de Guichet à un utilisateur (S10, fenêtre p. 20) : Code Guichet, Nom Guichet, Voir solde client, Voir solde client VIP, Ajouter, Fermer */
+/** Ajout de Guichet à un utilisateur (S10, fenêtre p. 20) : Code Guichet, Nom Guichet, Voir solde client, Ajouter, Fermer (registre S10-2) */
 function AjoutGuichet({ l, guichets, fermer, poser, fait }: { l: Ligne; guichets: { id: number; code: string; nom: string; agenceId: number }[]; fermer: () => void; poser: (b: Boite | null) => void; fait: () => void }) {
   const [choisi, setChoisi] = useState(0);
   const [voirSolde, setVoirSolde] = useState(false);
-  const [voirSoldeVip, setVoirSoldeVip] = useState(false);
   const ajouter = () => {
     if (!choisi) { poser({ type: "erreur", message: "À remplir : guichet." }); return; }
     poser({ type: "confirmation", message: "Voulez-vous attribuer ce guichet à l'utilisateur ?", oui: async () => {
-      try { await api.guichets.affecter({ utilisateurId: l.id, guichetId: choisi, voirSolde, voirSoldeVip }); fait(); poser({ type: "succes", message: "Enregistré avec succès !" }); }
+      try { await api.guichets.affecter({ utilisateurId: l.id, guichetId: choisi, voirSolde, voirSoldeVip: false }); fait(); poser({ type: "succes", message: "Enregistré avec succès !" }); }
       catch (x) { poser({ type: "erreur", message: message(x) }); }
     } });
   };
@@ -229,7 +228,6 @@ function AjoutGuichet({ l, guichets, fermer, poser, fait }: { l: Ligne; guichets
       <TableFiltree sansFiltres lignes={guichets.filter((x) => x.agenceId === l.a?.agenceId)} cle={(x) => x.id} choisir={(x) => setChoisi(x.id)} choisi={choisi} colonnes={[
         { titre: "Code Guichet", valeur: (x) => x.code }, { titre: "Nom Guichet", valeur: (x) => x.nom }]} />
       <label className="case"><span>Voir solde client</span><input type="checkbox" checked={voirSolde} onChange={(e) => setVoirSolde(e.target.checked)} /></label>
-      <label className="case"><span>Voir solde client VIP</span><input type="checkbox" checked={voirSoldeVip} onChange={(e) => setVoirSoldeVip(e.target.checked)} /></label>
       <div className="actions-onglets">
         <button className="bouton" type="button" onClick={ajouter}>Ajouter</button>
         <button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button>

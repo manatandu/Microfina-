@@ -29,9 +29,16 @@ def _connexion():
 
 
 def adresse(request) -> str:
-    """Adresse du client : la première de X-Forwarded-For (Firebase Hosting puis Cloud Run l'ajoutent), sinon REMOTE_ADDR"""
-    xff = request.META.get("HTTP_X_FORWARDED_FOR", "")
-    return (xff.split(",")[0].strip() if xff else request.META.get("REMOTE_ADDR", ""))[:64]
+    """Adresse du poste. Chaque relais placé devant le serveur ajoute à la fin de X-Forwarded-For l'adresse qu'il a vue ; le début de l'en-tête,
+    lui, peut être écrit par le poste. Avec LIKELEMBA_RELAIS_DE_CONFIANCE = n, l'adresse est donc la n-ième en partant de la fin, celle qu'a vue
+    le premier relais de confiance (audit du 21/11/2026, constat F19 ; registre T229). Sans ce réglage : la première de l'en-tête, comme avant."""
+    xff = [a.strip() for a in request.META.get("HTTP_X_FORWARDED_FOR", "").split(",") if a.strip()]
+    n = settings.RELAIS_DE_CONFIANCE
+    if n is None:
+        return (xff[0] if xff else request.META.get("REMOTE_ADDR", ""))[:64]
+    if n <= 0 or not xff:
+        return request.META.get("REMOTE_ADDR", "")[:64]
+    return xff[max(len(xff) - n, 0)][:64]
 
 
 def noter(evenement: str, login: str = "", ip: str = "", utilisateur_id: int | None = None, detail: str = "") -> None:

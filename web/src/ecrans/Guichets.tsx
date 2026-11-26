@@ -138,11 +138,11 @@ export function Guichets() {
   );
 }
 
-/** Affecter un caissier au guichet (S10, fenêtre p. 20) : un utilisateur de l'agence sans guichet, Voir solde client, Voir solde client VIP ; Retirer pour ceux qui l'ont */
+/** Affecter un caissier au guichet (S10, fenêtre p. 20) : un utilisateur de l'agence sans guichet, Voir solde client ; Retirer pour ceux qui l'ont.
+ * « Voir solde client VIP », case sans effet (le logiciel n'a pas de client VIP), n'est plus montrée (plan d'allègement, point 0.23 ; registre S10-2) */
 function AffecterCaissier({ g, aff, fermer, poser, fait }: { g: Ligne; aff: Awaited<ReturnType<typeof api.guichets.affectations>>; fermer: () => void; poser: (b: Boite | null) => void; fait: () => void }) {
   const [choisi, setChoisi] = useState(0);
   const [voirSolde, setVoirSolde] = useState(false);
-  const [voirSoldeVip, setVoirSoldeVip] = useState(false);
   const utilisateurs = aff.utilisateurs as LigneAffectation[];
   const libres = utilisateurs.filter((x) => !x.guichetId && x.agenceId === g.agenceId);
   const actuels = utilisateurs.filter((x) => x.guichetId === g.id);
@@ -160,10 +160,9 @@ function AffecterCaissier({ g, aff, fermer, poser, fait }: { g: Ligne; aff: Awai
       <TableFiltree sansFiltres lignes={libres} cle={(x) => x.id} choisir={(x) => setChoisi(x.id)} choisi={choisi} colonnes={[
         { titre: "Identifiant de connexion", valeur: (x) => x.login }, { titre: "Nom et prénoms", valeur: (x) => x.nom }]} />
       <label className="case"><span>Voir solde client</span><input type="checkbox" checked={voirSolde} onChange={(e) => setVoirSolde(e.target.checked)} /></label>
-      <label className="case"><span>Voir solde client VIP</span><input type="checkbox" checked={voirSoldeVip} onChange={(e) => setVoirSoldeVip(e.target.checked)} /></label>
       <div className="actions-onglets">
         <button className="bouton" type="button" disabled={!choisi} onClick={() => fini("Voulez-vous attribuer ce guichet à l'utilisateur ?",
-          () => api.guichets.affecter({ utilisateurId: choisi, guichetId: g.id, voirSolde, voirSoldeVip }))}>Ajouter</button>
+          () => api.guichets.affecter({ utilisateurId: choisi, guichetId: g.id, voirSolde, voirSoldeVip: false }))}>Ajouter</button>
         <button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button>
       </div>
     </div>

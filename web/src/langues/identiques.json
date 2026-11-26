@@ -267,5 +267,21 @@
 "Le détail est dans le journal du serveur. Ce message ne contient aucune donnée d'un membre.",
 "Sauvegarde en retard. {0}",
 "Vérifie qu'une sauvegarde récente existe",
-"alerte par courriel non envoyée"
+"alerte par courriel non envoyée",
+"Cette base contient déjà une institution : une installation par institution.",
+"Crée une institution réelle, vide, avec son premier administrateur",
+"Exercice : une année, par exemple",
+"Fuseau horaire :",
+"Identifiant de connexion : déjà pris.",
+"Institution réelle : la graine ne s'y applique pas. Rien d'ajouté.",
+"Reste à faire : python manage.py definir_mot_de_passe {0}",
+"Type d'institution :",
+"année du premier exercice tenu dans le logiciel",
+"catégorie de l'agrément",
+"dénomination de l'institution, celle de l'agrément",
+"fuseau de la première agence",
+"identifiant du premier administrateur (gestion des accès)",
+"nom et prénoms de l'administrateur",
+"nom et prénoms du premier administrateur",
+"{0} installée : agence {1}, exercice {2}, {3} profils."
 ]

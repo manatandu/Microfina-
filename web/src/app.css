@@ -784,3 +784,5 @@ select.saisie { max-width: 100%; }
 .zone-client { grid-area: client; } .zone-compte { grid-area: compte; } .zone-saisie { grid-area: saisie; } .zone-billetage { grid-area: billetage; }
 .zone-actions { grid-area: actions; } .zone-lettres { grid-area: lettres; }
 @media (max-width: 720px) { .guichet-zones { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "client" "compte" "saisie" "billetage" "actions" "lettres"; } }
+/* Déblocage au guichet (décision D02-6) : trois colonnes sur un écran large, deux puis une quand la place manque */
+.deblocage-colonnes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); gap: var(--espace-4) var(--espace-6); align-items: start; }

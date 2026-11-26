@@ -37,7 +37,7 @@ Départ : près de zéro. Cloud Run, Hosting, secrets et images restent dans les
 ## Limites à connaître
 
 - Neon gratuit : 1 Go au plus (au-delà, les écritures sont refusées), base endormie après 5 minutes (premier appel lent), sauvegardes limitées. Acceptable avec la graine fictive ; à remplacer par Cloud SQL ou une offre payante avant une vraie institution.
-- Le site ne contient que la graine fictive (COOPEC Tujenge). Une vraie institution demande la création de sa première équipe : étape à part.
+- Le site ne contient que la graine fictive (COOPEC Tujenge). Une vraie institution s'installe à part : voir « Installer une institution réelle ».
 - Pas de limite d'essais de mot de passe (registre S01-3, à confirmer).
 - L'accès de GitHub est limité au dépôt `manatandu/Microfina-` ; toute personne qui peut pousser sur ses branches de déploiement peut publier.
 
@@ -66,3 +66,46 @@ Une erreur du serveur s'écrit dans le journal de l'hébergeur. Elle part aussi 
 
 Le courriel donne la date, la requête sans ses paramètres, le type de l'erreur et l'endroit du code. Il ne contient aucune donnée d'un membre.
 La même erreur ne repart pas avant un quart d'heure. Sans adresse ou sans relais, aucun courriel ne part.
+
+## Adresse du poste (audit du 21/11/2026, point I4 ; registre T229)
+
+Le journal de sécurité, le blocage après trop de connexions refusées et la limite de requêtes se servent de l'adresse du poste. Derrière un ou
+plusieurs relais (hébergeur, répartiteur, proxy de l'agence), elle se lit dans l'en-tête `X-Forwarded-For` : chaque relais y ajoute, à la fin,
+l'adresse qu'il a vue. Le début de l'en-tête peut être écrit par le poste lui-même.
+
+- `LIKELEMBA_RELAIS_DE_CONFIANCE` : le nombre de relais placés devant le serveur. `1` derrière un seul relais, `2` derrière deux, `0` sans relais.
+
+Pour le fixer : se connecter depuis un poste dont on connaît l'adresse publique, puis lire l'adresse notée dans le Journal de sécurité. Elle doit
+être celle du poste. Sans ce réglage, la première adresse de l'en-tête sert, comme avant : le blocage par adresse se contourne alors ; le blocage
+par identifiant reste.
+
+## Installer une institution réelle
+
+Audit du 21/11/2026, point bloquant B5 (registre T227). Une installation par institution : sa base, sa clé de sauvegarde, son contrôle (décision D2).
+
+Sur une base vide, jamais sur celle de la démonstration :
+
+```bash
+python manage.py migrate
+```
+
+```bash
+python manage.py installer --nom "Dénomination de l'agrément" --sigle "SIGLE" --type coopec --agence-code 01 --agence-nom "Siège" --exercice 2027 --admin-login identifiant --admin-nom "Nom et prénoms"
+```
+
+```bash
+python manage.py definir_mot_de_passe identifiant
+```
+
+`--type` : `coopec`, `societe_microfinance`, `entreprise_microcredit` ou `faitiere`. `--fuseau` : `Africa/Kinshasa` (par défaut) ou `Africa/Lubumbashi`.
+
+La commande crée l'institution, sa première agence, l'exercice et ses journaux, les jours fériés légaux, les listes et les profils de départ, et le premier administrateur. Elle ne crée ni membre, ni compte, ni guichet, ni produit. Elle refuse une base qui contient déjà une institution. La graine et les exemples ne s'appliquent pas à une institution réelle : ne pas les lancer au déploiement.
+
+Ensuite, dans le logiciel, dans cet ordre :
+
+1. Le premier administrateur se connecte, remplace son mot de passe, crée les utilisateurs et leur donne un profil (Administration > Utilisateurs). Il règle la durée des mots de passe et le second facteur (Règles de connexion).
+2. Le chef d'agence ajoute le quartier du siège (Paramétrage > Localisation), puis remplit la fiche Société : adresse, numéro d'agrément, valeur de la part sociale des statuts pour une COOPEC, contact de l'Unité des plaintes.
+3. Il vérifie les devises et les coupures, saisit le cours du jour, crée les produits d'épargne et de crédit, les frais, les guichets et leurs affectations.
+4. Il ouvre la première journée. Les soldes de départ entrent par la reprise des données (point B4).
+
+L'essai `serveur/tests/test_installation.py` suit ce chemin, de la base vide au premier dépôt.

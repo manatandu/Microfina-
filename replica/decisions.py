@@ -23,7 +23,14 @@ for e in ecrans:
         q = f"{x['question']} ({x['ecran']})" if x["id"].startswith("T") else x["question"]
         t.append(f"| {x['id']} | {q} | {x['choix']} | {ORIGINE[x['origine']].capitalize()} : {x['reference']} | {x['solidite']} | {x['application']} |")
     t.append("")
-t += ["## Les décisions faibles, à regarder en premier", "", "| N° | Écran | Question | Réponse retenue |", "|---|---|---|---|"]
-t += [f"| {x['id']} | {x['ecran']} | {x['question']} | {x['choix']} |" for x in L if x["solidite"] == "faible"]
+# Une décision faible déjà passée en revue (« validé », « retiré » ou « refusé ») ne se regarde plus en premier (COMPLEMENTS § 9)
+REVUES = ("validé", "retiré", "refusé")
+faibles = [x for x in L if x["solidite"] == "faible"]
+a_revoir = [x for x in faibles if x["statut"] not in REVUES]
+t += ["## Les décisions faibles, à regarder en premier", "",
+      f"{len(faibles) - len(a_revoir)} décisions faibles sur {len(faibles)} sont passées en revue : leur ligne dit « validé » ou « retiré ». Restent à regarder : {len(a_revoir)}.", ""]
+if a_revoir:
+    t += ["| N° | Écran | Question | Réponse retenue |", "|---|---|---|---|"]
+    t += [f"| {x['id']} | {x['ecran']} | {x['question']} | {x['choix']} |" for x in a_revoir]
 (RACINE.parent / "docs" / "architecture" / "DECISIONS.md").write_text("\n".join(t) + "\n", encoding="utf-8")
 print(f"{len(L)} décisions : {dict(c)} ; {dict(a)}")

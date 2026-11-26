@@ -427,7 +427,7 @@ export function ConsulterPret() {
           <button className="bouton secondaire" type="button" onClick={() => { setT(null); setCid(null); setDate(""); setParams({}); }}>Effacer</button>
         </div>
         <Textes sources={["Manuel Microfina++, p. 118 : 6-Consulter prêt, N° Client, Situation, Réel, Plan, Mémo ; capture p. 119",
-          "Registre S95-1 à S95-3 : même situation que le remboursement (S76) ; Tout sur le crédit affiche la somme due ; H reste grisé (non expliqué par le manuel)"]} />
+          "Registre S95-1 à S95-3 : même situation que le remboursement (S76) ; Tout sur le crédit affiche la somme due ; H, grisé et non expliqué par le manuel, n'est plus montré (plan d'allègement, point 1.4)"]} />
       </section>
       <FenetresCredit cid={d?.id ?? null} devise={dv} ouverte={(["situation", "plan", "reel", "memo"] as const).find((x) => x === fiche) ?? ""} fermer={() => setFiche("")} />
       <Fiche titre={`Garanties du crédit ${d?.numero ?? ""}`} ouverte={fiche === "garanties"} fermer={() => setFiche("")}>

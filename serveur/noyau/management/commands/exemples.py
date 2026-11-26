@@ -24,7 +24,7 @@ def exemples() -> list[str]:
     """Crée les exemples qui manquent ; rend la liste de ce qui a été fait ou sauté"""
     from noyau import banques as bq, facture as fa, paie, parametrage_epargne as pp, produits_credit as pc, produits_epargne as pe
     from noyau import referentiels as rf
-    ins = valeur("select min(id) from institution")
+    ins = valeur("select min(id) from institution where demonstration")     # jamais dans une institution réelle (registre T227)
     if not ins:
         return []
     def comme(login):

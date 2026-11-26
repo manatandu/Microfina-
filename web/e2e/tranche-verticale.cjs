@@ -13,6 +13,13 @@ const OUT = process.argv[2];
   const login = async (nom) => { await p.goto(B + '/connexion'); await p.getByLabel("Identifiant de connexion").fill(IDS[nom]); await p.getByRole('button', { name: 'Connexion' }).click(); await p.waitForURL(B + '/'); };
   // Valide les billetages un par un, en attendant que la liste se mette à jour entre deux clics
   const aller = async (chemin) => { await p.goto(B + chemin); await p.waitForLoadState('networkidle'); };
+  // Décision D02-6 : sur un écran de 1 366 × 768, le bouton principal d'un onglet du guichet se voit sans défiler, au-dessus de la barre d'état
+  const sansDefiler = async (nom) => {
+    if (L !== 1366) return;
+    const bas = await p.getByRole('button', { name: nom, exact: true }).evaluate((b) => Math.round(b.getBoundingClientRect().bottom + scrollY));
+    const limite = 768 - await p.locator('footer.pied').evaluate((f) => Math.round(f.getBoundingClientRect().height));
+    if (bas > limite) throw new Error(`« ${nom} » sous la ligne de flottaison : ${bas} px pour ${limite} (D02-6)`);
+  };
 
   await p.goto(B + '/connexion'); await p.evaluate(() => localStorage.clear()); await p.reload();
   await etape('01-connexion');
@@ -658,7 +665,7 @@ const OUT = process.argv[2];
   await p.getByLabel('Nombre de parts sociales').fill('2'); await p.getByLabel(/Premier dépôt/).fill('20 000');   // 2 parts 8 000 + dépôt 20 000 + droit d'entrée 2 500
   const bil = p.getByRole('group', { name: 'Billetage' });   // billetage sous le montant (plan 4.2)
   await bil.getByLabel('Nombre de coupures de 20 000 CDF').fill('1'); await bil.getByLabel('Nombre de coupures de 5 000 CDF').fill('2'); await bil.getByLabel('Nombre de coupures de 500 CDF').fill('1');
-  await etape('07-adhesion');
+  await etape('07-adhesion'); await sansDefiler('Enregistrer');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await p.getByRole('dialog', { name: 'Confirmation' }).getByText(/^Adhésion/).waitFor(); await etape('07b-adhesion-recapitulatif');
   await p.getByRole('button', { name: 'Oui', exact: true }).click(); await p.getByRole('dialog', { name: 'Reçu' }).getByText('Adhésion enregistrée').waitFor(); await etape('08-adhesion-recu');   // reçu d'office (plan 4.3)
   await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
@@ -678,7 +685,7 @@ const OUT = process.argv[2];
   };
   await aller('/caisse/s74?op=depot'); await client('Kalala'); await p.getByLabel('N° compte').selectOption({ label: '0412-000318-02' });
   await p.getByLabel('Montant *').fill('150 000'); await p.getByLabel('Versé par').fill('Le titulaire'); await p.getByLabel('Motif:').fill('ECOLAGE');
-  await p.getByLabel('Nombre de coupures de 10 000 CDF').fill('15'); await etape('09-depot');
+  await p.getByLabel('Nombre de coupures de 10 000 CDF').fill('15'); await etape('09-depot'); await sansDefiler('Enregistrer');
   await p.getByLabel('Nombre de coupures de 10 000 CDF').press('Enter'); await p.getByRole('button', { name: 'Oui', exact: true }).click();   // Entrée enregistre (plan 11.3)
   // l'avertissement reste dans sa boîte jusqu'à « Ok » (plan 11.3) ; registre S08-4
   const avert = p.getByRole('dialog', { name: 'Succès' }); await avert.getByText(/au-dessus du maximum autorisé/).waitFor(); await etape('09b-depot-avertissement-maximum');
@@ -795,7 +802,7 @@ const OUT = process.argv[2];
   // Déblocage du crédit visé (S75, p. 86 et 87) : retenues, billetage, Débloquer (plan 4.7) ; contrat de prêt (CR-12). Produit sans frais ni épargne obligatoire : 1 000 000 CDF remis
   await aller('/caisse/s75'); await p.getByRole('button', { name: 'Rechercher un crédit' }).click();
   await p.getByRole('dialog', { name: 'Crédits à débloquer' }).getByRole('row').filter({ hasText: '0412/L001/00001' }).click();
-  await p.getByRole('group', { name: 'Retenues' }).getByText('Montant remis').waitFor(); await etape('11d-deblocage-credit');
+  await p.getByRole('group', { name: 'Retenues' }).getByText('Montant remis').waitFor(); await etape('11d-deblocage-credit'); await sansDefiler('Débloquer');
   await p.getByRole('group', { name: 'Billetage' }).getByLabel('Nombre de coupures de 20 000 CDF').fill('50');
   await p.getByRole('button', { name: 'Débloquer' }).click(); await p.getByRole('dialog', { name: 'Confirmation' }).getByText(/Montant remis/).waitFor(); await etape('11d2-deblocage-recapitulatif');
   await p.getByRole('button', { name: 'Oui', exact: true }).click(); await p.getByRole('dialog', { name: 'Reçu' }).getByText('Déblocage de crédit.', { exact: true }).waitFor(); await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');

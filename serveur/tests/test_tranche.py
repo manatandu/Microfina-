@@ -6108,3 +6108,35 @@ def test_contrat_deux_originaux_puis_copies(clients, journee):
     assert chef.post("/api/impressions", {"document": "reconnaissance_dette", "objet": cid}, **H).json()["exemplaire"] == 1
     s = chef.get("/api/societe", **H).json()
     assert s["institution"]["plaintesContact"].startswith("Unité centrale")
+
+
+def test_numero_ecriture_sans_trou(clients, journee):
+    """Audit du 21/11/2026, constat F9 (registre T228) : le numéro d'écriture suit un compteur par journal et par exercice, avancé dans la transaction
+    de l'écriture ; une opération refusée après la prise du numéro ne laisse pas de trou (PCCI § 3.3 et 3.4)"""
+    from noyau.bd import executer
+    caisse = clients["caisse"]
+    suffixes = lambda code: [int(n.rsplit("-", 1)[1]) for (n,) in lignes_bd("""select e.numero from ecriture e join journal j on j.id = e.journal_id
+                                                                              where j.code = %s and e.numero like %s order by e.id""", (code, f"{code}-2026-%"))]
+    depot = lambda: caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 500000, "coupures": {"5000": 1}, "mandataire": ""}, **H)
+    assert depot().status_code == 200
+    avant = suffixes("CA")
+    executer("update schema_comptable set valide_par = null where type_evenement = 'depot'")     # refus après la prise du numéro
+    r = depot(); assert r.status_code == 422 and "non validé" in r.json()["message"]
+    executer("update schema_comptable set valide_par = (select id from utilisateur where login = 'jpmukendi') where type_evenement = 'depot'")
+    assert depot().status_code == 200 and depot().status_code == 200
+    apres = suffixes("CA")
+    assert apres == avant + [avant[-1] + 1, avant[-1] + 2]                              # pas de trou après le refus
+    assert suffixes("AN") == [1]                                                        # chaque journal a sa suite
+    assert ident("""select d.compteur_ecriture from journal_detail d join journal j on j.id = d.journal_id where j.code = 'CA' and d.annee = 2026""") == apres[-1]
+
+
+def test_adresse_du_poste(settings, rf):
+    """Audit du 21/11/2026, constat F19 (registre T229) : l'adresse du poste se lit du côté des relais de confiance, pas du côté que le poste écrit"""
+    from noyau.securite import adresse
+    r = rf.get("/api/session", HTTP_X_FORWARDED_FOR="1.2.3.4, 41.243.0.7, 35.191.0.1", REMOTE_ADDR="169.254.1.1")
+    settings.RELAIS_DE_CONFIANCE = None; assert adresse(r) == "1.2.3.4"            # non réglé : comme avant
+    settings.RELAIS_DE_CONFIANCE = 2; assert adresse(r) == "41.243.0.7"            # deux relais : l'adresse vue par le premier
+    settings.RELAIS_DE_CONFIANCE = 1; assert adresse(r) == "35.191.0.1"
+    settings.RELAIS_DE_CONFIANCE = 5; assert adresse(r) == "1.2.3.4"               # plus de relais que d'adresses : la plus ancienne
+    settings.RELAIS_DE_CONFIANCE = 0; assert adresse(r) == "169.254.1.1"           # aucun relais : l'adresse de la connexion
+    settings.RELAIS_DE_CONFIANCE = 2; assert adresse(rf.get("/api/session", REMOTE_ADDR="10.0.0.9")) == "10.0.0.9"

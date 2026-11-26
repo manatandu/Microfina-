@@ -1905,7 +1905,7 @@ def poster(u: dict, *, journal: str, journee_id: int, libelle: str, piece: str, 
     if jid is None:
         raise ErreurMetier(f"Le journal {journal} n'est pas actif (Comptabilité > Journal).")      # registre S30-2
     pid = valeur("insert into piece (institution_id, numero, type, date_piece) values (%s, %s, 'bordereau', %s) returning id", (u["institution_id"], piece, j["date_comptable"]))
-    numero = f"{journal}-{j['date_comptable'].year}-{valeur('select nextval(%s)', ('numero_ecriture',)):06d}"
+    numero = numero_ecriture(u["institution_id"], journal, j["date_comptable"].year)
     eid = valeur("""insert into ecriture (institution_id, numero, journal_id, journee_id, date_valeur, libelle, piece_id, evenement_id, schema_id, saisi_par, valide_par,
                                           contre_passe_id, type)
                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
@@ -1930,6 +1930,16 @@ def poster(u: dict, *, journal: str, journee_id: int, libelle: str, piece: str, 
                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                  (eid, rang, compte_ecriture(l["compte"], u["institution_id"], l.get("contrat"), l["devise"]), l.get("contrat"), l["sens"], l["devise"], l["montant"], cdf, cours_id, l.get("budget")))
     return eid
+
+
+def numero_ecriture(institution_id: int, journal: str, annee: int) -> str:
+    """Numéro de l'écriture suivante du journal dans l'exercice. Le compteur avance dans la transaction de l'écriture : une opération refusée ne laisse
+    pas de trou, deux opérations simultanées ne prennent pas le même numéro (PCCI § 3.3 et 3.4 ; audit du 21/11/2026, constat F9 ; registre T228)"""
+    n = valeur("""update journal_detail d set compteur_ecriture = compteur_ecriture + 1 from journal j
+                  where j.id = d.journal_id and d.institution_id = %s and d.annee = %s and j.code = %s returning d.compteur_ecriture""", (institution_id, annee, journal))
+    if n is None:
+        raise ErreurMetier(f"Le journal {journal} n'est pas ouvert sur l'exercice {annee} (Administration > Exercices).")
+    return f"{journal}-{annee}-{n:06d}"
 
 
 ELEMENTS_PIECE = ["INSTITUTION", "AGENCE", "JOURNAL", "COMPTEUR"]

@@ -73,8 +73,9 @@ export default function Adhesion() {
           {(piece) ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}
           <p>Date Opération : * <strong className="chiffres">{fr(j?.date ?? "")}</strong></p>
         </div>
-        <div className="grille-cadres">
-          <fieldset className="pile cadre-champs">
+        {/* Décision D02-6 : même disposition que le dépôt, le client, les frais et les boutons à gauche, le compte et le billetage à droite */}
+        <div className="guichet-zones">
+          <fieldset className="pile cadre-champs zone-client">
             <legend>Informations sur le Client</legend>
             <div className="ligne-champ">
               <ChampClient libelle="N° Client :" client={t} desactive={!!fait} choisir={(x) => { setT(x); setDepot(enSaisie(x.premierDepot)); setParts("1"); setCoupures({}); setCle(nouvelleCle()); }} />
@@ -83,15 +84,14 @@ export default function Adhesion() {
             <Champ libelle="Intitulé :">{(p) => <Lecture {...p} value={t ? nomComplet(t) : ""} />}</Champ>
             <Champ libelle="Nature :">{(p) => <Lecture {...p} value={t ? ({ physique: "Personne physique", morale: "Entreprise", groupe: "Groupe" } as const)[t.type] : ""} />}</Champ>
           </fieldset>
-          <fieldset className="pile cadre-champs">
+          <fieldset className="pile cadre-champs zone-compte">
             <legend>Informations sur le Compte</legend>
             <Champ libelle="N° compte épargne :">{(p) => <input {...p} className="saisie code" readOnly value={compte?.numero ?? ""} />}</Champ>
             <Champ libelle={`Premier dépôt : *${produit ? ` (${produit.devise})` : ""}`}>{(p) => <input {...p} className="saisie montant" inputMode="decimal" required readOnly={!!fait}
               autoComplete="off" value={depot} onChange={(e) => { setDepot(e.target.value); setCle(nouvelleCle()); }} />}</Champ>
             <p>Total : <strong className="chiffres">{montant(totalCdf, "CDF")}</strong>{enDevise && mDepot ? <> + <strong className="chiffres">{montant(mDepot, devDepot)}</strong></> : null}</p>
           </fieldset>
-        </div>
-        <fieldset className="pile cadre-champs">
+        <fieldset className="pile cadre-champs zone-saisie">
           <legend>Liste des Frais</legend>
           <table className="grille">
             <thead><tr><th scope="col">Libellé Frais</th><th scope="col">Compte</th><th scope="col">Nombre</th><th scope="col">Montant</th></tr></thead>
@@ -107,16 +107,17 @@ export default function Adhesion() {
             </tbody>
           </table>
         </fieldset>
-        {t && !fait && total > 0 && <fieldset className="pile cadre-champs"><legend>Billetage</legend>
+        {t && !fait && total > 0 && <fieldset className="pile cadre-champs zone-billetage"><legend>Billetage</legend>
           {totalCdf > 0 && <Billetage devise="CDF" comptage={coupures} onChange={(c) => { setCoupures(c); setCle(nouvelleCle()); }} cible={totalCdf} sens="recue" />}
           {enDevise && mDepot ? <Billetage devise={devDepot} comptage={coupuresDepot} onChange={(c) => { setCoupuresDepot(c); setCle(nouvelleCle()); }} cible={mDepot} sens="recue" /> : null}
         </fieldset>}
-        <div className="actions-onglets">
+        <div className="actions-onglets zone-actions">
           <button className="bouton" type="submit" disabled={!t || !!fait} aria-disabled={!bon || undefined}>Enregistrer</button>
           <button className="bouton secondaire" type="button" disabled={!fait} onClick={() => setRecu(true)}>Imprimer</button>
           <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
         </div>
-        <p className="montant-lettres">{[totalCdf > 0 ? montantEnLettres(totalCdf, "CDF") : "", enDevise && mDepot ? montantEnLettres(mDepot, devDepot) : ""].filter(Boolean).join(" ; ")}</p>
+        <p className="montant-lettres zone-lettres">{[totalCdf > 0 ? montantEnLettres(totalCdf, "CDF") : "", enDevise && mDepot ? montantEnLettres(mDepot, devDepot) : ""].filter(Boolean).join(" ; ")}</p>
+        </div>
         <Textes sources={["Manuel Microfina++, p. 85 : Adhésion (N° Client, Intitulé*, Catégorie*, N° compte épargne*, Premier dépôt*, Total, Info guichet) ; p. 89 : Liste des Frais, Enregistrer, Imprimer, Effacer, Billetage, montant en lettres",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur",
           "Loi 002/2002, art. 21 et 22 : au moins une part, intégralement libérée ; PCCI, comptes 103 (parts) et 330 (épargne)",
