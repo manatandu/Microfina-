@@ -1025,6 +1025,142 @@ def test_transferts(clients, journee):
     assert balance_equilibree(caisse)
 
 
+def agence_temoin(code="0413", nom="Limete"):
+    """Une deuxième agence qui travaille : un chef, une caissière, un guichet créé par le logiciel, la journée du 05/11 et la caisse ouvertes.
+    Rend (identifiant de l'agence, client du chef, client de la caissière, session de caisse)."""
+    from noyau.bd import executer, valeur
+    ag = valeur("""insert into agence (institution_id, zone_id, code, nom, fuseau, jours_travail, pays, province, ville, commune, quartier, rue, numero_rue)
+                   select institution_id, zone_id, %s, %s, fuseau, jours_travail, pays, province, ville, commune, quartier, rue, numero_rue from agence
+                   where id = (select agence_id from utilisateur where login = 'jpmukendi') returning id""", (code, nom))
+    for login, nom_u, profil in ((f"chef{code}", f"Chef {nom}", "chef_agence"), (f"caisse{code}", f"Caissière {nom}", "caissier")):
+        uid = valeur("insert into utilisateur (institution_id, agence_id, login, nom, mot_de_passe_hash) select institution_id, id, %s, %s, '!' from agence where id = %s returning id",
+                     (login, nom_u, ag))
+        executer("insert into utilisateur_profil (utilisateur_id, profil_id) select %s, p.id from profil p join agence a on a.institution_id = p.institution_id where a.id = %s and p.code = %s",
+                 (uid, ag, profil))
+    chef2, caisse2 = Client(), Client()
+    connecter(chef2, f"chef{code}"); connecter(caisse2, f"caisse{code}")
+    l = chef2.get("/api/guichets").json()
+    r = chef2.post("/api/guichets", {"agenceId": ag, "code": "G1", "designation": "Caisse 1", "typeGuichet": "PRINCIPALE", "journalId": next(x["id"] for x in l["journaux"] if x["code"] == "CA"),
+                                     "plafonds": {"CDF": {"maximum": 0, "retrait": 0}, "USD": {"maximum": 0, "retrait": 0}},
+                                     "compteGuichet": "57000000", "compteLiaison": "57900000", "billetage": False, "actif": True}, **H)
+    assert r.status_code == 200, r.content
+    gid = ident("select id from guichet where agence_id = %s and code = 'G1'", (ag,))
+    r = chef2.post("/api/affectations-guichets", {"utilisateurId": ident("select id from utilisateur where login = %s", (f"caisse{code}",)), "guichetId": gid, "voirSolde": True}, **H)
+    assert r.status_code == 200, r.content
+    r = chef2.post("/api/journees", {"date": "2026-11-05"}, **H)
+    assert r.status_code == 200, r.content
+    r = caisse2.post("/api/caisses", {"guichetId": gid}, **H)
+    assert r.status_code == 200, r.content
+    return ag, chef2, caisse2, r.json()
+
+
+def test_fonds_entre_agences(clients, journee):
+    """Fonds entre agences, et entre le siège et une agence (PCCI, compte 45 : 450 Sièges et Agences locales, 451 Comptes de liaison inter agences ;
+    registre T233). L'envoi sort les billets de la caisse et débite le compte de liaison ; l'agence qui reçoit compte les billets et passe le reflet,
+    de même montant et de sens contraire : le compte se solde par agrégation. Entre les deux, les fonds sont en route. Celui qui a envoyé ne reçoit
+    pas (Instr. BCC 008, art. 66)."""
+    _, s = journee
+    chef, caisse = clients["chef"], clients["caisse"]
+    ici = ident("select agence_id from utilisateur where login = 'engalula'")
+    ag2, chef2, caisse2, s2 = agence_temoin()
+    n = lambda c, sid: c.get(f"/api/caisses/{sid}/theorique?devise=CDF").json().get("1000", 0)
+    def refus(r):
+        assert r.status_code == 422, r.content; return r.json()["message"]
+    # l'écran propose les autres agences, jamais la sienne
+    assert [(a["code"], a["siege"]) for a in caisse.get("/api/caisse/transferts").json()["agences"]] == [("0413", False)]
+    assert [a["code"] for a in caisse2.get("/api/caisse/transferts").json()["agences"]] == ["0412"]
+    va = lambda corps, c=caisse: c.post("/api/caisse/transferts/agence", {"cle": cle(), "origineSessionId": s["id"], "agenceId": ag2, **corps}, **H)
+    assert "Agence destinataire" in refus(va({"agenceId": None, "montants": {"CDF": 200000}, "coupures": {"CDF": {"1000": 2}}}))
+    assert "une autre agence que la vôtre" in refus(va({"agenceId": ici, "montants": {"CDF": 200000}, "coupures": {"CDF": {"1000": 2}}}))
+    assert "À remplir : Montant" in refus(va({"montants": {}, "coupures": {}}))
+    assert "billetage" in refus(va({"montants": {"CDF": 200000}, "coupures": {"CDF": {"1000": 1}}}))
+    assert "Pas assez de coupures" in refus(va({"montants": {"CDF": 10000000000}, "coupures": {"CDF": {"1000": 100000}}}))
+    assert "Caisse d'origine" in refus(va({"origineSessionId": s2["id"], "montants": {"CDF": 200000}, "coupures": {"CDF": {"1000": 2}}}))    # la caisse d'une autre agence
+    a1, a2 = n(caisse, s["id"]), n(caisse2, s2["id"])
+    # 1. Entre deux agences : 451
+    k = cle()
+    o = caisse.post("/api/caisse/transferts/agence", {"cle": k, "origineSessionId": s["id"], "agenceId": ag2, "montants": {"CDF": 200000}, "coupures": {"CDF": {"1000": 2}}}, **H).json()
+    assert (o["type"], o["statut"]) == ("transfert_sortie", "validee") and n(caisse, s["id"]) == a1 - 2
+    assert caisse.post("/api/caisse/transferts/agence", {"cle": k, "origineSessionId": s["id"], "agenceId": ag2, "montants": {"CDF": 200000}, "coupures": {"CDF": {"1000": 2}}}, **H).json()["id"] == o["id"]
+    assert n(caisse, s["id"]) == a1 - 2                                                              # la même clé ne sort pas les billets deux fois
+    assert (solde_compte("451"), solde_compte("450")) == (200000, 0)                                 # fonds en route : créance sur l'agence qui recevra
+    # la clôture du mois le signale : le compte 45 se solde par agrégation (PCCI, fiche du compte 45)
+    from noyau.fin_periode import controles
+    inst = {"institution_id": ident("select institution_id from agence where id = %s", (ag2,))}
+    liaison = lambda: next(k for k in controles(inst, 2026, 11) if k["libelle"].startswith("Comptes de liaison (45)"))
+    assert (liaison()["ok"], liaison()["bloquant"]) == (False, False) and liaison()["detail"] == "Fonds en route ou reflet en attente : 45100000"
+    e = caisse.get("/api/caisse/transferts/envois").json()
+    assert [(x["vers"], x["montant"], x["devise"], x["compte"], x["statut"], x["etat"]) for x in e] == [("0413 Limete", 200000, "CDF", "451", "envoye", "En route")]
+    assert caisse2.get("/api/caisse/transferts/envois").json() == []                                 # l'autre agence ne voit pas les envois de celle-ci
+    f = caisse2.get("/api/caisse/fonds-a-recevoir").json()
+    assert [(x["source"], x["de"], x["montant"], x["devise"], x["envoyePar"]) for x in f] == [("agence", "Agence 0412 Matete", 200000, "CDF", "Esther Ngalula")]
+    assert not [x for x in caisse.get("/api/caisse/fonds-a-recevoir").json() if x["source"] == "agence"]   # pas dans l'agence qui envoie
+    recoit = lambda c, tid, corps: c.post("/api/caisse/fonds-a-recevoir", {"cle": cle(), "source": "agence", "id": tid, **corps}, **H)
+    assert "pas à recevoir dans votre agence" in refus(recoit(caisse, f[0]["id"], {"coupures": {"1000": 2}}))
+    assert "billetage" in refus(recoit(caisse2, f[0]["id"], {"coupures": {"1000": 1}}))
+    assert "Aucune caisse ouverte" in refus(recoit(chef2, f[0]["id"], {"coupures": {"1000": 2}}))
+    r = recoit(caisse2, f[0]["id"], {"coupures": {"1000": 2}}).json()
+    assert (r["type"], r["statut"]) == ("transfert_entree", "validee") and n(caisse2, s2["id"]) == a2 + 2
+    assert (solde_compte("451"), caisse2.get("/api/caisse/fonds-a-recevoir").json()) == (0, [])      # reflet passé : le compte de liaison est soldé
+    assert liaison()["ok"] is True
+    assert "pas à recevoir" in refus(recoit(caisse2, f[0]["id"], {"coupures": {"1000": 2}}))          # pas deux fois
+    # chaque agence garde sa jambe : la créance chez celle qui envoie, la dette chez celle qui reçoit
+    jambe = lambda ag: ident("""select coalesce(sum(case l.sens when 'D' then l.montant_devise else -l.montant_devise end), 0) from ligne_ecriture l
+                                join compte c on c.id = l.compte_id join ecriture e on e.id = l.ecriture_id join journee_comptable j on j.id = e.journee_id
+                                where c.numero like '45%%' and j.agence_id = %s""", (ag,))
+    assert (jambe(ici), jambe(ag2)) == (200000, -200000)
+    e = caisse.get("/api/caisse/transferts/envois").json()
+    assert [(x["statut"], x["etat"], x["recuPar"], x["recuLe"]) for x in e] == [("recu", "Reçus", "Caissière Limete", "2026-11-05")]
+    # 2. Reprise : les fonds ne sont pas partis ; l'agence qui a envoyé les reprend dans sa caisse, tant que l'autre ne les a pas reçus
+    o2 = va({"montants": {"CDF": 100000}, "coupures": {"CDF": {"1000": 1}}}).json()
+    t2 = next(x for x in caisse.get("/api/caisse/transferts/envois").json() if x["statut"] == "envoye")
+    reprend = lambda c, tid, corps: c.post(f"/api/caisse/transferts/envois/{tid}/reprise", {"cle": cle(), **corps}, **H)
+    assert "Envoi inconnu" in refus(reprend(caisse2, t2["id"], {"coupures": {"1000": 1}}))            # l'autre agence ne reprend pas
+    assert "billetage" in refus(reprend(caisse, t2["id"], {"coupures": {"1000": 2}}))
+    assert "plus en route" in refus(reprend(caisse, e[0]["id"], {"coupures": {"1000": 2}}))           # déjà reçu
+    rp = reprend(caisse, t2["id"], {"coupures": {"1000": 1}}).json()
+    assert (rp["type"], rp["statut"]) == ("transfert_entree", "validee") and n(caisse, s["id"]) == a1 - 2 and o2["id"] != rp["id"]
+    assert solde_compte("451") == 0 and caisse2.get("/api/caisse/fonds-a-recevoir").json() == []
+    assert "plus en route" in refus(reprend(caisse, t2["id"], {"coupures": {"1000": 1}}))
+    assert next(x for x in caisse.get("/api/caisse/transferts/envois").json() if x["id"] == t2["id"])["etat"] == "Repris"
+    # 3. Avec le siège : 450. La case Siège se coche sur la page Agence (Société) ; une seule agence la porte
+    soc = chef.get("/api/societe").json()
+    a = next(x for x in soc["agences"] if x["id"] == ici)
+    r = chef.post(f"/api/societe/agences/{ici}", {**a, "siege": True}, **H)
+    assert r.status_code == 200, r.content
+    assert [(x["code"], x["siege"]) for x in r.json()["agences"]] == [("0412", True), ("0413", False)]
+    assert [(x["code"], x["siege"]) for x in caisse2.get("/api/caisse/transferts").json()["agences"]] == [("0412", True)]
+    o3 = va({"montants": {"CDF": 300000, "USD": 2000}, "coupures": {"CDF": {"1000": 3}, "USD": {"20": 1}}})
+    assert o3.status_code == 200, o3.content
+    e3 = [x for x in caisse.get("/api/caisse/transferts/envois").json() if x["statut"] == "envoye"]
+    assert sorted((x["devise"], x["montant"], x["compte"]) for x in e3) == [("CDF", 300000, "450"), ("USD", 2000, "450")]      # un envoi par devise
+    assert solde_compte("451") == 0 and ident("""select count(*) from ligne_ecriture l join compte c on c.id = l.compte_id
+                                                where c.numero like '450%%' and l.sens = 'D' and l.contrat_ref = %s""", (f"liaison:{ag2}",)) == 2
+    f3 = caisse2.get("/api/caisse/fonds-a-recevoir").json()
+    assert sorted((x["devise"], x["montant"]) for x in f3) == [("CDF", 300000), ("USD", 2000)]
+    for x in f3:
+        assert recoit(caisse2, x["id"], {"coupures": {"1000": 3} if x["devise"] == "CDF" else {"20": 1}}).status_code == 200
+    assert (solde_compte("450"), solde_compte("451")) == (0, 0)
+    # la case se déplace : la cocher sur l'autre agence la retire à la première
+    b = next(x for x in soc["agences"] if x["id"] == ag2) if any(x["id"] == ag2 for x in soc["agences"]) else next(x for x in chef.get("/api/societe").json()["agences"] if x["id"] == ag2)
+    r = chef.post(f"/api/societe/agences/{ag2}", {**b, "siege": True}, **H)
+    assert r.status_code == 200 and [(x["code"], x["siege"]) for x in r.json()["agences"]] == [("0412", False), ("0413", True)], r.content
+    # 4. Celui qui a envoyé ne reçoit pas : la caissière, passée dans l'autre agence, ne reçoit pas son propre envoi
+    o4 = va({"montants": {"CDF": 100000}, "coupures": {"CDF": {"1000": 1}}})
+    assert o4.status_code == 200, o4.content
+    t4 = next(x for x in caisse.get("/api/caisse/transferts/envois").json() if x["statut"] == "envoye")
+    from noyau import transferts
+    from noyau.bd import ErreurMetier, une
+    moi = {"id": ident("select id from utilisateur where login = 'engalula'"), "institution_id": ident("select institution_id from agence where id = %s", (ag2,)), "agence_id": ag2}
+    with pytest.raises(ErreurMetier, match="une autre personne les reçoit"):
+        transferts.recevoir_d_une_agence(moi, une("select s.*, g.nom from session_caisse s join guichet g on g.id = s.guichet_id where s.id = %s", (s2["id"],)), t4["id"], cle(), {"1000": 1})
+    assert recoit(caisse2, t4["id"], {"coupures": {"1000": 1}}).status_code == 200
+    # 5. Droits : qui n'a pas le guichet n'envoie pas ; la piste garde l'envoi
+    assert clients["agent"].post("/api/caisse/transferts/agence", {"cle": cle(), "origineSessionId": s["id"], "agenceId": ag2, "montants": {"CDF": 100000},
+                                                                   "coupures": {"CDF": {"1000": 1}}}, **H).status_code == 403
+    assert balance_equilibree(caisse)
+
+
 def test_journal_caisse(clients, journee):
     """S83 (p. 95) : lignes du compte du guichet, débit à l'entrée d'espèces, crédit à la sortie (PCCI, compte 57), N° Client, période"""
     caisse, agent = clients["caisse"], clients["agent"]
@@ -1232,6 +1368,14 @@ def test_guichets(clients):
     assert caisse.post("/api/guichets", corps, **H).status_code == 403
     g3 = next(g for g in chef.post("/api/guichets", corps, **H).json()["guichets"] if g["code"] == "G3")
     assert (g3["typeGuichet"], g3["actif"], g3["ouvert"], g3["billetage"]) == ("SECONDAIRE", False, False, True)   # registre S08-6
+    # Un type de plus s'ajoute depuis la fiche du guichet (registre T234) : en capitales, sans doublon, puis il se choisit
+    at = lambda lib, c=chef: c.post("/api/guichets/types", {"libelle": lib}, **H)
+    assert l["types"] == ["PRINCIPALE", "SECONDAIRE"] and caisse.post("/api/guichets/types", {"libelle": "Mobile"}, **H).status_code == 403
+    assert [at(x).json()["message"] for x in ("  ", "x" * 31, "secondaire")] == ["À remplir : Nouveau type.", "Nouveau type : 30 caractères au plus.", "Ce type de guichet existe déjà."]
+    assert "Type de guichet inconnu" in refus({**corps, "code": "G5", "typeGuichet": "MOBILE"})
+    assert at(" point  mobile ").json() == {"types": ["PRINCIPALE", "SECONDAIRE", "POINT MOBILE"], "type": "POINT MOBILE"}
+    g5 = next(g for g in chef.post("/api/guichets", {**corps, "code": "G5", "designation": "Caisse 5", "typeGuichet": "POINT MOBILE"}, **H).json()["guichets"] if g["code"] == "G5")
+    assert g5["typeGuichet"] == "POINT MOBILE" and chef.get("/api/guichets", **H).json()["types"][-1] == "POINT MOBILE"
     assert "existe déjà" in refus(corps)
     assert "(USD)" in refus({**corps, "code": "G4", "plafonds": {"CDF": {"maximum": 0, "retrait": 0}}})   # registre S08-3 : une valeur par devise tenue
     m = next(g for g in chef.post(f"/api/guichets/{g3['id']}", {**corps, "designation": "Caisse trois",

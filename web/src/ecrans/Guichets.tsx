@@ -22,7 +22,15 @@ type Ligne = Lu["guichets"][number];
 /** Fiche d'un guichet (S08, manuel p. 18 et 95) : Nouveau guichet ou Modifier. La case « Billetage autorisé », toujours cochée, disparaît (ARCHITECTURE P8) ;
  *  les comptes du PCCI, pré-remplis, se replient (plan d'allègement, point 8.4). */
 function FicheGuichet({ donnees, g, fermer, fait }: { donnees: Lu; g: Ligne | null; fermer: () => void; fait: () => void }) {
-  const { agences, journaux, types, comptesDefaut, devises } = donnees;   // une valeur par devise tenue (registre S08-3, S79-5)
+  const { agences, journaux, comptesDefaut, devises } = donnees;   // une valeur par devise tenue (registre S08-3, S79-5)
+  // Un type de plus s'ajoute ici : la page de liste des types n'existe plus (plan d'allègement, point 2.10 ; registre T234)
+  const [types, setTypes] = useState(donnees.types);
+  const [nouveauType, setNouveauType] = useState<string | null>(null);
+  const [erreurType, setErreurType] = useState("");
+  const ajouterType = async () => {
+    try { const r = await api.guichets.ajouterType({ libelle: nouveauType ?? "" }); setTypes(r.types); setF((x) => ({ ...x, typeGuichet: r.type })); setNouveauType(null); setErreurType(""); }
+    catch (x) { setErreurType(message(x)); }
+  };
   const seule = agences.length === 1 ? agences[0]!.id : 0;   // une seule agence : prise d'office, la case se cache (plan d'allègement, point 1.10)
   const [v, setF] = useState<Formulaire>(() => g ? {
     agenceId: g.agenceId, code: g.code, designation: g.nom, typeGuichet: g.typeGuichet, journalId: g.journalId,
@@ -51,8 +59,16 @@ function FicheGuichet({ donnees, g, fermer, fait }: { donnees: Lu; g: Ligne | nu
             <option value=""></option>{agences.map((a) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>}
           <Champ libelle="Code guichet *">{(p) => <input {...p} className="saisie code" value={v.code} onChange={champ("code")} />}</Champ>
           <Champ libelle="Désignation *">{(p) => <input {...p} className="saisie" value={v.designation} onChange={champ("designation")} />}</Champ>
-          <Champ libelle="Type de guichet *">{(p) => <select {...p} className="saisie" value={v.typeGuichet} onChange={champ("typeGuichet")}>
-            <option value=""></option>{types.map((t) => <option key={t} value={t}>{enClair(t)}</option>)}</select>}</Champ>
+          <Champ libelle="Type de guichet *" erreur={erreurType || undefined}>{(p) => <div className="ligne-champ">
+            <select {...p} className="saisie" value={v.typeGuichet} onChange={champ("typeGuichet")}>
+              <option value=""></option>{types.map((t) => <option key={t} value={t}>{enClair(t)}</option>)}</select>
+            {nouveauType === null && <button className="bouton secondaire" type="button" onClick={() => setNouveauType("")}>Ajouter un type</button>}
+          </div>}</Champ>
+          {nouveauType !== null && <Champ libelle="Nouveau type :">{(p) => <div className="ligne-champ">
+            <input {...p} className="saisie" autoComplete="off" maxLength={30} value={nouveauType} onChange={(e) => setNouveauType(e.target.value)} />
+            <button className="bouton" type="button" onClick={ajouterType}>Ajouter</button>
+            <button className="bouton secondaire" type="button" onClick={() => { setNouveauType(null); setErreurType(""); }}>Annuler</button>
+          </div>}</Champ>}
           <Champ libelle="Journal *">{(p) => <select {...p} className="saisie" value={v.journalId || ""} onChange={champ("journalId")}>
             <option value=""></option>{journaux.map((j) => <option key={j.id} value={j.id}>{j.libelle}</option>)}</select>}</Champ>
           {(["maximum", "retrait"] as const).flatMap((k) => devises.map((d) => (

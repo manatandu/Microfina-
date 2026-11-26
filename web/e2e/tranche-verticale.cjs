@@ -204,6 +204,10 @@ const OUT = process.argv[2];
   // Fuseau horaire de l'agence (plan d'allègement, point 11.4 ; registre T153) : Kinshasa pour Matete
   await p.getByRole('cell', { name: '0412' }).click();
   if ((await p.getByLabel('Fuseau horaire : *').inputValue()) !== 'Africa/Kinshasa') throw new Error('11.4 : fuseau de l\'agence');
+  // Fonds entre agences (PCCI, compte 45 ; registre T233) : Matete est le siège (la case choisit le compte de liaison, 450 ou 451)
+  const pa = p.getByRole('tabpanel', { name: 'Agence' });
+  await pa.getByLabel('Siège', { exact: true }).check(); await pa.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await pa.getByRole('checkbox', { name: 'Siège : Matete' }).and(p.locator(':checked')).waitFor(); await etape('02f22b-agence-siege');
   // Chef : agents d'agence (S33, p. 43) : une liste, rôles cochés (plan d'allègement, point 2.20) ; un sensibilisateur
   await aller('/parametrage/s33'); await p.getByRole('table', { name: 'Liste des agents' }).waitFor();
   await p.getByLabel('Nom : *', { exact: true }).fill('Mbuyi'); await p.getByLabel('Prénom : *', { exact: true }).fill('Sarah');
@@ -1145,6 +1149,32 @@ const OUT = process.argv[2];
   await p.getByLabel('N° du bordereau de versement *').fill('0001234'); await p.getByText('mille francs congolais', { exact: false }).first().waitFor();
   await p.getByLabel('Nombre de coupures de 1 000 CDF').fill('1');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok(); await p.getByText(/Numéro de pièce : \S+/).waitFor(); await etape('14f-caisse-vers-banque');
+  // Fonds vers une autre agence (PCCI, compte 45 ; registre T233) : le chef ouvre l'agence de Limete ; 1 000 CDF de sa caisse vers Limete, en route, puis
+  // repris tant que Limete ne les a pas reçus. Limete est retirée ensuite : la suite du parcours est écrite pour une seule agence.
+  await login('J.-P. Mukendi'); await aller('/parametrage/s32'); await p.getByRole('tab', { name: 'Agence' }).click();
+  const pag = p.getByRole('tabpanel', { name: 'Agence' }); await pag.getByRole('cell', { name: '0412' }).waitFor();
+  await pag.getByLabel('Code : *').fill('0413'); await pag.getByLabel('Nom : *').fill('Limete');
+  await pag.getByLabel('Autorisation de la BCC, référence : *').fill('BCC/D.143/0413'); await pag.getByLabel("Date de l'autorisation : *").fill('01102026');
+  await pag.getByLabel('Province :', { exact: true }).selectOption('Kinshasa'); await pag.getByLabel('Ville ou territoire :', { exact: true }).selectOption('Kinshasa');
+  await pag.getByLabel('Commune, secteur ou chefferie :', { exact: true }).selectOption('Matete'); await pag.getByLabel('Quartier ou groupement :', { exact: true }).selectOption('Kinsaku');
+  await pag.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await pag.getByRole('cell', { name: '0413' }).waitFor(); await etape('14f1-agence-limete');
+  await login('Esther Ngalula');
+  await aller('/caisse/s81'); await p.getByLabel('De *').selectOption({ label: 'Caisse 2' }); await p.getByLabel('Vers *').selectOption({ label: '0413 Limete' });
+  await p.getByLabel('Montant (CDF) *').fill('1 000'); await p.getByLabel('Nombre de coupures de 1 000 CDF').fill('1');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
+  const envoyes = p.getByRole('region', { name: 'Fonds envoyés aux autres agences' });
+  await envoyes.getByRole('row').filter({ hasText: '0413 Limete' }).getByRole('cell', { name: 'En route' }).waitFor(); await etape('14f2-caisse-vers-agence');
+  await envoyes.getByRole('button', { name: /^Reprendre / }).click();
+  const reprise = p.getByRole('dialog', { name: 'Reprendre des fonds' });
+  await reprise.getByLabel('Nombre de coupures de 1 000 CDF').fill('1'); await etape('14f3-reprise');
+  await reprise.getByRole('button', { name: 'Reprendre', exact: true }).click(); await ok();
+  await envoyes.getByRole('row').filter({ hasText: '0413 Limete' }).getByRole('cell', { name: 'Repris' }).waitFor();
+  if (await envoyes.getByRole('button', { name: /^Reprendre / }).count()) throw new Error('T233 : un envoi repris se reprend encore');
+  await etape('14f4-envoi-repris');
+  await login('J.-P. Mukendi'); await aller('/parametrage/s32'); await p.getByRole('tab', { name: 'Agence' }).click();
+  await pag.getByRole('cell', { name: '0413' }).click(); await pag.getByRole('button', { name: 'Supprimer' }).click(); await oui();
+  await pag.getByRole('cell', { name: '0413' }).waitFor({ state: 'detached' });
+  await login('Esther Ngalula');
   // Journal des opérations de caisse (S83, p. 95 ; registre S83-1 à S83-5) : le versement en banque sort de la caisse, au crédit
   await aller('/caisse/s83'); await p.getByRole('heading', { name: 'Journal de caisse' }).waitFor();
   await p.getByRole('button', { name: 'Rechercher', exact: true }).click(); await p.getByLabel('Filtrer Libellé').fill('Versement en banque');   // filtres sous les titres (plan 4.12)
@@ -1332,6 +1362,46 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Annuler ce remboursement' }).click(); await oui(); await etape('24b-reglement-annule');
   // Caissière : règlement des factures en espèces, dans les paiements préparés (S82)
   await login('Esther Ngalula'); await aller('/caisse/s82'); await p.getByRole('region', { name: 'Paiements préparés' }).waitFor(); await etape('24c-reglement-espece');   // plan 4.9 : règlements en espèces dans les paiements préparés
+  // Le règlement en espèces, de bout en bout (ancien S141 ; manuel p. 84, 97, 127 et 153 ; Instr. BCC 008, art. 66) : la chef comptable valide la facture
+  // que le chef a visée ; le comptable prépare 10 000 CDF en espèces ; le chef vise, la chef comptable valide ; la caissière rouvre sa caisse, paie avec
+  // son billetage, puis arrête et ferme.
+  await login('Lucie Kabeya'); await aller('/comptabilite/s113');
+  await p.getByRole('button', { name: /^Valider Facture fournisseur F-2026-001/ }).click(); await oui();
+  await login('Patrick Lumbala'); await aller('/comptabilite/s107'); await p.getByRole('tab', { name: 'Règlement' }).click(); await p.getByRole('heading', { name: 'Règlement de factures' }).waitFor();
+  await p.getByRole('button', { name: 'Rechercher un fournisseur' }).click();
+  await p.getByRole('dialog', { name: "Recherche d'un fournisseur" }).getByRole('row').filter({ hasText: 'Papeterie du Fleuve' }).click();
+  await p.getByLabel('N° Facture: *').locator('option').nth(1).waitFor({ state: 'attached' }); await p.getByLabel('N° Facture: *').selectOption({ index: 1 });
+  await p.getByLabel('Montant : *').fill('10000'); await p.getByLabel('Mode Règlement: *').selectOption('ESPECE'); await etape('24d-reglement-prepare');
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await login('J.-P. Mukendi'); await aller('/comptabilite/s113'); await p.getByRole('button', { name: /^Viser Règlement de facture \(.+\) F-2026-001/ }).click(); await oui();
+  await login('Lucie Kabeya'); await aller('/comptabilite/s113'); await p.getByRole('button', { name: /^Valider Règlement de facture \(.+\) F-2026-001/ }).click(); await oui();
+  await login('Esther Ngalula'); await aller('/administration/s09'); await p.getByRole('button', { name: 'Ouvrir : Caisse 2' }).click(); await oui();
+  await p.getByRole('row').filter({ hasText: 'Caisse 2' }).getByText(/^Ouvert le/).waitFor();
+  await aller('/caisse/s82'); await p.getByRole('row').filter({ hasText: 'Règlement de facture' }).click();
+  const vr = p.getByRole('dialog', { name: 'Règlement de facture' }), rb = vr.locator('tbody tr').filter({ has: p.locator('input') });
+  // le billetage se compose avec ce que la caisse tient, les plus grosses coupures d'abord
+  let tenu = [];
+  for (let i = 0; i < 40 && !tenu.some((x) => x.n > 0); i++) { await p.waitForTimeout(250);
+    tenu = await rb.evaluateAll((rs) => rs.map((r, i) => ({ i, v: Number(r.cells[0].textContent.replace(/\D/g, '')), n: Number(r.cells[1].textContent.replace(/\D/g, '')) }))); }
+  let reste = 10000;
+  for (const x of [...tenu].sort((a, b) => b.v - a.v)) { const k = Math.min(x.n, Math.floor(reste / x.v)); if (k > 0) { await rb.nth(x.i).locator('input').fill(String(k)); reste -= k * x.v; } }
+  if (reste) throw new Error('S82 : la caisse ne tient pas 10 000 CDF en coupures');
+  await etape('24e-paiement-facture');
+  await vr.getByRole('button', { name: 'Payer', exact: true }).click(); await oui(); await vr.getByText(/N° Piece\s*\S+/).waitFor(); await vr.getByRole('button', { name: 'Fermer' }).click();
+  await p.getByRole('region', { name: 'Paiements préparés' }).getByText('Aucune ligne.').waitFor(); await etape('24f-facture-payee');
+  // La caisse rouverte s'arrête et se ferme : le stock par coupure se lit dans le billetage d'un retrait (S74), l'arrêté compte juste
+  const stock2 = {};
+  await aller('/caisse/s74?op=retrait'); await client('Kalala');
+  for (const [num, dev] of [['0412-000318-02', 'CDF'], ['0412-000318-01', 'USD']]) {
+    await p.getByLabel('N° compte').selectOption({ label: num }); await p.getByLabel('Montant *').fill('1');
+    const fen = p.getByRole('group', { name: 'Billetage' });
+    await fen.getByLabel(new RegExp(` ${dev}$`)).first().waitFor();
+    stock2[dev] = await fen.locator('tbody tr').evaluateAll(rs => rs.map(r => [r.cells[0].textContent.replace(/\D/g, ''), r.cells[1].textContent.replace(/\D/g, '')]));
+  }
+  await aller('/caisse/s79'); await p.getByRole('heading', { name: /Arrêté de caisse : Caisse 2/ }).waitFor();
+  for (const dev of ['CDF', 'USD']) for (const [v, n] of stock2[dev]) if (n !== '0') await p.getByLabel(`Nombre : Billet de ${v} ${dev}`).fill(n);
+  await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok();
+  await aller('/administration/s09'); await p.getByRole('button', { name: 'Fermer : Caisse 2' }).click(); await oui(); await etape('24g-caisse-refermee');
   // Rapprochement bancaire (S110, p. 129, 154 et 155), historique (S112, p. 130)
   await login('Patrick Lumbala'); await aller('/comptabilite/s110');
   await p.getByLabel('Banque *').selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte *').selectOption({ index: 1 });

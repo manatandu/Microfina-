@@ -574,6 +574,12 @@ def controles(u, annee: int, mois: int | None) -> list[dict]:
                    where e.institution_id = %s and e.date_valeur <= %s and c.numero like '59%%' group by 1
                    having sum(case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end) <> 0 order by 1""", (i, fin))
     ajouter("Virements internes (59) soldés", not vi, "Non soldés : " + ", ".join(r["numero"] for r in vi))
+    # Registre T233 : les comptes de liaison entre le siège et les agences, et entre agences, « sont soldés par agrégation » (PCCI, fiche du compte 45) ;
+    # un solde pour toute l'institution dit des fonds en route, ou un reflet qui n'est pas encore passé dans l'autre agence
+    li = lignes("""select c.numero from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join compte c on c.id = l.compte_id
+                   where e.institution_id = %s and e.date_valeur <= %s and c.numero like '45%%' group by 1
+                   having sum(case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end) <> 0 order by 1""", (i, fin))
+    ajouter("Comptes de liaison (45) soldés pour toute l'institution", not li, f"Fonds en route ou reflet en attente : {', '.join(r['numero'] for r in li)}")
     # B24 : un suspens se reclasse dans la semaine (PCCI, fiche du compte 37) : ceux qui n'étaient déjà pas soldés sept jours plus tôt sont signalés
     vieux = lignes("""select c.numero from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join compte c on c.id = l.compte_id
                       where e.institution_id = %s and e.date_valeur <= %s and c.numero like '37%%' group by c.numero, coalesce(l.contrat_ref, '')

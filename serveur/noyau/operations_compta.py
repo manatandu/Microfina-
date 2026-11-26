@@ -27,8 +27,8 @@ LISTES = {"virement": ("virement", "prelevement", "domiciliation", "prelevement_
 ETAPES = {"visa": "saisie", "validation": "visee"}
 CAISSE = ("diverse", "deplacee")          # après le visa, elles se paient en caisse (S82) : pas de liste de validation en comptabilité
 # Comptes tenus par la gestion (registre S109-4) : crédits (30 à 32, 39) et leurs provisions (38), dépôts (33 à 35), caisse (57), virements internes (59),
-# parts sociales (103), liaison inter agences (451). Les comptes de banque (56) liés à un compte bancaire s'y ajoutent.
-GESTION = ("30", "31", "32", "33", "34", "35", "38", "39", "57", "59", "103", "451")
+# parts sociales (103), liaison avec le siège et entre agences (450, 451). Les comptes de banque (56) liés à un compte bancaire s'y ajoutent.
+GESTION = ("30", "31", "32", "33", "34", "35", "38", "39", "57", "59", "103", "450", "451")
 
 
 def lg(o) -> list:

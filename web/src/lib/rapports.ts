@@ -1,5 +1,6 @@
 // S51 : filtres des rapports clients (manuel Microfina++, p. 58 et 59). Les choix pris par nous sont au registre (S51-1 à S51-6).
 import type { Tiers } from "../donnees/types";
+import { jourDe } from "./dates";
 
 export type StatutRapport = "actifs" | "inactifs" | "depart" | "tous";
 /** Agents d'agence (S33) : "" = tous, "0" = INCONNU (aucun agent), sinon l'identifiant */
@@ -99,7 +100,7 @@ export function modifies(modifs: Modification[], clients: Tiers[], c: CriteresMo
   const statut = new Map(clients.map((t) => [t.id, t.statut]));
   const lignes = new Map<string, LigneModifies>();
   for (const m of modifs) {
-    const jour = m.modifieLe.slice(0, 10);
+    const jour = jourDe(m.modifieLe);   // le jour de l'agence, pas le jour UTC : à Kinshasa, de minuit à une heure, le jour UTC est encore la veille (point 11.4)
     if (c.mode === "periode" ? (c.du && jour < c.du) || (c.au && jour > c.au) : c.date && jour !== c.date) continue;
     if (c.utilisateur && String(m.modifiePar) !== c.utilisateur) continue;
     const s = statut.get(m.tiersId);

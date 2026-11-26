@@ -178,6 +178,7 @@ EVENEMENTS_COMPTA = {
     "plan_cotisation": "Cotisation d'un plan d'épargne", "plan_fin": "Fin d'un plan d'épargne", "cloture_inactif": "Clôture d'un compte inactif",
     "versement_bcc": "Versement à la BCC des avoirs en cours de prescription", "ed_encaissement": "Encaissement divers", "ed_decaissement": "Décaissement divers",
     "ecart_caisse": "Écart de caisse", "transfert_caisse": "Alimentation de guichet", "transfert_banque": "Versement en banque",
+    "transfert_agence": "Fonds entre agences",
     "deblocage_credit": "Déblocage de crédit", "remboursement_credit": "Remboursement de crédit", "garantie_caution": "Caution reçue ou libérée",
     "provision_credit": "Déclassement et provision des crédits", "radiation_credit": "Passage en perte d'un crédit",
     "engagement_signature": "Engagement par signature", "fin_engagement": "Fin d'un engagement par signature", "comptabilisation_banque": "Opération de banque",

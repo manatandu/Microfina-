@@ -476,6 +476,16 @@ Demande du porteur, 25/11/2026, après l'audit fait avec le skill « modern-web-
 
 **11.7 Refonte visuelle.** D'abord la cascade (`@layer`, `@scope`, requêtes de conteneur). Puis une rampe de gris en oklch à pas nets, cinq fonds au plus, `light-dark()` ; une échelle de texte en rem à vrais écarts ; le gras et le bleu réservés au sens ; fin des reliefs et des cadres emboîtés ; montant du guichet en grand ; pastilles de retard employées ; thème sombre corrigé. La structure des écrans ne change pas. Captures avant et après, écran par écran, en clair et en sombre. DESIGN § 3.1 et § 3.2 sont réécrits. Guides : color, typography, dark-mode, css, content-first-noise-reduction, card, motion.
 
+## Lot 12. Agences, siège et réseau
+
+Demande du porteur, 26/11/2026, après la question « le logiciel sort-il les documents comptables par agence, pour le siège et consolidés ? ». Microfina++ sort chaque état pour une agence ou pour toutes (manuel p. 138 à 141) ; il n'a ni mouvement de fonds entre agences, ni consolidation d'un réseau. Limites notées dans `LIMITES-MICROFINA.md`.
+
+**12.1 Fonds entre agences, et entre le siège et une agence.** Un choix de plus dans « Virement interne » : vers une autre agence. L'agence qui envoie sort les billets de sa caisse et débite le compte de liaison (450 avec le siège, 451 entre deux agences) ; l'agence qui reçoit les compte dans « Fonds à recevoir » et passe le reflet, de même montant et de sens contraire. Une case « Siège » sur la page Agence. Une liste des envois en route, reçus ou repris ; l'agence qui a envoyé peut reprendre des fonds pas encore reçus. La clôture signale un compte 45 qui ne se solde pas pour toute l'institution. Textes : PCCI, fiche du compte 45 ; Instr. BCC 008, art. 66. Registre T233.
+
+**12.2 Type de guichet ajouté depuis Guichets.** La fiche d'un guichet reçoit « Ajouter un type », de la même forme que « Ajouter un quartier ». La page de liste des types reste supprimée (point 2.10). Registre T234.
+
+**12.3 Consolidation d'un réseau.** Pour une faîtière (COOCEC, fédération) : les comptes du réseau sur une base consolidée. Textes : loi 002/2002, art. 65 ; Instr. BCC 0011, art. 47 ; Instr. BCC 002, art. 2 ; PCCI § 10.3.
+
 ## La barre des menus après allègement
 
 Membre, Conformité, Épargne, Caisse, Crédit, Banque, Comptabilité, Budget, Personnel, Immobilisations, Administration, Paramétrage. Disparaissent : Part sociale (dans le Guichet), Autres (réparti), la page des modules (si 9.3 est retenu).

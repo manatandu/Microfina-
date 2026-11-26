@@ -442,6 +442,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "guichets.affecter": [
 "S10"
 ],
+"guichets.ajouterType": [
+"S08"
+],
 "guichets.enregistrer": [
 "S08"
 ],
@@ -843,6 +846,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "tiers.viser": [
 "S40"
 ],
+"transferts.caisseVersAgence": [
+"S81"
+],
 "transferts.caisseVersBanque": [
 "S81"
 ],
@@ -851,6 +857,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 ],
 "transferts.recevoir": [
 "S09",
+"S81"
+],
+"transferts.reprendreEnvoi": [
 "S81"
 ],
 "visasCredit.appel": [
@@ -1753,6 +1762,9 @@ export const DROITS_LECTURES: Record<string, string[]> = {
 "S95",
 "S105",
 "S106"
+],
+"transferts.envois": [
+"S81"
 ],
 "visasCredit.aViser": [
 "S90",

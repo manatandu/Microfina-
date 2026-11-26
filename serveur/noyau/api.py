@@ -1039,6 +1039,24 @@ def transfert_banque(request, corps: dict = Body(...)):
     return transferts.caisse_vers_banque(u(request), corps)
 
 
+@api.post("/caisse/transferts/agence")
+def transfert_agence(request, corps: dict = Body(...)):
+    from . import transferts
+    return transferts.caisse_vers_agence(u(request), corps)
+
+
+@api.get("/caisse/transferts/envois")
+def transferts_envois(request):
+    from . import transferts
+    return transferts.envois(u(request))
+
+
+@api.post("/caisse/transferts/envois/{tid}/reprise")
+def transfert_reprise(request, tid: int, corps: dict = Body(...)):
+    from . import transferts
+    return transferts.reprendre_envoi(u(request), tid, corps)
+
+
 @api.get("/caisse/fonds-a-recevoir")
 def fonds_a_recevoir(request):
     from . import transferts
@@ -2014,6 +2032,12 @@ def gu_lire(request):
 @api.post("/guichets")
 def gu_creer(request, corps: dict = Body(...)):
     return gu.enregistrer(u(request), corps)
+
+
+@api.post("/guichets/types")
+def guichets_ajouter_type(request, corps: dict = Body(...)):
+    from . import guichets
+    return guichets.ajouter_type(u(request), corps)
 
 
 @api.post("/guichets/{gid}/ouverture")

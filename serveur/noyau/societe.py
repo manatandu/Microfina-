@@ -41,7 +41,7 @@ def lire(u) -> dict:
     from .adresse import arbre
     return {"institution": r, "types": [{"code": k, "libelle": v} for k, v in PROFILS.items()], "localites": localites(), "arbreLieux": arbre(),
             "agences": lignes(f"""select id, code, nom, coalesce(autorisation_bcc_reference, '') as "autorisationReference",
-                                     coalesce(autorisation_bcc_le::text, '') as "autorisationLe", fuseau, {', '.join(f'{c} as "{k}"' for k, c in ADRESSE.items())}
+                                     coalesce(autorisation_bcc_le::text, '') as "autorisationLe", fuseau, siege, {', '.join(f'{c} as "{k}"' for k, c in ADRESSE.items())}
                                   from agence where institution_id = %s and not supprime order by code""", (i,)),
             "securite": regles_securite(), "fuseaux": [{"code": k, "libelle": v} for k, v in FUSEAUX.items()]}
 
@@ -147,6 +147,12 @@ def enregistrer_agence(u, d, aid: int | None = None) -> dict:
         executer("update agence set code = %s, nom = %s, autorisation_bcc_reference = coalesce(%s, autorisation_bcc_reference), autorisation_bcc_le = coalesce(%s, autorisation_bcc_le), fuseau = %s where id = %s",
                  (code, nom, ref or None, le or None, fuseau, aid))
     executer(f"update agence set {', '.join(f'{c} = %s' for c in ADRESSE.values())} where id = %s", (*adr.values(), aid))
+    # Siège : une seule agence le porte ; il choisit le compte de liaison des fonds entre agences (PCCI, compte 45 : 450 avec le siège, 451 entre agences ;
+    # registre T233). Le cocher sur une agence le retire à l'autre.
+    if isinstance(d.get("siege"), bool) and d["siege"] != bool(actuel and actuel["siege"]):
+        if d["siege"]:
+            executer("update agence set siege = false where institution_id = %s and siege", (i,))
+        executer("update agence set siege = %s where id = %s", (d["siege"], aid))
     return lire(u)
 
 

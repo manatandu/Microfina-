@@ -24,7 +24,7 @@ export interface CriteresAtypiques { montantUsd: number | null; montantEleveUsd:
   fractionnementUsd?: number | null }   // P7 : fractionnement (Instr. BCC 15, art. 36)   // écart E05 : décision du Conseil qui délègue l'admission des membres
 /** Une seule adresse, la même partout (décision du porteur du 21/11/2026, registre T41) : « rue » est l'avenue, « numeroRue » le N° */
 export interface Adresse { pays?: string; province?: string; ville?: string; commune?: string; quartier?: string; rue?: string; numeroRue?: string }
-export interface Agence extends Adresse { id: number; code: string; nom: string; autorisationReference?: string; autorisationLe?: string; fuseau?: string }   // A3 : Instr. BCC 41, art. 35 ; fuseau : point 11.4
+export interface Agence extends Adresse { id: number; code: string; nom: string; autorisationReference?: string; autorisationLe?: string; fuseau?: string; siege?: boolean }   // A3 : Instr. BCC 41, art. 35 ; fuseau : point 11.4
 /** Guichet ; champs de « Gestion des guichets » (S08, manuel p. 18) */
 export interface Guichet {
   id: number; code: string; nom: string;
@@ -391,6 +391,9 @@ export interface Etat {
   paramAdhesion: ParamAdhesion[];
   modifications: { id: number; tiersId: number; avant: Tiers; apres: Tiers; modifiePar: number; modifieLe: string; validePar?: number; valideLe?: string }[];
   plaintes: Plainte[];   // écart E07
+  // Fonds envoyés à une autre agence, en route puis reçus ou repris (PCCI, compte 45 ; registre T233)
+  transfertsAgence?: { id: number; origineId: number; destinationId: number; devise: Devise; montant: number; compte: "450" | "451"; statut: "envoye" | "recu" | "annule";
+    envoyePar: number; envoyeLe: string; recuPar?: number; recuLe?: string; annuleLe?: string }[];
   profilsRisque: ProfilRisque[];   // écart E08
   analysesAtypiques: AnalyseAtypique[];   // écart E09
   gels: GelAvoirs[];   // écart E10

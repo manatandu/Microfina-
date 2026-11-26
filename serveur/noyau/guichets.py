@@ -1,12 +1,33 @@
 """S08, S09 et S10 : Administration > Guichet (manuel Microfina++, p. 18 à 20, 95 et 96). Mêmes règles que web/src/donnees/api.ts (guichets)."""
-from .bd import ErreurMetier, executer, lignes, une, valeur
+from .bd import ErreurMetier, executer, lignes, une, valeur, verrou_numero
 from .services import compte_institution, devises_tenues, exiger, journee_courante, ouvrir_caisse
 from .listes import valeurs
 
 
 def types_guichet(u) -> list[str]:
-    """Les deux types de guichet (principal, secondaire), choisis dans l'écran Guichets ; ils n'ont plus de page de liste (plan d'allègement, point 2.10)"""
+    """Les types de guichet, choisis dans l'écran Guichets : principal et secondaire (manuel p. 19), plus ceux que l'institution y ajoute ; ils n'ont plus
+    de page de liste (plan d'allègement, point 2.10)"""
     return [v["libelle"] for v in valeurs(u, "type_guichet")]
+
+
+TYPE_MAX = 30
+
+
+def ajouter_type(u, d) -> dict:
+    """Bouton « Ajouter un type » de la fiche d'un guichet (demande du porteur du 26/11/2026, registre T234) : un type de plus dans la liste, en capitales
+    comme les deux de la capture ; son numéro suit l'ordre de saisie"""
+    droit(u)
+    libelle, i = " ".join(texte(d, "libelle").split()).upper(), u["institution_id"]
+    if not libelle:
+        raise ErreurMetier("À remplir : Nouveau type.")
+    if len(libelle) > TYPE_MAX:
+        raise ErreurMetier("Nouveau type : 30 caractères au plus.")
+    verrou_numero("type_guichet", i)
+    if valeur("select 1 from liste_reference where institution_id = %s and liste = 'type_guichet' and upper(libelle) = %s and actif", (i, libelle)):
+        raise ErreurMetier("Ce type de guichet existe déjà.")
+    code = str(1 + valeur("select count(*) from liste_reference where institution_id = %s and liste = 'type_guichet'", (i,)))
+    executer("insert into liste_reference (institution_id, liste, code, libelle) values (%s, 'type_guichet', %s, %s)", (i, code, libelle))
+    return {"types": types_guichet(u), "type": libelle}
 
 # Registre S08-7 : comptes proposés par défaut, modifiables, contrôlés sur le plan de comptes (règle T16) ; lot 10 : les comptes proposés
 # de l'institution sous 570, 579, 7790 et 671 (registre T167, T172)

@@ -2,6 +2,8 @@
 // Banque » de S52 (manuel Microfina++, p. 60 et 61) et « Caisse vers caisse », « Caisse vers banque » de S81 (p. 92 et 93) en un écran : De, Vers, Montant.
 // Chaque origine avec son droit (S52 : un compte bancaire ; S81 : sa caisse). Depuis une banque, l'opération passe par « Opérations en attente ». Le caissier
 // qui reçoit confirme avec son billetage depuis « Fonds à recevoir » (PCCI, comptes 57 et 59).
+// Vers une autre agence (registre T233) : les espèces passent par le compte de liaison (PCCI, compte 45) ; l'agence qui reçoit les compte dans
+// « Fonds à recevoir » ; tant qu'elle ne l'a pas fait, l'agence qui a envoyé peut les reprendre.
 import { useState } from "react";
 import { api, TYPES_CHEQUE } from "../donnees/api";
 import type { Operation } from "../donnees/types";
@@ -13,6 +15,7 @@ import { Billetage, Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Text
 import { billetageBon } from "./Guichet";
 
 type Recevable = Awaited<ReturnType<typeof api.transferts.aRecevoir>>[number];
+type Envoi = Awaited<ReturnType<typeof api.transferts.envois>>[number];
 
 export default function VirementsTresorerie() {
   const [relu, setRelu] = useState(0);
@@ -22,7 +25,8 @@ export default function VirementsTresorerie() {
     const lu = droits.has("S52") ? await api.banqueOperations.lire() : null;
     const mienne = droits.has("S81") && s && s.statut === "ouverte" ? ctx.caisses.find((c) => c.sessionId === s.id) : undefined;
     const fonds = s && s.statut === "ouverte" ? await api.transferts.aRecevoir() : [];
-    return { ctx, lu, mienne, fonds };
+    const envois = droits.has("S81") ? await api.transferts.envois() : [];
+    return { ctx, lu, mienne, fonds, envois };
   }, [relu]);
   const VIDE = { de: "", vers: "", date: "", montant: "", montants: {} as Partial<Record<Devise, string>>, bordereau: "", cheque: "" };
   const [f, setF] = useState(VIDE);
@@ -30,9 +34,10 @@ export default function VirementsTresorerie() {
   const [cle, setCle] = useState(nouvelleCle);
   const [fait, setFait] = useState<Operation | null>(null);
   const [recoit, setRecoit] = useState<Recevable | null>(null);
+  const [reprend, setReprend] = useState<Envoi | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
   if (!donnees) return <Chargement />;
-  const { ctx, lu, mienne, fonds } = donnees;
+  const { ctx, lu, mienne, fonds, envois } = donnees;
   const devises = ctx.devises as Devise[];
   const nouveau = () => { setCle(nouvelleCle()); setFait(null); };
   const maj = (x: Partial<typeof VIDE>, garder = false) => { setF((v) => ({ ...v, ...x })); if (!garder) setCoupures({}); nouveau(); };
@@ -45,11 +50,13 @@ export default function VirementsTresorerie() {
   const versCaisse = ctx.caisses.find((c) => `caisse:${c.sessionId}` === f.vers);
   const versGuichet = lu?.guichets.find((g) => `guichet:${g.id}` === f.vers);
   const versBanque = compteB(f.vers);
+  const versAgence = deCaisse ? ctx.agences.find((a) => `agence:${a.id}` === f.vers) : undefined;
   const nomBanque = (c: (typeof ctx.comptes)[number]) => `${c.banqueCode} ${c.numero} (${c.devise})`;
   const versCaisses = deCaisse ? ctx.caisses.filter((c) => c.sessionId !== mienne.sessionId).map((c) => [`caisse:${c.sessionId}`, c.nom])
     : deBanque ? (lu?.guichets ?? []).map((g) => [`guichet:${g.id}`, g.nom]) : [];
   const versBanques = deCaisse || deBanque ? ctx.comptes.filter((c) => c.id !== deBanque?.id).map((c) => [`banque:${c.id}`, nomBanque(c)]) : [];
-  const parDevise = !!(deCaisse && versCaisse);                                     // caisse vers caisse : un montant par devise (registre T12)
+  const versAgences = deCaisse ? ctx.agences.map((a) => [`agence:${a.id}`, `${a.code} ${a.nom}`]) : [];
+  const parDevise = !!(deCaisse && (versCaisse || versAgence));                     // caisse vers caisse ou vers une agence : un montant par devise (registre T12)
   const dv = ((deBanque ?? versBanque)?.devise ?? "CDF") as Devise;
   const lire = (t?: string) => (t?.trim() ? lireMontant(t) : 0);
   const saisis = parDevise ? devises.filter((d) => (lire(f.montants[d]) ?? 0) > 0) : (lire(f.montant) ?? 0) > 0 ? [dv] : [];
@@ -64,6 +71,9 @@ export default function VirementsTresorerie() {
   function enregistrer() {
     const envoi = deCaisse && versCaisse
       ? () => api.transferts.caisseVersCaisse({ cle, origineSessionId: mienne.sessionId, destinationSessionId: versCaisse.sessionId,
+          montants: Object.fromEntries(saisis.map((d) => [d, m(d)])), coupures: Object.fromEntries(saisis.map((d) => [d, coupures[d] ?? {}])) })
+      : deCaisse && versAgence
+      ? () => api.transferts.caisseVersAgence({ cle, origineSessionId: mienne.sessionId, agenceId: versAgence.id,
           montants: Object.fromEntries(saisis.map((d) => [d, m(d)])), coupures: Object.fromEntries(saisis.map((d) => [d, coupures[d] ?? {}])) })
       : deCaisse && versBanque
       ? () => api.transferts.caisseVersBanque({ cle, sessionId: mienne.sessionId, banqueId: versBanque.banqueId, compteBancaireId: versBanque.id, montant: m(dv), cheque: f.bordereau, coupures: coupures[dv] ?? {} })
@@ -101,7 +111,8 @@ export default function VirementsTresorerie() {
             <Champ libelle="Vers *">{(p) => <select {...p} className="saisie" disabled={!!fait || !f.de} value={f.vers} onChange={(e) => maj({ vers: e.target.value, montant: "", montants: {} })}>
               <option value=""></option>
               {versCaisses.length > 0 && <optgroup label="Caisses">{versCaisses.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</optgroup>}
-              {versBanques.length > 0 && <optgroup label="Banques">{versBanques.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</optgroup>}</select>}</Champ>
+              {versBanques.length > 0 && <optgroup label="Banques">{versBanques.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</optgroup>}
+              {versAgences.length > 0 && <optgroup label="Autres agences">{versAgences.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</optgroup>}</select>}</Champ>
             {soldeVers && <p>Solde : <strong className="chiffres">{soldeVers}</strong></p>}
           </div>
           {parDevise
@@ -125,10 +136,17 @@ export default function VirementsTresorerie() {
         </div>
         <Textes sources={["Manuel Microfina++, p. 60 et 61 (Banque > Opération : banque vers caisse, banque vers banque) et p. 92 et 93 (Caisse > Transferts : caisse vers caisse, caisse vers banque) ; plan d'allègement, point 7.5",
           "PCCI, compte 57 : le 579 sert de contrepartie entre les caisses, nul en fin de journée ; compte 59 : virements internes, compte d'attente soldé en fin de période",
-          "Depuis une banque : visa et validation dans « Opérations en attente » (Instr. BCC 008, art. 66) ; billetage de la caisse qui envoie et de celle qui reçoit"]} />
+          "Depuis une banque : visa et validation dans « Opérations en attente » (Instr. BCC 008, art. 66) ; billetage de la caisse qui envoie et de celle qui reçoit",
+          "PCCI, compte 45 : 450 Sièges et Agences locales, 451 Comptes de liaison inter agences ; le mouvement de l'agence qui envoie est reflété dans l'agence qui reçoit par un mouvement de montant égal et de signe contraire"]} />
       </Formulaire>
+      {envois.length > 0 ? <FondsEnvoyes envois={envois} reprendre={mienne ? setReprend : null} /> : null}
       <Fiche titre="Recevoir des fonds" ouverte={!!recoit} fermer={() => setRecoit(null)}>
-        {recoit && <Reception x={recoit} fermer={() => setRecoit(null)} fait={() => { setRecoit(null); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }} />}
+        {recoit && <Reception tiers={["De", recoit.de]} x={recoit} bouton="Recevoir" envoyer={(k, c) => api.transferts.recevoir({ cle: k, source: recoit.source, id: recoit.id, coupures: c })}
+          fermer={() => setRecoit(null)} fait={() => { setRecoit(null); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }} />}
+      </Fiche>
+      <Fiche titre="Reprendre des fonds" ouverte={!!reprend} fermer={() => setReprend(null)}>
+        {reprend && <Reception tiers={["Vers", reprend.vers]} x={reprend} bouton="Reprendre" envoyer={(k, c) => api.transferts.reprendreEnvoi(reprend.id, { cle: k, coupures: c })}
+          fermer={() => setReprend(null)} fait={() => { setReprend(null); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }} />}
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
@@ -146,7 +164,7 @@ function Entete({ fait, date }: { fait: Operation | null; date: string }) {
   );
 }
 
-/** « Fonds à recevoir » de sa caisse : envoyés par une autre caisse, ou virés de la banque et validés */
+/** « Fonds à recevoir » de sa caisse : envoyés par une autre caisse ou une autre agence, ou virés de la banque et validés */
 function FondsARecevoir({ fonds, recevoir }: { fonds: Recevable[]; recevoir: (x: Recevable) => void }) {
   return (
     <section className="bloc pile" aria-label="Fonds à recevoir">
@@ -161,25 +179,44 @@ function FondsARecevoir({ fonds, recevoir }: { fonds: Recevable[]; recevoir: (x:
   );
 }
 
-/** Le caissier compte les billets reçus ; le billetage fait le montant */
-function Reception({ x, fermer, fait }: { x: Recevable; fermer: () => void; fait: () => void }) {
+/** Fonds envoyés aux autres agences : en route, reçus ou repris. « Reprendre » tant que l'autre agence ne les a pas reçus (registre T233). */
+function FondsEnvoyes({ envois, reprendre }: { envois: Envoi[]; reprendre: ((x: Envoi) => void) | null }) {
+  const plusieurs = envois.some((x) => x.de !== envois[0]!.de);                     // qui voit toutes les agences : l'agence qui envoie s'affiche
+  return (
+    <section className="bloc pile" aria-label="Fonds envoyés aux autres agences">
+      <h2>Fonds envoyés aux autres agences</h2>
+      <div className="defile-x"><table className="grille">
+        <thead><tr><th scope="col">Date</th>{plusieurs && <th scope="col">De</th>}<th scope="col">Vers</th><th scope="col" className="num">Montant</th><th scope="col">Envoyé par</th>
+          <th scope="col">État</th><th scope="col">Reçu par</th><th scope="col"><span className="sr-only">Reprendre</span></th></tr></thead>
+        <tbody>{envois.map((x) => <tr key={x.id}><td className="chiffres">{fr(x.date)}</td>{plusieurs && <td>{x.de}</td>}<td>{x.vers}</td>
+          <td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td>{x.envoyePar}</td><td>{x.etat}</td><td>{x.recuPar}</td>
+          <td>{x.statut === "envoye" && reprendre ? <button className="bouton secondaire petit" type="button" aria-label={`Reprendre ${montant(x.montant, x.devise as Devise)} envoyés à ${x.vers}`}
+            onClick={() => reprendre(x)}>Reprendre</button> : null}</td></tr>)}</tbody>
+      </table></div>
+    </section>
+  );
+}
+
+/** Le caissier compte les billets qui entrent dans sa caisse ; le billetage fait le montant */
+function Reception({ tiers, x, bouton, envoyer, fermer, fait }: { tiers: [string, string]; x: { montant: number; devise: string }; bouton: string;
+  envoyer: (cle: string, c: Comptage) => Promise<unknown> | unknown; fermer: () => void; fait: () => void }) {
   const [c, setC] = useState<Comptage>({});
   const [cle] = useState(nouvelleCle);
   const [boite, setBoite] = useState<Boite | null>(null);
   const dv = x.devise as Devise;
   function recevoir() {
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
-      try { await api.transferts.recevoir({ cle, source: x.source, id: x.id, coupures: c }); fait(); }
+      try { await envoyer(cle, c); fait(); }
       catch (e) { setBoite({ type: "erreur", message: message(e) }); }
     } });
   }
   return (
     <div className="pile">
-      <Champ libelle="De">{(p) => <Lecture {...p} value={x.de} />}</Champ>
+      <Champ libelle={tiers[0]}>{(p) => <Lecture {...p} value={tiers[1]} />}</Champ>
       <Champ libelle="Montant">{(p) => <Lecture {...p} value={montant(x.montant, dv)} />}</Champ>
       <Billetage devise={dv} comptage={c} onChange={setC} cible={x.montant} sens="recue" />
       <div className="actions-onglets">
-        <button className="bouton" type="button" disabled={!billetageBon(c, x.montant)} onClick={recevoir}>Recevoir</button>
+        <button className="bouton" type="button" disabled={!billetageBon(c, x.montant)} onClick={recevoir}>{bouton}</button>
         <button className="bouton secondaire" type="button" onClick={fermer}>Annuler</button>
       </div>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />

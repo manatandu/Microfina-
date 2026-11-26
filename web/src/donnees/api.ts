@@ -5186,7 +5186,32 @@ const journalCaisse = {
 
 // ---------- S81 : Caisse > Transfert entre caisse (manuel p. 92 et 93 ; doublons p. 106 et 107). Règles identiques côté serveur (noyau/transferts.py).
 // Caisse vers caisse par le compte 579 (PCCI : mouvements de fonds inter caisses) ; caisse vers banque par le compte 591 (PCCI 59 : virement caisse à banque).
-// Les deux comptes d'attente sont soldés dans la même écriture. Billetage sur les deux (décision du porteur du 19/11/2026). Registre S81-1 à S81-7. ----------
+// Les deux comptes d'attente sont soldés dans la même écriture. Billetage sur les deux (décision du porteur du 19/11/2026). Registre S81-1 à S81-7.
+// Caisse vers une autre agence (registre T233) : par le compte de liaison (PCCI, compte 45 : 450 avec le siège, 451 entre deux agences) ; l'agence qui
+// reçoit passe le reflet, de même montant et de sens contraire. ----------
+const ETATS_ENVOI = { envoye: "En route", recu: "Reçus", annule: "Repris" } as const;
+const nomAgence = (id: number) => { const a = E.agences.find((x) => x.id === id); return a ? `${a.code} ${a.nom}` : ""; };
+/** 450 quand l'une des deux agences est le siège, 451 entre deux agences (PCCI, compte 45) */
+const compteDeLiaison = (a: number, b: number): "450" | "451" => (E.agences.some((x) => (x.id === a || x.id === b) && x.siege) ? "450" : "451");
+/** La caisse ouverte de l'utilisateur : celle qui reçoit */
+function maCaisse(uid: number) {
+  const j = journees.courante();
+  const s = j && j.statut === "ouverte" ? [...E.sessions].reverse().find((x) => x.journeeId === j.id && x.caissierId === uid && x.statut === "ouverte") : undefined;
+  if (!s) throw new ErreurMetier("Aucune caisse ouverte à votre nom.");
+  return { s, g: E.guichets.find((x) => x.id === s.guichetId)! };
+}
+/** Les espèces entrent dans la caisse : D 570, C du compte de liaison retenu à l'envoi. Comme le serveur (transferts.entree_de_liaison). */
+function entreeDeLiaison(uid: number, cle: string, t: NonNullable<Etat["transfertsAgence"]>[number], c: Comptage, autre: number, libelle: string, motif: string) {
+  const { s, g } = maCaisse(uid);
+  controlerCoupures(c, t.montant, t.devise);
+  const e = poster({ evenement: "transfert_agence", journal: "CA", journeeId: s.journeeId, libelle, piece: piece(), saisiPar: uid, validePar: uid, lignes: [
+    { compte: "570", contrat: `guichet:${g.id}`, sens: "D", devise: t.devise, montant: t.montant, montantCdf: cdf(t.montant, t.devise) },
+    { compte: t.compte, contrat: `liaison:${autre}`, sens: "C", devise: t.devise, montant: t.montant, montantCdf: cdf(t.montant, t.devise) }] as Ligne[] });
+  const o: Operation = { id: prochain(E.operations), cle, type: "transfert_entree", statut: "validee", sessionId: s.id, tiersId: null, montant: t.montant, devise: t.devise,
+    coupures: c, remisPar: "", motif, saisiPar: uid, ecritureId: e.id, heure: heure() };
+  E.operations.push(o);
+  return { o, jour: dateJournee(s.journeeId) };
+}
 const transferts = {
   contexte() {
     exiger();
@@ -5196,7 +5221,63 @@ const transferts = {
       .map(({ s, g }) => ({ sessionId: s.id, guichetId: g.id, nom: g.nom, caissier: nomUtilisateur(s.caissierId),
         soldes: Object.fromEntries(devisesTenues().map((d) => [d, totalComptage(caisses.theorique(s.id, d))])) as Partial<Record<Devise, number>> }));
     const b = banqueOperations.lire();
-    return { date: b.date, caisses: ouvertes, devises: devisesTenues(), banques: b.banques, comptes: b.comptes.map((c) => ({ ...c, intitule: libelleCompte(c.compte) })) };
+    return { date: b.date, caisses: ouvertes, devises: devisesTenues(), banques: b.banques, comptes: b.comptes.map((c) => ({ ...c, intitule: libelleCompte(c.compte) })),
+      // les autres agences de l'institution, où envoyer des fonds (registre T233)
+      agences: E.agences.filter((a) => !a.supprime && a.id !== E.agence.id).sort((a, b) => a.code.localeCompare(b.code)).map((a) => ({ id: a.id, code: a.code, nom: a.nom, siege: !!a.siege })) };
+  },
+  /** Caisse vers une autre agence : C 570 de la caisse qui envoie, D du compte de liaison ; un envoi par devise. Comme le serveur (transferts.caisse_vers_agence). */
+  caisseVersAgence(p: { cle: string; origineSessionId: number; agenceId: number | null; montants: Partial<Record<Devise, number>>; coupures: Partial<Record<Devise, Comptage>> }) {
+    const u = exiger();
+    const prec = dejaFaite(p.cle); if (prec) return prec;
+    const o = sessionTransfert(p.origineSessionId, "Caisse d'origine");
+    const dest = E.agences.find((a) => a.id === p.agenceId && !a.supprime);
+    if (!dest) throw new ErreurMetier("À remplir : Agence destinataire.");
+    if (dest.id === E.agence.id) throw new ErreurMetier("Agence destinataire : une autre agence que la vôtre.");
+    const saisis: [Devise, number, Comptage][] = [];
+    for (const [dv, m] of Object.entries(p.montants ?? {}) as [Devise, number | undefined][]) {
+      if (!m) continue;
+      if (!devisesTenues().includes(dv)) throw new ErreurMetier(`Devise ${dv} : les guichets ne la tiennent pas.`);
+      if (!Number.isInteger(m) || m <= 0) throw new ErreurMetier(`Montant (${dv}) : un montant supérieur à zéro.`);
+      const c = nettoyer(p.coupures?.[dv] ?? {});
+      controlerCoupures(c, m, dv); sortiePossible(o.s.id, dv, c);
+      saisis.push([dv, m, c]);
+    }
+    if (saisis.length === 0) throw new ErreurMetier("À remplir : Montant.");
+    const compte = compteDeLiaison(E.agence.id, dest.id);
+    const lignes: Ligne[] = saisis.flatMap(([dv, m]) => [
+      { compte, contrat: `liaison:${dest.id}`, sens: "D", devise: dv, montant: m, montantCdf: cdf(m, dv) },
+      { compte: "570", contrat: `guichet:${o.g.id}`, sens: "C", devise: dv, montant: m, montantCdf: cdf(m, dv) },
+    ] as Ligne[]);
+    const e = poster({ evenement: "transfert_agence", journal: "CA", journeeId: o.s.journeeId, libelle: `Envoi de fonds à l'agence ${dest.code} ${dest.nom}`, piece: piece(), saisiPar: u.id, validePar: u.id, lignes });
+    const base = prochain(E.operations), jour = dateJournee(o.s.journeeId);
+    const ops: Operation[] = saisis.map(([dv, m, c], i) => ({ id: base + i, cle: i === 0 ? p.cle : `${p.cle}:${dv}`, type: "transfert_sortie", statut: "validee", sessionId: o.s.id, tiersId: null,
+      montant: m, devise: dv, coupures: c, remisPar: "", motif: `Vers l'agence ${dest.code} ${dest.nom}`, saisiPar: u.id, ecritureId: e.id, heure: heure() }) as Operation);
+    E.operations.push(...ops);
+    const liste = (E.transfertsAgence ??= []);
+    for (const [dv, m] of saisis) liste.push({ id: prochain(liste), origineId: E.agence.id, destinationId: dest.id, devise: dv, montant: m, compte, statut: "envoye", envoyePar: u.id, envoyeLe: jour });
+    enregistrer(); return ops[0]!;
+  },
+  /** Envois de l'agence vers les autres : ceux qui sont en route, puis ceux reçus ou repris depuis 31 jours. Comme le serveur (transferts.envois). */
+  envois() {
+    exiger();
+    const ref = plusJours(journees.courante()?.date ?? aujourdhui(), -31);
+    return (E.transfertsAgence ?? []).filter((t) => t.origineId === E.agence.id && (t.statut === "envoye" || (t.recuLe ?? t.annuleLe ?? "") >= ref))
+      .sort((a, b) => Number(b.statut === "envoye") - Number(a.statut === "envoye") || b.id - a.id)
+      .map((t) => ({ id: t.id, date: t.envoyeLe, de: nomAgence(t.origineId), vers: nomAgence(t.destinationId), montant: t.montant, devise: t.devise, compte: t.compte,
+        envoyePar: nomUtilisateur(t.envoyePar), statut: t.statut, etat: ETATS_ENVOI[t.statut] as string, recuLe: t.recuLe ?? "", recuPar: t.recuPar ? nomUtilisateur(t.recuPar) : "", reprisLe: t.annuleLe ?? "" }));
+  },
+  /** Les fonds ne sont pas partis : l'agence qui les a envoyés les reprend dans une de ses caisses, par l'écriture inverse. Comme le serveur (transferts.reprendre_envoi). */
+  reprendreEnvoi(id: number, p: { cle: string; coupures: Comptage }) {
+    const u = exiger();
+    const prec = dejaFaite(p.cle); if (prec) return prec;
+    maCaisse(u.id);
+    const t = (E.transfertsAgence ?? []).find((x) => x.id === id && x.origineId === E.agence.id);
+    if (!t) throw new ErreurMetier("Envoi inconnu.");
+    if (t.statut !== "envoye") throw new ErreurMetier(t.statut === "recu" ? "Ces fonds ne sont plus en route : l'agence destinataire les a reçus." : "Ces fonds ne sont plus en route : ils sont déjà repris.");
+    const dest = nomAgence(t.destinationId);
+    const { o, jour } = entreeDeLiaison(u.id, p.cle, t, nettoyer(p.coupures ?? {}), t.destinationId, `Envoi à l'agence ${dest} repris`, `Reprise de l'envoi vers l'agence ${dest}`);
+    Object.assign(t, { statut: "annule", annuleLe: jour });
+    enregistrer(); return o;
   },
   /** 3-1 Caisse vers caisse (p. 92) : C 570 de la caisse d'origine, D 570 de la caisse destination, par le compte 579 (registre S81-2) */
   caisseVersCaisse(p: { cle: string; origineSessionId: number; destinationSessionId: number; montants: Partial<Record<Devise, number>>; coupures: Partial<Record<Devise, Comptage>> }) {
@@ -5266,7 +5347,10 @@ const transferts = {
         const cb = E.comptesBancaires.find((c) => c.id === o.compteBancaireId), b = E.banques.find((x) => x.id === cb?.banqueId);
         return { source: "banque" as const, id: o.id, date: o.date, de: `${b?.libelle ?? ""} ${cb?.numeroBancaire ?? ""}`, montant: o.montant, devise: o.devise, envoyePar: nomUtilisateur(o.saisiPar) };
       });
-    return [...caisse, ...banque];
+    // fonds envoyés par une autre agence, en route vers celle-ci (registre T233)
+    const agence = (E.transfertsAgence ?? []).filter((t) => t.destinationId === E.agence.id && t.statut === "envoye").sort((a, b) => a.id - b.id)
+      .map((t) => ({ source: "agence" as const, id: t.id, date: t.envoyeLe, de: `Agence ${nomAgence(t.origineId)}`, montant: t.montant, devise: t.devise, envoyePar: nomUtilisateur(t.envoyePar) }));
+    return [...caisse, ...banque, ...agence];
   },
   /** Recevoir : D 570 de sa caisse, C 579 (venus d'une caisse) ou C 591 (venus de la banque) ; le billetage fait le montant (PCCI, comptes 57 et 59) */
   recevoir(p: { cle: string; source: string; id: number; coupures: Comptage }) {
@@ -5299,6 +5383,16 @@ const transferts = {
       const o: Operation = { id: prochain(E.operations), cle: p.cle, type: "transfert_entree", statut: "validee", sessionId: s.id, tiersId: null, montant: b.montant, devise: b.devise,
         coupures: c, remisPar: "", motif: `De la banque (${b.libelle})`, saisiPar: u.id, ecritureId: e.id, heure: heure() };
       E.operations.push(o); b.recuOperationId = o.id; enregistrer(); return o;
+    }
+    if (p.source === "agence") {
+      // L'agence qui reçoit compte les billets et passe le reflet ; celui qui a envoyé ne reçoit pas (Instr. BCC 008, art. 66). Comme le serveur.
+      const t = (E.transfertsAgence ?? []).find((x) => x.id === p.id && x.destinationId === E.agence.id && x.statut === "envoye");
+      if (!t) throw new ErreurMetier("Ces fonds ne sont pas à recevoir dans votre agence.");
+      if (t.envoyePar === u.id) throw new ErreurMetier("Vous avez envoyé ces fonds : une autre personne les reçoit (Instr. BCC 008, art. 66).");
+      const origine = nomAgence(t.origineId);
+      const { o, jour } = entreeDeLiaison(u.id, p.cle, t, c, t.origineId, `Fonds reçus de l'agence ${origine}`, `De l'agence ${origine}`);
+      Object.assign(t, { statut: "recu", recuPar: u.id, recuLe: jour });
+      enregistrer(); return o;
     }
     throw new ErreurMetier("Fonds à recevoir : origine inconnue.");
   },
@@ -6588,6 +6682,16 @@ function numerote<T extends object, K extends keyof T>(o: T, etats: Record<K, st
 /** Types de guichet lus sur la capture p. 19 ; liste complète à confirmer */
 /** Registre S08-1 : les types de guichet viennent de Général > Type Guichet (S14n) */
 const typesGuichet = () => valeursListe("type_guichet").map((v) => v.libelle);
+/** « Ajouter un type » de la fiche d'un guichet (registre T234) : un type de plus, en capitales ; son numéro suit l'ordre de saisie. Comme le serveur. */
+function ajouterTypeGuichet(d: { libelle?: string }) {
+  exiger("chef_agence");
+  const libelle = (d.libelle ?? "").trim().split(/\s+/).join(" ").toUpperCase();
+  if (!libelle) throw new ErreurMetier("À remplir : Nouveau type.");
+  if (libelle.length > 30) throw new ErreurMetier("Nouveau type : 30 caractères au plus.");
+  if (E.listes.some((l) => l.liste === "type_guichet" && l.actif && l.libelle.toUpperCase() === libelle)) throw new ErreurMetier("Ce type de guichet existe déjà.");
+  E.listes.push({ id: prochain(E.listes), liste: "type_guichet", code: String(1 + E.listes.filter((l) => l.liste === "type_guichet").length), libelle, actif: true });
+  enregistrer(); return { types: typesGuichet(), type: libelle };
+}
 /** Journaux de l'institution (S30) : non supprimés, rangés par code */
 const tousJournaux = () => E.journaux.filter((j) => !j.supprime).sort((a, b) => a.code.localeCompare(b.code));
 const journauxActifs = (type?: string) => tousJournaux().filter((j) => j.actif && (!type || j.type === type));
@@ -6600,6 +6704,7 @@ export interface SaisieGuichet extends Adresse {
 /** Registre S08-7 : comptes du PCCI proposés par défaut, modifiables, contrôlés sur le plan de comptes (règle T16) */
 export const COMPTES_DEFAUT = { compteGuichet: "57000000", compteLiaison: "57900000", compteSurplus: "77900000", compteManquant: "67100000" };   // lot 10 (T167, T172)
 const guichets = {
+  ajouterType: ajouterTypeGuichet,
   lire() {
     exiger();
     const j = journees.courante();
@@ -7087,8 +7192,8 @@ const TYPES_OC: Record<OperationCompta["type"], string> = { ecriture: "Écriture
 const LISTES_OC: Record<string, OperationCompta["type"][]> = { virement: ["virement", "prelevement", "domiciliation", "prelevement_auto", "salaire_personnel"], ecriture: ["ecriture"],
   compte_a_compte: ["compte_a_compte", "tontine_dav"], diverse: ["diverse"], deplacee: ["deplacee"] };
 const CAISSE_OC: OperationCompta["type"][] = ["diverse", "deplacee"];
-/** Comptes tenus par la gestion (registre S109-4) : crédits et provisions, dépôts, caisse, virements internes, parts sociales, liaison ; plus les comptes de banque */
-const GESTION_OC = ["30", "31", "32", "33", "34", "35", "38", "39", "57", "59", "103", "451"];
+/** Comptes tenus par la gestion (registre S109-4) : crédits et provisions, dépôts, caisse, virements internes, parts sociales, liaison (siège et agences) ; plus les comptes de banque */
+const GESTION_OC = ["30", "31", "32", "33", "34", "35", "38", "39", "57", "59", "103", "450", "451"];
 const entierOc = (v: unknown) => (typeof v === "number" && Number.isInteger(v) ? v : null);
 const texteOc = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 function jourOuvertOc() { const j = journees.courante(); if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée)."); return j.date; }
@@ -8541,12 +8646,16 @@ function controlesFin(a: number, m: number | null) {
   const nonSoldes = [...att].filter(([, v]) => v).map(([k]) => k).sort();
   ajouter("Comptes d'attente (475) et de suspens (37) soldés", !nonSoldes.length, `Non soldés : ${nonSoldes.join(", ")}`);
   // B23 : le 59 « Virements internes » doit être soldé en fin de période ; B24 : un suspens (37) se reclasse dans la semaine (PCCI, fiches des comptes 59 et 37)
-  const vi = new Map<string, number>(), susp = new Map<string, [number, number]>(), ilYaSeptJours = new Date(Date.parse(`${fin}T00:00:00Z`) - 7 * 86400000).toISOString().slice(0, 10);
+  const vi = new Map<string, number>(), li = new Map<string, number>(), susp = new Map<string, [number, number]>(), ilYaSeptJours = new Date(Date.parse(`${fin}T00:00:00Z`) - 7 * 86400000).toISOString().slice(0, 10);
   for (const e of E.ecritures) { const de = dateEcr(e); if (de > fin) continue; for (const l of e.lignes) { const v = l.sens === "D" ? l.montantCdf : -l.montantCdf;
     if (l.compte.startsWith("59")) vi.set(l.compte, (vi.get(l.compte) ?? 0) + v);
+    if (l.compte.startsWith("45")) li.set(l.compte, (li.get(l.compte) ?? 0) + v);
     if (l.compte.startsWith("37")) { const k = `${l.compte}|${l.contrat ?? ""}`, x = susp.get(k) ?? [0, 0]; x[0] += v; if (de <= ilYaSeptJours) x[1] += v; susp.set(k, x); } } }
   const viNonSoldes = [...vi].filter(([, v]) => v).map(([k]) => k).sort();
   ajouter("Virements internes (59) soldés", !viNonSoldes.length, `Non soldés : ${viNonSoldes.join(", ")}`);
+  // Registre T233 : les comptes de liaison « sont soldés par agrégation » (PCCI, fiche du compte 45) ; comme le serveur
+  const liNonSoldes = [...li].filter(([, v]) => v).map(([k]) => k).sort();
+  ajouter("Comptes de liaison (45) soldés pour toute l'institution", !liNonSoldes.length, `Fonds en route ou reflet en attente : ${liNonSoldes.join(", ")}`);
   const vieux = [...new Set([...susp].filter(([, v]) => v[0] && v[1]).map(([k]) => k.split("|")[0]!))].sort();
   ajouter("Suspens (37) reclassés dans la semaine", !vieux.length, `En suspens depuis plus d'une semaine : ${vieux.join(", ")}`);
   const credits = E.credits.some((c) => c.statut === "debloque" && (c.debloqueLe ?? "") <= fin);
@@ -9197,7 +9306,7 @@ const EVENEMENTS_COMPTA: Record<string, string> = {
   affectation_resultat: "Affectation du résultat", immo_dotation: "Dotation aux amortissements", immo_sortie: "Sortie d'un bien du patrimoine",
   plan_cotisation: "Cotisation d'un plan d'épargne", plan_fin: "Fin d'un plan d'épargne", cloture_inactif: "Clôture d'un compte inactif",
   versement_bcc: "Versement à la BCC des avoirs en cours de prescription", ed_encaissement: "Encaissement divers", ed_decaissement: "Décaissement divers",
-  ecart_caisse: "Écart de caisse", transfert_caisse: "Alimentation de guichet", transfert_banque: "Versement en banque", deblocage_credit: "Déblocage de crédit",
+  ecart_caisse: "Écart de caisse", transfert_caisse: "Alimentation de guichet", transfert_banque: "Versement en banque", transfert_agence: "Fonds entre agences", deblocage_credit: "Déblocage de crédit",
   remboursement_credit: "Remboursement de crédit", garantie_caution: "Caution reçue ou libérée", provision_credit: "Déclassement et provision des crédits",
   radiation_credit: "Passage en perte d'un crédit", engagement_signature: "Engagement par signature", fin_engagement: "Fin d'un engagement par signature",
   comptabilisation_banque: "Opération de banque", ecriture_manuelle: "Écriture saisie", operation_comptable: "Opération comptable", facture: "Facture fournisseur",
@@ -10468,8 +10577,8 @@ const societe = {
       assuranceAssureur: i.assuranceAssureur ?? "", assurancePolice: i.assurancePolice ?? "", assuranceEcheance: i.assuranceEcheance ?? "",
       valeurPart: E.paramAdhesion.find((x) => estPart(x.compte) && (x.valeur ?? 0) > 0)?.valeur ?? null, partEffet: i.partEffet ?? "" };   // registre T134
     return { institution, types: Object.entries(PROFILS_INSTITUTION).map(([code, libelle]) => ({ code, libelle })), localites: localites(), arbreLieux: arbreLieux(),
-      agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, nom, autorisationReference, autorisationLe, fuseau, ...x }) => ({ id, code, nom,
-        autorisationReference: autorisationReference ?? "", autorisationLe: autorisationLe ?? "", fuseau: fuseau ?? FUSEAU_PAR_DEFAUT,   // A3 ; point 11.4
+      agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, nom, autorisationReference, autorisationLe, fuseau, siege, ...x }) => ({ id, code, nom,
+        autorisationReference: autorisationReference ?? "", autorisationLe: autorisationLe ?? "", fuseau: fuseau ?? FUSEAU_PAR_DEFAUT, siege: !!siege,   // A3 ; point 11.4 ; T233
         ...Object.fromEntries(CHAMPS_ADRESSE.map((k) => [k, (x as Adresse)[k] ?? ""])) as Required<Adresse> })),
       securite: { motDePasseMin: 8, essais: 5, fenetreMinutes: 15, inactiviteMinutes: E.institution.inactiviteMinutes ?? 15 }, fuseaux: Object.entries(FUSEAUX).map(([code, libelle]) => ({ code, libelle })) };   // cadre « Info sécurité », règles en vigueur (S32-6 ; noyau/securite.py)
   },
@@ -10513,7 +10622,7 @@ const societe = {
     enregistrer(); return societe.lire();
   },
   /** Page Agence : Code et Nom (registre S32-5) ; le code d'une agence qui a des clients ne change plus (il entre dans leurs numéros, S15) */
-  enregistrerAgence(d: { code?: string; nom?: string; autorisationReference?: string; autorisationLe?: string; fuseau?: string } & Adresse, id?: number) {
+  enregistrerAgence(d: { code?: string; nom?: string; autorisationReference?: string; autorisationLe?: string; fuseau?: string; siege?: boolean } & Adresse, id?: number) {
     exiger("chef_agence");
     const code = d.code?.trim() ?? "", nom = d.nom?.trim() ?? "";
     const manque = manquants([["Code", code], ["Nom", nom]]);
@@ -10533,8 +10642,14 @@ const societe = {
     const fuseau = d.fuseau ?? "";
     if (!(fuseau in FUSEAUX)) throw new ErreurMetier("À remplir : fuseau horaire.");
     const aut = ref ? { autorisationReference: ref, autorisationLe: le } : {};
-    if (actuel) { Object.assign(actuel, { code, nom, fuseau, ...adr, ...aut }); if (actuel.id === E.agence.id) Object.assign(E.agence, { code, nom }); }
-    else E.agences.push({ id: prochain(E.agences), code, nom, fuseau, supprime: false, ...adr, ...aut });
+    let agence = actuel;
+    if (agence) { Object.assign(agence, { code, nom, fuseau, ...adr, ...aut }); if (agence.id === E.agence.id) Object.assign(E.agence, { code, nom }); }
+    else { agence = { id: prochain(E.agences), code, nom, fuseau, supprime: false, ...adr, ...aut }; E.agences.push(agence); }
+    // Siège : une seule agence le porte ; il choisit le compte de liaison des fonds entre agences (PCCI, compte 45 ; registre T233). Comme le serveur.
+    if (typeof d.siege === "boolean" && d.siege !== !!agence.siege) {
+      if (d.siege) for (const a of E.agences) a.siege = false;
+      agence.siege = d.siege;
+    }
     enregistrer(); return societe.lire();
   },
   /** Supprimer (p. 12) : logique (T02) ; une agence qui sert ne se supprime pas */

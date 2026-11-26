@@ -105,7 +105,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/guichet/(depots|retraits)", ["S74"]),
     (r"/guichet/parts", ["S77"]),
     (r"/guichet/ed-divers", ["S78"]),
-    (r"/caisse/transferts/(caisse|banque)", ["S81"]),
+    (r"/caisse/transferts/(caisse|banque|agence|envois/\d+/reprise)", ["S81"]),      # agence : fonds vers une autre agence (registre T233)
     (r"/caisse/fonds-a-recevoir", ["S81", "S09"]),   # plan d'allègement, point 7.5 : celui qui tient la caisse qui reçoit
     (r"/credit/simulation", ["S84"]),
     (r"/credit/analyses", ["S85"]),
@@ -178,7 +178,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/procurations(/\d+/fin)?", ["S47"]),
     (r"/guichet/procurations/\d+", ["S74"]),
     (r"/banques.*", ["S58"]),
-    (r"/guichets(/\d+)?", ["S08"]),
+    (r"/guichets(/\d+|/types)?", ["S08"]),      # types : un type de guichet de plus (registre T234)
     (r"/guichets/\d+/(ouverture|fermeture)", ["S09"]),
     (r"/affectations-guichets.*", ["S10"]),
     (r"/exercices", ["S11"]),
@@ -377,6 +377,7 @@ LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
     (r"/rapports/transactions", ["S13"]),
     (r"/credit/fonds-propres", ["SN01", "S32", "S123"]),
     (r"/caisse/transferts", ["S52", "S54", "S55", "S75", "S76", "S81", "S95", "S105", "S106"]),
+    (r"/caisse/transferts/envois", ["S81"]),   # fonds envoyés aux autres agences : la caisse qui envoie (registre T233)
     (r"/caisse/fonds-a-recevoir", ["S52", "S81", "S09"]),   # S09 : celui qui tient la caisse qui reçoit, comme la réception (point 7.5, registre T193)
     (r"/operations/en-attente", ["S12"]),
     (r"/operations/\d+", ["S12", "S13"]),   # appelée par aucun écran (T130) : le droit des données qu'elle rend

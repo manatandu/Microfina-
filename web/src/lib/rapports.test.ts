@@ -42,6 +42,10 @@ describe("rapports clients (S51)", () => {
     const c = { mode: "date" as const, du: "", au: "", date: "2026-11-05", utilisateur: "", etat: "tous" as const };
     expect(modifies(m, l, c, "Matete")).toEqual([{ date: "2026-11-05", utilisateur: 3, numero: l[0]!.numero, agence: "Matete", nombre: 2 }]);
     expect(modifies(m, l, { ...c, mode: "periode", du: "2026-11-01", au: "2026-11-30", utilisateur: "2" }, "Matete").map((x) => x.numero)).toEqual([l[1]!.numero]);
+    // Une modification faite à Kinshasa entre minuit et une heure (23 h 30 UTC la veille) est du jour de l'agence, pas du jour UTC (point 11.4)
+    const nuit = [{ tiersId: l[1]!.id, numero: l[1]!.numero, modifieLe: "2026-11-26T23:30:00Z", modifiePar: 2 }];
+    expect(modifies(nuit, l, { ...c, date: "2026-11-27" }, "Matete").map((x) => x.date)).toEqual(["2026-11-27"]);
+    expect(modifies(nuit, l, { ...c, date: "2026-11-26" }, "Matete")).toEqual([]);
     l[0]!.statut = "resilie";
     expect(modifies(m, l, { ...c, etat: "actifs" }, "Matete")).toEqual([]);
   });

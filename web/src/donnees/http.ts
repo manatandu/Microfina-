@@ -460,6 +460,9 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       contexte: () => get("/caisse/transferts"),
       caisseVersCaisse: (p: unknown) => post("/caisse/transferts/caisse", p),
       caisseVersBanque: (p: unknown) => post("/caisse/transferts/banque", p),
+      caisseVersAgence: (p: unknown) => post("/caisse/transferts/agence", p),
+      envois: () => get("/caisse/transferts/envois"),
+      reprendreEnvoi: (id: number, p: unknown) => post(`/caisse/transferts/envois/${id}/reprise`, p),
       aRecevoir: () => get("/caisse/fonds-a-recevoir"),
       recevoir: (p: unknown) => post("/caisse/fonds-a-recevoir", p),
     },
@@ -846,6 +849,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     guichets: {
       lire: () => get("/guichets"),
       enregistrer: (d: object, id?: number) => post(id === undefined ? "/guichets" : `/guichets/${id}`, d),
+      ajouterType: (d: object) => post("/guichets/types", d),
       ouvrir: (id: number, journeeId?: number) => post(`/guichets/${id}/ouverture`, { journeeId }),
       fermer: (id: number) => post(`/guichets/${id}/fermeture`),
       affectations: () => get("/affectations-guichets"),

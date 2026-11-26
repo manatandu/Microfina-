@@ -114,8 +114,8 @@ function InformationSociete() {
   );
 }
 
-type SaisieAgence = Adresse & { code: string; nom: string; autorisationReference: string; autorisationLe: string; fuseau: string };
-const AGENCE_VIDE: SaisieAgence = { code: "", nom: "", autorisationReference: "", autorisationLe: "", fuseau: "Africa/Kinshasa", pays: "", province: "", ville: "", commune: "", quartier: "", rue: "", numeroRue: "" };
+type SaisieAgence = Adresse & { code: string; nom: string; autorisationReference: string; autorisationLe: string; fuseau: string; siege: boolean };
+const AGENCE_VIDE: SaisieAgence = { code: "", nom: "", autorisationReference: "", autorisationLe: "", fuseau: "Africa/Kinshasa", siege: false, pays: "", province: "", ville: "", commune: "", quartier: "", rue: "", numeroRue: "" };
 function Agences() {
   const [f, setF] = useState<SaisieAgence>(AGENCE_VIDE);
   const [choisi, setChoisi] = useState<number | null>(null);
@@ -138,6 +138,8 @@ function Agences() {
         {/* Plan d'allègement, point 11.4 ; registre T153 : le jour et l'heure de l'agence se calculent dans ce fuseau */}
         <Champ libelle="Fuseau horaire : *">{(p) => <select {...p} className="saisie" value={f.fuseau} onChange={(e) => setF({ ...f, fuseau: e.target.value })}>
           {donnees.fuseaux.map((z) => <option key={z.code} value={z.code}>{z.libelle}</option>)}</select>}</Champ>
+        {/* Registre T233 : le siège choisit le compte de liaison des fonds entre agences (PCCI, compte 45 : 450 avec le siège, 451 entre agences) */}
+        <label className="case"><input type="checkbox" checked={f.siege} onChange={(e) => setF({ ...f, siege: e.target.checked })} /><span>Siège</span></label>
       </div>
       {/* A3 et B19 (confrontation du 21/11/2026) : autorisation préalable de la BCC pour ouvrir une agence (Instr. BCC 41, art. 35) */}
       <div className="ligne-champ">
@@ -155,17 +157,18 @@ function Agences() {
         <button className="bouton secondaire" type="button" disabled={choisi === null} onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.societe.supprimerAgence(choisi!))}>Supprimer</button>
       </div>
       <Paginee lignes={donnees.agences}>{(visibles) => (<table className="grille">
-        <thead><tr><th scope="col">Code</th><th scope="col">Nom</th><th scope="col">Adresse</th></tr></thead>
+        <thead><tr><th scope="col">Code</th><th scope="col">Nom</th><th scope="col">Adresse</th><th scope="col">Siège</th></tr></thead>
         <tbody>
           {visibles.map((a: SaisieAgence & { id: number }) => (
             <tr key={a.id} className="ligne-choix" tabIndex={0} aria-selected={a.id === choisi} onClick={() => choisir(a)} onKeyDown={(e) => { if (e.key === "Enter") choisir(a); }}>
-              <td>{a.code}</td><td>{a.nom}</td><td>{composerAdresse(a)}</td>
+              <td>{a.code}</td><td>{a.nom}</td><td>{composerAdresse(a)}</td><td><input type="checkbox" disabled checked={a.siege} aria-label={`Siège : ${a.nom}`} /></td>
             </tr>
           ))}
         </tbody>
       </table>)}</Paginee>
       <Textes sources={["Manuel Microfina++, p. 42 : pages Information société, Agence et zone ; page Agence non montrée : gabarit liste (COMPLEMENTS § 4.1), code et nom",
-        "Manuel Microfina++, p. 23 et 24 : le code de l'agence entre dans le numéro du client (S15)"]} />
+        "Manuel Microfina++, p. 23 et 24 : le code de l'agence entre dans le numéro du client (S15)",
+        "PCCI, compte 45 : 450 Sièges et Agences locales, 451 Comptes de liaison inter agences ; la case Siège choisit le compte des fonds envoyés d'une agence à l'autre"]} />
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </Formulaire></section>
   );

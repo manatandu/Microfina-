@@ -175,3 +175,6 @@ id,lot,titre,ecrans,statut,question,reste
 11.5,11,Vitesse et application installable,Application,fait,,"Fait : paquet de départ à 144 Ko compressés, application installable, délai maximal des appels ; grand livre et balance totalisés par la base, détail borné (essai en charge du 26/11/2026, registre T226). Non retenus : préchargement en priorité basse, relecture ciblée, arbre des lieux en fichier statique, annulation des appels d'un écran quitté ; le budget est tenu et aucune lecture ne dépasse 1,5 s à 30 000 membres."
 11.6,11,Sécurité dans le navigateur,"Application, serveur",fait,,"Trusted Types imposés en production depuis le 26/11/2026, après l'essai de la version construite : les 141 écrans s'ouvrent sans erreur."
 11.7,11,Refonte visuelle,Tous les écrans,fait,,
+12.1,12,"Fonds entre agences, et entre le siège et une agence","S81, S32",fait,,
+12.2,12,Type de guichet ajouté depuis Guichets,S08,fait,,
+12.3,12,Consolidation d'un réseau,,à faire,,

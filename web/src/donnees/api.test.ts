@@ -729,6 +729,14 @@ describe("journée de guichet", () => {
     await expect(api.guichets.enregistrer({ ...d, journalId: 3 })).rejects.toThrow("Journal inconnu");          // registre S08-2
     const g3 = (await api.guichets.enregistrer(d)).guichets.find((g) => g.code === "G3")!;
     expect([g3.typeGuichet, g3.actif, g3.ouvert, g3.billetage]).toEqual(["SECONDAIRE", false, false, true]);
+    // Un type de plus s'ajoute depuis la fiche du guichet (registre T234) : en capitales, sans doublon, puis il se choisit
+    expect((await api.guichets.lire()).types).toEqual(["PRINCIPALE", "SECONDAIRE"]);
+    await expect(api.guichets.ajouterType({ libelle: "  " })).rejects.toThrow("Nouveau type");
+    await expect(api.guichets.ajouterType({ libelle: "x".repeat(31) })).rejects.toThrow("30 caractères");
+    await expect(api.guichets.ajouterType({ libelle: "secondaire" })).rejects.toThrow("existe déjà");
+    await expect(api.guichets.enregistrer({ ...d, code: "G5", typeGuichet: "MOBILE" })).rejects.toThrow("Type de guichet inconnu");
+    expect(await api.guichets.ajouterType({ libelle: " point  mobile " })).toEqual({ types: ["PRINCIPALE", "SECONDAIRE", "POINT MOBILE"], type: "POINT MOBILE" });
+    expect((await api.guichets.enregistrer({ ...d, code: "G5", designation: "Caisse 5", typeGuichet: "POINT MOBILE" })).guichets.find((g) => g.code === "G5")!.typeGuichet).toBe("POINT MOBILE");
     await expect(api.guichets.enregistrer(d)).rejects.toThrow("existe déjà");
     // Modifier (p. 12, registre S08-8) : même code accepté pour le même guichet
     const m = (await api.guichets.enregistrer({ ...d, designation: "Caisse trois", plafonds: { ...d.plafonds, USD: { maximum: 500000, retrait: 0 } } }, g3.id)).guichets.find((g) => g.id === g3.id)!;
@@ -1174,6 +1182,62 @@ describe("journée de guichet", () => {
     expect(v.type).toBe("versement_banque");
     expect((await t.contexte()).comptes.find((c) => c.id === cb.id)!.solde).toBe(avant + 100000);
     expect(await n(s.id)).toBe(a2 - 3);
+    expect(await soldeCdfGrandLivre()).toBe(0);
+  });
+
+  it("fonds entre agences (PCCI, compte 45 ; registre T233) : envoi par 451, reprise, puis 450 avec le siège", async () => {
+    const { s } = await journeeOuverte();
+    await connecter("jpmukendi");
+    const soc = await api.societe.enregistrerAgence({ code: "0413", nom: "Limete", autorisationReference: "BCC/D.143/2", autorisationLe: "2026-10-01", fuseau: "Africa/Kinshasa" });
+    const [ici, la] = [soc.agences.find((a) => a.code === "0412")!, soc.agences.find((a) => a.code === "0413")!];
+    expect(soc.agences.map((a) => a.siege)).toEqual([false, false]);
+    await connecter("engalula");
+    const t = api.transferts;
+    expect((await t.contexte()).agences).toEqual([{ id: la.id, code: "0413", nom: "Limete", siege: false }]);      // jamais la sienne
+    const n = async () => (await api.caisses.theorique(s.id, "CDF"))[1000] ?? 0;
+    const a = await n();
+    const va = (x: object) => t.caisseVersAgence({ cle: cle(), origineSessionId: s.id, agenceId: la.id, montants: { CDF: 200000 }, coupures: { CDF: { 1000: 2 } }, ...x });
+    await expect(va({ agenceId: null })).rejects.toThrow("Agence destinataire");
+    await expect(va({ agenceId: ici.id })).rejects.toThrow("une autre agence que la vôtre");
+    await expect(va({ montants: {}, coupures: {} })).rejects.toThrow("À remplir : Montant");
+    await expect(va({ coupures: { CDF: { 1000: 1 } } })).rejects.toThrow("billetage");
+    await expect(va({ montants: { CDF: 10000000000 }, coupures: { CDF: { 1000: 100000 } } })).rejects.toThrow("Pas assez de coupures");
+    const k = cle();
+    const o = await va({ cle: k });
+    expect([o.type, o.statut, await n()]).toEqual(["transfert_sortie", "validee", a - 2]);
+    expect((await va({ cle: k })).id).toBe(o.id);                                             // la même clé ne sort pas les billets deux fois
+    expect(await n()).toBe(a - 2);
+    const lignes = (await api.operations.recu(o.id)).lignes;
+    expect(lignes.map((x) => [x.compte.slice(0, 3), x.sens, x.montant])).toEqual([["451", "D", 200000], ["570", "C", 200000]]);
+    let e = await t.envois();
+    expect(e.map((x) => [x.vers, x.montant, x.devise, x.compte, x.statut, x.etat])).toEqual([["0413 Limete", 200000, "CDF", "451", "envoye", "En route"]]);
+    expect((await t.aRecevoir()).filter((x) => x.source === "agence")).toEqual([]);          // pas dans l'agence qui envoie
+    // la clôture du mois le signale : le compte 45 se solde par agrégation (PCCI, fiche du compte 45)
+    const liaison = async () => { await connecter("plumbala"); const c = (await api.finPeriode.apercuCloture({ exercice: 2026, mois: 11 })).mois!.controles; await connecter("engalula");
+      return c.find((x) => x.libelle.startsWith("Comptes de liaison (45)"))!; };
+    expect(await liaison()).toMatchObject({ ok: false, bloquant: false, detail: "Fonds en route ou reflet en attente : 45100000" });
+    await expect(t.recevoir({ cle: cle(), source: "agence", id: e[0]!.id, coupures: { 1000: 2 } })).rejects.toThrow("pas à recevoir dans votre agence");
+    // Reprise : tant que l'autre agence ne les a pas reçus
+    await expect(t.reprendreEnvoi(999, { cle: cle(), coupures: { 1000: 2 } })).rejects.toThrow("Envoi inconnu");
+    await expect(t.reprendreEnvoi(e[0]!.id, { cle: cle(), coupures: { 1000: 1 } })).rejects.toThrow("billetage");
+    const rp = await t.reprendreEnvoi(e[0]!.id, { cle: cle(), coupures: { 1000: 2 } });
+    expect([rp.type, rp.statut, await n()]).toEqual(["transfert_entree", "validee", a]);
+    expect((await api.operations.recu(rp.id)).lignes.map((x) => [x.compte.slice(0, 3), x.sens, x.montant])).toEqual([["570", "D", 200000], ["451", "C", 200000]]);
+    await expect(t.reprendreEnvoi(e[0]!.id, { cle: cle(), coupures: { 1000: 2 } })).rejects.toThrow("plus en route");
+    e = await t.envois();
+    expect(e.map((x) => [x.statut, x.etat, x.reprisLe])).toEqual([["annule", "Repris", "2026-11-05"]]);
+    expect((await liaison()).ok).toBe(true);
+    // Avec le siège : 450 ; la case se coche sur la page Agence et se déplace
+    await connecter("jpmukendi");
+    const { id: _i, ...corps } = ici;
+    expect((await api.societe.enregistrerAgence({ ...corps, siege: true }, ici.id)).agences.map((x) => x.siege)).toEqual([true, false]);
+    await connecter("engalula");
+    const o2 = await va({ montants: { CDF: 100000, USD: 2000 }, coupures: { CDF: { 1000: 1 }, USD: { 20: 1 } } });
+    expect((await api.operations.recu(o2.id)).lignes.map((x) => [x.compte.slice(0, 3), x.sens, x.devise])).toEqual([["450", "D", "CDF"], ["570", "C", "CDF"], ["450", "D", "USD"], ["570", "C", "USD"]]);
+    expect((await t.envois()).filter((x) => x.statut === "envoye").map((x) => [x.devise, x.montant, x.compte]).sort()).toEqual([["CDF", 100000, "450"], ["USD", 2000, "450"]]);
+    await connecter("jpmukendi");
+    const { id: _j, ...autre } = la;
+    expect((await api.societe.enregistrerAgence({ ...autre, siege: true }, la.id)).agences.map((x) => x.siege)).toEqual([false, true]);
     expect(await soldeCdfGrandLivre()).toBe(0);
   });
 
