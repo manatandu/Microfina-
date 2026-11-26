@@ -1,0 +1,22 @@
+id,sort,dans,decision,point,preuve
+S14b,retiré,,T140,2.11,Profession en champ libre sur la fiche du membre
+S14c,retiré,,T124,2.6,Membre effectif ou auxiliaire choisi au visa (loi 002/2002 art. 23)
+S14d,retiré,,T124,2.7,Liste fixe des pièces admises (Instr. BCC 15 art. 14)
+S14e,retiré,,T124,2.4,Le sexe reste sur la fiche
+S14f,retiré,,T126,2.5,Le type se déduit de la forme juridique du groupe
+S14g,retiré,,T124,2.3,Une seule valeur posée d'office
+S14h,retiré,,T124,2.2,Les frais se règlent par nature du membre
+S14j,retiré,,T124,2.5,Calculée d'après les nombres d'hommes et de femmes
+S14n,réuni,S08,S08-1,2.10,parcours 02a-gestion-guichets
+S17,réuni,S15,T127,2.19,parcours 02h-numero-compte
+S24,réuni,S23,S23-10,2.16,parcours 02f14-liste-produits-credit
+S25,réuni,S23,S23-10,2.16,parcours 02f15-activation-produits
+S28,réuni,S27,S27-6,2.17,parcours 02f17-produit-epargne
+S29,réuni,S15,T127,2.19,parcours 02f19-numero-piece
+S38,réuni,S37,S37-10,3.1,parcours 05b-entreprise et 05f-entreprise-enregistree
+S39,réuni,S37,S37-10,3.1,parcours 05g-groupe et 05i-membres-groupe
+S41,réuni,S40,S40-5,3.6,parcours 06h-modification-frais et 06i-frais-modifies
+S42,réuni,S40,S40-5,3.6,parcours 06l-validation-client-modifie
+S45,réuni,S37,S45-1,3.11,parcours 06r-prospect à 06t-enrolement-prospect
+S50,réuni,S86,S86-7,3.14,parcours 06w-consentement
+S141,réuni,S82,S82-7,4.9,essais du serveur et du poste (règlement en espèces payé à la caisse)

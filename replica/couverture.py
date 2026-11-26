@@ -17,8 +17,24 @@ DECISIONS = list(csv.DictReader(open(RACINE / "decisions.csv", encoding="utf-8")
 CONSTRUITS = set(re.findall(r"^\s+(S\d+[a-z]?):", (RACINE.parent / "web" / "src" / "ecrans" / "construits.tsx").read_text(encoding="utf-8"), re.M))
 # S01 Connexion et S02 Page des modules sont des routes de l'application (web/src/App.tsx), hors du registre des écrans
 CONSTRUITS |= {"S01", "S02"}
+# Écrans que le plan d'allègement a réunis à un autre écran, ou retirés (replica/fusions.csv) : chacun avec la décision du registre qui le dit,
+# le point du plan et la preuve (pas du parcours de bout en bout, ou essais). Un écran réuni compte quand l'écran qui le porte est construit ;
+# un écran retiré n'est plus à construire. Sans décision en place au registre, ou sans pas du parcours, la ligne est refusée.
+FUSIONS = {x["id"]: x for x in csv.DictReader(open(RACINE / "fusions.csv", encoding="utf-8"))}
+PLAN = {x["id"]: x for x in csv.DictReader(open(RACINE / "allegement.csv", encoding="utf-8"))}
+PARCOURS = (RACINE.parent / "web" / "e2e" / "tranche-verticale.cjs").read_text(encoding="utf-8")
+PAR_ID = {d["id"]: d for d in DECISIONS}
+for k, f in FUSIONS.items():
+    assert k in atlas and k not in CONSTRUITS, f"fusions.csv : {k} est construit, ou absent de l'atlas"
+    d = PAR_ID.get(f["decision"])
+    assert d and d["application"] == "en place" and d["statut"] not in ("refusé", "à confirmer"), f"fusions.csv : décision {f['decision']} de {k} absente ou pas en place"
+    assert PLAN.get(f["point"], {}).get("statut") == "fait", f"fusions.csv : point {f['point']} du plan pas fait ({k})"
+    assert f["sort"] in ("réuni", "retiré") and (f["sort"] == "retiré" or f["dans"] in CONSTRUITS), f"fusions.csv : {k} réuni à un écran non construit"
+    for pas in re.findall(r"\b\d\d[a-z]\d*-[a-z0-9-]+", f["preuve"]):
+        assert f"etape('{pas}')" in PARCOURS, f"fusions.csv : le parcours n'a pas de pas {pas} ({k})"
 for k, x in atlas.items():
-    x["construit"] = "oui" if k in CONSTRUITS else "non"
+    f = FUSIONS.get(k)
+    x["construit"] = "oui" if k in CONSTRUITS else f"réuni à {f['dans']}" if f and f["sort"] == "réuni" else "retiré" if f else "non"
 
 
 def ecrans_de_decision(d):
@@ -84,11 +100,11 @@ for n, t in enumerate(travaux, 1):
     # État calculé : Fait = tous ses écrans construits (ou sa règle appliquée) et plus aucune décision à appliquer.
     # La validation du registre par le porteur, en fin de lot, vient ensuite.
     if t["clone"] in ("partial", "yes"):
-        complet = all(atlas[i]["construit"] == "oui" for i in ids) and not reste
+        complet = all(atlas[i]["construit"] != "non" for i in ids) and not reste
         t["clone"] = "yes" if complet else "partial"
     lignes.append({"n": n, "travail": t["feature"], "module": t["area"], "priorite": t["priority"], "etat": t["clone"], "ecrans": " ".join(ids),
                    "niveau": niveau, "gabarit": gabarit, "etape": etape, "complete_par_nous": manque, "origine": par, "regles": regles,
-                   "ecrans_a_construire": " ".join(i for i in ids if atlas[i]["construit"] != "oui"),
+                   "ecrans_a_construire": " ".join(i for i in ids if atlas[i]["construit"] == "non"),
                    "reste": " ; ".join(f"{d['id']} {d['question']}" for d in reste)})
 assert len(lignes) == 146, len(lignes)
 assert not set(atlas) - vus, f"Écrans de l'atlas sans travail : {sorted(set(atlas) - vus)}"
@@ -127,4 +143,5 @@ texte = DOC.read_text(encoding="utf-8")
 debut, fin = "<!-- annexe:debut", "<!-- annexe:fin -->"
 assert debut in texte and fin in texte, "Repères d'annexe absents de COMPLEMENTS.md"
 DOC.write_text(texte[:texte.index(debut)] + "\n".join(bloc) + texte[texte.index(fin) + len(fin):], encoding="utf-8")
-print(f"146 travaux couverts, {len(atlas)} écrans ; à construire : {dict(c)} ; état : {dict(Counter(l['etat'] for l in lignes))}")
+print(f"146 travaux couverts, {len(atlas)} écrans ({dict(Counter(x['construit'].split()[0] for x in atlas.values()))}) ; "
+      f"à construire : {dict(c)} ; état : {dict(Counter(l['etat'] for l in lignes))}")

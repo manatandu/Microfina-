@@ -1331,7 +1331,7 @@ const OUT = process.argv[2];
   await an.getByRole('row').filter({ hasText: 'Kalala' }).first().click(); await etape('24a-annulation-reglement');
   await p.getByRole('button', { name: 'Annuler ce remboursement' }).click(); await oui(); await etape('24b-reglement-annule');
   // Caissière : règlement des factures en espèces, dans les paiements préparés (S82)
-  await login('Esther Ngalula'); await aller('/caisse/s82'); await p.getByRole('region', { name: 'Paiements préparés' }).waitFor();   // plan 4.9 : règlements en espèces dans les paiements préparés await etape('24c-reglement-espece');
+  await login('Esther Ngalula'); await aller('/caisse/s82'); await p.getByRole('region', { name: 'Paiements préparés' }).waitFor(); await etape('24c-reglement-espece');   // plan 4.9 : règlements en espèces dans les paiements préparés
   // Rapprochement bancaire (S110, p. 129, 154 et 155), historique (S112, p. 130)
   await login('Patrick Lumbala'); await aller('/comptabilite/s110');
   await p.getByLabel('Banque *').selectOption({ label: 'Rawbank' }); await p.getByLabel('Compte *').selectOption({ index: 1 });

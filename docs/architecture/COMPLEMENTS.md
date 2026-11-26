@@ -7,6 +7,7 @@ Il ne remplace pas [`ARCHITECTURE.md`](ARCHITECTURE.md), qui fixe le socle (gran
 | Fichier | Contenu |
 |---|---|
 | [`replica/atlas.csv`](../../replica/atlas.csv) | Les 159 écrans : pages du manuel, niveau de source, gabarit, manque, complément |
+| [`replica/fusions.csv`](../../replica/fusions.csv) | Les écrans que le plan d'allègement a réunis à un autre ou retirés, chacun avec sa décision, son point du plan et sa preuve (registre T232) |
 | [`replica/couverture.csv`](../../replica/couverture.csv) | Les **146 travaux** de la page Travaux, chacun avec ses écrans, son étape et son complément (annexe, § 11) |
 | [`replica/decisions.csv`](../../replica/decisions.csv) | Les choix faits par nous, avec leur origine, leur solidité et leur statut. Page lisible : [`DECISIONS.md`](DECISIONS.md) |
 
