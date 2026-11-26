@@ -2794,7 +2794,7 @@ def test_fiche_client_physique(clients, journee):
     assert "Type d'activité" in refus({**base, "secteurActivite": "Secondaire", "typeActivite": "Pisciculture"})
     assert "Nationalité" in refus({**base, "nationalite": "Atlantide"})
     assert "Pays, ville, commune ou quartier" in refus({**base, "pays": "République démocratique du Congo", "ville": "Kinshasa", "quartier": "Nulle part"})
-    assert "Gestionnaire inconnu" in refus({**base, "gestionnaireId": 999999})
+    assert "Agent de crédit inconnu" in refus({**base, "gestionnaireId": 999999})
     assert "Bénéficiaire 1 : à remplir : nom" in refus({**base, "beneficiaires": [{"nom": ""}]})
     assert "filiation inconnue" in refus({**base, "beneficiaires": [{"nom": "Kalonji", "filiation": "Cousin"}]})
     t = agent.post("/api/tiers", {**base, "situationMatrimoniale": "Marié(e)", "nationalite": "République démocratique du Congo", "pere": "Kalonji Pierre",

@@ -111,7 +111,7 @@ function Multicritere({ ctx, cx, clients }: { ctx: Ctx; cx: ContexteRapport; cli
         <Champ libelle="Zone :">{(p) => <select {...p} className="saisie" value={c.zone} onChange={(e) => maj({ zone: e.target.value })}><option value=""></option>{ctx.zones.map((z) => <option key={z} value={z}>{enClair(z)}</option>)}</select>}</Champ>
         <Champ libelle="Nationalité :">{(p) => <select {...p} className="saisie" value={c.nationalite} onChange={(e) => maj({ nationalite: e.target.value })}><option value=""></option>
           {nationalites.map((x) => <option key={x} value={x}>{enClair(x)}</option>)}</select>}</Champ>
-        <ChoixAgent libelle="Gestionnaire :" liste={ctx.gestionnaires} valeur={c.gestionnaire} onChange={(v) => maj({ gestionnaire: v })} />
+        <ChoixAgent libelle="Agent de crédit :" liste={ctx.gestionnaires} valeur={c.gestionnaire} onChange={(v) => maj({ gestionnaire: v })} />
         <ChoixAgent libelle="Commercial :" liste={ctx.commerciaux} valeur={c.commercial} onChange={(v) => maj({ commercial: v })} />
         <ChoixAgent libelle="Sensibilisateur :" liste={ctx.sensibilisateurs} valeur={c.sensibilisateur} onChange={(v) => maj({ sensibilisateur: v })} />
         <Champ libelle="Secteur d'activité :">{(p) => <select {...p} className="saisie" value={c.secteur} onChange={(e) => maj({ secteur: e.target.value })}><option value=""></option>

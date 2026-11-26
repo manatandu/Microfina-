@@ -6,7 +6,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { Champ, Chargement, Dialogue, Textes, type Boite, Formulaire } from "../composants";
 
 type Role = "gestionnaire" | "sensibilisateur" | "commercial";
-const ROLES: [Role, string][] = [["gestionnaire", "Gestionnaire"], ["sensibilisateur", "Sensibilisateur"], ["commercial", "Commercial"]];
+const ROLES: [Role, string][] = [["gestionnaire", "Agent de crédit"], ["sensibilisateur", "Sensibilisateur"], ["commercial", "Commercial"]];
 type Agent = { id: number; nom: string; prenom: string; sexe: string; portable: string; agenceId: number | null; utilisateurId: number | null; utilisateur: string } & Record<Role, boolean>;
 type Saisie = { nom: string; prenom: string; sexe: string; portable: string; agenceId: string; utilisateurId: string } & Record<Role, boolean>;
 const VIDE: Saisie = { nom: "", prenom: "", sexe: "", portable: "", agenceId: "", utilisateurId: "", gestionnaire: false, sensibilisateur: false, commercial: false };

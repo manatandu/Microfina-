@@ -33,16 +33,16 @@ def affecter(u, p) -> dict:
     de, vers, ids = p.get("de"), p.get("vers"), p.get("credits")
     gest = {g["id"] for g in contexte(u)["gestionnaires"]}
     if de not in gest:
-        raise ErreurMetier("À remplir : gestionnaire dont le portefeuille sera réduit.")
+        raise ErreurMetier("À remplir : agent de crédit dont le portefeuille sera réduit.")
     if vers not in gest:
-        raise ErreurMetier("À remplir : gestionnaire dont le portefeuille sera augmenté.")
+        raise ErreurMetier("À remplir : agent de crédit dont le portefeuille sera augmenté.")
     if de == vers:
-        raise ErreurMetier("Les deux gestionnaires doivent être différents.")
+        raise ErreurMetier("Les deux agents de crédit doivent être différents.")
     if not isinstance(ids, list) or not ids or not all(isinstance(x, int) and not isinstance(x, bool) for x in ids):
         raise ErreurMetier("Cocher au moins un crédit à transférer.")
     a_lui = {c["id"] for c in portefeuille(u, de)}
     if not set(ids) <= a_lui:
-        raise ErreurMetier("Un crédit coché n'est plus dans le portefeuille de ce gestionnaire.")
+        raise ErreurMetier("Un crédit coché n'est plus dans le portefeuille de cet agent de crédit.")
     j = journee_courante(u)
     le = date.fromisoformat(j["date"]) if j and isinstance(j["date"], str) else (j["date"] if j else jour_agence(u))
     for cid in ids:

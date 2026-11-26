@@ -17,7 +17,7 @@ export interface ContexteRapport { agence: string; agents: Record<number, string
 
 /** « Ordonner suivant » : les critères du rapport (registre S51-3), dans l'ordre de la capture p. 58 */
 export const CRITERES_TRI = [["nom", "Nom"], ["prenoms", "Prénoms"], ["agence", "Agence"], ["typeClient", "TypeClient"], ["categorie", "Catégorie"], ["zone", "Zone"],
-  ["nationalite", "Nationalité"], ["gestionnaire", "Gestionnaire"], ["commercial", "Commercial"], ["sensibilisateur", "Sensibilisateur"],
+  ["nationalite", "Nationalité"], ["gestionnaire", "Agent de crédit"], ["commercial", "Commercial"], ["sensibilisateur", "Sensibilisateur"],
   ["secteur", "Secteur d'activité"], ["genre", "Genre"]] as const;
 export type Tri = (typeof CRITERES_TRI)[number][0];
 

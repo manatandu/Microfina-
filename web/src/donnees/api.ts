@@ -686,7 +686,7 @@ export function controlerFichePhysique(d: NouveauTiers, jour: string, identite =
   if (txt("piecePays") && !localites().some((p) => p.pays === txt("piecePays"))) throw new ErreurMetier("Pays de délivrance : pays inconnu (Paramétrage > Localisation).");
   controlerLieu(d);
   if (txt("email") && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(txt("email"))) throw new ErreurMetier("Email invalide.");
-  if (d.gestionnaireId != null && !E.agents.some((a) => a.id === d.gestionnaireId && aLeRole(a, "gestionnaire") && a.actif)) throw new ErreurMetier("Gestionnaire inconnu.");
+  if (d.gestionnaireId != null && !E.agents.some((a) => a.id === d.gestionnaireId && aLeRole(a, "gestionnaire") && a.actif)) throw new ErreurMetier("Agent de crédit inconnu.");
   agentsProspect(d);
   const filiations = valeursListe("filiation").map((l) => l.libelle);
   (d.beneficiaires ?? []).forEach((b, i) => {
@@ -4105,12 +4105,12 @@ const affectation = {
   affecter(p: { de?: number | null; vers?: number | null; credits?: number[] }) {
     const u = exiger();
     const gest = new Set(affectation.contexte().gestionnaires.map((g) => g.id));
-    if (!p.de || !gest.has(p.de)) throw new ErreurMetier("À remplir : gestionnaire dont le portefeuille sera réduit.");
-    if (!p.vers || !gest.has(p.vers)) throw new ErreurMetier("À remplir : gestionnaire dont le portefeuille sera augmenté.");
-    if (p.de === p.vers) throw new ErreurMetier("Les deux gestionnaires doivent être différents.");
+    if (!p.de || !gest.has(p.de)) throw new ErreurMetier("À remplir : agent de crédit dont le portefeuille sera réduit.");
+    if (!p.vers || !gest.has(p.vers)) throw new ErreurMetier("À remplir : agent de crédit dont le portefeuille sera augmenté.");
+    if (p.de === p.vers) throw new ErreurMetier("Les deux agents de crédit doivent être différents.");
     if (!Array.isArray(p.credits) || !p.credits.length) throw new ErreurMetier("Cocher au moins un crédit à transférer.");
     const aLui = new Set(affectation.portefeuille(p.de).map((c) => c.id));
-    if (!p.credits.every((x) => aLui.has(x))) throw new ErreurMetier("Un crédit coché n'est plus dans le portefeuille de ce gestionnaire.");
+    if (!p.credits.every((x) => aLui.has(x))) throw new ErreurMetier("Un crédit coché n'est plus dans le portefeuille de cet agent de crédit.");
     const le = journees.courante()?.date ?? aujourdhui();
     for (const cid of p.credits) {
       E.credits.find((c) => c.id === cid)!.agentId = p.vers;
@@ -10521,7 +10521,7 @@ const societe = {
 // ---------- Agence > Paramètre : agents (S33, manuel p. 43). Une seule liste, rôles cochés et utilisateur lié (plan d'allègement, point 2.20).
 // Règles identiques côté serveur (noyau/agents.py). ----------
 type RoleAgent = "gestionnaire" | "sensibilisateur" | "commercial";
-const ROLES_AGENT: [RoleAgent, string][] = [["gestionnaire", "Gestionnaire"], ["sensibilisateur", "Sensibilisateur"], ["commercial", "Commercial"]];
+const ROLES_AGENT: [RoleAgent, string][] = [["gestionnaire", "Agent de crédit"], ["sensibilisateur", "Sensibilisateur"], ["commercial", "Commercial"]];
 /** Un agent a-t-il ce rôle ? Les données d'avant gardent un rôle par ligne. */
 const aLeRole = (a: AgentAgence, r: RoleAgent) => a[r] ?? a.role === r;
 const agentsActifs = (role: RoleAgent) => E.agents.filter((a) => aLeRole(a, role) && a.actif)

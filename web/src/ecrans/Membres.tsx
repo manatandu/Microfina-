@@ -331,7 +331,7 @@ function SuiviCommercial({ f, maj, ctx, zoneRequise }: { f: NouveauTiers; maj: (
     <fieldset className="pile cadre-champs champs-a-gauche"><legend>Suivi commercial</legend>
       <Champ libelle={zoneRequise ? "Zone : *" : "Zone :"}>{(p) => <select {...p} className="saisie" required={zoneRequise} value={f.zone ?? ""} onChange={(e) => maj({ zone: e.target.value })}>
         <option value=""></option>{ctx.zones.map((z) => <option key={z} value={z}>{enClair(z)}</option>)}</select>}</Champ>
-      {liste("Gestionnaire :", "gestionnaireId", ctx.gestionnaires)}{liste("Sensibilisateur :", "sensibilisateurId", ctx.sensibilisateurs)}{liste("Commercial :", "commercialId", ctx.commerciaux)}
+      {liste("Agent de crédit :", "gestionnaireId", ctx.gestionnaires)}{liste("Sensibilisateur :", "sensibilisateurId", ctx.sensibilisateurs)}{liste("Commercial :", "commercialId", ctx.commerciaux)}
     </fieldset>
   );
 }

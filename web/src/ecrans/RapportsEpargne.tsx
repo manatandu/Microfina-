@@ -156,7 +156,7 @@ function Multicritere({ erreur }: Proprietes) {
         <Champ libelle="Zone :">{(p) => <select {...p} className="saisie" value={c.zone} onChange={(e) => maj({ zone: e.target.value })}><option value=""></option>{ctx.zones.map((z) => <option key={z} value={z}>{enClair(z)}</option>)}</select>}</Champ>
         <Champ libelle="Nationalité">{(p) => <select {...p} className="saisie" value={c.nationalite} onChange={(e) => maj({ nationalite: e.target.value })}><option value=""></option>
           {ctx.localites.map((x) => <option key={x.pays}>{x.pays}</option>)}</select>}</Champ>
-        <Champ libelle="Gestionnaire :">{(p) => <select {...p} className="saisie" value={c.gestionnaire} onChange={(e) => maj({ gestionnaire: e.target.value })}><option value=""></option>
+        <Champ libelle="Agent de crédit :">{(p) => <select {...p} className="saisie" value={c.gestionnaire} onChange={(e) => maj({ gestionnaire: e.target.value })}><option value=""></option>
           <option value="0">{INCONNU}</option>{ctx.gestionnaires.map((a: Agent) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>
         <Champ libelle="Commercial :">{(p) => <select {...p} className="saisie" value={c.commercial} onChange={(e) => maj({ commercial: e.target.value })}><option value=""></option>
           <option value="0">{INCONNU}</option>{ctx.commerciaux.map((a: Agent) => <option key={a.id} value={a.id}>{a.nom}</option>)}</select>}</Champ>

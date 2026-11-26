@@ -199,7 +199,7 @@
     "id": "S21",
     "nom": "Référentiel crédit",
     "acces": "Paramétrage > Produits > Référentiel crédit",
-    "but": "Types et objets de crédit, type de produit, cycles, zones, degrés, termes, périodicités, types d'assurance, assureurs, gestionnaires de portefeuille",
+    "but": "Types et objets de crédit, type de produit, cycles, zones, degrés, termes, périodicités, types d'assurance, assureurs, agents de crédit",
     "module": "parametrage",
     "priorite": "must",
     "chemin": "/parametrage/s21"
@@ -280,7 +280,7 @@
     "id": "S33",
     "nom": "Agents et zones",
     "acces": "Paramétrage > Agents et zones > Agents et zones",
-    "but": "Gestionnaires, sensibilisateurs, commerciaux",
+    "but": "Agents de crédit, sensibilisateurs, commerciaux",
     "module": "parametrage",
     "priorite": "must",
     "chemin": "/parametrage/s33"
@@ -880,7 +880,7 @@
     "id": "S96",
     "nom": "Affectation de portefeuille",
     "acces": "Crédit > Affectation de dossier",
-    "but": "Transférer des prêts d'un gestionnaire à un autre",
+    "but": "Transférer des prêts d'un agent de crédit à un autre",
     "module": "credit",
     "priorite": "should",
     "chemin": "/credit/s96"

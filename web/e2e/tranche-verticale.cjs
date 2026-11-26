@@ -242,6 +242,10 @@ const OUT = process.argv[2];
   await aller('/administration/s04'); await p.getByRole('button', { name: 'CONTRÔLE INTERNE', exact: true }).click();
   await p.getByRole('checkbox', { name: 'Tout le menu : Client' }).check();
   await etape('02f32-droits'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  // Plan d'allègement, point 7.2 : une troisième personne valide ce qui est saisi hors guichet ; le profil de départ CHEF COMPTABLE tient la validation
+  // (décision du porteur du 25/11/2026, registre T203) ; l'administrateur sécurité enregistre une chef comptable
+  await p.getByRole('button', { name: 'CHEF COMPTABLE', exact: true }).click(); await p.getByLabel('Rechercher un écran').fill('Opérations en attente');
+  await p.getByRole('checkbox', { name: 'Opérations en attente : validation' }).and(p.locator(':checked')).waitFor(); await etape('02f32b-chef-comptable');
   // Point bloquant B9, fin (registre T218) : règles de connexion tenues par la gestion des accès (inactivité, expiration, historique, second facteur)
   await aller('/administration/s05'); await p.getByRole('button', { name: 'Règles de connexion' }).click(); const frc = p.getByRole('dialog', { name: 'Règles de connexion' });
   await frc.getByLabel('Expiration du mot de passe (jours, 0 : jamais) : *').fill('10'); await frc.getByRole('button', { name: 'Enregistrer' }).click();
@@ -249,10 +253,6 @@ const OUT = process.argv[2];
   await frc.getByLabel('Expiration du mot de passe (jours, 0 : jamais) : *').fill('90'); await frc.getByLabel('Derniers mots de passe refusés : *').fill('5');
   await frc.getByRole('group', { name: 'Second facteur exigé pour' }).getByRole('checkbox').first().waitFor(); await etape('02f32a-regles-connexion');
   await frc.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
-  // Plan d'allègement, point 7.2 : une troisième personne valide ce qui est saisi hors guichet ; le profil de départ CHEF COMPTABLE tient la validation
-  // (décision du porteur du 25/11/2026, registre T203) ; l'administrateur sécurité enregistre une chef comptable
-  await p.getByRole('button', { name: 'CHEF COMPTABLE', exact: true }).click(); await p.getByLabel('Rechercher un écran').fill('Opérations en attente');
-  await p.getByRole('checkbox', { name: 'Opérations en attente : validation' }).and(p.locator(':checked')).waitFor(); await etape('02f32b-chef-comptable');
   await aller('/administration/s05'); await p.getByRole('button', { name: 'Nouvel utilisateur' }).click(); const fcc = p.getByRole('dialog', { name: 'Nouvel utilisateur' });
   await fcc.getByLabel('Nom *').fill('Kabeya'); await fcc.getByLabel('Prénoms').fill('Lucie');
   await fcc.getByLabel('Identifiant de connexion *').fill('lkabeya'); await fcc.getByLabel('Mot de passe *').fill('secret-2'); await fcc.getByLabel('Confirmation *').fill('secret-2');

@@ -964,7 +964,7 @@ def controler_fiche_physique(u: dict, d: dict, texte, j: dict | None, identite: 
         raise ErreurMetier("Email invalide.")
     g = d.get("gestionnaireId")
     if g is not None and not __import__("noyau.agents", fromlist=["a_le_role"]).a_le_role(u, g, "gestionnaire"):
-        raise ErreurMetier("Gestionnaire inconnu.")
+        raise ErreurMetier("Agent de crédit inconnu.")
     benef = d.get("beneficiaires") or []
     if not isinstance(benef, list):
         raise ErreurMetier("Bénéficiaires invalides.")

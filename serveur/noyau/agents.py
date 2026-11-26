@@ -4,7 +4,7 @@ Mêmes règles que web/src/donnees/api.ts (agents)."""
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import exiger
 
-ROLES = {"gestionnaire": "Gestionnaire", "sensibilisateur": "Sensibilisateur", "commercial": "Commercial"}
+ROLES = {"gestionnaire": "Agent de crédit", "sensibilisateur": "Sensibilisateur", "commercial": "Commercial"}
 # colonne du client qui porte l'agent dans chaque rôle
 PORTE = {"gestionnaire": "gestionnaire_agent_id", "sensibilisateur": "sensibilisateur_id", "commercial": "commercial_id"}
 

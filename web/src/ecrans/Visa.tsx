@@ -331,7 +331,7 @@ function DetailClient({ t }: { t: Tiers }) {
         {o === 0 && (
           <div className="deux-colonnes">
             <div className="pile">{lu("Date demande :", fr(t.dateDemande))}{lu(t.type === "groupe" ? "Type de groupe :" : t.type === "morale" ? "Type entreprise :" : "Type Client :", t.typeClient)}{lu("Zone :", t.zone)}</div>
-            <div className="pile">{lu("Sensibilisateur :", agent(cx?.sensibilisateurs, t.sensibilisateurId))}{lu("Gestionnaire :", agent(cx?.gestionnaires, t.gestionnaireId))}{lu("Commercial :", agent(cx?.commerciaux, t.commercialId))}
+            <div className="pile">{lu("Sensibilisateur :", agent(cx?.sensibilisateurs, t.sensibilisateurId))}{lu("Agent de crédit :", agent(cx?.gestionnaires, t.gestionnaireId))}{lu("Commercial :", agent(cx?.commerciaux, t.commercialId))}
               {coche("Résident", t.resident)}</div>
           </div>
         )}
@@ -550,7 +550,7 @@ export function InformationsClient() {
           <div className="formulaire">
             {lu("Adresse :", t.adresse)}{lu("Téléphone :", t.telephone)}{lu("Résident :", enTexte(t.resident))}
             {lu("Activité :", t.typeActivite || t.activite)}{lu("Secteur :", enClair(t.secteurActivite ?? ""))}{t.type === "physique" && lu("Profession :", t.profession)}
-            {lu("Zone :", t.zone)}{lu("Gestionnaire :", agent((ctx as Agents)?.gestionnaires, t.gestionnaireId))}
+            {lu("Zone :", t.zone)}{lu("Agent de crédit :", agent((ctx as Agents)?.gestionnaires, t.gestionnaireId))}
             {lu("Commercial :", agent((ctx as Agents)?.commerciaux, t.commercialId))}{lu("Sensibilisateur :", agent((ctx as Agents)?.sensibilisateurs, t.sensibilisateurId))}
           </div>
           {/* Un membre qui déménage : chaque ancienne adresse reste, avec la date du changement (registre T41 ; loi 22/068, art. 48 : conservation) */}
