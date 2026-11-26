@@ -10846,6 +10846,9 @@ const societe = {
     const a = E.agences.find((x) => x.id === id && !x.supprime);
     if (!a) throw new ErreurMetier("Agence introuvable.");
     if (a.id === E.agence.id && E.tiers.length) throw new ErreurMetier("Cette agence a des clients : elle ne se supprime pas.");
+    // Registre T233 : des fonds partis vers cette agence, ou partis d'elle, sont encore en route (compte 45 non soldé). Comme le serveur.
+    if ((E.transfertsAgence ?? []).some((t) => t.statut === "envoye" && (t.origineId === id || t.destinationId === id)))
+      throw new ErreurMetier("Cette agence a des fonds en route (Caisse > Virements internes de trésorerie) : les recevoir ou les reprendre d'abord.");
     if (stockCredit("zones").some((z) => z.actif && z.agenceId === id)) throw new ErreurMetier("Cette agence a des zones (page Zone) : les retirer d'abord.");
     a.supprime = true;
     enregistrer(); return societe.lire();

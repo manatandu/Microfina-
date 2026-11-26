@@ -1114,6 +1114,14 @@ def test_fonds_entre_agences(clients, journee):
     # 2. Reprise : les fonds ne sont pas partis ; l'agence qui a envoyé les reprend dans sa caisse, tant que l'autre ne les a pas reçus
     o2 = va({"montants": {"CDF": 100000}, "coupures": {"CDF": {"1000": 1}}}).json()
     t2 = next(x for x in caisse.get("/api/caisse/transferts/envois").json() if x["statut"] == "envoye")
+    # une agence qui a des fonds en route ne se supprime pas ; l'agence de destination, sans client ni guichet ni utilisateur, non plus
+    ag3 = ident("insert into agence (institution_id, code, nom) select institution_id, '0414', 'Lemba' from agence where id = %s returning id", (ici,))
+    o5 = va({"agenceId": ag3, "montants": {"CDF": 100000}, "coupures": {"CDF": {"1000": 1}}})
+    assert o5.status_code == 200, o5.content
+    assert "fonds en route" in refus(chef.post(f"/api/societe/agences/{ag3}/suppression", **H))
+    t5 = next(x for x in caisse.get("/api/caisse/transferts/envois").json() if x["statut"] == "envoye" and x["vers"] == "0414 Lemba")
+    assert caisse.post(f"/api/caisse/transferts/envois/{t5['id']}/reprise", {"cle": cle(), "coupures": {"1000": 1}}, **H).status_code == 200
+    assert chef.post(f"/api/societe/agences/{ag3}/suppression", **H).status_code == 200
     reprend = lambda c, tid, corps: c.post(f"/api/caisse/transferts/envois/{tid}/reprise", {"cle": cle(), **corps}, **H)
     assert "Envoi inconnu" in refus(reprend(caisse2, t2["id"], {"coupures": {"1000": 1}}))            # l'autre agence ne reprend pas
     assert "billetage" in refus(reprend(caisse, t2["id"], {"coupures": {"1000": 2}}))

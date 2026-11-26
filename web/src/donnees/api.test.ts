@@ -1217,6 +1217,10 @@ describe("journée de guichet", () => {
       return c.find((x) => x.libelle.startsWith("Comptes de liaison (45)"))!; };
     expect(await liaison()).toMatchObject({ ok: false, bloquant: false, detail: "Fonds en route ou reflet en attente : 45100000" });
     await expect(t.recevoir({ cle: cle(), source: "agence", id: e[0]!.id, coupures: { 1000: 2 } })).rejects.toThrow("pas à recevoir dans votre agence");
+    // Une agence qui a des fonds en route ne se supprime pas
+    await connecter("jpmukendi");
+    await expect(api.societe.supprimerAgence(la.id)).rejects.toThrow("fonds en route");
+    await connecter("engalula");
     // Reprise : tant que l'autre agence ne les a pas reçus
     await expect(t.reprendreEnvoi(999, { cle: cle(), coupures: { 1000: 2 } })).rejects.toThrow("Envoi inconnu");
     await expect(t.reprendreEnvoi(e[0]!.id, { cle: cle(), coupures: { 1000: 1 } })).rejects.toThrow("billetage");

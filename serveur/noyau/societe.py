@@ -164,6 +164,9 @@ def supprimer_agence(u, aid: int) -> dict:
     for table, quoi in (("tiers", "des clients"), ("guichet", "des guichets"), ("utilisateur", "des utilisateurs")):
         if valeur(f"select 1 from {table} where agence_id = %s limit 1", (aid,)):
             raise ErreurMetier(f"Cette agence a {quoi} : elle ne se supprime pas.")
+    # Registre T233 : des fonds partis vers cette agence, ou partis d'elle, sont encore en route (compte 45 non soldé) : les recevoir ou les reprendre d'abord
+    if valeur("select 1 from transfert_agence where statut = 'envoye' and %s in (agence_origine_id, agence_destination_id) limit 1", (aid,)):
+        raise ErreurMetier("Cette agence a des fonds en route (Caisse > Virements internes de trésorerie) : les recevoir ou les reprendre d'abord.")
     if valeur("select 1 from zone where agence_id = %s and actif limit 1", (aid,)):
         raise ErreurMetier("Cette agence a des zones (page Zone) : les retirer d'abord.")
     executer("update agence set supprime = true where id = %s", (aid,))
