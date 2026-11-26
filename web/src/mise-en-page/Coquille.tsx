@@ -51,6 +51,28 @@ export function Coquille() {
   });
   const connecte = !!donnees?.u;
   useEffect(() => { if (connecte) prechargerEcrans(); }, [connecte]);   // les autres écrans se chargent en fond : le clic suivant ne les attend pas
+  // Registre T211 : sans geste pendant la durée fixée par l'institution (15 minutes par défaut), la session se ferme ; une minute avant, un avertissement.
+  // Tant que l'utilisateur travaille, le serveur est prévenu toutes les deux minutes : une longue saisie ne perd rien.
+  const minutes = (donnees?.u as { inactiviteMinutes?: number } | null | undefined)?.inactiviteMinutes ?? 15;
+  useEffect(() => {
+    if (!connecte) return;
+    let dernier = Date.now(), prevenu = Date.now(), fini = false, averti = false;
+    const geste = () => { dernier = Date.now(); averti = false; };
+    const evenements = ["pointerdown", "keydown", "wheel"] as const;
+    evenements.forEach((e) => window.addEventListener(e, geste, { passive: true }));
+    const t = setInterval(() => {
+      const ecoule = Date.now() - dernier;
+      if (ecoule >= minutes * 60_000 && !fini) {
+        fini = true; setBoite(null);
+        void api.session.fermer().catch(() => undefined).finally(() => nav("/connexion", { state: { inactivite: minutes } }));
+      } else if (ecoule >= (minutes - 1) * 60_000 && !averti) {
+        averti = true;
+        setBoite({ type: "confirmation", message: "Faute d'activité, la session se ferme dans une minute. Rester connecté ?", oui: () => { void api.session.courante().catch(() => undefined); } });
+      }
+      else if (dernier > prevenu && Date.now() - prevenu >= 2 * 60_000) { prevenu = Date.now(); void api.session.courante().catch(() => undefined); }
+    }, 10_000);
+    return () => { clearInterval(t); evenements.forEach((e) => window.removeEventListener(e, geste)); };
+  }, [connecte, minutes]);   // eslint-disable-line react-hooks/exhaustive-deps
   // Plan d'allègement 7.1 : l'entrée « Opérations en attente » porte le nombre d'opérations que l'utilisateur peut viser ou valider ; relu à chaque écran
   const peutAttente = ((donnees?.u as { droits?: string[] } | null | undefined)?.droits ?? []).some((d) => ["S57", "S113", "S114"].includes(d));
   const { donnees: attente } = useDonnees(async () => (peutAttente ? (await api.attente.nombre()).nombre : 0), [peutAttente, lieu.pathname]);

@@ -91,6 +91,7 @@ function sansDonneesDemo() { _etat().referentiels = {}; }
 
 describe("graine", () => {
   it("la caisse contient exactement l'épargne et les parts reprises", async () => {
+    await connecter("plumbala");                     // la balance se lit avec son droit (registre T212)
     const b = await api.etats.balance();
     const s = (c: string, d: string) => b.filter((x) => x.compte.startsWith(c) && x.devise === d).reduce((t, x) => t + x.debit - x.credit, 0);
     expect(s("570", "USD")).toBe(-(s("330", "USD")));

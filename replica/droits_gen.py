@@ -1,5 +1,6 @@
 """Génère web/src/donnees/droits.gen.ts depuis serveur/noyau/droits.py et web/src/donnees/http.ts (registre S04-3) :
-pour chaque méthode d'écriture de la façade (objet.méthode), les écrans de sa route ; et les droits des profils de départ.
+pour chaque méthode d'écriture de la façade (objet.méthode), les écrans de sa route (ROUTES) ; pour chaque lecture, les écrans de sa route
+dans LECTURES_ADMIN (registre T212) ; et les droits des profils de départ.
 Les deux côtés appliquent ainsi la même table. Relancer après tout ajout de route : python3 replica/droits_gen.py"""
 import json
 import re
@@ -9,11 +10,15 @@ from pathlib import Path
 RACINE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RACINE / "serveur"))
 src = (RACINE / "serveur" / "noyau" / "droits.py").read_text(encoding="utf-8")
-routes = [(re.compile(m), json.loads(e.replace("'", '"'))) for m, e in re.findall(r'\(r"([^"]+)", (\[[^\]]*\])\)', src)]
+def table_de(nom: str):
+    bloc = src[src.index(f"{nom} = ["):]
+    bloc = bloc[:bloc.index("\n]]")]
+    return [(re.compile(m), json.loads(e.replace("'", '"'))) for m, e in re.findall(r'\(r"([^"]+)", (\[[^\]]*\])\)', bloc)]
+routes, lectures = table_de("ROUTES"), table_de("LECTURES_ADMIN")
 depart = json.loads(re.search(r"DROITS_DEPART = (\{.*\})\n", src).group(1))
 
 http = (RACINE / "web" / "src" / "donnees" / "http.ts").read_text(encoding="utf-8")
-table, objet = {}, None
+table, lecture, objet = {}, {}, None
 lignes = http.splitlines()
 for i, ligne in enumerate(lignes):
     if ligne.rstrip().endswith("=>") and i + 1 < len(lignes):
@@ -21,6 +26,15 @@ for i, ligne in enumerate(lignes):
     m = re.match(r"^    (\w+): \{", ligne)
     if m:
         objet = m.group(1)
+        continue
+    m = re.match(r'^      (\w+): (?:async )?\(.*?\)(?:: [^=]+)? => (?!.*(?:post|appel\("DELETE",))(.+)$', ligne)
+    if objet and m and not ligne.lstrip().startswith("//"):   # lecture : la route de LECTURES_ADMIN, comme noyau/droits.py (verifier_route)
+        meth, reste = m.groups()
+        for url in re.findall(r'["`](/[^"`]*)["`]', reste)[:1]:
+            chemin = re.sub(r"\$\{[^}]*\}", "12", url).split("?")[0]
+            e = next((x for motif, x in lectures if motif.fullmatch(chemin)), None)
+            if e:
+                lecture[f"{objet}.{meth}"] = list(e)   # même ordre que le serveur : le message nomme le même écran
         continue
     m = re.match(r"^      (\w+): \(.*?\) => (?:post|appel\(\"DELETE\",)\s*\(?(.+)$", ligne)
     if objet and m:
@@ -42,5 +56,6 @@ for i, ligne in enumerate(lignes):
 sortie = RACINE / "web" / "src" / "donnees" / "droits.gen.ts"
 sortie.write_text("// Généré par replica/droits_gen.py depuis serveur/noyau/droits.py et http.ts : ne pas modifier à la main (registre S04-3).\n"
                   f"export const DROITS_METHODES: Record<string, string[]> = {json.dumps(table, ensure_ascii=False, indent=0, sort_keys=True)};\n"
+                  f"export const DROITS_LECTURES: Record<string, string[]> = {json.dumps(lecture, ensure_ascii=False, indent=0, sort_keys=True)};\n"
                   f"export const DROITS_DEPART: Record<string, string[]> = {json.dumps(depart, ensure_ascii=False)};\n", encoding="utf-8")
-print(len(table), "méthodes d'écriture reliées à un écran")
+print(len(table), "méthodes d'écriture et", len(lecture), "lectures reliées à un écran")

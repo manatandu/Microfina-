@@ -51,7 +51,8 @@ def charger_utilisateur(uid: int | None) -> dict | None:
 def vue_utilisateur(u: dict) -> dict:
     from .droits import droits_utilisateur
     return {"id": u["id"], "login": u["login"], "nom": u["nom"], "roles": u["roles"], "droits": sorted(droits_utilisateur(u["id"])),
-            "motDePasseAChanger": bool(u.get("mot_de_passe_a_changer"))}
+            "motDePasseAChanger": bool(u.get("mot_de_passe_a_changer")),
+            "inactiviteMinutes": valeur("select inactivite_minutes from institution where id = %s", (u["institution_id"],)) or 15}
 
 
 def changer_mot_de_passe(u: dict, d) -> dict:
@@ -85,7 +86,17 @@ def exiger(u: dict | None, role: str | None = None) -> dict:
 
 
 # Registre S07-4 : une connexion compte tant que la session vit (SESSION_COOKIE_AGE, réglée à une journée de travail) ; après, elle tombe d'elle-même
-CONNECTE = f"jeton_session is not null and connecte_le > now() - interval '{int(settings.SESSION_COOKIE_AGE)} seconds'"
+# Registre T211 : la session tombe aussi après la durée d'inactivité fixée par l'institution (5 à 60 minutes, 15 par défaut ; Instr. BCC 008, art. 16).
+# Le poste la ferme à l'heure dite ; le serveur, filet de sécurité, garde deux minutes de marge (activité notée au plus toutes les 30 secondes,
+# session lue en mémoire 30 secondes par le poste) pour ne jamais la fermer avant lui
+def connecte(a: str = "") -> str:
+    p = f"{a}." if a else ""
+    return (f"{p}jeton_session is not null and {p}connecte_le > now() - interval '{int(settings.SESSION_COOKIE_AGE)} seconds' and "
+            f"coalesce({p}derniere_activite, {p}connecte_le) > now() - make_interval(mins => coalesce((select i.inactivite_minutes from institution i "
+            f"where i.id = {p}institution_id), 15) + 2)")
+
+
+CONNECTE = connecte()
 
 
 _FAUX_HASH: list[str] = []
@@ -113,7 +124,7 @@ def ouvrir_session(login: str, mot_de_passe: str | None, machine: str = "") -> d
     if u["controle_connecte"] and u["jeton_session"]:
         raise ErreurMetier(f"Déjà connecté ({u['machine'] or 'machine inconnue'}). Demander la déconnexion (Administration > Utilisateur > Déconnecter utilisateurs).")
     jeton = u["jeton_session"] or secrets.token_urlsafe(24)
-    executer("update utilisateur set jeton_session = %s, machine = %s, connecte_le = now() where id = %s", (jeton, machine[:100], u["id"]))
+    executer("update utilisateur set jeton_session = %s, machine = %s, connecte_le = now(), derniere_activite = now() where id = %s", (jeton, machine[:100], u["id"]))
     return {**charger_utilisateur(u["id"]), "jeton": jeton}
 
 
@@ -125,7 +136,12 @@ def utilisateur_de_session(uid, jeton) -> dict | None:
     return une(f"""select u.id, u.login, u.nom, u.institution_id, u.agence_id, u.mot_de_passe_a_changer,
                           coalesce((select array_agg(p.code order by p.code) from utilisateur_profil up join profil p on p.id = up.profil_id
                                     where up.utilisateur_id = u.id and p.code is not null and not p.supprime), '{{}}') as roles
-                   from utilisateur u where u.id = %s and u.actif and u.jeton_session = %s and {CONNECTE}""", (uid, jeton))
+                   from utilisateur u where u.id = %s and u.actif and u.jeton_session = %s and {connecte("u")}""", (uid, jeton))
+
+
+def noter_activite(uid: int) -> None:
+    """Dernière activité de l'utilisateur, pour le verrouillage après inactivité (registre T211) ; une écriture au plus toutes les 30 secondes"""
+    executer("update utilisateur set derniere_activite = now() where id = %s and (derniere_activite is null or derniere_activite < now() - interval '30 seconds')", (uid,))
 
 
 def fermer_session(uid, jeton) -> None:
@@ -1798,6 +1814,22 @@ def schema_valide(u: dict, evenement: str) -> int:
     return s
 
 
+def controler_soldes_depot(lignes_ecr: list[dict]) -> None:
+    """Audit du 21/11/2026, constat F11 (registre T210) : un compte de dépôt ne passe pas en solde négatif, sauf le compte courant dont le produit a
+    « Solde négatif = Oui » (registre S27-4, S74-6 ; PCCI, compte 33). La base refait le même contrôle (migration 0203)."""
+    effets: dict[tuple[str, str], int] = {}
+    for l in lignes_ecr:
+        c = l.get("contrat") or ""
+        if c.startswith("depot:"):
+            effets[(c, l["devise"])] = effets.get((c, l["devise"]), 0) + (l["montant"] if l["sens"] == "C" else -l["montant"])
+    for (c, dv), e in effets.items():
+        if e >= 0:
+            continue
+        k = une("select k.numero, pe.solde_negatif from compte_depot k join produit_epargne pe on pe.id = k.produit_id where k.id = %s", (int(c.split(":")[1]),))
+        if k and not k["solde_negatif"] and solde_contrat(c, dv, "C") + e < 0:
+            raise ErreurMetier(f"Le compte {k['numero']} passerait en solde négatif : une épargne ne devient pas débitrice (PCCI, compte 33 ; registre S27-4).")
+
+
 def poster(u: dict, *, journal: str, journee_id: int, libelle: str, piece: str, evenement: str, cle: str, valide_par: int, lignes_ecr: list[dict],
            contre_passe: int | None = None) -> int:
     """Écrit au grand livre. L'équilibre, la période et l'irréversibilité sont aussi garantis par PostgreSQL (replica/schema.sql)."""
@@ -1806,6 +1838,7 @@ def poster(u: dict, *, journal: str, journee_id: int, libelle: str, piece: str, 
         raise ErreurMetier("Journée fermée : aucune écriture possible.")
     from .gel import controler_lignes
     controler_lignes(lignes_ecr, u)    # écart E10 : rien ne sort des comptes d'un client gelé
+    controler_soldes_depot(lignes_ecr)
     jid = valeur("select id from journal where institution_id = %s and code = %s and actif and not supprime", (u["institution_id"], journal))
     if jid is None:
         raise ErreurMetier(f"Le journal {journal} n'est pas actif (Comptabilité > Journal).")      # registre S30-2

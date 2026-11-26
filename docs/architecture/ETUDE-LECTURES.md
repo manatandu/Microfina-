@@ -126,3 +126,13 @@ Soldes de caisse, opérations, reçus, relevés bancaires, états : données de 
 5. Puis le contrôle de l'objet lu (§ 4), écran par écran.
 
 Effort : une demi-journée pour les étapes 1 à 4, une à deux journées pour l'étape 5. Risque : moyen, maîtrisé par l'essai par profil.
+
+## 7. Construit le 26/11/2026 (registre T212)
+
+- **Inventaire refait** au niveau de la fonction : chaque écran part de son composant (`construits.tsx`), suit les fonctions et composants qu'il nomme, dans son fichier et dans ceux qu'il importe. L'inventaire par fichier seul donnait trop (un écran qui emprunte un tableau à un autre fichier héritait de toutes ses lectures) ou trop peu (un écran qui affiche un composant d'un autre fichier). Le droit retenu est l'union des deux relevés.
+- **Rattachées** : 63 lectures, 38 de membres et 25 de caisse, banque et comptabilité, dans `LECTURES_ADMIN`. `/credit/affectation/{agent}` l'était déjà (S96).
+- **Les 7 lectures qu'aucun écran n'appelle** (§ 5) prennent le droit de l'écran dont elles rendent les données, en attendant la décision du porteur (T130) : opérations de la journée et opération (S12, S13), consentements (S86, S88, S43, comme leur saisie), crédit (S93, S95), balance (S121), journal (S115), rapport banque (S62).
+- **Ajustement** : les fonds à recevoir se lisent aussi avec S09, comme leur réception (point 7.5, registre T193).
+- **Couche locale** : `replica/droits_gen.py` tire de `LECTURES_ADMIN` la table `DROITS_LECTURES` de `droits.gen.ts`, appliquée par la même enveloppe que les écritures. Une lecture ne vaut pas droit de la tâche, comme sur le serveur.
+- **Essais** : `test_lectures_rattachees` (chaque lecture refusée sans le droit, permise avec) ; parcours par profil (chaque profil de départ ouvre chacun de ses écrans sans « Droit manquant ») ; parcours de bout en bout, local et serveur.
+- **Reste** : le contrôle de l'objet lu (§ 4) et la question de l'agence au porteur.

@@ -86,6 +86,7 @@ def u(request: HttpRequest) -> dict:
         raise ErreurMetier("Changez d'abord votre mot de passe : celui donné par l'administrateur se remplace à la première connexion.", 403)   # T207
     dr.verifier_route(util, request.method, request.path)      # droit de la tâche (registre S04-3)
     executer("select set_config('exofina.utilisateur', %s, true)", (str(util["id"]),))   # auteur des changements de paramètres (registre T208)
+    s.noter_activite(util["id"])                                   # verrouillage après inactivité (registre T211)
     # Jour de l'agence dans les requêtes SQL (fonctions jour_agence ; plan d'allègement, point 11.4 ; registre T153)
     executer("select set_config('exofina.fuseau', coalesce((select fuseau from agence where id = %s), ''), false)", (util.get("agence_id"),))
     return util
@@ -132,7 +133,15 @@ def rapports_csp(request):
 @api.get("/session")
 def session_courante(request):
     util = s.utilisateur_de_session(request.session.get("utilisateur"), request.session.get("jeton"))
+    if util:
+        s.noter_activite(util["id"])
     return s.vue_utilisateur(util) if util else None
+
+
+@api.post("/securite/inactivite")
+def securite_inactivite(request, corps: dict = Body(...)):
+    from .securite import definir_inactivite
+    return definir_inactivite(u(request), corps)
 
 
 @api.post("/session/mot-de-passe")

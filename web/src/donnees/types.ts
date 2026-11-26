@@ -10,6 +10,7 @@ export interface Utilisateur { id: number; login: string; nom: string; roles: Ro
 export interface Institution {
   nom: string; sigle?: string; profil: string;
   partEffet?: string;   // date d'effet de la valeur de la part (statuts ; registre T134)
+  inactiviteMinutes?: number;   // verrouillage de la session après inactivité, 5 à 60 minutes, 15 par défaut (registre T211)
   // S32 Info générale
   description?: string; directeur?: string; numeroAgrement?: string; journeeMax?: number; compteHorsBilan1?: string | null; compteHorsBilan2?: string | null;
   ifu?: string; nrc?: string; assuranceAssureur?: string; assurancePolice?: string; assuranceEcheance?: string;   // police de la trésorerie (SN01-4)

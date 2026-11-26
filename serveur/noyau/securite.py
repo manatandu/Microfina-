@@ -213,3 +213,16 @@ def audit(u: dict, du: str, au: str, objet: str = "") -> dict:
             "lignes": [{"id": r["id"], "le": r["horodatage"].astimezone(fz).isoformat(timespec="seconds"), "utilisateur": r["nom"] or "Système",
                         "action": ACTIONS_AUDIT.get(r["action"], r["action"]), "objet": OBJETS_AUDIT.get(r["objet"], r["objet"]), "objetId": r["objet_id"] or "",
                         "changement": changement(r["action"], json_lu(r["avant"]), json_lu(r["apres"]))} for r in rows]}
+
+
+def definir_inactivite(u: dict, d) -> dict:
+    """Durée d'inactivité avant le verrouillage de la session, fixée par le responsable de la sécurité informatique (droit S05) : de 5 à 60 minutes,
+    15 par défaut, comme les logiciels du secteur (registre T211 ; Instr. BCC 008, art. 16)"""
+    from .bd import executer
+    from .services import exiger
+    exiger(u)
+    m = (d or {}).get("minutes") if isinstance(d, dict) else None
+    if not isinstance(m, int) or isinstance(m, bool) or not 5 <= m <= 60:
+        raise ErreurMetier("Verrouillage après inactivité : de 5 à 60 minutes.")
+    executer("update institution set inactivite_minutes = %s where id = %s", (m, u["institution_id"]))
+    return {"inactiviteMinutes": m}

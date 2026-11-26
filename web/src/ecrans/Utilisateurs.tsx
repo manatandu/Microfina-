@@ -22,6 +22,7 @@ export default function Utilisateurs() {
   const [profil, setProfil] = useState<Ligne | null>(null);
   const [guichet, setGuichet] = useState<Ligne | null>(null);
   const [desactiver, setDesactiver] = useState<Fichier | null>(null);
+  const [regles, setRegles] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
   const { donnees } = useDonnees(async () => {
@@ -29,10 +30,10 @@ export default function Utilisateurs() {
     const d = new Set((u as { droits?: string[] } | null)?.droits ?? []);
     const [g, c, a] = await Promise.all([d.has("S05") ? api.comptesUtilisateurs.lire() : null, d.has("S07") ? api.connexions.lire() : null, d.has("S10") ? api.guichets.affectations() : null]);
     const p = d.has("S06") ? await api.profilsUtilisateurs.lire() : null;
-    return { d, g, c, a, p };
+    return { d, g, c, a, p, inactivite: (u as { inactiviteMinutes?: number } | null)?.inactiviteMinutes ?? 15 };
   }, [relu]);
   if (!donnees) return <Chargement />;
-  const { d, g, c, a, p } = donnees;
+  const { d, g, c, a, p, inactivite } = donnees;
   // Une ligne par utilisateur, d'après ce que les droits laissent lire
   const parId = new Map<number, Ligne>();
   const ajouter = (x: { id: number; nom: string; login: string; agence: string }, k: "f" | "c" | "a", v: Fichier | Connexion | Affectation) =>
@@ -51,7 +52,8 @@ export default function Utilisateurs() {
   return (
     <>
       <section className="bloc pile" aria-label="Utilisateurs">
-        {d.has("S05") && <div className="actions-onglets"><button className="bouton" type="button" onClick={() => setFiche("nouveau")}>Nouvel utilisateur</button></div>}
+        {d.has("S05") && <div className="actions-onglets"><button className="bouton" type="button" onClick={() => setFiche("nouveau")}>Nouvel utilisateur</button>
+          <button className="bouton secondaire" type="button" onClick={() => setRegles(true)}>Verrouillage après inactivité</button></div>}
         <TableFiltree lignes={lignes} cle={(x) => x.id} colonnes={[
           { titre: "Nom", valeur: (x) => decouper(x.nom).nom },
           { titre: "Prénoms", valeur: (x) => decouper(x.nom).prenoms },
@@ -88,8 +90,29 @@ export default function Utilisateurs() {
       <Fiche titre={desactiver ? `${desactiver.actif ? "Désactiver" : "Réactiver"} ${desactiver.nom}` : ""} ouverte={!!desactiver && !boite} fermer={() => setDesactiver(null)}>
         {desactiver && <Activation f={desactiver} fermer={() => setDesactiver(null)} poser={setBoite} fait={(t) => { setDesactiver(null); ok(t); }} />}
       </Fiche>
+      <Fiche titre="Verrouillage après inactivité" ouverte={regles && !boite} fermer={() => setRegles(false)}>
+        {regles && <Inactivite minutes={inactivite} fermer={() => setRegles(false)} poser={setBoite} fait={() => { setRegles(false); ok("Enregistré avec succès !"); }} />}
+      </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
+  );
+}
+
+/** Durée sans activité après laquelle la session se ferme, pour toute l'institution : de 5 à 60 minutes, 15 par défaut (registre T211) */
+function Inactivite({ minutes, fermer, poser, fait }: { minutes: number; fermer: () => void; poser: (b: Boite | null) => void; fait: () => void }) {
+  const [v, setV] = useState(String(minutes));
+  const agir = () => poser({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
+    try { await api.securite.definirInactivite({ minutes: v.trim() ? Number(v) : null }); fait(); }
+    catch (x) { poser({ type: "erreur", message: message(x) }); }
+  } });
+  return (
+    <div className="pile">
+      <Champ libelle="Verrouillage après inactivité (minutes) : *">{(p) => <input {...p} className="saisie code" type="number" min={5} max={60} step={1} inputMode="numeric" value={v} onChange={(e) => setV(e.target.value)} />}</Champ>
+      <div className="actions-onglets">
+        <button className="bouton" type="button" onClick={agir}>Enregistrer</button>
+        <button className="bouton secondaire" type="button" onClick={fermer}>Annuler</button>
+      </div>
+    </div>
   );
 }
 

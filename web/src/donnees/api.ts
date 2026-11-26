@@ -12,7 +12,7 @@ import {
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
   type AnalyseFinanciere, type DemandeCredit, type CreditPret, type GarantieCredit, type NantissementMateriel, type RemboursementCredit, type VisaCredit, type BalanceAgee, type Adresse, type Procuration, type DonneurOrdre, type BeneficiaireVirement,
 } from "./types";
-import { DROITS_METHODES } from "./droits.gen";
+import { DROITS_LECTURES, DROITS_METHODES } from "./droits.gen";
 import registreEcrans from "../ecrans/registre.json";
 import { coupuresDe, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import PCCI from "@pcci";
@@ -89,15 +89,16 @@ function exiger(role?: Role): Utilisateur {
 const droitsDe = (u: Utilisateur) => [...(E.profils.find((p) => p.id === u.profilId && !p.supprime)?.droits ?? [])].sort();   // le profil de l'utilisateur (S06)
 let droitVerifie = false;
 const NOMS_ECRANS: Record<string, string> = Object.fromEntries((registreEcrans as { id: string; nom: string }[]).map((e) => [e.id, e.nom]));
-/** Écriture : l'utilisateur tient le droit d'un des écrans de la méthode (registre S04-3) ; mêmes règles que noyau/droits.py */
+/** Écriture : l'utilisateur tient le droit d'un des écrans de la méthode (registre S04-3) ; lecture : celui d'un des écrans qui la lisent
+ *  (registre T212). Mêmes règles que noyau/droits.py ; seule une écriture vaut droit de la tâche (droitVerifie), comme verifier_route */
 function verifierDroit(cle: string) {
-  const e = DROITS_METHODES[cle];
+  const e = DROITS_METHODES[cle] ?? DROITS_LECTURES[cle];
   if (!e) return false;
   const u = utilisateur();
   if (!u) throw new ErreurMetier("Session fermée. Reconnectez-vous.");
   const d = droitsDe(u);
   if (!e.some((x) => d.includes(x))) { noterSecurite("acces_refuse", u.login, u.id, `${cle} : droit manquant`); throw new ErreurMetier(`Droit manquant : ${NOMS_ECRANS[e[0]!] ?? e[0]} (Administration > Profil > Assigner droit).`); }
-  return true;
+  return cle in DROITS_METHODES;
 }
 // Écart E17 : journal de sécurité (Instr. BCC 008, art. 16). Le serveur note aussi les refus de mot de passe, les blocages et la limite de requêtes (noyau/securite.py).
 const EVENEMENTS_SECURITE: Record<string, string> = { connexion: "Connexion", connexion_refusee: "Connexion refusée (mot de passe)", connexion_impossible: "Connexion impossible",
@@ -115,7 +116,7 @@ const session = {
   /** La démonstration dans le navigateur n'a pas de mot de passe ; le serveur l'exige sur le site en ligne (registre S01-2) */
   mode: () => ({ motDePasseRequis: false }),
   utilisateurs: () => E.utilisateurs,
-  courante: () => { const u = utilisateur(); return u ? { ...u, droits: droitsDe(u) } : null; },
+  courante: () => { const u = utilisateur(); return u ? { ...u, droits: droitsDe(u), inactiviteMinutes: E.institution.inactiviteMinutes ?? 15 } : null; },
   ouvrir(login: string, _motDePasse?: string) {
     const u = E.utilisateurs.find((x) => x.login === login);
     if (!u || u.actif === false) { noterSecurite("connexion_impossible", login, null, "Identifiant inconnu."); throw new ErreurMetier("Identifiant inconnu."); }   // désactivé : plus de connexion (S05-4)
@@ -177,6 +178,15 @@ function poster(e: Omit<Ecriture, "id" | "numero"> & { evenement: string }): Ecr
     const dep = /^depot:(\d+)$/.exec(x.contrat ?? "")?.[1], parts = /^parts:(\d+)$/.exec(x.contrat ?? "")?.[1];
     const tid = dep ? E.comptes.find((c) => c.id === Number(dep))?.tiersId : parts ? Number(parts) : undefined;
     if (tid !== undefined) { controlerGel(tid); controlerAttente(tid); }   // P9 : opération soupçonnée en attente de la déclaration
+  }
+  // Audit du 21/11/2026, F11 (registre T210) : un compte de dépôt ne passe pas en solde négatif, sauf compte courant à « Solde négatif = Oui » (S27-4)
+  const effets = new Map<string, number>();
+  for (const x of l) if (/^depot:\d+$/.test(x.contrat ?? "")) { const k = `${x.contrat}|${x.devise}`; effets.set(k, (effets.get(k) ?? 0) + (x.sens === "C" ? x.montant : -x.montant)); }
+  for (const [k, ef] of effets) {
+    if (ef >= 0) continue;
+    const [contrat, devise] = k.split("|") as [string, Devise], c = E.comptes.find((y) => y.id === Number(contrat.slice(6)));
+    if (c && !produitDuCompte(c)?.soldeNegatif && soldeContrat(contrat, devise, "C") + ef < 0)
+      throw new ErreurMetier(`Le compte ${c.numero} passerait en solde négatif : une épargne ne devient pas débitrice (PCCI, compte 33 ; registre S27-4).`);
   }
   const id = prochain(E.ecritures);
   const ecr: Ecriture = Object.freeze({ ...e, id, numero: `${e.journal}-${j.date.slice(0, 4)}-${String(id).padStart(6, "0")}`, lignes: Object.freeze(l.map((x) => Object.freeze({ ...x }))) });
@@ -10424,7 +10434,7 @@ const societe = {
       agences: E.agences.filter((a) => !a.supprime).sort((a, b) => a.code.localeCompare(b.code)).map(({ id, code, nom, autorisationReference, autorisationLe, fuseau, ...x }) => ({ id, code, nom,
         autorisationReference: autorisationReference ?? "", autorisationLe: autorisationLe ?? "", fuseau: fuseau ?? FUSEAU_PAR_DEFAUT,   // A3 ; point 11.4
         ...Object.fromEntries(CHAMPS_ADRESSE.map((k) => [k, (x as Adresse)[k] ?? ""])) as Required<Adresse> })),
-      securite: { motDePasseMin: 8, essais: 5, fenetreMinutes: 15 }, fuseaux: Object.entries(FUSEAUX).map(([code, libelle]) => ({ code, libelle })) };   // cadre « Info sécurité », règles en vigueur (S32-6 ; noyau/securite.py)
+      securite: { motDePasseMin: 8, essais: 5, fenetreMinutes: 15, inactiviteMinutes: E.institution.inactiviteMinutes ?? 15 }, fuseaux: Object.entries(FUSEAUX).map(([code, libelle]) => ({ code, libelle })) };   // cadre « Info sécurité », règles en vigueur (S32-6 ; noyau/securite.py)
   },
   /** Enregistrer la page Information Societe (registre S32-1 à S32-4) */
   enregistrer(d: Partial<Omit<InfoSociete, "journeeMax">> & { journeeMax?: number | null }) {
@@ -10925,6 +10935,14 @@ function lectureAdmin(ecrans: string[]) {
   const u = exiger();
   if (!ecrans.some((x) => droitsDe(u).includes(x))) { noterSecurite("acces_refuse", u.login, u.id, `lecture ${ecrans.join(", ")} : droit manquant`); throw new ErreurMetier(`Droit manquant : ${NOMS_ECRANS[ecrans[0]!] ?? ecrans[0]} (Administration > Profil > Assigner droit).`); }
 }
+/** Durée d'inactivité avant le verrouillage de la session, fixée par la gestion des accès (droit S05) : 5 à 60 minutes (registre T211) */
+const securite = {
+  definirInactivite(d: { minutes?: number | null }) {
+    exiger();
+    if (!Number.isInteger(d.minutes) || d.minutes! < 5 || d.minutes! > 60) throw new ErreurMetier("Verrouillage après inactivité : de 5 à 60 minutes.");
+    E.institution.inactiviteMinutes = d.minutes!; enregistrer(); return { inactiviteMinutes: d.minutes! };
+  },
+};
 const journalSecurite = {
   consulter(du: string, au: string, evenement = "") {
     lectureAdmin(["SA01"]);
@@ -11180,6 +11198,7 @@ const construireLocale = () => ({
   retenues: asynchrone(retenues, "retenues"),
   attente: asynchrone(attente, "attente"),
   journalSecurite: asynchrone(journalSecurite, "journalSecurite"),
+  securite: asynchrone(securite, "securite"),
   plaintes: asynchrone(plaintes, "plaintes"),
   banques: asynchrone(banques, "banques"),
   guichets: asynchrone(guichets, "guichets"),

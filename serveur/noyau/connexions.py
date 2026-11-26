@@ -2,12 +2,12 @@
 « En cliquant sur le bouton [×], la page de confirmation s'affiche et ensuite cliquer sur oui pour valider la déconnexion ».
 Mêmes règles que web/src/donnees/api.ts (connexions)."""
 from .bd import ErreurMetier, executer, lignes, une
-from .services import CONNECTE, exiger
+from .services import CONNECTE, connecte, exiger
 
 
 def lire(u) -> dict:
     exiger(u)
-    return {"utilisateurs": lignes(f"""select x.id, x.nom, x.login, coalesce(a.nom, '') as agence, ({CONNECTE.replace("jeton_session", "x.jeton_session").replace("connecte_le", "x.connecte_le")}) as connecte,
+    return {"utilisateurs": lignes(f"""select x.id, x.nom, x.login, coalesce(a.nom, '') as agence, ({connecte("x")}) as connecte,
                                              x.machine, x.actif
                                       from utilisateur x left join agence a on a.id = x.agence_id
                                       where x.institution_id = %s and not x.est_admin_systeme order by x.nom""", (u["institution_id"],))}

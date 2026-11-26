@@ -26,7 +26,8 @@ LOGO_MAX = 300_000      # caractères de l'image encodée (registre S32-4)
 def regles_securite() -> dict:
     """Cadre « Info sécurité » (capture p. 42, titre seul) : les règles en vigueur, en lecture (registre S32-6 ; Instr. BCC 008, art. 16)"""
     from .securite import ESSAIS_PAR_LOGIN, FENETRE_MINUTES
-    return {"motDePasseMin": 8, "essais": ESSAIS_PAR_LOGIN, "fenetreMinutes": FENETRE_MINUTES}
+    return {"motDePasseMin": 8, "essais": ESSAIS_PAR_LOGIN, "fenetreMinutes": FENETRE_MINUTES,
+            "inactiviteMinutes": valeur("select inactivite_minutes from institution order by id limit 1") or 15}   # registre T211
 
 
 def lire(u) -> dict:

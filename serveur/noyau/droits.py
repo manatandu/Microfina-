@@ -206,6 +206,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/(devises|cours|types-monnaie|monnaies).*", ["S35"]),
     (r"/profils(/\d+(/suppression)?)?", ["S03"]),
     (r"/gestion-utilisateurs.*", ["S05"]),
+    (r"/securite/inactivite", ["S05"]),                # registre T211 : durée d'inactivité, fixée par la gestion des accès
     (r"/profils-utilisateurs", ["S06"]),
     (r"/connexions/\d+/deconnexion", ["S07"]),
     (r"/droits/.*", ["S04"]),
@@ -322,6 +323,71 @@ LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
     (r"/securite/journal", ["SA01"]),
     (r"/securite/audit", ["SA01"]),                    # piste d'audit des paramètres et des droits (registre T208)                  # Instr. BCC 008, art. 16 : responsable de la sécurité informatique          # données personnelles : loi 11/020, art. 60
     (r"/plaintes.*", ["SC03"]),                    # données personnelles : loi 11/020, art. 60
+    # Audit du 21/11/2026, point B8 (registre T212) : les lectures des données des membres, de la caisse, de la banque et de la comptabilité
+    # se lisent avec le droit d'un des écrans qui les appellent (loi 002/2002, art. 79 ; loi 11/020, art. 60, 4° ; Instr. BCC 008, art. 16)
+    (r"/tiers", ["SL01", "SC03", "SE03", "S37", "S40", "S43", "S44", "S46", "S47", "S48", "S49", "S53", "S55", "S56", "S59", "S63", "S64", "S65", "S66", "S67", "S68", "S69", "S70", "S71", "S73", "S74", "S76", "S77", "S84", "S85", "S86", "S94", "S95", "S97", "S100", "S106", "S116", "S117"]),
+    (r"/prospects", ["S37", "S46"]),
+    (r"/rapports/clients", ["S51", "S72"]),
+    (r"/rapports/modifications", ["S51"]),
+    (r"/tiers/a-revalider", ["S40", "S43", "S48", "S49"]),
+    (r"/tiers/a-viser", ["S12", "S40", "S43", "S48", "S49"]),
+    (r"/tiers/\d+", ["S37", "S40", "S43", "S46", "S47", "S48", "S49", "S64", "S65", "S66", "S67", "S68", "S73", "S74", "S86"]),
+    (r"/tiers/\d+/comptes", ["S40", "S43", "S48", "S49", "S59", "S63", "S64", "S65", "S66", "S67", "S68", "S69", "S70", "S71", "S74", "S86", "S94", "S95", "S98", "S99"]),
+    (r"/tiers/\d+/consentements", ["S86", "S88", "S43"]),   # appelée par aucun écran (T130) : les droits de la saisie, et la fiche du membre
+    (r"/tiers/\d+/images", ["S40", "S43", "S48", "S49", "S74"]),
+    (r"/tiers/\d+/modifications", ["S40", "S43", "S48", "S49"]),
+    (r"/tiers/\d+/frais", ["S40", "S43", "S48", "S49", "S73"]),
+    (r"/tiers/\d+/adhesion", ["S40", "S43", "S48", "S49"]),
+    (r"/tiers/\d+/credits", ["S40", "S43", "S48", "S49"]),
+    (r"/tiers/\d+/compte-adhesion", ["S73"]),
+    (r"/tiers/\d+/parts", ["S40", "S43", "S48", "S49", "S77"]),
+    (r"/credit/credits/\d+/contrat", ["S54", "S75", "S87", "S88", "S90", "S92", "S93", "S105"]),
+    (r"/credit/credits/\d+/situation", ["S55", "S76", "S87", "S88", "S90", "S92", "S93", "S95", "S106"]),
+    (r"/credit/credits/\d+/memos", ["S55", "S76", "S87", "S88", "S90", "S92", "S93", "S95", "S106"]),
+    (r"/credit/credits/\d+", ["S93", "S95"]),   # appelée par aucun écran (T130) : le droit des données qu'elle rend
+    (r"/groupes-solidaires", ["S44"]),
+    (r"/tiers/\d+/membres-solidaires", ["S37", "S40", "S43", "S46", "S48", "S49"]),
+    (r"/procurations", ["S40", "S43", "S47", "S48", "S49"]),
+    (r"/guichet/procurations/\d+", ["S74"]),
+    (r"/epargne/comptes/\d+/convention", ["S63"]),
+    (r"/epargne/comptes/apercu", ["S63", "S65", "S66", "S67", "S68"]),
+    (r"/epargne/releve", ["S64", "S74"]),
+    (r"/epargne/situation", ["S64"]),
+    (r"/epargne/dat", ["S65", "S66", "S67", "S68"]),
+    (r"/epargne/dat/recherche", ["S72"]),
+    (r"/epargne/dat/\d+/contrat", ["S65", "S66", "S67", "S68"]),
+    (r"/epargne/dat/\d+/rupture", ["S65", "S66", "S67", "S68"]),
+    (r"/epargne/plans", ["S69"]),
+    (r"/epargne/plans/\d+/tableau", ["S69"]),
+    (r"/epargne/plans/\d+/rupture", ["S69"]),
+    (r"/epargne/blocages", ["S71"]),
+    (r"/banque/adhesions/apercu", ["S56"]),
+    (r"/gestionnaires/\d+/portefeuille", ["S21", "S33"]),
+    (r"/journees/\d+/controles", ["S12", "S111"]),
+    (r"/journees/\d+/caisses", ["S79", "S80"]),
+    (r"/journees/\d+/operations", ["S12", "S13"]),   # appelée par aucun écran (T130) : le droit des données qu'elle rend
+    (r"/caisses/\d+/theorique", ["S52", "S54", "S55", "S73", "S74", "S75", "S76", "S77", "S78", "S79", "S80", "S81", "S82", "S95", "S105", "S106"]),
+    (r"/caisses/\d+/solde-comptable", ["S79", "S80"]),
+    (r"/caisses/\d+/billetages", ["S79", "S80"]),
+    (r"/billetages/a-valider", ["S12"]),
+    (r"/rapports/transactions", ["S13"]),
+    (r"/credit/fonds-propres", ["SN01", "S32", "S123"]),
+    (r"/caisse/transferts", ["S52", "S54", "S55", "S75", "S76", "S81", "S95", "S105", "S106"]),
+    (r"/caisse/fonds-a-recevoir", ["S52", "S81", "S09"]),   # S09 : celui qui tient la caisse qui reçoit, comme la réception (point 7.5, registre T193)
+    (r"/operations/en-attente", ["S12"]),
+    (r"/operations/\d+", ["S12", "S13"]),   # appelée par aucun écran (T130) : le droit des données qu'elle rend
+    (r"/operations/\d+/recu", ["S52", "S54", "S55", "S73", "S74", "S75", "S76", "S77", "S78", "S81", "S95", "S105", "S106"]),
+    (r"/visas/retraits-plafond", ["S57", "S113", "S114"]),
+    (r"/comptabilite/comptabilisation/\d+", ["S111"]),
+    (r"/etats/balance", ["S121"]),   # appelée par aucun écran (T130) : le droit des données qu'elle rend
+    (r"/etats/journal", ["S115"]),   # appelée par aucun écran (T130) : le droit des données qu'elle rend
+    (r"/banque/operations", ["SE03", "S52", "S53", "S56", "S59", "S60", "S61", "S62", "S81", "S116"]),
+    (r"/banque/visas", ["S57", "S113", "S114"]),
+    (r"/banque/cheques", ["S59"]),
+    (r"/banque/emprunts/en-cours", ["S61"]),
+    (r"/banque/emprunts", ["S61"]),
+    (r"/banque/releve", ["S62"]),
+    (r"/banque/rapport", ["S62"]),   # appelée par aucun écran (T130) : le droit des données qu'elle rend
 ]]
 
 

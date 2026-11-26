@@ -12,12 +12,13 @@ import { Marque } from "../mise-en-page/Marque";
 // ni comptes de démonstration (registre S01-2 ; Instr. BCC 008, art. 16 : authentification maîtrisée).
 export default function Connexion() {
   const nav = useNavigate();
-  const { state } = useLocation() as { state?: { apres?: string; nettoyage?: boolean } };
+  const { state } = useLocation() as { state?: { apres?: string; nettoyage?: boolean; inactivite?: number } };
   const { donnees } = useDonnees(async () => ({ users: await api.session.utilisateurs(), j: await api.journees.courante(), mode: await api.session.mode() }));
   const [login, setLogin] = useState("");
   const [mdp, setMdp] = useState("");
   // Plan d'allègement, point 11.6 : le navigateur n'a pas effacé les données du site à la déconnexion (Clear-Site-Data)
-  const [erreur, setErreur] = useState(state?.nettoyage === false ? "Le navigateur n'a pas effacé les données de ce poste : fermez-le avant de quitter le poste." : "");
+  const [erreur, setErreur] = useState(state?.nettoyage === false ? "Le navigateur n'a pas effacé les données de ce poste : fermez-le avant de quitter le poste."
+    : state?.inactivite ? `Session fermée après ${state.inactivite} minutes sans activité : reconnectez-vous.` : "");   // registre T211
   const jourReel = aujourdhui();
 
   const enLigne = !!donnees?.mode.motDePasseRequis;

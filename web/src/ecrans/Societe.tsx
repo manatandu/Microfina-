@@ -99,6 +99,7 @@ function InformationSociete() {
         <div className="grille-deux">
           <Champ libelle="Longueur minimale du mot de passe :">{(p) => <input {...p} className="saisie code" readOnly value={String(donnees.securite.motDePasseMin)} />}</Champ>
           <Champ libelle="Essais de connexion refusés avant blocage :">{(p) => <input {...p} className="saisie code" readOnly value={`${donnees.securite.essais} en ${donnees.securite.fenetreMinutes} minutes`} />}</Champ>
+          <Champ libelle="Verrouillage après inactivité :">{(p) => <input {...p} className="saisie code" readOnly value={`${(donnees.securite as { inactiviteMinutes?: number }).inactiviteMinutes ?? 15} minutes`} />}</Champ>
         </div>
       </fieldset>
       <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button></div>

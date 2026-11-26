@@ -82,9 +82,9 @@ def journee(clients):
     return j, s
 
 
-def balance_equilibree(c):
-    b = c.get("/api/etats/balance").json()
-    return sum(x["debitCdf"] for x in b) == sum(x["creditCdf"] for x in b)
+def balance_equilibree(c=None):
+    """Toutes les écritures s'équilibrent, lues en base : la lecture de la balance demande son droit (registre T212)"""
+    return ident("select coalesce(sum(case when sens = 'D' then montant_cdf else -montant_cdf end), 0) from ligne_ecriture") == 0
 
 
 def test_graine_equilibree(clients):
@@ -232,7 +232,7 @@ def test_meme_cle_ne_paie_pas_deux_fois(clients, journee):
     p = {"cle": cle(), "compteId": C("0412-000318-01"), "montant": 10000, "coupures": {"100": 1}}
     a = caisse.post("/api/guichet/retraits", p, **H).json(); b = caisse.post("/api/guichet/retraits", p, **H).json()
     assert a["id"] == b["id"]
-    assert len(caisse.get("/api/etats/journal").json()) == 2   # reprise des soldes + un seul retrait
+    assert ident("select count(*) from ecriture") == 2   # reprise des soldes + un seul retrait
 
 
 def test_refus(clients, journee):
@@ -2029,7 +2029,7 @@ def test_deblocage_epargne(clients, journee):
     cid = credit_vise(clients)
     d = compta.get(f"/api/credit/deblocage/{cid}", **H).json()
     tid = ident("select tiers_id from credit where id = %s", (cid,))
-    assert [x["etat"] for x in compta.get(f"/api/tiers/{tid}/credits", **H).json()] == ["Visé, à débloquer"]      # S43, onglet Crédits (registre S43-4)
+    assert [x["etat"] for x in clients["chef"].get(f"/api/tiers/{tid}/credits", **H).json()] == ["Visé, à débloquer"]      # S43, onglet Crédits (registre S43-4)
     solde = lambda: next(x for x in compta.get(f"/api/credit/remboursement/comptes/{tid}", **H).json() if x["numero"] == d["comptePositionnement"])
     k, avant = solde()["id"], solde()["solde"]
     assert caisse.post(f"/api/comptabilite/deblocage/{cid}", {}, **H).status_code == 403
@@ -3255,7 +3255,8 @@ def test_profil_imf(clients, journee):
     assert chef.post(f"/api/tiers/{t['id']}/visa", **H).status_code == 200
     r = caisse.post("/api/guichet/adhesions", {"cle": cle(), "tiersId": t["id"], "parts": 2, "depot": 0, "coupures": {}}, **H)
     assert r.status_code == 422 and "Pas de parts sociales" in r.json()["message"]
-    a = chef.get(f"/api/banque/adhesions/apercu?tiersId={t['id']}&depot=500000", **H).json()
+    compta = clients["compta"]; connecter(compta, "plumbala")         # l'aperçu de l'adhésion par banque se lit avec S56 (registre T212)
+    a = compta.get(f"/api/banque/adhesions/apercu?tiersId={t['id']}&depot=500000", **H).json()
     assert a["valeurPart"] == 0 and a["total"] % 100000 == 0, a       # montants en centimes
     r = caisse.post("/api/guichet/adhesions", {"cle": cle(), "tiersId": t["id"], "parts": 0, "depot": 500000, "coupures": {"1000": a["total"] // 100000}}, **H)
     assert r.status_code == 200, r.json()
@@ -5492,6 +5493,33 @@ def test_etats_numerotes(clients, journee):
     assert a["le"][:4] == str(__import__("noyau.fuseau", fromlist=["jour_agence"]).jour_agence().year)
 
 
+def test_solde_depot_jamais_negatif(clients, journee):
+    """Audit du 21/11/2026, constat F11 (registre T210) : un débit au-delà du solde d'un compte de dépôt est refusé par le serveur, et par la base si on
+    passe outre ; le compte courant à « Solde négatif = Oui » reste possible (registre S27-4, S74-6 ; PCCI, compte 33)"""
+    from datetime import date as D
+    from django.db import connection, transaction
+    from noyau import decouverts as dc
+    from noyau.bd import ErreurMetier, une
+    from noyau.services import compte_du_produit, solde_contrat
+    kid = C("0412-000319-02")
+    k = une("select c.*, p.famille, p.compte_lie from compte_depot c join produit_epargne p on p.id = c.produit_id where c.id = %s", (kid,))
+    util = une("select u.id, u.login, u.nom, u.institution_id, u.agence_id from utilisateur u where u.login = 'plumbala'"); util["roles"] = ["comptable"]
+    solde = solde_contrat(f"depot:{kid}", k["devise"], "C")
+    trop = [{"compte": compte_du_produit(k), "contrat": f"depot:{kid}", "sens": "D", "devise": "CDF", "montant": solde + 1},
+            {"compte": "57000000", "contrat": "", "sens": "C", "devise": "CDF", "montant": solde + 1}]
+    with pytest.raises(ErreurMetier, match="passerait en solde négatif"):
+        dc.ecrire(util, D(2026, 11, 5), "Débit d'essai", "provision_credit", trop)
+    dc.ecrire(util, D(2026, 11, 5), "Débit d'essai", "provision_credit", [{**trop[0], "montant": solde}, {**trop[1], "montant": solde}])   # jusqu'à zéro : permis
+    eid = ident("select max(ecriture_id) from ligne_ecriture where contrat_ref = %s", (f"depot:{kid}",))
+    with pytest.raises(Exception, match="passerait en solde négatif"):
+        with transaction.atomic():
+            with connection.cursor() as cur:
+                cur.execute("set constraints solde_depot immediate")
+                cur.execute("""insert into ligne_ecriture (ecriture_id, rang, compte_id, contrat_ref, sens, devise, montant_devise, montant_cdf)
+                               select ecriture_id, 90, compte_id, contrat_ref, 'D', devise, 1, 1 from ligne_ecriture
+                               where ecriture_id = %s and contrat_ref = %s limit 1""", (eid, f"depot:{kid}"))
+
+
 def test_comptes_courants_debiteurs(clients, journee, monkeypatch):
     """B4 (confrontation du 21/11/2026) : compte courant débiteur sans versement depuis plus de 30 jours : viré au 39, provisionné au taux de sa tranche,
     puis recouvré (Instr. BCC 003, art. 7, al. 2, et art. 12 ; PCCI, comptes 33, 38, 39)"""
@@ -5503,7 +5531,7 @@ def test_comptes_courants_debiteurs(clients, journee, monkeypatch):
     compta = clients["agent"]            # S99 : droit de l'agent de crédit
     kid = C("0412-000319-02")
     k = une("select c.*, p.famille, p.compte_lie from compte_depot c join produit_epargne p on p.id = c.produit_id where c.id = %s", (kid,))
-    executer("update produit_epargne set categorie_compte = 'Courant' where id = %s", (k["produit_id"],))
+    executer("update produit_epargne set categorie_compte = 'Courant', solde_negatif = true where id = %s", (k["produit_id"],))   # S27-4 : seul un compte courant devient débiteur
     util = une("select u.id, u.login, u.nom, u.institution_id, u.agence_id from utilisateur u where u.login = 'plumbala'")
     util["roles"] = ["comptable"]
     from noyau.services import compte_du_produit, solde_contrat
@@ -5727,3 +5755,60 @@ def test_securite_navigateur(clients):
     r = chef.delete("/api/session", **H)
     assert r.status_code == 200 and r["Clear-Site-Data"] == '"cache", "cookies", "storage"'
     assert chef.get("/api/session").json() is None                          # la session est close
+
+
+def test_verrouillage_inactivite(clients):
+    """Registre T211 : sans activité pendant la durée fixée par l'institution (15 minutes par défaut, de 5 à 60), la session se ferme ;
+    la durée se règle par la gestion des accès (droit S05 ; Instr. BCC 008, art. 16)"""
+    from django.db import connection
+    admin, agent = clients["compta"], clients["agent"]
+    connecter(admin, "gmbuyi"); connecter(agent, "bkasongo")
+    assert agent.get("/api/session").json()["inactiviteMinutes"] == 15
+    n = ident("select count(*) from journal_audit where objet = 'utilisateur'")
+    connection.cursor().execute("update utilisateur set derniere_activite = now() - interval '20 minutes' where login = 'bkasongo'")
+    assert ident("select count(*) from journal_audit where objet = 'utilisateur'") == n     # l'activité ne va pas au journal d'audit
+    assert agent.get("/api/session").json() is None                          # session fermée faute d'activité
+    assert agent.get("/api/journees", **H).status_code == 401
+    # La durée passe à 30 minutes : la même session reprend
+    for m in (4, 61, "20", None):
+        r = admin.post("/api/securite/inactivite", {"minutes": m}, **H)
+        assert r.status_code == 422 and "de 5 à 60 minutes" in r.json()["message"], r.content
+    assert admin.post("/api/securite/inactivite", {"minutes": 30}, **H).json() == {"inactiviteMinutes": 30}
+    assert agent.get("/api/session").json()["inactiviteMinutes"] == 30
+    assert ident("select count(*) from journal_audit where objet = 'institution' and apres ->> 'inactivite_minutes' = '30'") == 1   # registre T208
+    # Sans le droit S05, pas de réglage
+    assert agent.post("/api/securite/inactivite", {"minutes": 60}, **H).status_code == 403
+    connection.cursor().execute("update utilisateur set derniere_activite = now() - interval '33 minutes' where login = 'bkasongo'")
+    assert agent.get("/api/session").json() is None                          # 30 minutes, plus la marge de deux minutes
+
+
+def test_lectures_rattachees(clients):
+    """Audit du 21/11/2026, point B8 (registre T212) : chaque lecture rattachée à des écrans se refuse à qui n'a aucun de leurs droits,
+    et passe pour qui en tient un (loi 002/2002, art. 79 ; loi 11/020, art. 60, 4° ; Instr. BCC 008, art. 16)"""
+    import re as _re
+    from noyau import droits as dr
+    from noyau.bd import ErreurMetier
+    logins = {"chef": "jpmukendi", "caisse": "engalula", "agent": "bkasongo", "compta": "plumbala", "resp": "gmbuyi"}
+    util = {k: {"id": ident("select id from utilisateur where login = %s", (l,))} for k, l in logins.items()}
+    tient = {k: dr.droits_utilisateur(u["id"]) for k, u in util.items()}
+    refus = passe = 0
+    for motif, ecrans in dr.LECTURES_ADMIN:                               # la fonction que chaque lecture du serveur appelle (api.u)
+        if not _re.fullmatch(r"[/\w-]*(\\d\+[/\w-]*)*", motif.pattern):
+            continue                                                       # motif à alternatives : essayé par les essais de son écran
+        chemin = "/api" + motif.pattern.replace(r"\d+", "1")
+        for k, u in util.items():
+            if tient[k] & set(ecrans):
+                dr.verifier_route(u, "GET", chemin); passe += 1
+            else:
+                with pytest.raises(ErreurMetier, match="Droit manquant"):
+                    dr.verifier_route(u, "GET", chemin)
+                refus += 1
+    assert refus > 200 and passe > 100, (refus, passe)
+    # Par le serveur : l'administrateur de la sécurité ne lit plus les membres ni les reçus ; le guichet, si
+    for k, l in logins.items():
+        connecter(clients[k], l)
+    r = clients["resp"].get("/api/tiers", **H)
+    assert r.status_code == 403 and "Droit manquant" in r.json()["message"]
+    assert clients["resp"].get("/api/operations/1/recu", **H).status_code == 403
+    assert clients["caisse"].get("/api/tiers", **H).status_code == 200
+    assert ident("select count(*) from journal_securite where evenement = 'acces_refuse'") >= 2      # Instr. BCC 008, art. 16
