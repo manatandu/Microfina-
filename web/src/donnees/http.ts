@@ -21,6 +21,9 @@ const MEMOIRE_MS: [RegExp, number][] = [[/^\/referentiel$/, 60_000], [/^\/sessio
 const memoire = new Map<string, { jusqua: number; texte: string }>();
 const enVol = new Map<string, Promise<string>>();
 
+/** Attente avant de renvoyer, une fois, une opération à clé que la liaison a coupée */
+export const DELAI_RENVOI_MS = 1500;
+
 export function creerApiHttp(notifier: () => void): ApiDonnees {
   async function envoyer(methode: Methode, chemin: string, corps?: unknown, rejoue = false): Promise<string> {
     signaler(1);
@@ -36,10 +39,18 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
           body: corps === undefined ? undefined : JSON.stringify(corps),
           signal: arret.signal,
         });
-      } catch (x) {
-        if (!arret.signal.aborted) throw x;
-        throw new ErreurMetier(methode === "GET" ? "Le serveur n'a pas répondu à temps. Réessayez."
-          : "Le serveur n'a pas répondu à temps : vérifiez si l'opération est passée avant de la refaire.");
+      } catch {
+        // Audit du 21/11/2026, constat F24 (registre T231) : la liaison est tombée, ou le serveur n'a pas répondu à temps. Une opération qui porte
+        // sa clé ne passe jamais deux fois : le serveur la reconnaît et rend le résultat de la première. Liaison coupée : le poste la renvoie donc
+        // une fois de lui-même ; sinon l'utilisateur lit quoi faire, au lieu du message du navigateur
+        const aCle = methode !== "GET" && typeof corps === "object" && corps !== null && typeof (corps as { cle?: unknown }).cle === "string";
+        if (!arret.signal.aborted && aCle && !rejoue) { await new Promise((f) => setTimeout(f, DELAI_RENVOI_MS)); return await envoyer(methode, chemin, corps, true); }
+        const coupee = !arret.signal.aborted;
+        throw new ErreurMetier(methode === "GET" ? (coupee ? "Liaison avec le serveur coupée. Réessayez." : "Le serveur n'a pas répondu à temps. Réessayez.")
+          : aCle ? (coupee ? "Liaison avec le serveur coupée. Enregistrez de nouveau : la même opération ne passe pas deux fois."
+            : "Le serveur n'a pas répondu à temps. Enregistrez de nouveau : la même opération ne passe pas deux fois.")
+          : (coupee ? "Liaison avec le serveur coupée : vérifiez si l'enregistrement est passé avant de le refaire."
+            : "Le serveur n'a pas répondu à temps : vérifiez si l'enregistrement est passé avant de le refaire."));
       }
       // Audit du 21/11/2026, point B13 (registre T226) : la même opération partie deux fois au même instant (double clic). Le serveur n'en passe
       // qu'une et répond 409 à l'autre : le poste la renvoie une fois, avec la même clé, et reçoit le résultat de l'opération passée
