@@ -15,7 +15,7 @@ retirer les comptes que les institutions ont elles-mêmes marqués « Réseau »
 s'accorder (total des débits retirés égal au total des crédits retirés, au bilan d'une part, en gestion d'autre part) : sinon l'écart est montré et
 les états consolidés ne s'établissent pas.
 
-Chaque institution garde sa propre installation (ARCHITECTURE, décision D2) : l'affiliée exporte sa balance en fichier, la faîtière l'importe."""
+Chaque institution garde sa propre installation (audit du 21/11/2026, décision D2) : l'affiliée exporte sa balance en fichier, la faîtière l'importe."""
 import csv
 import io
 import json
