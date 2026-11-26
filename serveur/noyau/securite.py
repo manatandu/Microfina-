@@ -99,7 +99,8 @@ class LimiteRequetes:
 # Écart E17 : consultation du journal (Instr. BCC 008, art. 16). Mêmes libellés que web/src/donnees/api.ts (journalSecurite).
 EVENEMENTS = {"connexion": "Connexion", "connexion_refusee": "Connexion refusée (mot de passe)", "connexion_impossible": "Connexion impossible",
               "connexion_bloquee": "Connexion bloquée (trop d'essais)", "acces_refuse": "Accès refusé (droit manquant)", "limite_requetes": "Limite de requêtes dépassée",
-              "fonds_geles": "Opération refusée sur des fonds gelés", "mot_de_passe_change": "Mot de passe changé"}   # A14 : loi 22/068, art. 162, al. 2
+              "fonds_geles": "Opération refusée sur des fonds gelés", "mot_de_passe_change": "Mot de passe changé",
+              "second_facteur_active": "Second facteur mis en place", "second_facteur_retire": "Second facteur réinitialisé"}   # A14 : loi 22/068, art. 162, al. 2
 
 
 def consulter(u: dict, du: str, au: str, evenement: str = "") -> list[dict]:
@@ -226,3 +227,38 @@ def definir_inactivite(u: dict, d) -> dict:
         raise ErreurMetier("Verrouillage après inactivité : de 5 à 60 minutes.")
     executer("update institution set inactivite_minutes = %s where id = %s", (m, u["institution_id"]))
     return {"inactiviteMinutes": m}
+
+
+def regles(u: dict) -> dict:
+    """Règles de connexion de l'institution (droit S05) : inactivité, expiration et historique des mots de passe, profils au second facteur"""
+    from .bd import lignes, une
+    from .services import exiger
+    exiger(u)
+    i = une("select inactivite_minutes, mot_de_passe_jours, mot_de_passe_historique from institution where id = %s", (u["institution_id"],))
+    return {"inactiviteMinutes": i["inactivite_minutes"], "motDePasseJours": i["mot_de_passe_jours"], "motDePasseHistorique": i["mot_de_passe_historique"],
+            "profils": [{"id": p["id"], "nom": p["nom"], "secondFacteur": p["second_facteur"]} for p in lignes(
+                "select id, nom, second_facteur from profil where institution_id = %s and not supprime order by nom", (u["institution_id"],))]}
+
+
+def definir_mots_de_passe(u: dict, d) -> dict:
+    """Expiration du mot de passe (0 : jamais, sinon 30 à 365 jours), nombre de derniers mots de passe refusés (0 à 12) et profils qui exigent
+    le second facteur, fixés par la gestion des accès (droit S05). Aucun texte lu ne fixe ces valeurs : Instr. BCC 008, art. 16 (registre T218)"""
+    from .bd import executer, lignes
+    from .services import exiger
+    exiger(u)
+    d = d if isinstance(d, dict) else {}
+    entier = lambda v: isinstance(v, int) and not isinstance(v, bool)
+    jours, hist, profils = d.get("jours"), d.get("historique"), d.get("profils")
+    if not entier(jours) or not (jours == 0 or 30 <= jours <= 365):
+        raise ErreurMetier("Expiration du mot de passe : 0 (jamais), ou de 30 à 365 jours.")
+    if not entier(hist) or not 0 <= hist <= 12:
+        raise ErreurMetier("Derniers mots de passe refusés : de 0 à 12.")
+    if not isinstance(profils, list) or not all(entier(x) for x in profils):
+        raise ErreurMetier("Profils au second facteur : liste invalide.")
+    connus = {r["id"] for r in lignes("select id from profil where institution_id = %s and not supprime", (u["institution_id"],))}
+    if set(profils) - connus:
+        raise ErreurMetier("Profil inconnu.")
+    executer("update institution set mot_de_passe_jours = %s, mot_de_passe_historique = %s where id = %s", (jours, hist, u["institution_id"]))
+    executer("update profil set second_facteur = (id = any(%s)) where institution_id = %s and not supprime and second_facteur is distinct from (id = any(%s))",
+             (profils, u["institution_id"], profils))
+    return regles(u)

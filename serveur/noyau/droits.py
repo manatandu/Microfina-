@@ -207,6 +207,7 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/profils(/\d+(/suppression)?)?", ["S03"]),
     (r"/gestion-utilisateurs.*", ["S05"]),
     (r"/securite/inactivite", ["S05"]),                # registre T211 : durée d'inactivité, fixée par la gestion des accès
+    (r"/securite/mots-de-passe", ["S05"]),             # registre T218 : expiration, historique, profils au second facteur
     (r"/profils-utilisateurs", ["S06"]),
     (r"/connexions/\d+/deconnexion", ["S07"]),
     (r"/droits/.*", ["S04"]),
@@ -241,6 +242,7 @@ def droits_utilisateur(uid: int) -> set[str]:
 LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
     (r"/profils", ["S03", "S04", "S06"]),
     (r"/gestion-utilisateurs", ["S05"]),
+    (r"/securite/regles", ["S05"]),
     (r"/profils-utilisateurs", ["S06"]),
     (r"/connexions", ["S07"]),
     (r"/droits", ["S04"]),
@@ -321,6 +323,7 @@ LECTURES_ADMIN = [(re.compile(m), e) for m, e in [
     (r"/clients/registre-membres", ["SC04"]),
     (r"/comptabilite/retenues.*", ["SF01"]),
     (r"/securite/journal", ["SA01"]),
+    (r"/securite/sauvegardes", ["SA01"]),             # registre des sauvegardes et des essais de restauration (registre T220)
     (r"/securite/audit", ["SA01"]),                    # piste d'audit des paramètres et des droits (registre T208)                  # Instr. BCC 008, art. 16 : responsable de la sécurité informatique          # données personnelles : loi 11/020, art. 60
     (r"/plaintes.*", ["SC03"]),                    # données personnelles : loi 11/020, art. 60
     # Audit du 21/11/2026, point B8 (registre T212) : les lectures des données des membres, de la caisse, de la banque et de la comptabilité

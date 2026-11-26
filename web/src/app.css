@@ -773,3 +773,6 @@ select.saisie { max-width: 100%; }
   .apercu-ticket { padding: 0; background: none; border-radius: 0; }
   .ticket { margin: 0 auto; border: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* ---------- Second facteur (registre T218) : la clé se recopie dans l'application d'authentification, par groupes de quatre ---------- */
+.cle-second-facteur { margin: 0; font-family: ui-monospace, "Cascadia Mono", Consolas, "Liberation Mono", monospace; font-size: 1.125rem; letter-spacing: .08em; overflow-wrap: anywhere; user-select: all; }

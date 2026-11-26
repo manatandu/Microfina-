@@ -60,6 +60,7 @@ from . import numerotation as nu
 from . import services as s
 from .bd import ErreurMetier, executer
 from .securite import adresse, controler_tentatives, noter
+from . import second_facteur
 
 # Documentation technique de l'API : seulement en développement ; en ligne, elle décrirait toutes les routes à un attaquant (registre T25)
 api = NinjaAPI(title="Exofina", version="0.1", urls_namespace="likelemba", docs_url="/docs" if settings.DEBUG else None,
@@ -83,8 +84,14 @@ def u(request: HttpRequest) -> dict:
     if request.method not in METHODES_SURES and request.headers.get("X-Likelemba") != "1":
         raise ErreurMetier("Requête refusée.", 403)
     util = s.exiger(s.utilisateur_de_session(request.session.get("utilisateur"), request.session.get("jeton")))
-    if util.get("mot_de_passe_a_changer") and request.method not in METHODES_SURES and request.path.removeprefix("/api") != "/session/mot-de-passe":
-        raise ErreurMetier("Changez d'abord votre mot de passe : celui donné par l'administrateur se remplace à la première connexion.", 403)   # T207
+    chemin = request.path.removeprefix("/api")
+    if request.method not in METHODES_SURES and chemin not in ("/session/mot-de-passe", "/session/second-facteur", "/session/second-facteur/confirmation"):
+        if util.get("mot_de_passe_a_changer"):
+            raise ErreurMetier("Changez d'abord votre mot de passe : celui donné par l'administrateur se remplace à la première connexion.", 403)   # T207
+        if s.mot_de_passe_expire(util):
+            raise ErreurMetier("Votre mot de passe a expiré : changez-le avant toute autre action.", 403)   # T218
+        if second_facteur.a_enroler(util):
+            raise ErreurMetier("Mettez d'abord en place votre second facteur : votre profil l'exige.", 403)   # T218
     dr.verifier_route(util, request.method, request.path)      # droit de la tâche (registre S04-3)
     cloison.verifier(util, request)                              # ses membres seulement, s'il est rattaché à une agence (registre T213)
     executer("select set_config('exofina.utilisateur', %s, true)", (str(util["id"]),))   # auteur des changements de paramètres (registre T208)
@@ -102,10 +109,13 @@ def session_ouvrir(request, corps: dict = Body(...)):
     login, ip = str(corps.get("login", ""))[:80].strip(), adresse(request)
     controler_tentatives(login, ip)                                  # registre T22 : blocage après des connexions refusées
     try:
-        util = s.ouvrir_session(login, corps.get("motDePasse"), ip)
+        util = s.ouvrir_session(login, corps.get("motDePasse"), ip, corps.get("code"))
+    except s.SecondFacteurRequis:
+        return {"secondFacteurRequis": True}                           # mot de passe juste : le poste demande le code (registre T218)
     except ErreurMetier as e:
-        # seul un mauvais mot de passe compte pour le blocage ; « déjà connecté » ou un compte inactif sont notés à part
-        noter("connexion_refusee" if "mot de passe incorrect" in e.message else "connexion_impossible", login, ip, detail=e.message)
+        # un mauvais mot de passe ou un mauvais code compte pour le blocage ; « déjà connecté » ou un compte inactif sont notés à part
+        refus_ = "mot de passe incorrect" in e.message or e.message == second_facteur.MESSAGE_FAUX
+        noter("connexion_refusee" if refus_ else "connexion_impossible", login, ip, detail=e.message)
         raise
     noter("connexion", login, ip, util["id"])
     request.session.cycle_key()
@@ -152,6 +162,45 @@ def session_mot_de_passe(request, corps: dict = Body(...)):
     vue = s.changer_mot_de_passe(util, corps)
     noter("mot_de_passe_change", util["login"], adresse(request), util["id"])
     return vue
+
+
+@api.post("/session/second-facteur")
+def session_second_facteur(request):
+    return second_facteur.preparer(u(request))
+
+
+@api.post("/session/second-facteur/confirmation")
+def session_second_facteur_confirmer(request, corps: dict = Body(...)):
+    util = u(request)
+    second_facteur.confirmer(util, corps)
+    noter("second_facteur_active", util["login"], adresse(request), util["id"])
+    return s.vue_utilisateur(util)
+
+
+@api.post("/gestion-utilisateurs/{uid}/second-facteur")
+def gestion_utilisateurs_second_facteur(request, uid: int):
+    util = u(request)
+    r = second_facteur.reinitialiser(util, uid)
+    noter("second_facteur_retire", r["login"], adresse(request), util["id"], detail=f"par {util['login']}")
+    return r
+
+
+@api.get("/securite/sauvegardes")
+def securite_sauvegardes(request):
+    from . import sauvegardes
+    return sauvegardes.registre(u(request))
+
+
+@api.get("/securite/regles")
+def securite_regles(request):
+    from .securite import regles
+    return regles(u(request))
+
+
+@api.post("/securite/mots-de-passe")
+def securite_mots_de_passe(request, corps: dict = Body(...)):
+    from .securite import definir_mots_de_passe
+    return definir_mots_de_passe(u(request), corps)
 
 
 @api.get("/session/mode")

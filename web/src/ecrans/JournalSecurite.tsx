@@ -16,15 +16,46 @@ const heure = (iso: string) => frInstant(iso, true);   // heure de l'agence (poi
 const ALERTES = new Set(["connexion_refusee", "connexion_bloquee", "acces_refuse", "limite_requetes"]);
 
 export default function JournalSecurite() {
-  const [onglet, setOnglet] = useState<"acces" | "audit">("acces");
+  const [onglet, setOnglet] = useState<"acces" | "audit" | "sauvegardes">("acces");
   return (
     <>
       <div className="onglets" role="tablist" aria-label="Journal de sécurité">
         <button type="button" role="tab" aria-selected={onglet === "acces"} onClick={() => setOnglet("acces")}>Connexions et accès</button>
         <button type="button" role="tab" aria-selected={onglet === "audit"} onClick={() => setOnglet("audit")}>Changements de paramètres</button>
+        <button type="button" role="tab" aria-selected={onglet === "sauvegardes"} onClick={() => setOnglet("sauvegardes")}>Sauvegardes</button>
       </div>
-      {onglet === "acces" ? <Acces /> : <Audit />}
+      {onglet === "acces" ? <Acces /> : onglet === "audit" ? <Audit /> : <Sauvegardes />}
     </>
+  );
+}
+
+/** Registre des sauvegardes et des essais de restauration (audit du 21/11/2026, point bloquant B7 ; registre T220 ; Instr. BCC 36, art. 34) */
+function Sauvegardes() {
+  const { donnees, erreur } = useDonnees(() => api.journalSecurite.sauvegardes());
+  if (erreur) return <p role="alert" className="erreur-champ">{erreur}</p>;
+  if (!donnees) return <Chargement />;
+  const titres = ["Date et heure", "Nature", "Fichier", "Taille (octets)", "Chiffrée", "Hors site", "Résultat", "Par"];
+  const ligne = (x: (typeof donnees.lignes)[number]) => [heure(x.le), x.natureLibelle, x.fichier, x.taille ? String(x.taille) : "", x.nature === "sauvegarde" ? (x.chiffree ? "Oui" : "Non") : "",
+    x.horsSite, x.resultat, x.par];
+  const h = donnees.derniereHeures;
+  return (
+    <section className="bloc pile" aria-label="Sauvegardes">
+      {h === null ? <p role="alert" className="attention"><strong>Aucune sauvegarde au registre.</strong></p>
+        : h > 26 ? <p role="alert" className="attention"><strong>{`Dernière sauvegarde il y a ${Math.round(h)} heures.`}</strong></p>
+        : <p role="status">{`Dernière sauvegarde il y a ${Math.round(h)} heures.`}</p>}
+      <Paginee lignes={donnees.lignes} colonnes={ligne}>{(visibles) => (<div className="defile-x"><table className="grille">
+        <thead><tr>{titres.map((t) => <th key={t} scope="col">{t}</th>)}</tr><LigneFiltres titres={titres} /></thead>
+        <tbody>
+          {visibles.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
+          {visibles.map((x) => { const c = ligne(x); return <tr key={x.id}><td className="chiffres">{c[0]}</td><td>{c[1]}</td><td className="code">{c[2]}</td><td className="num chiffres">{c[3]}</td>
+            <td>{c[4]}</td><td>{c[5]}</td><td>{c[6]}</td><td>{c[7]}</td></tr>; })}
+        </tbody>
+      </table></div>)}</Paginee>
+      <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={donnees.lignes.length === 0}
+        onClick={() => exporterExcel("sauvegardes", titres, donnees.lignes.map(ligne))}>Exporter</button></div>
+      <Textes sources={["Instr. BCC 36, art. 34 : stratégie de sauvegarde testée périodiquement ; docs/exploitation/CONTINUITE.md",
+        "Registre T220 : chaque sauvegarde du soir, chaque essai de restauration et chaque échec se note ; le registre se lit seulement"]} />
+    </section>
   );
 }
 

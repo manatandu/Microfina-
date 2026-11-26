@@ -22,12 +22,19 @@ export default function Connexion() {
   const jourReel = aujourdhui();
 
   const enLigne = !!donnees?.mode.motDePasseRequis;
-  async function ouvrir(l: string, m?: string) {
-    try { await api.session.ouvrir(l, m); setMdp(""); nav(state?.apres ?? "/"); } catch (x) { setMdp(""); setErreur(message(x)); }
+  // Registre T218 : le mot de passe est juste, le serveur attend le code du second facteur ; le mot de passe reste en mémoire jusqu'au code
+  const [codeDemande, setCodeDemande] = useState(false);
+  const [code, setCode] = useState("");
+  async function ouvrir(l: string, m?: string, c?: string) {
+    try {
+      const r = await api.session.ouvrir(l, m, c) as { secondFacteurRequis?: boolean };
+      if (r?.secondFacteurRequis) { setCodeDemande(true); setCode(""); setErreur(""); return; }
+      setMdp(""); setCode(""); nav(state?.apres ?? "/");
+    } catch (x) { setMdp(""); setCode(""); setCodeDemande(false); setErreur(message(x)); }
   }
   async function entrer(e: React.FormEvent) {
     e.preventDefault();
-    await ouvrir(login.trim(), mdp);
+    await ouvrir(login.trim(), mdp, codeDemande ? code.trim() : undefined);
   }
 
   return (
@@ -45,6 +52,10 @@ export default function Connexion() {
             <label htmlFor="mdp">Mot de passe :</label>
             <input id="mdp" className="saisie" type="password" autoComplete="current-password" value={mdp} onChange={(e) => setMdp(e.target.value)} />
           </div>
+          {codeDemande && <div className="champ">
+            <label htmlFor="code-2f">Code à 6 chiffres :</label>
+            <input id="code-2f" className="saisie" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} autoFocus value={code} onChange={(e) => setCode(e.target.value)} />
+          </div>}
           <div className="champ">
             <label htmlFor="journee">Journée ouverte :</label>
             <input id="journee" className="saisie" readOnly value={donnees?.j && donnees.j.statut === "ouverte" ? fr(donnees.j.date) : ""} />
@@ -55,7 +66,7 @@ export default function Connexion() {
           </div>
           <p className="serveur">Serveur : {location.host || "local"}</p>
           <Bloquant titre="">{erreur}</Bloquant>
-          <div className="a-droite"><button className="bouton" type="submit" disabled={!login.trim() || (enLigne && !mdp)}>Connexion</button></div>
+          <div className="a-droite"><button className="bouton" type="submit" disabled={!login.trim() || (enLigne && !mdp) || (codeDemande && code.trim().length !== 6)}>Connexion</button></div>
         </div>
       </form>
       {/* Demande du porteur (07/11/2026) : une rubrique par utilisateur fictif, pour se connecter directement. Absente de Microfina++. */}

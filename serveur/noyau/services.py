@@ -37,12 +37,22 @@ LIBELLES_ROLES = {"caissier": "caissier", "chef_agence": "chef d'agence", "agent
 
 # ---------- Session et utilisateur ----------
 
+# Registre T218 : le mot de passe expire après la durée fixée par l'institution (0 : jamais) ; le second facteur est à mettre en place
+# quand un des profils de l'utilisateur l'exige. Sans mot de passe (démonstration, essais), ni l'un ni l'autre ne joue.
+CALC_SESSION = """                          coalesce((select i.mot_de_passe_jours > 0 and u.mot_de_passe_change_le < now() - make_interval(days => i.mot_de_passe_jours)
+                                    from institution i where i.id = u.institution_id), false) as mot_de_passe_expire,
+                          (u.totp_confirme_le is null and exists (select 1 from utilisateur_profil up join profil p on p.id = up.profil_id
+                                    where up.utilisateur_id = u.id and not p.supprime and p.second_facteur)) as second_facteur_a_enroler,
+"""
+
 def charger_utilisateur(uid: int | None) -> dict | None:
     if not uid:
         return None
-    u = une("select id, login, nom, institution_id, agence_id, mot_de_passe_a_changer from utilisateur where id = %s and actif", (uid,))
+    u = une(f"""select u.id, u.login, u.nom, u.institution_id, u.agence_id, u.mot_de_passe_a_changer,
+{CALC_SESSION}                          1 as _ from utilisateur u where u.id = %s and u.actif""", (uid,))
     if not u:
         return None
+    u.pop("_", None)
     u["roles"] = [r["code"] for r in lignes(
         """select p.code from utilisateur_profil up join profil p on p.id = up.profil_id
            where up.utilisateur_id = %s and p.code is not null and not p.supprime order by p.code""", (uid,))]
@@ -52,8 +62,19 @@ def charger_utilisateur(uid: int | None) -> dict | None:
 def vue_utilisateur(u: dict) -> dict:
     from .droits import droits_utilisateur
     return {"id": u["id"], "login": u["login"], "nom": u["nom"], "roles": u["roles"], "droits": sorted(droits_utilisateur(u["id"])),
-            "motDePasseAChanger": bool(u.get("mot_de_passe_a_changer")),
+            "motDePasseAChanger": bool(u.get("mot_de_passe_a_changer")) or mot_de_passe_expire(u), "motDePasseExpire": mot_de_passe_expire(u),
+            "secondFacteurAEnroler": bool(u.get("second_facteur_a_enroler")) and not settings.SANS_MOT_DE_PASSE,
             "inactiviteMinutes": valeur("select inactivite_minutes from institution where id = %s", (u["institution_id"],)) or 15}
+
+
+def mot_de_passe_expire(u: dict) -> bool:
+    return bool(u.get("mot_de_passe_expire")) and not settings.SANS_MOT_DE_PASSE
+
+
+def garder_ancien_mot_de_passe(uid: int, empreinte: str | None) -> None:
+    """Registre T218 : l'empreinte remplacée reste à l'historique, pour refuser un mot de passe déjà utilisé"""
+    if empreinte:
+        executer("insert into mot_de_passe_ancien (utilisateur_id, empreinte) values (%s, %s)", (uid, empreinte))
 
 
 def changer_mot_de_passe(u: dict, d) -> dict:
@@ -73,8 +94,14 @@ def changer_mot_de_passe(u: dict, d) -> dict:
     if ancien and nouveau == ancien:
         raise ErreurMetier("Nouveau mot de passe : différent de l'actuel.")
     controler_mot_de_passe(nouveau, u["login"])
-    executer("update utilisateur set mot_de_passe_hash = %s, mot_de_passe_a_changer = false where id = %s", (make_password(nouveau), u["id"]))
-    u["mot_de_passe_a_changer"] = False
+    # Registre T218 : pas un des derniers mots de passe (le nombre est fixé par l'institution, 0 : aucun contrôle)
+    n = int(valeur("select mot_de_passe_historique from institution where id = %s", (u["institution_id"],)) or 0)
+    anciens = [r["empreinte"] for r in lignes("select empreinte from mot_de_passe_ancien where utilisateur_id = %s order by id desc limit %s", (u["id"], max(n - 1, 0)))]
+    if n and any(check_password(nouveau, e) for e in ([h] if h else []) + anciens):
+        raise ErreurMetier(f"Nouveau mot de passe : déjà utilisé (les {n} derniers sont refusés)." if n > 1 else "Nouveau mot de passe : différent de l'actuel.")
+    garder_ancien_mot_de_passe(u["id"], h)
+    executer("update utilisateur set mot_de_passe_hash = %s, mot_de_passe_a_changer = false, mot_de_passe_change_le = now() where id = %s", (make_password(nouveau), u["id"]))
+    u["mot_de_passe_a_changer"] = u["mot_de_passe_expire"] = False
     return vue_utilisateur(u)
 
 
@@ -113,10 +140,23 @@ def verifier_mot_de_passe(login: str, mot_de_passe) -> bool:
     return bool(ok and h and isinstance(mot_de_passe, str) and mot_de_passe)
 
 
-def ouvrir_session(login: str, mot_de_passe: str | None, machine: str = "") -> dict:
+class SecondFacteurRequis(Exception):
+    """Le mot de passe est juste ; il manque le code du second facteur"""
+
+
+def ouvrir_session(login: str, mot_de_passe: str | None, machine: str = "", code=None) -> dict:
     login = login.strip()
-    if not settings.SANS_MOT_DE_PASSE and not verifier_mot_de_passe(login, mot_de_passe):
-        raise ErreurMetier("Nom d'utilisateur ou mot de passe incorrect.")
+    if not settings.SANS_MOT_DE_PASSE:
+        if not verifier_mot_de_passe(login, mot_de_passe):
+            raise ErreurMetier("Nom d'utilisateur ou mot de passe incorrect.")
+        # Registre T218 : second facteur, pour qui l'a mis en place
+        from . import second_facteur
+        uid = valeur("select id from utilisateur where login = %s and actif and totp_confirme_le is not null", (login,))
+        if uid:
+            if not code:
+                raise SecondFacteurRequis()
+            if not second_facteur.verifier_connexion(uid, code):
+                raise ErreurMetier(second_facteur.MESSAGE_FAUX)
     u = une(f"""select id, controle_connecte, machine, case when {CONNECTE} then jeton_session end as jeton_session
                  from utilisateur where login = %s and actif""", (login,))
     if not u:
@@ -135,7 +175,7 @@ def utilisateur_de_session(uid, jeton) -> dict | None:
     if not uid or not jeton:
         return None
     return une(f"""select u.id, u.login, u.nom, u.institution_id, u.agence_id, u.mot_de_passe_a_changer,
-                          coalesce((select array_agg(p.code order by p.code) from utilisateur_profil up join profil p on p.id = up.profil_id
+{CALC_SESSION}                          coalesce((select array_agg(p.code order by p.code) from utilisateur_profil up join profil p on p.id = up.profil_id
                                     where up.utilisateur_id = u.id and p.code is not null and not p.supprime), '{{}}') as roles
                    from utilisateur u where u.id = %s and u.actif and u.jeton_session = %s and {connecte("u")}""", (uid, jeton))
 

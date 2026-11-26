@@ -11,6 +11,7 @@ export interface Institution {
   nom: string; sigle?: string; profil: string;
   partEffet?: string;   // date d'effet de la valeur de la part (statuts ; registre T134)
   inactiviteMinutes?: number;   // verrouillage de la session après inactivité, 5 à 60 minutes, 15 par défaut (registre T211)
+  motDePasseJours?: number; motDePasseHistorique?: number;   // expiration (0 : jamais, 30 à 365 jours) et derniers mots de passe refusés (0 à 12), registre T218
   // S32 Info générale
   description?: string; directeur?: string; numeroAgrement?: string; plaintesContact?: string; journeeMax?: number; compteHorsBilan1?: string | null; compteHorsBilan2?: string | null;
   ifu?: string; nrc?: string; assuranceAssureur?: string; assurancePolice?: string; assuranceEcheance?: string;   // police de la trésorerie (SN01-4)
@@ -461,7 +462,7 @@ export interface Etat {
   elementsFacture: { id: number; libelle: string; compte: string; taux: number; tauxA: number; tauxNA: number; retenue: boolean; actif: boolean; supprime: boolean }[];   // S36
   typesCommande: { id: number; code: string; libelle: string; supprime: boolean }[];   // S36, Référence Commande
   historiqueProfils: { utilisateurId: number; profilId: number; debut: string; fin: string; par: number | null }[];   // S06, Historique profil
-  profils: { id: number; code?: Role; nom: string; description: string; supprime: boolean; droits: string[] }[];   // S03 ; code : rôle du profil de départ (registre S03-1)
+  profils: { id: number; code?: Role; nom: string; description: string; supprime: boolean; droits: string[]; secondFacteur?: boolean }[];   // S03 ; code : rôle du profil de départ (registre S03-1)
   monnaies: { devise: string; valeur: number; typeId: number }[];   // S35 : coupures, valeur en unités
   operationsDiverses: { id: number; sens: "PRODUIT" | "CHARGE"; compte: string; libelle: string; statut: "ACTIF" | "INACTIF" }[];   // S31
   journaux: { id: number; code: string; libelle: string; type: string; actif: boolean; supprime: boolean }[];   // S30

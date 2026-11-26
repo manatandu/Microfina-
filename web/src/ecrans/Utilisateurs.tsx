@@ -8,7 +8,7 @@ import { fr, jourDe } from "../lib/dates";
 import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite } from "../composants";
 import { TableFiltree } from "./Groupes";
 
-type Fichier = { id: number; nom: string; login: string; agenceId: number | null; controleConnecte: boolean; rue: string; adresse: string; bp: string;
+type Fichier = { id: number; nom: string; login: string; agenceId: number | null; controleConnecte: boolean; secondFacteur?: boolean; rue: string; adresse: string; bp: string;
   telephoneFixe: string; portable: string; email: string; agence: string; actif: boolean };
 type Connexion = { id: number; login: string; nom: string; agence: string; connecte: boolean; machine: string; actif: boolean };
 type Affectation = { id: number; login: string; nom: string; agenceId: number; agence: string; guichetId: number | null; guichet: string };
@@ -30,10 +30,10 @@ export default function Utilisateurs() {
     const d = new Set((u as { droits?: string[] } | null)?.droits ?? []);
     const [g, c, a] = await Promise.all([d.has("S05") ? api.comptesUtilisateurs.lire() : null, d.has("S07") ? api.connexions.lire() : null, d.has("S10") ? api.guichets.affectations() : null]);
     const p = d.has("S06") ? await api.profilsUtilisateurs.lire() : null;
-    return { d, g, c, a, p, inactivite: (u as { inactiviteMinutes?: number } | null)?.inactiviteMinutes ?? 15 };
+    return { d, g, c, a, p };
   }, [relu]);
   if (!donnees) return <Chargement />;
-  const { d, g, c, a, p, inactivite } = donnees;
+  const { d, g, c, a, p } = donnees;
   // Une ligne par utilisateur, d'après ce que les droits laissent lire
   const parId = new Map<number, Ligne>();
   const ajouter = (x: { id: number; nom: string; login: string; agence: string }, k: "f" | "c" | "a", v: Fichier | Connexion | Affectation) =>
@@ -53,7 +53,7 @@ export default function Utilisateurs() {
     <>
       <section className="bloc pile" aria-label="Utilisateurs">
         {d.has("S05") && <div className="actions-onglets"><button className="bouton" type="button" onClick={() => setFiche("nouveau")}>Nouvel utilisateur</button>
-          <button className="bouton secondaire" type="button" onClick={() => setRegles(true)}>Verrouillage après inactivité</button></div>}
+          <button className="bouton secondaire" type="button" onClick={() => setRegles(true)}>Règles de connexion</button></div>}
         <TableFiltree lignes={lignes} cle={(x) => x.id} colonnes={[
           { titre: "Nom", valeur: (x) => decouper(x.nom).nom },
           { titre: "Prénoms", valeur: (x) => decouper(x.nom).prenoms },
@@ -71,6 +71,8 @@ export default function Utilisateurs() {
               onClick={() => confirmer("Voulez-vous retirer le guichet à cet utilisateur", () => api.guichets.retirer(x.id))}>Retirer le guichet</button> : null}
             {x.c?.connecte && <button className="bouton secondaire petit" type="button" aria-label={`Déconnecter ${x.login}`}
               onClick={() => confirmer("Voulez-vous déconnecter cet utilisateur", () => api.connexions.deconnecter(x.id))}>Déconnecter</button>}
+            {x.f?.secondFacteur && <button className="bouton secondaire petit" type="button" aria-label={`Réinitialiser le second facteur : ${x.login}`}
+              onClick={() => confirmer("Voulez-vous vraiment réinitialiser le second facteur de cet utilisateur ?", () => api.comptesUtilisateurs.reinitialiserSecondFacteur(x.id))}>Réinitialiser le second facteur</button>}
             {x.f && <button className="bouton secondaire petit" type="button" aria-label={`${x.f.actif ? "Désactiver" : "Réactiver"} : ${x.login}`} onClick={() => setDesactiver(x.f!)}>
               {x.f.actif ? "Désactiver" : "Réactiver"}</button>}
           </span>
@@ -90,24 +92,41 @@ export default function Utilisateurs() {
       <Fiche titre={desactiver ? `${desactiver.actif ? "Désactiver" : "Réactiver"} ${desactiver.nom}` : ""} ouverte={!!desactiver && !boite} fermer={() => setDesactiver(null)}>
         {desactiver && <Activation f={desactiver} fermer={() => setDesactiver(null)} poser={setBoite} fait={(t) => { setDesactiver(null); ok(t); }} />}
       </Fiche>
-      <Fiche titre="Verrouillage après inactivité" ouverte={regles && !boite} fermer={() => setRegles(false)}>
-        {regles && <Inactivite minutes={inactivite} fermer={() => setRegles(false)} poser={setBoite} fait={() => { setRegles(false); ok("Enregistré avec succès !"); }} />}
+      <Fiche titre="Règles de connexion" ouverte={regles && !boite} fermer={() => setRegles(false)}>
+        {regles && <ReglesConnexion fermer={() => setRegles(false)} poser={setBoite} fait={() => { setRegles(false); ok("Enregistré avec succès !"); }} />}
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </>
   );
 }
 
-/** Durée sans activité après laquelle la session se ferme, pour toute l'institution : de 5 à 60 minutes, 15 par défaut (registre T211) */
-function Inactivite({ minutes, fermer, poser, fait }: { minutes: number; fermer: () => void; poser: (b: Boite | null) => void; fait: () => void }) {
-  const [v, setV] = useState(String(minutes));
+/** Règles de connexion de l'institution, tenues par la gestion des accès (droit S05) : verrouillage après inactivité (registre T211),
+ * expiration et historique des mots de passe, profils qui se connectent avec un second facteur (registre T218). Instr. BCC 008, art. 16 */
+function ReglesConnexion({ fermer, poser, fait }: { fermer: () => void; poser: (b: Boite | null) => void; fait: () => void }) {
+  const { donnees: r } = useDonnees(() => api.securite.regles());
+  const [v, setV] = useState<{ minutes: string; jours: string; historique: string; profils: number[] } | null>(null);
+  if (!r) return <Chargement />;
+  const f = v ?? { minutes: String(r.inactiviteMinutes), jours: String(r.motDePasseJours), historique: String(r.motDePasseHistorique), profils: r.profils.filter((p) => p.secondFacteur).map((p) => p.id) };
+  const nombre = (t: string) => (t.trim() ? Number(t) : null);
   const agir = () => poser({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
-    try { await api.securite.definirInactivite({ minutes: v.trim() ? Number(v) : null }); fait(); }
-    catch (x) { poser({ type: "erreur", message: message(x) }); }
+    try {
+      await api.securite.definirInactivite({ minutes: nombre(f.minutes) });
+      await api.securite.definirMotsDePasse({ jours: nombre(f.jours), historique: nombre(f.historique), profils: f.profils });
+      fait();
+    } catch (x) { poser({ type: "erreur", message: message(x) }); }
   } });
+  const zone = (k: "minutes" | "jours" | "historique", libelle: string, min: number, max: number) => (
+    <Champ libelle={libelle}>{(p) => <input {...p} className="saisie code" type="number" min={min} max={max} step={1} inputMode="numeric" value={f[k]} onChange={(e) => setV({ ...f, [k]: e.target.value })} />}</Champ>);
   return (
     <div className="pile">
-      <Champ libelle="Verrouillage après inactivité (minutes) : *">{(p) => <input {...p} className="saisie code" type="number" min={5} max={60} step={1} inputMode="numeric" value={v} onChange={(e) => setV(e.target.value)} />}</Champ>
+      {zone("minutes", "Verrouillage après inactivité (minutes) : *", 5, 60)}
+      {zone("jours", "Expiration du mot de passe (jours, 0 : jamais) : *", 0, 365)}
+      {zone("historique", "Derniers mots de passe refusés : *", 0, 12)}
+      <fieldset className="pile cadre-champs">
+        <legend>Second facteur exigé pour</legend>
+        {r.profils.map((p) => <label key={p.id} className="case"><input type="checkbox" checked={f.profils.includes(p.id)}
+          onChange={(e) => setV({ ...f, profils: e.target.checked ? [...f.profils, p.id] : f.profils.filter((x) => x !== p.id) })} /><span>{p.nom}</span></label>)}
+      </fieldset>
       <div className="actions-onglets">
         <button className="bouton" type="button" onClick={agir}>Enregistrer</button>
         <button className="bouton secondaire" type="button" onClick={fermer}>Annuler</button>

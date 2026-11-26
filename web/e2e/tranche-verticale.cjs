@@ -242,6 +242,13 @@ const OUT = process.argv[2];
   await aller('/administration/s04'); await p.getByRole('button', { name: 'CONTRÔLE INTERNE', exact: true }).click();
   await p.getByRole('checkbox', { name: 'Tout le menu : Client' }).check();
   await etape('02f32-droits'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  // Point bloquant B9, fin (registre T218) : règles de connexion tenues par la gestion des accès (inactivité, expiration, historique, second facteur)
+  await aller('/administration/s05'); await p.getByRole('button', { name: 'Règles de connexion' }).click(); const frc = p.getByRole('dialog', { name: 'Règles de connexion' });
+  await frc.getByLabel('Expiration du mot de passe (jours, 0 : jamais) : *').fill('10'); await frc.getByRole('button', { name: 'Enregistrer' }).click();
+  await p.getByRole('button', { name: 'Oui', exact: true }).click(); await p.getByText('Expiration du mot de passe : 0 (jamais), ou de 30 à 365 jours.').waitFor(); await p.getByRole('button', { name: 'Ok' }).click();
+  await frc.getByLabel('Expiration du mot de passe (jours, 0 : jamais) : *').fill('90'); await frc.getByLabel('Derniers mots de passe refusés : *').fill('5');
+  await frc.getByRole('group', { name: 'Second facteur exigé pour' }).getByRole('checkbox').first().waitFor(); await etape('02f32a-regles-connexion');
+  await frc.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   // Plan d'allègement, point 7.2 : une troisième personne valide ce qui est saisi hors guichet ; le profil de départ CHEF COMPTABLE tient la validation
   // (décision du porteur du 25/11/2026, registre T203) ; l'administrateur sécurité enregistre une chef comptable
   await p.getByRole('button', { name: 'CHEF COMPTABLE', exact: true }).click(); await p.getByLabel('Rechercher un écran').fill('Opérations en attente');
@@ -754,6 +761,9 @@ const OUT = process.argv[2];
   // Journal de sécurité (écart E17 ; Instr. BCC 008, art. 16) : tenu par l'administrateur sécurité (registre T29)
   await login('Grâce Mbuyi'); await aller('/administration/sa01'); await p.getByRole('heading', { name: 'Journal de sécurité' }).waitFor();
   await p.getByRole('cell', { name: 'Connexion', exact: true }).first().waitFor(); await etape('10s-journal-securite');
+  // Point bloquant B7 (registre T220) : registre des sauvegardes et des essais de restauration, lu par l'administrateur sécurité
+  await p.getByRole('tab', { name: 'Sauvegardes' }).click(); await p.getByText('Aucune sauvegarde au registre.').waitFor(); await etape('10s2-sauvegardes');
+  await p.getByRole('tab', { name: 'Connexions et accès' }).click(); await p.getByRole('cell', { name: 'Connexion', exact: true }).first().waitFor();
   // Filtre en tête de colonne (registre T04, manuel p. 9, point 4) : seules les lignes dont l'événement contient le texte saisi restent
   await p.getByLabel('Filtrer Événement').fill('Connexion refusée');
   if (await p.getByRole('cell', { name: 'Connexion', exact: true }).count()) throw new Error('T04 : le filtre ne retire pas les autres lignes');

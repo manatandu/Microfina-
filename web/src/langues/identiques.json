@@ -253,5 +253,19 @@
 "{0} | Exofina",
 "{0}, Kinshasa",
 "@page { size: 80mm {0}mm; margin: 0; @bottom-center { content: none; } } body { margin: 0; }",
-"Article"
+"Article",
+"%d/%m/%Y %H:%M:%S %Z",
+"Alerte d'exploitation par courriel",
+"Alerte envoyée.",
+"Alerte non envoyée : LIKELEMBA_ALERTE_COURRIELS ou LIKELEMBA_SMTP_HOTE absent.",
+"Code : {0}",
+"Date : {0} Requête : {1} Erreur : {2}",
+"Dernière sauvegarde : {0}, il y a {1} h.",
+"Dernière sauvegarde réussie il y a {0} heures ({1}).",
+"Exofina : alerte d'exploitation",
+"Exofina : erreur du serveur ({0}) sur {1}",
+"Le détail est dans le journal du serveur. Ce message ne contient aucune donnée d'un membre.",
+"Sauvegarde en retard. {0}",
+"Vérifie qu'une sauvegarde récente existe",
+"alerte par courriel non envoyée"
 ]

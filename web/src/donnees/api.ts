@@ -103,7 +103,8 @@ function verifierDroit(cle: string) {
 // Écart E17 : journal de sécurité (Instr. BCC 008, art. 16). Le serveur note aussi les refus de mot de passe, les blocages et la limite de requêtes (noyau/securite.py).
 const EVENEMENTS_SECURITE: Record<string, string> = { connexion: "Connexion", connexion_refusee: "Connexion refusée (mot de passe)", connexion_impossible: "Connexion impossible",
   connexion_bloquee: "Connexion bloquée (trop d'essais)", acces_refuse: "Accès refusé (droit manquant)", limite_requetes: "Limite de requêtes dépassée",
-  fonds_geles: "Opération refusée sur des fonds gelés" };   // A14 : loi 22/068, art. 162, al. 2
+  fonds_geles: "Opération refusée sur des fonds gelés", mot_de_passe_change: "Mot de passe changé",
+  second_facteur_active: "Second facteur mis en place", second_facteur_retire: "Second facteur réinitialisé" };   // A14 : loi 22/068, art. 162, al. 2
 function noterSecurite(evenement: string, login: string, utilisateurId: number | null, detail = "") {
   (E.journalSecurite ??= []).push({ id: Math.max(0, ...E.journalSecurite.map((x) => x.id)) + 1, le: new Date().toISOString(), evenement, login, utilisateurId, detail });
   // Un accès refusé ne change aucune donnée affichée : il s'écrit sans réveiller les écrans, sinon l'écran refusé se relirait sans fin
@@ -116,8 +117,12 @@ const session = {
   /** La démonstration dans le navigateur n'a pas de mot de passe ; le serveur l'exige sur le site en ligne (registre S01-2) */
   mode: () => ({ motDePasseRequis: false }),
   utilisateurs: () => E.utilisateurs,
-  courante: () => { const u = utilisateur(); return u ? { ...u, droits: droitsDe(u), inactiviteMinutes: E.institution.inactiviteMinutes ?? 15 } : null; },
-  ouvrir(login: string, _motDePasse?: string) {
+  // Registre T218 : sans mot de passe, la démonstration n'a ni expiration ni second facteur ; le serveur les applique sur le site en ligne
+  courante: () => { const u = utilisateur(); return u ? { ...u, droits: droitsDe(u), inactiviteMinutes: E.institution.inactiviteMinutes ?? 15,
+    motDePasseAChanger: false, motDePasseExpire: false, secondFacteurAEnroler: false } : null; },
+  preparerSecondFacteur(): { cle: string; uri: string } { exiger(); throw new ErreurMetier("Second facteur : sur le site en ligne seulement (la démonstration n'a pas de mot de passe)."); },
+  confirmerSecondFacteur(_code: string) { exiger(); throw new ErreurMetier("Second facteur : sur le site en ligne seulement (la démonstration n'a pas de mot de passe)."); return session.courante(); },
+  ouvrir(login: string, _motDePasse?: string, _code?: string): Utilisateur | { secondFacteurRequis: true } {
     const u = E.utilisateurs.find((x) => x.login === login);
     if (!u || u.actif === false) { noterSecurite("connexion_impossible", login, null, "Identifiant inconnu."); throw new ErreurMetier("Identifiant inconnu."); }   // désactivé : plus de connexion (S05-4)
     E.session = u.id; noterSecurite("connexion", login, u.id); return u;
@@ -10943,6 +10948,23 @@ const securite = {
     if (!Number.isInteger(d.minutes) || d.minutes! < 5 || d.minutes! > 60) throw new ErreurMetier("Verrouillage après inactivité : de 5 à 60 minutes.");
     E.institution.inactiviteMinutes = d.minutes!; enregistrer(); return { inactiviteMinutes: d.minutes! };
   },
+  /** Règles de connexion (droit S05 ; registre T218) : mêmes règles que noyau/securite.py */
+  regles() {
+    lectureAdmin(["S05"]);
+    return { inactiviteMinutes: E.institution.inactiviteMinutes ?? 15, motDePasseJours: E.institution.motDePasseJours ?? 0, motDePasseHistorique: E.institution.motDePasseHistorique ?? 5,
+      profils: E.profils.filter((p) => !p.supprime).sort((a, b) => a.nom.localeCompare(b.nom)).map((p) => ({ id: p.id, nom: p.nom, secondFacteur: !!p.secondFacteur })) };
+  },
+  definirMotsDePasse(d: { jours?: number | null; historique?: number | null; profils?: number[] }) {
+    exiger();
+    const j = d.jours, h = d.historique, ids = d.profils;
+    if (!Number.isInteger(j) || !(j === 0 || (j! >= 30 && j! <= 365))) throw new ErreurMetier("Expiration du mot de passe : 0 (jamais), ou de 30 à 365 jours.");
+    if (!Number.isInteger(h) || h! < 0 || h! > 12) throw new ErreurMetier("Derniers mots de passe refusés : de 0 à 12.");
+    if (!Array.isArray(ids) || !ids.every((x) => Number.isInteger(x))) throw new ErreurMetier("Profils au second facteur : liste invalide.");
+    if (ids.some((x) => !E.profils.some((p) => p.id === x && !p.supprime))) throw new ErreurMetier("Profil inconnu.");
+    E.institution.motDePasseJours = j!; E.institution.motDePasseHistorique = h!;
+    for (const p of E.profils) if (!p.supprime) p.secondFacteur = ids.includes(p.id);
+    enregistrer(); return securite.regles();
+  },
 };
 /** Point bloquant B12 : chaque impression d'un document remis au client se note ; la première est l'original, les suivantes des duplicatas numérotés
  *  (registre T215). Mêmes règles que noyau/impressions.py : le droit de lire le document */
@@ -10995,6 +11017,12 @@ const journalSecurite = {
     if (du > au) throw new ErreurMetier("La date de début dépasse la date de fin.");
     return { integre: true, rupture: null as number | null, lignes: [] as { id: number; le: string; utilisateur: string; action: string; objet: string; objetId: string; changement: string }[] };
   },
+  /** Registre des sauvegardes et des essais de restauration (registre T220) : tenu par la base du serveur ; la démonstration dans le navigateur n'en a pas */
+  sauvegardes() {
+    lectureAdmin(["SA01"]);
+    return { derniereHeures: null as number | null, lignes: [] as { id: number; le: string; nature: string; natureLibelle: string; fichier: string; taille: number; empreinte: string;
+      chiffree: boolean; horsSite: string; resultat: string; par: string }[] };
+  },
 };
 const comptesUtilisateurs = {
   lire() {
@@ -11003,9 +11031,16 @@ const comptesUtilisateurs = {
       utilisateurs: [...E.utilisateurs].sort((a, b) => a.nom.localeCompare(b.nom)).map((x) => ({ id: x.id, nom: x.nom, login: x.login, agenceId: x.agenceId ?? null,
         controleConnecte: !!x.controleConnecte, rue: x.rue ?? "", adresse: x.adresse ?? "", bp: x.bp ?? "", telephoneFixe: x.telephoneFixe ?? "", portable: x.portable ?? "",
         email: x.email ?? "", agence: E.agences.find((a) => a.id === x.agenceId)?.nom ?? "Toutes les agences", actif: x.actif !== false,   // registre T213
+        secondFacteur: false,   // la démonstration n'a pas de mot de passe, donc pas de second facteur (registre T218)
         derniereActivation: (() => { const h = (E.activationsUtilisateurs ?? []).filter((y) => y.utilisateurId === x.id).at(-1);
           return h ? `${h.motif} (${h.le.slice(8, 10)}/${h.le.slice(5, 7)}/${h.le.slice(0, 4)}, ${E.utilisateurs.find((p) => p.id === h.par)?.nom ?? ""})` : ""; })() }))
         .sort((a, b) => Number(!a.actif) - Number(!b.actif)) };
+  },
+  reinitialiserSecondFacteur(id: number) {
+    exiger();
+    const x = E.utilisateurs.find((y) => y.id === id);
+    if (!x) throw new ErreurMetier("Utilisateur inconnu.");
+    return { id, login: x.login };
   },
   /** Désactiver l'utilisateur qui quitte l'institution, ou le réactiver : motif, date et auteur gardés ; pas soi-même (Instr. BCC 008, art. 16 ; registre S05-4) */
   activer(id: number, d: { actif?: unknown; motif?: unknown }) {

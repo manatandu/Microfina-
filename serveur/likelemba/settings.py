@@ -83,6 +83,23 @@ LOGGING = {"version": 1, "disable_existing_loggers": False, "handlers": {"consol
                        "exofina.securite": {"handlers": ["console"], "level": "WARNING", "propagate": False},
                        "exofina.chrono": {"handlers": ["console"], "level": "WARNING", "propagate": False}}}
 
+# Audit du 21/11/2026, point bloquant B2, fin (registre T219) : une erreur du serveur part aussi par courriel aux adresses de
+# LIKELEMBA_ALERTE_COURRIELS (séparées par des virgules), par le relais SMTP de l'exploitant. Sans adresse ou sans relais : pas de courriel.
+# Le mot de passe du relais est un secret de l'hébergeur, jamais dans le dépôt.
+ALERTE_COURRIELS = [x.strip() for x in os.environ.get("LIKELEMBA_ALERTE_COURRIELS", "").split(",") if x.strip()]
+EMAIL_HOST = os.environ.get("LIKELEMBA_SMTP_HOTE", "")
+EMAIL_PORT = int(os.environ.get("LIKELEMBA_SMTP_PORT", "587"))
+EMAIL_HOST_USER = os.environ.get("LIKELEMBA_SMTP_UTILISATEUR", "")
+EMAIL_HOST_PASSWORD = os.environ.get("LIKELEMBA_SMTP_MOT_DE_PASSE", "")
+EMAIL_USE_SSL = EMAIL_PORT == 465
+EMAIL_USE_TLS = not EMAIL_USE_SSL
+EMAIL_TIMEOUT = 10
+SERVER_EMAIL = DEFAULT_FROM_EMAIL = os.environ.get("LIKELEMBA_SMTP_EXPEDITEUR", EMAIL_HOST_USER or "exofina@localhost")
+if ALERTE_COURRIELS and EMAIL_HOST:
+    LOGGING["handlers"]["courriel"] = {"()": "noyau.alertes.AlerteCourriel", "destinataires": ALERTE_COURRIELS}
+    LOGGING["root"]["handlers"].append("courriel")
+    LOGGING["loggers"]["django"]["handlers"].append("courriel")
+
 USE_TZ = True
 TIME_ZONE = "UTC"                   # horodatage en UTC ; l'heure affichée suit l'agence
 LANGUAGE_CODE = "fr"

@@ -523,12 +523,15 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     },
     securite: {
       definirInactivite: (p: unknown) => post("/securite/inactivite", p),
+      regles: () => get("/securite/regles"),
+      definirMotsDePasse: (p: unknown) => post("/securite/mots-de-passe", p),
     },
     impressions: { noter: (d: { document: string; objet: number }) => post<{ exemplaire: number; duplicata: number; le: string; par: string }>("/impressions", d),
       entete: () => get("/impressions/entete") },
     journalSecurite: {
       consulter: (du: string, au: string, evenement = "") => get(`/securite/journal?du=${du}&au=${au}&evenement=${evenement}`),
       audit: (du: string, au: string, objet = "") => get(`/securite/audit?du=${du}&au=${au}&objet=${objet}`),
+      sauvegardes: () => get("/securite/sauvegardes"),
     },
     retenues: {
       etat: (annee: number | string, mois: number | string) => get(`/comptabilite/retenues?annee=${annee}&mois=${mois}`),
@@ -576,7 +579,10 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       courante: () => get("/session"),
       mode: () => get<{ motDePasseRequis: boolean }>("/session/mode"),
       changerMotDePasse: (p: unknown) => post("/session/mot-de-passe", p),
-      ouvrir: (login: string, motDePasse?: string) => post("/session", { login, motDePasse }),
+      ouvrir: (login: string, motDePasse?: string, code?: string) => post("/session", { login, motDePasse, code }),
+      // Registre T218 : second facteur (code à six chiffres d'une application d'authentification)
+      preparerSecondFacteur: () => post("/session/second-facteur", {}),
+      confirmerSecondFacteur: (code: string) => post("/session/second-facteur/confirmation", { code }),
       // Plan d'allègement, point 11.6 : la réponse demande au navigateur d'effacer les données du site (Clear-Site-Data) ; une marque
       // posée avant et retrouvée après dit qu'il ne l'a pas fait : le stockage est vidé ici, et l'écran de connexion le signale
       fermer: async () => {
@@ -732,6 +738,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       lire: () => get("/gestion-utilisateurs"),
       enregistrer: (d: object, id?: number) => post(id === undefined ? "/gestion-utilisateurs" : `/gestion-utilisateurs/${id}`, d),
       activer: (id: number, d: { actif: boolean; motif: string }) => post(`/gestion-utilisateurs/${id}/activation`, d),
+      reinitialiserSecondFacteur: (id: number) => post(`/gestion-utilisateurs/${id}/second-facteur`, {}),
     },
     droits: {
       lire: (profil?: number) => get(profil === undefined ? "/droits" : `/droits?profil=${profil}`),

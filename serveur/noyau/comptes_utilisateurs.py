@@ -19,6 +19,7 @@ def lire(u) -> dict:
     i = u["institution_id"]
     return {"agences": lignes("select id, nom from agence where institution_id = %s and not supprime order by code", (i,)),
             "utilisateurs": lignes(f"""select x.id, {', '.join(f'x.{c} as "{k}"' for k, c in CHAMPS.items())}, coalesce(a.nom, 'Toutes les agences') as agence, x.actif,
+                                         x.totp_confirme_le is not null as "secondFacteur",
                                          coalesce((select h.motif || ' (' || to_char(h.le, 'DD/MM/YYYY') || ', ' || p.nom || ')' from utilisateur_activation h
                                                    join utilisateur p on p.id = h.par where h.utilisateur_id = x.id order by h.id desc limit 1), '') as "derniereActivation"
                                        from utilisateur x left join agence a on a.id = x.agence_id
@@ -67,7 +68,10 @@ def enregistrer(u, d, uid: int | None = None) -> dict:
     else:
         executer(f"update utilisateur set {', '.join(f'{CHAMPS[k]} = %s' for k in cols)} where id = %s", (*[vals[k] for k in cols], uid))
         if mdp:
-            executer("update utilisateur set mot_de_passe_hash = %s, mot_de_passe_a_changer = %s where id = %s", (make_password(mdp), uid != u["id"], uid))
+            from .services import garder_ancien_mot_de_passe
+            garder_ancien_mot_de_passe(uid, valeur("select mot_de_passe_hash from utilisateur where id = %s", (uid,)))      # registre T218
+            executer("update utilisateur set mot_de_passe_hash = %s, mot_de_passe_a_changer = %s, mot_de_passe_change_le = now() where id = %s",
+                     (make_password(mdp), uid != u["id"], uid))
     return lire(u)
 
 

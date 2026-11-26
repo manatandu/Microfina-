@@ -14,6 +14,7 @@ import { ICONES } from "./icones";
 import { Marque } from "./Marque";
 import { Dialogue, Fiche, MessageSucces, useSourcesEcran, type Boite } from "../composants";
 import ChangerMotDePasse from "./MotDePasse";
+import SecondFacteur from "./SecondFacteur";
 import { choisirLangue, langue } from "../lib/langue";
 import { reglesAide } from "../lib/aide";
 
@@ -82,7 +83,10 @@ export function Coquille() {
   if (!u) return <Navigate to="/connexion" replace state={{ apres: lieu.pathname }} />;
   const application = applicationDe(lieu.pathname);
   // Registre T207 : le mot de passe donné par l'administrateur se remplace avant toute autre action ; les menus attendent
-  const force = !!(u as { motDePasseAChanger?: boolean }).motDePasseAChanger;
+  // Registre T218 : même attente pour un mot de passe expiré, puis pour le second facteur qu'un profil exige
+  const etat = u as { motDePasseAChanger?: boolean; motDePasseExpire?: boolean; secondFacteurAEnroler?: boolean };
+  const mdpForce = !!etat.motDePasseAChanger, enroler = !mdpForce && !!etat.secondFacteurAEnroler;
+  const force = mdpForce || enroler;
   // Registre T07 : un écran absent des droits de l'utilisateur n'apparaît pas au menu
   const permis = new Set(force ? [] : (u as { droits?: string[] }).droits ?? []);
   const barre = menus(application).map((x) => ({ ...x, groupes: x.groupes.map((g) => ({ ...g, ecrans: g.ecrans.filter((e) => permisPour(e, permis)) })).filter((g) => g.ecrans.length) }))
@@ -140,7 +144,8 @@ export function Coquille() {
           ))}
         </aside>
         <main className="page" id="contenu" tabIndex={-1} key={lieu.pathname}>{aide && <AideEnLigne chemin={lieu.pathname} fermer={() => setAide(false)} />}
-          {force ? <><h1 id="titre-ecran" tabIndex={-1}>Changer mon mot de passe</h1><ChangerMotDePasse force fait={() => location.reload()} /></>
+          {enroler ? <><h1 id="titre-ecran" tabIndex={-1}>Second facteur</h1><SecondFacteur fait={() => location.reload()} /></>
+            : force ? <><h1 id="titre-ecran" tabIndex={-1}>Changer mon mot de passe</h1><ChangerMotDePasse force expire={!!etat.motDePasseExpire} fait={() => location.reload()} /></>
             : <>{vise && !refuse && <h1 id="titre-ecran" tabIndex={-1}>{vise.nom}</h1>}{refuse ? <p className="attention">Droit manquant : {refuse.nom} (Administration &gt; Profil &gt; Assigner droit).</p> : <Suspense fallback={null}><Outlet /></Suspense>}</>}</main><MessageSucces />
       </div>
 

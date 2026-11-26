@@ -128,6 +128,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "comptesUtilisateurs.enregistrer": [
 "S05"
 ],
+"comptesUtilisateurs.reinitialiserSecondFacteur": [
+"S05"
+],
 "conformite.analyserAtypique": [
 "SC01"
 ],
@@ -782,6 +785,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "securite.definirInactivite": [
 "S05"
 ],
+"securite.definirMotsDePasse": [
+"S05"
+],
 "simulationCredit.simuler": [
 "S84"
 ],
@@ -1359,6 +1365,9 @@ export const DROITS_LECTURES: Record<string, string[]> = {
 "journalSecurite.consulter": [
 "SA01"
 ],
+"journalSecurite.sauvegardes": [
+"SA01"
+],
 "journees.controles": [
 "S12",
 "S111"
@@ -1586,6 +1595,9 @@ export const DROITS_LECTURES: Record<string, string[]> = {
 ],
 "retenues.etat": [
 "SF01"
+],
+"securite.regles": [
+"S05"
 ],
 "tiers.aRevalider": [
 "S40",

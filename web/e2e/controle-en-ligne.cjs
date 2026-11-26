@@ -10,9 +10,11 @@ const LOGIN = process.env.VERIF_LOGIN || '';
 const MDP = process.env.VERIF_MOT_DE_PASSE || '';
 const DOSSIER = process.argv[2] || 'controle';
 
+// Audit du 21/11/2026, point bloquant B2 (constat F3) : le contrôle est obligatoire. Sans le compte de vérification, il échoue au lieu de passer
+// sans rien faire : un déploiement n'est vérifié que si chaque écran a été ouvert.
 if (!BASE || !LOGIN || !MDP) {
-  console.log('::notice::Compte de vérification absent (secrets VERIF_LOGIN et VERIF_MOT_DE_PASSE) : contrôle des écrans non fait.');
-  process.exit(0);
+  console.log('::error::Contrôle des écrans non fait : compte de vérification absent (secrets VERIF_LOGIN et VERIF_MOT_DE_PASSE du dépôt, voir docs/architecture/DEPLOIEMENT.md).');
+  process.exit(1);
 }
 
 const src = path.join(__dirname, '..', 'src', 'ecrans');

@@ -211,7 +211,8 @@ class Command(BaseCommand):
             executer("select comptes_parametres(id) from institution")   # lot 10 : paramétrages sur les comptes de l'institution (T172)
             self.stdout.write(f"Base déjà remplie : {n} élément(s) ajouté(s), rien d'effacé ni modifié.")
             return
-        ins = valeur("insert into institution (nom, sigle, profil, pays, ville, commune, quartier) values ('COOPEC Tujenge', 'CTJ', 'coopec', 'République démocratique du Congo', 'Kinshasa', 'Matete', 'Kinsaku') returning id")
+        # Institution fictive de la démonstration : ses mots de passe n'expirent pas (registre T218) ; une institution réelle reçoit 90 jours par défaut
+        ins = valeur("insert into institution (nom, sigle, profil, pays, ville, commune, quartier, mot_de_passe_jours) values ('COOPEC Tujenge', 'CTJ', 'coopec', 'République démocratique du Congo', 'Kinshasa', 'Matete', 'Kinsaku', 0) returning id")
         # Écart E05 : le Conseil d'Administration délègue l'admission des membres (décision fictive de démonstration)
         executer("update institution set delegation_admission = %s where id = %s", ("Décision du Conseil d'Administration n° 01/2026 du 05/01/2026", ins))
         # Professions fictives

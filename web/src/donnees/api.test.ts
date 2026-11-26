@@ -123,6 +123,18 @@ describe("journée de guichet", () => {
     await connecter("jpmukendi");
     expect((await api.impressions.noter({ document: "demande_adhesion", objet: 1 })).exemplaire).toBe(1);
   });
+  it("règles de connexion : expiration, historique et profils au second facteur, tenus par la gestion des accès (registre T218)", async () => {
+    await connecter("gmbuyi");
+    const r = await api.securite.regles();
+    expect([r.motDePasseJours, r.motDePasseHistorique, r.profils.some((p) => p.secondFacteur)]).toEqual([0, 5, false]);
+    await expect(api.securite.definirMotsDePasse({ jours: 10, historique: 5, profils: [] })).rejects.toThrow("de 30 à 365 jours");
+    await expect(api.securite.definirMotsDePasse({ jours: 0, historique: 13, profils: [] })).rejects.toThrow("de 0 à 12");
+    await expect(api.securite.definirMotsDePasse({ jours: 0, historique: 3, profils: [99999] })).rejects.toThrow("Profil inconnu");
+    const apres = await api.securite.definirMotsDePasse({ jours: 90, historique: 3, profils: [r.profils[0]!.id] });
+    expect([apres.motDePasseJours, apres.motDePasseHistorique, apres.profils[0]!.secondFacteur]).toEqual([90, 3, true]);
+    await connecter("engalula");
+    await expect(api.securite.regles()).rejects.toThrow("Droit manquant");
+  });
   it("dépôt puis retrait : grand livre équilibré, caisse et compte à jour", async () => {
     const { s } = await journeeOuverte();
     await api.guichet.depot({ cle: cle(), compteId: 2, montant: 5000000, coupures: { 20000: 2, 10000: 1 } });

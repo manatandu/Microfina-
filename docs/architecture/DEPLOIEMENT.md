@@ -50,4 +50,19 @@ sont jointes au travail. Il se lance aussi à la main (Actions > Contrôle du si
 
 Le compte est créé par l'administrateur dans le logiciel (Administration > Utilisateur > Création). Son identifiant et son mot de passe sont rangés
 dans les secrets du dépôt GitHub (Settings > Secrets and variables > Actions) sous les noms `VERIF_LOGIN` et `VERIF_MOT_DE_PASSE`, jamais dans le dépôt
-ni dans une conversation. Sans ces secrets, le contrôle ne fait rien et le dit.
+ni dans une conversation. Sans ces secrets, le contrôle échoue (audit du 21/11/2026, point bloquant B2) : le site est publié, mais le travail
+« verification » reste rouge tant que le compte n'est pas donné.
+
+Le compte de vérification tient un profil en lecture seule (AUDITEUR), sans second facteur. Si les mots de passe de l'institution expirent,
+le sien se renouvelle avant l'échéance et le secret `VERIF_MOT_DE_PASSE` se met à jour (registre T218).
+
+## Alerte en cas d'erreur du serveur (audit du 21/11/2026, point bloquant B2 ; registre T219)
+
+Une erreur du serveur s'écrit dans le journal de l'hébergeur. Elle part aussi par courriel quand ces variables sont données au service du serveur :
+
+- `LIKELEMBA_ALERTE_COURRIELS` : les adresses qui reçoivent l'alerte, séparées par des virgules ;
+- `LIKELEMBA_SMTP_HOTE`, `LIKELEMBA_SMTP_PORT` (587 par défaut, 465 pour SSL), `LIKELEMBA_SMTP_UTILISATEUR`, `LIKELEMBA_SMTP_EXPEDITEUR` : le relais de courrier de l'exploitant ;
+- `LIKELEMBA_SMTP_MOT_DE_PASSE` : un secret de l'hébergeur, jamais dans le dépôt.
+
+Le courriel donne la date, la requête sans ses paramètres, le type de l'erreur et l'endroit du code. Il ne contient aucune donnée d'un membre.
+La même erreur ne repart pas avant un quart d'heure. Sans adresse ou sans relais, aucun courriel ne part.

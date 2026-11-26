@@ -5854,6 +5854,134 @@ def test_cloisonnement_agences(clients, journee):
     assert audit.get(f"/api/tiers/{k}", **H).status_code == 200
 
 
+def test_mots_de_passe_expiration_historique_second_facteur(clients, settings):
+    """Point bloquant B9, fin (registre T218) : le mot de passe expire après la durée fixée par l'institution, les derniers sont refusés,
+    et les profils désignés se connectent avec un second facteur (code à six chiffres, RFC 6238). Instr. BCC 008, art. 16"""
+    import time
+    from noyau import second_facteur as sf
+    from noyau.bd import executer
+    admin, autre = clients["chef"], Client()
+    connecter(admin, "gmbuyi")
+    ag = admin.get("/api/referentiel").json()["agence"]["id"]
+    assert admin.post("/api/gestion-utilisateurs", {"nom": "Essai Deux", "agenceId": ag, "login": "etest2", "motDePasse": "secret-1", "confirmation": "secret-1",
+                                                    "portable": "+243 810 000 998"}, **H).status_code == 200
+    regler = lambda corps: admin.post("/api/securite/mots-de-passe", corps, **H)
+    assert "0 (jamais), ou de 30 à 365" in regler({"jours": 10, "historique": 3, "profils": []}).json()["message"]
+    assert "de 0 à 12" in regler({"jours": 30, "historique": 13, "profils": []}).json()["message"]
+    assert regler({"jours": 30, "historique": 3, "profils": [999999]}).json()["message"] == "Profil inconnu."
+    r = regler({"jours": 30, "historique": 3, "profils": []}).json()
+    assert (r["motDePasseJours"], r["motDePasseHistorique"]) == (30, 3) and admin.get("/api/securite/regles").json()["profils"]
+    connecter(clients["caisse"], "engalula")
+    assert clients["caisse"].get("/api/securite/regles").status_code == 403         # réservé à la gestion des accès (S05)
+    settings.SANS_MOT_DE_PASSE = False
+    ouvrir = lambda mdp, code=None: autre.post("/api/session", {"login": "etest2", "motDePasse": mdp, **({"code": code} if code else {})}, **H)
+    changer = lambda a, n: autre.post("/api/session/mot-de-passe", {"ancien": a, "nouveau": n, "confirmation": n}, **H)
+    assert ouvrir("secret-1").status_code == 200
+    assert changer("secret-1", "secret-2a").status_code == 200 and changer("secret-2a", "secret-3a").status_code == 200
+    assert "déjà utilisé (les 3 derniers" in changer("secret-3a", "secret-1").json()["message"]      # un des trois derniers
+    assert changer("secret-3a", "secret-4a").status_code == 200 and changer("secret-4a", "secret-1").status_code == 200   # sorti de l'historique
+    # Expiration : 31 jours après le dernier changement, toute écriture attend le nouveau mot de passe
+    executer("update utilisateur set mot_de_passe_change_le = now() - interval '31 days' where login = 'etest2'")
+    v = autre.get("/api/session").json()
+    assert v["motDePasseExpire"] is True and v["motDePasseAChanger"] is True
+    r = autre.post("/api/credit-referentiels/demarches", {"libelle": "Essai"}, **H)
+    assert r.status_code == 403 and "a expiré" in r.json()["message"]
+    assert changer("secret-1", "secret-5a").json()["motDePasseExpire"] is False
+    # Second facteur : le profil du guichet l'exige ; l'utilisateur le met en place avant toute écriture
+    pid = ident("select id from profil where code = 'caissier'")
+    executer("insert into utilisateur_profil (utilisateur_id, profil_id) select id, %s from utilisateur where login = 'etest2'", (pid,))
+    assert next(x for x in regler({"jours": 30, "historique": 3, "profils": [pid]}).json()["profils"] if x["id"] == pid)["secondFacteur"] is True
+    assert autre.get("/api/session").json()["secondFacteurAEnroler"] is True
+    r = autre.post("/api/credit-referentiels/demarches", {"libelle": "Essai"}, **H)
+    assert r.status_code == 403 and "second facteur" in r.json()["message"]
+    cle = autre.post("/api/session/second-facteur", {}, **H).json()
+    assert cle["uri"].startswith("otpauth://totp/") and f"secret={cle['cle']}" in cle["uri"]
+    pas = int(time.time() // 30)
+    confirmer = lambda c: autre.post("/api/session/second-facteur/confirmation", {"code": c}, **H)
+    faux = "000000" if sf.code(cle["cle"], pas) != "000000" else "111111"
+    assert confirmer(faux).json()["message"] == "Code du second facteur incorrect."
+    assert confirmer(sf.code(cle["cle"], pas)).json()["secondFacteurAEnroler"] is False
+    assert "déjà en place" in autre.post("/api/session/second-facteur", {}, **H).json()["message"]
+    autre.delete("/api/session", **H)
+    assert ouvrir("secret-5a").json() == {"secondFacteurRequis": True} and autre.get("/api/session").json() is None
+    assert ouvrir("secret-5a", faux).json()["message"] == "Code du second facteur incorrect."
+    assert ouvrir("secret-5a", sf.code(cle["cle"], pas)).status_code == 422                # un code ne sert qu'une fois
+    assert ouvrir("secret-5a", sf.code(cle["cle"], pas + 1)).json()["login"] == "etest2"
+    assert any(x["login"] == "etest2" and x["secondFacteur"] for x in admin.get("/api/gestion-utilisateurs").json()["utilisateurs"])
+    # Téléphone perdu : la gestion des accès retire le second facteur, l'utilisateur le remet en place à sa prochaine connexion
+    uid = ident("select id from utilisateur where login = 'etest2'")
+    assert admin.post(f"/api/gestion-utilisateurs/{uid}/second-facteur", {}, **H).status_code == 200
+    autre.delete("/api/session", **H)
+    assert ouvrir("secret-5a").json()["secondFacteurAEnroler"] is True
+    assert ident("select count(*) from journal_securite where evenement in ('second_facteur_active', 'second_facteur_retire')") == 2
+    assert ident("select count(*) from journal_securite where evenement = 'connexion_refusee' and detail = 'Code du second facteur incorrect.'") == 2
+    # RFC 6238, annexe B : vecteur d'essai SHA-1 (clé « 12345678901234567890 », 59 secondes : 94287082, soit 287082 sur six chiffres)
+    import base64
+    assert sf.code(base64.b32encode(b"12345678901234567890").decode(), 59 // 30) == "287082"
+
+
+def test_alerte_courriel_sans_donnee_de_membre():
+    """Point bloquant B2, fin (registre T219) : une erreur du serveur part par courriel, sans rien de ce que la requête contient
+    (secret professionnel : loi 002/2002, art. 79), et au plus une fois par quart d'heure pour la même erreur"""
+    import logging
+    import sys
+    from django.core import mail
+    from django.test import RequestFactory
+    from noyau.alertes import AlerteCourriel
+    h = AlerteCourriel(["exploitation@exemple.cd"], attendre=True)
+    req = RequestFactory().post("/api/guichet/depots?compteId=0412-000318-02", {"montant": "1000000", "mandataire": "Kabila Jean"})
+    def erreur():
+        try:
+            raise ValueError("solde de Kabila Jean : 1 000 000")
+        except ValueError:
+            r = logging.LogRecord("django.request", logging.ERROR, __file__, 1, "Internal Server Error: %s", (req.path,), sys.exc_info())
+            r.request = req
+            return r
+    avant = len(mail.outbox)
+    h.emit(erreur()); h.emit(erreur())
+    assert len(mail.outbox) == avant + 1                              # la même erreur ne repart pas tout de suite
+    m = mail.outbox[-1]
+    assert m.to == ["exploitation@exemple.cd"] and "ValueError" in m.subject and "POST /api/guichet/depots" in m.body
+    assert "Kabila" not in m.subject + m.body and "0412-000318" not in m.subject + m.body and "1000000" not in m.body
+    AlerteCourriel([], attendre=True).emit(erreur())
+    assert len(mail.outbox) == avant + 1                              # sans destinataire : rien
+
+
+def test_registre_des_sauvegardes(clients, settings):
+    """Point bloquant B7 (registre T220) : le registre des sauvegardes et des essais de restauration se lit dans le Journal de sécurité (SA01),
+    ne se modifie pas, et le contrôle du matin échoue quand la dernière sauvegarde a plus de 26 heures (Instr. BCC 36, art. 34)"""
+    from django.core.management import call_command
+    from django.core.management.base import CommandError
+    from django.db import connection, transaction
+    from noyau.bd import executer
+    admin, caisse = clients["chef"], clients["caisse"]
+    connecter(admin, "gmbuyi"); connecter(caisse, "engalula")
+    assert caisse.get("/api/securite/sauvegardes").status_code == 403
+    assert admin.get("/api/securite/sauvegardes").json() == {"derniereHeures": None, "lignes": []}
+    with pytest.raises(CommandError, match="Aucune sauvegarde au registre"):
+        call_command("controler_sauvegarde")
+    executer("""insert into sauvegarde (le, nature, fichier, taille, empreinte, chiffree, hors_site, resultat, par)
+                values (now() - interval '30 hours', 'sauvegarde', 'base-1.dump.gpg', 1000, 'abc', true, 'rclone', '218 tables', 'tâche du soir')""")
+    with pytest.raises(CommandError, match="il y a 30 heures"):
+        call_command("controler_sauvegarde")
+    executer("insert into sauvegarde (nature, fichier, taille, empreinte, chiffree, resultat, par) values ('sauvegarde', 'base-2.dump.gpg', 1200, 'def', true, '218 tables', 'tâche du soir')")
+    executer("insert into sauvegarde (nature, fichier, resultat, par) values ('restauration', 'base-2.dump.gpg', '217 tables restaurées, écritures équilibrées', 'essai')")
+    call_command("controler_sauvegarde")
+    r = admin.get("/api/securite/sauvegardes").json()
+    assert r["derniereHeures"] == 0 and [x["natureLibelle"] for x in r["lignes"]] == ["Essai de restauration", "Sauvegarde", "Sauvegarde"]
+    assert r["lignes"][1]["chiffree"] is True and r["lignes"][2]["horsSite"] == "rclone"
+    with pytest.raises(Exception, match="se lit seulement"):
+        with transaction.atomic():
+            connection.cursor().execute("update sauvegarde set resultat = 'autre'")
+    # L'alerte d'exploitation : refusée sans adresse ni relais, envoyée sinon
+    from django.core import mail
+    with pytest.raises(CommandError, match="Alerte non envoyée"):
+        call_command("alerter", "essai")
+    settings.ALERTE_COURRIELS, settings.EMAIL_HOST = ["exploitation@exemple.cd"], "smtp.exemple.cd"
+    call_command("alerter", "Sauvegarde : ÉCHEC. pg_dump a échoué.")
+    assert mail.outbox[-1].to == ["exploitation@exemple.cd"] and "pg_dump" in mail.outbox[-1].body
+
+
 def test_impressions_original_duplicata(clients, journee):
     """Point bloquant B12 (registre T215) : la première impression d'un reçu est l'original, les suivantes des duplicatas numérotés ; le journal
     garde qui a imprimé et quand, et se lit seulement (Instr. BCC 008, art. 16) ; imprimer demande le droit de lire le reçu"""
