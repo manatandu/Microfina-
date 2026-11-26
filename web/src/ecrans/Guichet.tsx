@@ -298,16 +298,16 @@ export function Recu({ id, onNouveau, echap = false }: { id: number; onNouveau: 
           <EnTeteDocument e={r.entete} agence={r.agence} />
           <h2 className="ticket-titre">{PAPIER[r.o.type] ?? titre}</h2>
           <dl className="ticket-lignes">
-            <dt>Pièce</dt><dd className="chiffres">{r.piece}</dd>
-            <dt>Date</dt><dd className="chiffres">{fr(r.date)} à {r.o.heure}</dd>
-            {r.numeroMembre && <><dt>{r.o.type === "adhesion" ? "Membre" : "Client"}</dt><dd>{r.titulaire}<br /><span className="chiffres">{r.numeroMembre}</span></dd></>}
-            {r.compte && <><dt>Compte</dt><dd className="chiffres">{r.compte}</dd></>}
-            {r.o.parts ? <><dt>Parts</dt><dd>{r.o.parts}</dd></> : null}
-            <dt>Montant</dt><dd className="chiffres ticket-montant">{montant(r.o.montant, r.o.devise)}</dd>
-            <dt>En lettres</dt><dd>{lettres}</dd>
-            {r.o.remisPar ? <><dt>{SORTIE.has(r.o.type) ? "Remis à" : "Versé par"}</dt><dd>{r.o.remisPar}</dd></> : null}
-            {r.o.motif ? <><dt>Motif</dt><dd>{r.o.motif}</dd></> : null}
-            <dt>Caissier</dt><dd>{r.caissier}{r.viseur ? `, visa ${r.viseur}` : ""}</dd>
+            <div><dt>Pièce</dt><dd>{r.piece}</dd></div>
+            <div><dt>Date</dt><dd>{fr(r.date)} à {r.o.heure}</dd></div>
+            {r.numeroMembre && <div><dt>{r.o.type === "adhesion" ? "Membre" : "Client"}</dt><dd>{r.titulaire}<br />{r.numeroMembre}</dd></div>}
+            {r.compte && <div><dt>Compte</dt><dd>{r.compte}</dd></div>}
+            {r.o.parts ? <div><dt>Parts</dt><dd>{r.o.parts}</dd></div> : null}
+            <div className="ticket-montant"><dt>Montant</dt><dd>{montant(r.o.montant, r.o.devise)}</dd></div>
+            <div className="ticket-lettres"><dt>En lettres</dt><dd>{lettres}</dd></div>
+            {r.o.remisPar ? <div><dt>{SORTIE.has(r.o.type) ? "Remis à" : "Versé par"}</dt><dd>{r.o.remisPar}</dd></div> : null}
+            {r.o.motif ? <div><dt>Motif</dt><dd>{r.o.motif}</dd></div> : null}
+            <div><dt>Caissier</dt><dd>{r.caissier}{r.viseur ? `, visa ${r.viseur}` : ""}</dd></div>
           </dl>
           <div className="ticket-signatures"><span>Le caissier</span><span>{SORTIE.has(r.o.type) ? "Le bénéficiaire" : "Le déposant"}</span></div>
           <MentionExemplaire x={imp.exemplaire} />

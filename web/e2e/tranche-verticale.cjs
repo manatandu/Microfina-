@@ -41,6 +41,22 @@ const OUT = process.argv[2];
     await z.getByLabel('Commune, secteur ou chefferie : *').selectOption('Matete'); await z.getByLabel('Quartier ou groupement : *').selectOption('Kinsaku');
   };
   // Succès : un message qui disparaît seul (registre T121) ; une confirmation n'est demandée que pour ce qui engage
+  // Point bloquant B12 : un document tiré en PDF comme le fait lib/imprimer.ts (page à part, styles de l'application ; ticket coupé à sa hauteur)
+  const pdfDocument = async (selecteur, chemin, ticket) => {
+    const html = await p.locator(selecteur).first().evaluate((e) => e.outerHTML);
+    const css = await p.evaluate(() => [...document.querySelectorAll('style')].map((x) => x.textContent).join('\n'));
+    const liens = await p.evaluate(() => [...document.querySelectorAll("link[rel='stylesheet']")].map((x) => x.href));
+    const q = await ctx.newPage(); await q.goto(B + '/impression.html');
+    await q.evaluate(([css, liens, html]) => { for (const h of liens) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = h; document.head.append(l); }
+      const st = document.createElement('style'); st.textContent = css; document.head.append(st); document.body.insertAdjacentHTML('beforeend', html); }, [css, liens, html]);
+    await q.waitForLoadState('networkidle'); await q.waitForTimeout(200);
+    if (ticket) {
+      const h = await q.locator('.ticket').evaluate((e) => Math.ceil(e.getBoundingClientRect().height * 25.4 / 96) + 6);
+      await q.addStyleTag({ content: `@page { size: 80mm ${h}mm; margin: 0; @bottom-center { content: none; } } body { margin: 0; }` });
+      await q.pdf({ path: chemin, width: '80mm', height: `${h}mm`, printBackground: true });
+    } else await q.pdf({ path: chemin, format: 'A4', printBackground: true, preferCSSPageSize: true });
+    await q.close();
+  };
   const succes = async (texte) => { const m = p.locator('.message-succes'); await (texte ? m.filter({ hasText: texte }) : m).last().waitFor(); };
   const oui = async () => { const b = p.getByRole('button', { name: 'Oui', exact: true });
     if (await b.waitFor({ timeout: 2000 }).then(() => true, () => false)) await b.click(); await succes(); };
@@ -662,9 +678,7 @@ const OUT = process.argv[2];
   const fr = p.getByRole('dialog', { name: 'Reçu' });
   await fr.getByRole('button', { name: 'Imprimer' }).click(); await fr.getByText('ORIGINAL', { exact: true }).waitFor();
   await fr.getByRole('button', { name: 'Imprimer' }).click(); await fr.getByText('DUPLICATA n° 1', { exact: true }).waitFor(); await etape('10a-recu-duplicata');
-  const hTicket = await p.locator('.ticket').evaluate((e) => Math.ceil(e.getBoundingClientRect().height * 25.4 / 96) + 6);
-  await p.emulateMedia({ media: 'print' }); await p.pdf({ path: `${OUT}/recu-80mm.pdf`, width: '80mm', height: `${hTicket}mm`, printBackground: true, pageRanges: '1' });
-  await p.emulateMedia({ media: 'screen' });
+  await pdfDocument('.fiche .a-imprimer', `${OUT}/recu-80mm.pdf`, true);
   await fr.press('Escape');
   // Examen renforcé (écart E01) : 28 500 000 CDF en espèces, soit 10 000 USD ; la caissière transmet à la conformité, le chef autorise, la caissière refait le dépôt
   const depotRenforce = async () => {
@@ -764,12 +778,12 @@ const OUT = process.argv[2];
   await p.getByRole('group', { name: 'Retenues' }).getByText('Montant remis').waitFor(); await etape('11d-deblocage-credit');
   await p.getByRole('group', { name: 'Billetage' }).getByLabel('Nombre de coupures de 20 000 CDF').fill('50');
   await p.getByRole('button', { name: 'Débloquer' }).click(); await p.getByRole('dialog', { name: 'Confirmation' }).getByText(/Montant remis/).waitFor(); await etape('11d2-deblocage-recapitulatif');
-  await p.getByRole('button', { name: 'Oui', exact: true }).click(); await p.getByRole('dialog', { name: 'Reçu' }).getByText('Déblocage de crédit').waitFor(); await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
+  await p.getByRole('button', { name: 'Oui', exact: true }).click(); await p.getByRole('dialog', { name: 'Reçu' }).getByText('Déblocage de crédit.', { exact: true }).waitFor(); await p.getByRole('dialog', { name: 'Reçu' }).press('Escape');
   await p.getByRole('button', { name: 'Contrat de prêt' }).click(); await p.getByRole('article', { name: 'Contrat de prêt' }).getByText('0412/L001/00001').first().waitFor(); await etape('11d3-contrat-pret');
   // Code civil, livre III, art. 207 : deux originaux, puis des copies (registre T215) ; le contrat en PDF A4 pour l'essai sur imprimante
   const dcp = p.getByRole('dialog', { name: 'Contrat de prêt' });
   await dcp.getByRole('button', { name: 'Imprimer' }).click(); await dcp.getByText('ORIGINAL 1 sur 2', { exact: true }).waitFor(); await etape('11d4-contrat-original');
-  await p.emulateMedia({ media: 'print' }); await p.pdf({ path: `${OUT}/contrat-pret-a4.pdf`, format: 'A4', printBackground: true }); await p.emulateMedia({ media: 'screen' });
+  await pdfDocument('#contrat-pret', `${OUT}/contrat-pret-a4.pdf`, false);
   await dcp.getByRole('button', { name: 'Fermer' }).first().click();
   // Remboursement (S76, p. 87 et 88) : 100 000 CDF le jour du déblocage, rien d'échu : remboursement anticipé du capital (Instr. BCC 38, art. 14)
   await aller('/caisse/s76'); await client('Kalala'); await p.getByLabel('Montant à payer: *').fill('100 000');
