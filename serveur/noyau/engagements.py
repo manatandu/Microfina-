@@ -14,6 +14,7 @@ import uuid
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
+from .cloison import clause
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .releves import client, entete
 from .services import compte_actif, comptes_du_tiers, cours, est_coopec, exiger, journee_courante, nouvelle_piece, poster, titulaire
@@ -83,7 +84,8 @@ def vue(e: dict) -> dict:
 
 def lister(u) -> list[dict]:
     exiger(u)
-    return [vue(e) for e in lignes("select * from engagement_signature where institution_id = %s order by date_debut desc, id desc", (u["institution_id"],))]
+    ag, pa = clause(u, "(select t.agence_id from tiers t where t.id = engagement_signature.tiers_id)")   # ses membres (registre T213)
+    return [vue(e) for e in lignes(f"select * from engagement_signature where institution_id = %s{ag} order by date_debut desc, id desc", (u["institution_id"], *pa))]
 
 
 def enregistrer(u, p) -> dict:

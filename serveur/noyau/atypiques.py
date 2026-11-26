@@ -4,6 +4,7 @@ déclaration rapide, à la CENAREF en cas de soupçon). Mêmes règles que web/s
 import re
 from collections import defaultdict
 
+from .cloison import visibles
 from .bd import ErreurMetier, executer, lignes, une
 from .conformite import _jour
 from .services import en_usd, exiger, nom_utilisateur, titulaire
@@ -78,6 +79,7 @@ def alertes(u: dict, du: str, au: str, statut: str = "a_analyser") -> list[dict]
                      join tiers t on t.id = coalesce(cd.tiers_id, cr.tiers_id, tp.id)
                      where e.institution_id = %s and j.date_comptable <= %s
                      order by l.contrat_ref, j.date_comptable, e.id, l.rang""", (u["institution_id"], au))
+    mvts = visibles(u, mvts)                                       # ses membres (registre T213)
     eleves = {r["tiers_id"] for r in lignes("""select distinct on (tiers_id) tiers_id, niveau from profil_risque order by tiers_id, evalue_le desc, id desc""") if r["niveau"] == "eleve"}
     par_jour = defaultdict(int)
     fractions = defaultdict(lambda: [0.0, 0, True])    # (client, jour, sens) -> total USD, nombre, toutes sous le seuil

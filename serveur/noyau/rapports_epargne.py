@@ -2,6 +2,7 @@
 Virements compte à compte, garanties, recherche multicritère (données ; filtres à l'écran comme S51), indicateurs crédit épargne, comptes inactifs et dormants."""
 from datetime import date
 
+from .cloison import clause
 from .bd import ErreurMetier, lignes, une, valeur
 from .remboursements import etat
 from .services import cours, exiger, journee_courante, titulaire
@@ -56,8 +57,9 @@ def garanties(u, du: str, au: str, produit_id: int | None = None, agent_id: int 
     exiger(u)
     d1, d2 = _date(du, "Date de début"), _date(au, "Date de fin")
     sortie = []
-    for c in lignes("""select * from credit where institution_id = %s and debloque_le between %s and %s and (%s::bigint is null or produit_id = %s)
-                       and (%s::bigint is null or agent_id = %s) order by debloque_le, id""", (u["institution_id"], d1, d2, produit_id, produit_id, agent_id, agent_id)):
+    ag, pa = clause(u, "(select t.agence_id from tiers t where t.id = credit.tiers_id)")   # ses membres (registre T213)
+    for c in lignes(f"""select * from credit where institution_id = %s and debloque_le between %s and %s and (%s::bigint is null or produit_id = %s)
+                       and (%s::bigint is null or agent_id = %s){ag} order by debloque_le, id""", (u["institution_id"], d1, d2, produit_id, produit_id, agent_id, agent_id, *pa)):
         g = garanties_a(c["id"], d2)
         oblig = c["epargne_obligatoire"] if etat(c, d2)["capitalRestant"] > 0 else 0   # bloquée jusqu'au remboursement (S75-8, S76-9)
         pose = c["epargne_obligatoire"] + sum(x["montant"] for x in g)
@@ -115,8 +117,8 @@ def inactivite(u, date_: str, jours: int | None, tous: bool) -> list[dict]:
     if seuil < 0:
         raise ErreurMetier("Nombres de jours : zéro ou plus.")
     sortie = []
-    for c in lignes("select c.*, t.numero as membre from compte_depot c join tiers t on t.id = c.tiers_id where c.institution_id = %s and c.statut = 'ouvert' order by c.numero",
-                    (u["institution_id"],)):
+    for c in lignes("select c.*, t.numero as membre from compte_depot c join tiers t on t.id = c.tiers_id where c.institution_id = %s and c.statut = 'ouvert'"
+                    + clause(u)[0] + " order by c.numero", (u["institution_id"], *clause(u)[1])):
         der = _derniere(c["id"], c["tiers_id"], c["ouvert_le"], d)
         if not der:
             continue

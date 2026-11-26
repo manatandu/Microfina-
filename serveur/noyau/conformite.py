@@ -217,11 +217,12 @@ def vue_ppe(t: dict) -> dict:
 
 def ppe_lister(u: dict) -> list[dict]:
     exiger(u)
-    return [vue_ppe(t) for t in lignes("""select id, numero, statut from tiers t where institution_id = %s and (personne_exposee or exists (
+    ag, pa = clause(u, "t.agence_id")                              # ses membres (registre T213)
+    return [vue_ppe(t) for t in lignes(f"""select id, numero, statut from tiers t where institution_id = %s{ag} and (personne_exposee or exists (
                                               select 1 from lien_tiers l join tiers b on b.id = l.autre_id
                                               where l.tiers_id = t.id and l.role = 'beneficiaire_effectif' and b.personne_exposee)
                                           or exists (select 1 from representant r where r.tiers_id = t.id and r.role = 'dirigeant' and r.personne_exposee
-                                                     and r.retire_le is null)) order by numero""", (u["institution_id"],))]
+                                                     and r.retire_le is null)) order by numero""", (u["institution_id"], *pa))]
 
 
 def ppe_enregistrer(u: dict, tid: int, d: dict) -> dict:

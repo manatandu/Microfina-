@@ -6,6 +6,7 @@
 sera augmenté ; cliquer enfin sur [Affecter]. » Le gestionnaire d'un crédit est son agent crédit (S89) ; un transfert est tracé."""
 from datetime import date
 
+from .cloison import clause
 from .bd import ErreurMetier, executer, lignes, valeur
 from .services import exiger, journee_courante, titulaire
 from .fuseau import jour_agence
@@ -21,8 +22,9 @@ def contexte(u) -> dict:
 def portefeuille(u, agent_id: int) -> list[dict]:
     exiger(u)
     return [{"id": c["id"], "numero": c["numero"], "montant": c["montant"], "devise": c["devise"].strip(), "client": titulaire(c["tiers_id"])}
-            for c in lignes("select * from credit where institution_id = %s and agent_id = %s and statut = any(%s) order by numero",
-                            (u["institution_id"], agent_id, list(EN_COURS)))]
+            for c in lignes("select * from credit where institution_id = %s and agent_id = %s and statut = any(%s)"
+                            + clause(u, "(select t.agence_id from tiers t where t.id = credit.tiers_id)")[0] + " order by numero",
+                            (u["institution_id"], agent_id, list(EN_COURS), *clause(u)[1]))]   # ses membres (registre T213)
 
 
 def affecter(u, p) -> dict:

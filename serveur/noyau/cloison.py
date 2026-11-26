@@ -4,11 +4,15 @@ de l'audit interne et de la conformité, qui ont accès à toute l'information d
 Instr. BCC 15, art. 85).
 
 Deux gardes : chaque identifiant de membre ou d'objet de membre reçu par une requête (chemin, paramètres, corps) est vérifié ici ;
-chaque liste de membres est filtrée dans sa requête par `clause`."""
+chaque liste de membres est filtrée dans sa requête par `clause`.
+
+Seule voie vers le membre d'une autre agence : l'opération déplacée de Microfina++ (manuel p. 94 et 135), où l'agent tape le numéro et le nom
+donnés par le client ; rien de l'autre agence ne lui est montré."""
 import json
 import re
 
 from .bd import ErreurMetier, valeur
+from .bd import lignes as _lignes
 
 MESSAGE = "Ce membre relève d'une autre agence."
 
@@ -31,6 +35,7 @@ AGENCE_DE = {
     "examen": "select t.agence_id from examen_renforce x join tiers t on t.id = x.tiers_id where x.id = %s",
     "journee": "select agence_id from journee_comptable where id = %s",
     "caisse": "select g.agence_id from session_caisse s join guichet g on g.id = s.guichet_id where s.id = %s",
+    "engagement": "select t.agence_id from engagement_signature e join tiers t on t.id = e.tiers_id where e.id = %s",
 }
 
 # Chemins qui désignent un membre ou un de ses objets par son identifiant (le premier nombre du chemin)
@@ -67,12 +72,13 @@ CHEMINS = [(re.compile(m), k) for m, k in [
     (r"/journees/(\d+)(/.*)?", "journee"),                       # la journée d'une autre agence, ses opérations et ses caisses
     (r"/comptabilite/comptabilisation/(\d+)", "journee"),
     (r"/caisses/(\d+)/(?:theorique|billetages|solde-comptable)", "caisse"),   # la caisse d'une autre agence
+    (r"/credit/engagements/(\d+)/fin", "engagement"),
 ]]
 
 # Clés des paramètres et du corps qui désignent un membre ou un de ses comptes, où qu'elles soient dans le corps (listes comprises)
 CLES = {"tiersId": "tiers", "tiersIds": "tiers", "prospectId": "tiers", "mandantId": "tiers", "cautionId": "tiers",
         "compteId": "compte", "compteDepotId": "compte", "compteEpargneId": "compte", "compteGarantiId": "compte", "compteDatId": "compte",
-        "procurationId": "procuration", "analyseId": "analyse", "operationId": "operation"}
+        "emetteurId": "compte", "recepteurId": "compte", "procurationId": "procuration", "analyseId": "analyse", "credits": "credit"}   # operationId : une opération diverse paramétrée (ed_guichet), pas celle d'un membre
 
 
 def agence(u: dict) -> int | None:
@@ -89,6 +95,15 @@ def clause(u: dict, colonne: str = "t.agence_id") -> tuple[str, tuple]:
 def voit(u: dict, agence_id) -> bool:
     a = agence(u)
     return a is None or agence_id is None or int(agence_id) == int(a)
+
+
+def visibles(u: dict, lignes_: list, cle: str = "tiers_id") -> list:
+    """Lignes dont le membre (`cle`) est de son agence : pour les requêtes qui assemblent plusieurs sources (déclarations, opérations atypiques)"""
+    a = agence(u)
+    if a is None:
+        return lignes_
+    siens = {r["id"] for r in _lignes("select id from tiers where agence_id = %s", (a,))}
+    return [r for r in lignes_ if r.get(cle) is None or r.get(cle) in siens]
 
 
 def exiger(u: dict, sorte: str, ident) -> None:

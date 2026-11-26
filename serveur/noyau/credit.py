@@ -1,6 +1,7 @@
 """S21 : Produits > Crédits > Général (manuel Microfina++, p. 32 à 36). Onze onglets servis par le moteur commun (noyau/moteur.py).
 Degré Crédit suit l'Instr. BCC 003 et Terme Crédit le PCCI, à la place des valeurs de la capture (registre S21-1, S21-2).
 Mêmes règles que web/src/donnees/api.ts (credit)."""
+from .cloison import clause
 from .bd import ErreurMetier, executer, lignes, une
 from .moteur import Referentiel, ch
 from .services import exiger
@@ -152,5 +153,5 @@ def portefeuille(u, gid: int) -> list[dict]:
         return []
     return lignes("""select t.id, t.numero, coalesce(nullif(trim(concat_ws(' ', p.nom, p.postnom, p.prenom)), ''), m.raison_sociale, '') as nom
                      from tiers t left join tiers_personne p on p.tiers_id = t.id left join tiers_morale m on m.tiers_id = t.id
-                     where t.institution_id = %s and t.gestionnaire_id = %s and t.statut <> 'resilie' order by t.numero""",
-                  (u["institution_id"], g["utilisateur_id"]))
+                     where t.institution_id = %s and t.gestionnaire_id = %s and t.statut <> 'resilie'""" + clause(u)[0] + " order by t.numero",
+                  (u["institution_id"], g["utilisateur_id"], *clause(u)[1]))

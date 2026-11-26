@@ -5836,6 +5836,8 @@ def test_cloisonnement_agences(clients, journee):
     # Agir : un dépôt au guichet sur le compte d'un membre d'une autre agence
     r = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}, "mandataire": ""}, **H)
     assert r.status_code == 403 and "autre agence" in r.json()["message"]
+    for chemin in (f"/api/tiers/{k}/modification", f"/api/tiers/{k}/visa"):   # agir sur sa fiche, par l'adresse
+        assert chef.post(chemin, {}, **H).status_code == 403
     # « Toutes les agences » : choisi par l'administrateur sécurité, pour l'audit interne et la conformité
     connecter(admin, "gmbuyi")
     corps = {"nom": "Audit Interne", "agenceId": "toutes", "login": "audit1", "motDePasse": "Audit-2026-x", "confirmation": "Audit-2026-x", "portable": "+243 810 000 999"}

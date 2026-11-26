@@ -11,6 +11,7 @@ from datetime import date
 from psycopg.types.json import Jsonb
 
 from .banques import compte_du_plan
+from .cloison import exiger as exiger_agence
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .fuseau import jour_agence
 from .services import (compte_du_produit, json_lu, controler_montant_coupures, controler_statut_actif, creer_operation, exiger, journee_courante, montant_bloque,
@@ -134,6 +135,7 @@ def compte_par_numero(u, numero: str) -> dict:
     k = une("""select c.id from compte_depot c join tiers t on t.id = c.tiers_id where c.numero = %s and t.institution_id = %s""", ((numero or "").strip(), u["institution_id"]))
     if not k:
         raise ErreurMetier(f"Compte {numero} introuvable.")
+    exiger_agence(u, "compte", k["id"])                            # un compte de son agence ; un client d'une autre agence passe par l'opération déplacée (registre T213)
     c = compte_client(u, k["id"], f"Compte {numero}")
     return {"id": c["id"], "numero": c["numero"], "devise": c["devise"], "client": c["numero_client"], "intitule": titulaire(c["tiers_id"]), "produit": c["produit"]}
 

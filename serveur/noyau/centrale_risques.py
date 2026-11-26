@@ -6,6 +6,7 @@ Mêmes règles que web/src/donnees/api.ts (centraleRisques)."""
 import re
 from datetime import date
 
+from .cloison import visibles
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import exiger, journee_courante, titulaire
 from .fuseau import jour_agence
@@ -73,6 +74,7 @@ def evenements(u: dict, du: str, au: str, statut: str = "") -> list[dict]:
       select 'fin_engagement', e.id, e.cloture_le, e.tiers_id, e.reference, e.montant, trim(e.devise)
         from engagement_signature e where e.institution_id = %(i)s and e.cloture_le between %(du)s and %(au)s
       order by 3, 1, 2""", p)
+    rows = visibles(u, rows, "tiers")                              # ses membres (registre T213)
     rows += [x for x in radiations(i, date.fromisoformat(au)) if x["d"] >= date.fromisoformat(du)]
     j = journee_courante(u)
     jour = date.fromisoformat(j["date"]) if j else jour_agence(u)

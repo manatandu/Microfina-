@@ -4,6 +4,7 @@
 « Rechercher la situation des crédits sur une période ou à une date fixe, sélectionner la date début et date fin puis [Exécuter] ensuite [Exporter]. »
 Filtres de la capture : Rechercher (Sur une Période, A une date fixe), Période (Date d'approbation), Produit crédit, Niveau de validation, Agence, Agent,
 Montant prêt (comparaison et montant), Crédits archivés. La situation (capital restant, jours de retard, degré) se lit à la date fixe, ou à la date de fin."""
+from .cloison import clause
 from .bd import ErreurMetier, lignes, une, valeur
 from .releves import client
 from .remboursements import etat
@@ -81,9 +82,10 @@ def portefeuille(u, p: dict) -> list[dict]:
     d1 = None if p.get("mode") == "date" else date_iso(p.get("du"), "Date début")
     op, m = p.get("operateur") or None, p.get("montant")
     statuts = [s for s, k in (("saisie", "demande"), ("controlee", "verifie"), ("rejetee", "refuse")) if k in etats]
-    for x in lignes("""select * from demande_credit where institution_id = %s and statut = any(%s) and jour_agence(cree_le) <= %s and (%s::date is null or jour_agence(cree_le) >= %s)
-                       and (%s::bigint is null or produit_id = %s) and (%s::bigint is null or coalesce(agent_id, saisi_par) = %s) order by id""",
-                    (u["institution_id"], statuts, d2, d1, d1, p.get("produitId"), p.get("produitId"), p.get("agentId"), p.get("agentId"))):
+    ag, pa = clause(u, "(select t.agence_id from tiers t where t.id = demande_credit.tiers_id)")   # ses membres (registre T213)
+    for x in lignes(f"""select * from demande_credit where institution_id = %s and statut = any(%s) and jour_agence(cree_le) <= %s and (%s::date is null or jour_agence(cree_le) >= %s)
+                       and (%s::bigint is null or produit_id = %s) and (%s::bigint is null or coalesce(agent_id, saisi_par) = %s){ag} order by id""",
+                    (u["institution_id"], statuts, d2, d1, d1, p.get("produitId"), p.get("produitId"), p.get("agentId"), p.get("agentId"), *pa)):
         if op and not OPERATEURS[op](x["montant_demande"], m):
             continue
         k = {"saisie": "demande", "controlee": "verifie", "rejetee": "refuse"}[x["statut"]]

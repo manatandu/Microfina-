@@ -10,6 +10,7 @@ Registre S94-1 à S94-7, CR-21.
 import uuid
 from datetime import date
 
+from .cloison import clause
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import comptes_du_tiers, exiger, journee_courante, nouvelle_piece, poster, titulaire
 
@@ -156,8 +157,9 @@ def rapport(u, type_: str, du: str, au: str) -> list[dict]:
     except (TypeError, ValueError):
         raise ErreurMetier("À remplir : du et au.")
     out = []
-    for g in lignes("""select g.* from garantie g join credit c on c.id = g.credit_id where c.institution_id = %s and g.type = %s and g.ajoute_le between %s and %s
-                       order by g.ajoute_le, g.id""", (u["institution_id"], type_, d1, d2)):
+    ag, pa = clause(u, "(select t.agence_id from tiers t where t.id = c.tiers_id)")   # ses membres (registre T213)
+    for g in lignes(f"""select g.* from garantie g join credit c on c.id = g.credit_id where c.institution_id = %s and g.type = %s and g.ajoute_le between %s and %s{ag}
+                       order by g.ajoute_le, g.id""", (u["institution_id"], type_, d1, d2, *pa)):
         c = une("select * from credit where id = %s", (g["credit_id"],))
         v = vue_garantie(g)
         tid = g["caution_id"] or c["tiers_id"]

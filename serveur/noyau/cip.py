@@ -4,6 +4,7 @@ art. 13 : la BCC attribue l'identifiant client unique (ICU) ; art. 14 : contenu 
 import re
 from datetime import date, timedelta
 
+from .cloison import visibles
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import exiger, journee_courante, titulaire
 from .fuseau import jour_agence
@@ -41,6 +42,7 @@ def evenements(u: dict, du: str, au: str, statut: str = "") -> list[dict]:
       select 'modification_client', m.id, jour_agence(m.valide_le), t.id, t.numero, null, null, null from tiers_modification m join tiers t on t.id = m.tiers_id
         where t.institution_id = %(i)s and jour_agence(m.valide_le) between %(du)s and %(au)s
       order by 3, 1, 2""", p)
+    rows = visibles(u, rows, "tiers")                              # ses membres (registre T213)
     j = journee_courante(u)
     jour = date.fromisoformat(j["date"]) if j else jour_agence(u)
     sortie = []

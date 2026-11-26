@@ -3,6 +3,7 @@ ni réclamation de leurs titulaires depuis dix ans ; lettre avec accusé de réc
 COOPEC et aux sociétés de microfinance (titre Ier). Mêmes règles que web/src/donnees/api.ts (inactifs)."""
 import re
 
+from .cloison import clause
 from .bd import ErreurMetier, executer, lignes, une
 from .services import exiger, journee_courante, solde_contrat, titulaire
 from .fuseau import jour_agence
@@ -35,7 +36,7 @@ def comptes(u: dict, statut: str = "") -> list[dict]:
                                        (select max(p.recue_le) from plainte p where p.tiers_id = c.tiers_id),
                                        c.ouvert_le) as derniere
                        from compte_depot c join tiers t on t.id = c.tiers_id
-                       where c.institution_id = %s and c.statut = 'ouvert' order by c.numero""", (u["institution_id"],)):
+                       where c.institution_id = %s and c.statut = 'ouvert'""" + clause(u)[0] + " order by c.numero", (u["institution_id"], *clause(u)[1])):
         if not c["derniere"]:
             continue
         echeance = _plus_mois(c["derniere"], 12 * ANS)

@@ -1419,7 +1419,8 @@ def terminer_modification(u: dict, tid: int, b: dict, avant: dict, effectifs: bo
 
 def tiers_a_revalider(u: dict) -> list[dict]:
     exiger(u)
-    return [vue_tiers(t) for t in lignes(SQL_TIERS + " where t.institution_id = %s and t.statut = 'modifie_a_revalider' order by t.id", (u["institution_id"],))]
+    ag, pa = clause(u)                                             # ses membres (registre T213)
+    return [vue_tiers(t) for t in lignes(SQL_TIERS + f" where t.institution_id = %s and t.statut = 'modifie_a_revalider'{ag} order by t.id", (u["institution_id"], *pa))]
 
 
 def activer_tiers(u: dict, tid: int) -> dict:
@@ -1573,7 +1574,8 @@ def localites() -> list[dict]:
 
 def prospects(u: dict) -> list[dict]:
     exiger(u)
-    return [vue_tiers(t) for t in lignes(SQL_TIERS + " where t.institution_id = %s and t.statut = 'prospect' order by t.id desc", (u["institution_id"],))]
+    ag, pa = clause(u)                                             # ses prospects (registre T213)
+    return [vue_tiers(t) for t in lignes(SQL_TIERS + f" where t.institution_id = %s and t.statut = 'prospect'{ag} order by t.id desc", (u["institution_id"], *pa))]
 
 
 def controler_prospect(u: dict, d: dict):
@@ -2325,7 +2327,8 @@ def retraits_plafond(u: dict) -> list[dict]:
              "saisiParNom": nom_utilisateur(r["saisi_par"])}
             for r in lignes("""select o.*, j.date_comptable, c.numero as compte, t.numero from operation o join journee_comptable j on j.id = o.journee_id
                                join compte_depot c on 'depot:' || c.id = o.contrat_ref join tiers t on t.id = o.tiers_id
-                               where o.institution_id = %s and o.type = 'retrait' and o.statut = 'saisie' order by o.id""", (u["institution_id"],))]
+                               where o.institution_id = %s and o.type = 'retrait' and o.statut = 'saisie'""" + clause(u)[0] + " order by o.id",
+                               (u["institution_id"], *clause(u)[1]))]
 
 
 def lire_operation(oid: int) -> dict | None:
