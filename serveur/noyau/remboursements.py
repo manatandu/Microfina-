@@ -65,10 +65,30 @@ def payes(rb: list[dict]) -> dict:
     return t
 
 
-def etat(c: dict, d: date) -> dict:
-    """Situation du crédit au jour d : échu, payé, retard, pénalité, capital restant (capture p. 87, cadres Infos crédit et Détail crédit)"""
-    ech = lignes("select * from echeance where credit_id = %s order by rang", (c["id"],))
-    rb = [{**r, "repartition": json_lu(r["repartition"])} for r in lignes("select * from remboursement where credit_id = %s and date_reglement <= %s order by date_reglement, id", (c["id"], d))]
+def charger_etats(ids: list[int]) -> dict:
+    """Échéances, remboursements et taux de pénalité de plusieurs crédits, en trois lectures : les listes de crédits ne font plus trois requêtes
+    par crédit (essai en charge du 26/11/2026, registre T230)"""
+    ech, rb = {}, {}
+    if not ids:
+        return {"echeances": ech, "remboursements": rb, "penalites": {}}
+    for x in lignes("select * from echeance where credit_id = any(%s) order by credit_id, rang", (ids,)):
+        ech.setdefault(x["credit_id"], []).append(x)
+    for x in lignes("select * from remboursement where credit_id = any(%s) order by credit_id, date_reglement, id", (ids,)):
+        rb.setdefault(x["credit_id"], []).append(x)
+    pen = {x["id"]: x["penalite_retard"] for x in lignes("select id, penalite_retard from produit_credit where id in (select produit_id from credit where id = any(%s))", (ids,))}
+    return {"echeances": ech, "remboursements": rb, "penalites": pen}
+
+
+def etat(c: dict, d: date, charge: dict | None = None) -> dict:
+    """Situation du crédit au jour d : échu, payé, retard, pénalité, capital restant (capture p. 87, cadres Infos crédit et Détail crédit).
+    `charge` : ce que charger_etats a déjà lu pour plusieurs crédits ; sans lui, le crédit est lu ici"""
+    if charge is None:
+        ech = lignes("select * from echeance where credit_id = %s order by rang", (c["id"],))
+        rb_lus = lignes("select * from remboursement where credit_id = %s and date_reglement <= %s order by date_reglement, id", (c["id"], d))
+    else:
+        ech = charge["echeances"].get(c["id"], [])
+        rb_lus = [r for r in charge["remboursements"].get(c["id"], []) if r["date_reglement"] <= d]
+    rb = [{**r, "repartition": json_lu(r["repartition"])} for r in rb_lus]
     p = payes(rb)
     capital_regulier = lambda r: int(r["repartition"].get("capital") or 0) - int(r["repartition"].get("capitalAnticipe") or 0)
     echu = [e for e in ech if e["date_due"] <= d]
@@ -84,7 +104,8 @@ def etat(c: dict, d: date) -> dict:
     # Pénalité de retard (CR-7) : au jour le jour, sur le capital échu impayé, entre les échéances et les paiements. Pas sur les intérêts échus : ils ne
     # produisent d'intérêts que par convention spéciale ou demande en justice, pour des intérêts dus au moins pour une année entière (Code civil, livre III,
     # art. 52 ; confrontation du 21/11/2026, T2 ; registre T74)
-    taux = Decimal(valeur("select penalite_retard from produit_credit where id = %s", (c["produit_id"],)) or 0)
+    taux = Decimal((valeur("select penalite_retard from produit_credit where id = %s", (c["produit_id"],)) if charge is None
+                    else charge["penalites"].get(c["produit_id"])) or 0)
     points = sorted({e["date_due"] for e in echu} | {r["date_reglement"] for r in rb if r["date_reglement"] <= d} | {d})
     accrue = Decimal(0)
     for a, b in zip(points, points[1:]):

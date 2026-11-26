@@ -36,3 +36,10 @@ def executer(sql: str, params=()) -> int:
     with connection.cursor() as c:
         c.execute(sql, params)
         return c.rowcount
+
+
+def verrou_numero(serie: str, institution_id: int) -> None:
+    """À appeler juste avant de prendre un numéro par « le plus grand + 1 » ou par un décompte. Le verrou tient jusqu'à la fin de la transaction :
+    deux utilisateurs qui enregistrent au même instant ne reçoivent pas le même numéro, le second attend le premier (essai en charge du
+    26/11/2026 : deux demandes de crédit simultanées prenaient le même numéro et l'une tombait en erreur ; registre T230)"""
+    executer("select pg_advisory_xact_lock(hashtext(%s), %s::int)", (serie, institution_id))

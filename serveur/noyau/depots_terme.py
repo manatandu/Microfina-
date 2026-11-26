@@ -7,7 +7,7 @@ from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
 
 from .cloison import clause
-from .bd import ErreurMetier, executer, lignes, une, valeur
+from .bd import ErreurMetier, executer, lignes, une, valeur, verrou_numero
 from .services import compte_du_produit, controler_collecte_epargne, controler_statut_actif, exiger, journee_courante, nouvelle_piece, poster, solde_contrat, titulaire
 
 
@@ -132,6 +132,7 @@ def mettre_en_place(u, d) -> dict:
         echeance = ajouter_mois(date.fromisoformat(depot), mois)
     except (ValueError, OverflowError):
         raise ErreurMetier("Durée (Mois) : l'échéance tombe hors du calendrier.")
+    verrou_numero("depot_terme", i)
     certificat = int(valeur("select coalesce(max(certificat), 0) + 1 from depot_terme where institution_id = %s", (i,)))
     did = valeur("""insert into depot_terme (institution_id, agence_id, certificat, produit_id, tiers_id, compte_emetteur_id, compte_dat_id, montant, devise, duree_mois,
                                              taux_interet, taux_penalite, montant_interet, a_echeance, date_depot, date_echeance, observation, reconduction,
@@ -364,6 +365,7 @@ def traiter_echeances(u: dict, journee: dict) -> int:
                         ecriture_echeance_id = %s, interets_courus = 0 where id = %s""",
                      ("reconduit" if reconduit else "echu", x["date_echeance"], interet_, taux_irc(x["tiers_id"]), irc, verse, eid, x["id"]))
             if reconduit:
+                verrou_numero("depot_terme", x["institution_id"])
                 certificat = int(valeur("select coalesce(max(certificat), 0) + 1 from depot_terme where institution_id = %s", (x["institution_id"],)))
                 echeance = ajouter_mois(x["date_echeance"], x["duree_mois"])
                 executer("""insert into depot_terme (institution_id, agence_id, certificat, produit_id, tiers_id, compte_emetteur_id, compte_dat_id, montant, devise,

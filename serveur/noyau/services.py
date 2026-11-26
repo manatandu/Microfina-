@@ -2455,13 +2455,22 @@ def balance(u: dict) -> list[dict]:
 
 
 def journal(u: dict, journee_id: int | None) -> list[dict]:
-    res = []
     ag, pa = clause(u, "(select jc.agence_id from journee_comptable jc where jc.id = e.journee_id)")   # les journées de son agence (registre T213)
-    for e in lignes(f"""select e.*, j.code, p.numero as piece from ecriture e join journal j on j.id = e.journal_id join piece p on p.id = e.piece_id
-                       where e.institution_id = %s and (%s::bigint is null or e.journee_id = %s){ag} order by e.id""", (u["institution_id"], journee_id, journee_id, *pa)):
-        res.append({"id": e["id"], "numero": e["numero"], "journal": e["code"], "journeeId": e["journee_id"], "libelle": e["libelle"], "piece": e["piece"],
-                    "saisiPar": e["saisi_par"], "validePar": e["valide_par"], "lignes": lignes_ecriture(e["id"])})
-    return res
+    cond, params = f"e.institution_id = %s and (%s::bigint is null or e.journee_id = %s){ag}", (u["institution_id"], journee_id, journee_id, *pa)
+    # Essai en charge (registres T226, T230) : une requête pour les lignes, et pas plus de lignes par lecture que le grand livre
+    from .etats_compta import LIGNES_MAX
+    n = valeur(f"select count(*) from ligne_ecriture l join ecriture e on e.id = l.ecriture_id where {cond}", params)
+    if n > LIGNES_MAX:
+        raise ErreurMetier(f"Journal : {n} lignes. Choisir une journée ({LIGNES_MAX} lignes au plus par lecture).")
+    par: dict[int, list] = {}
+    for r in lignes(f"""select l.ecriture_id, l.contrat_ref, l.sens, l.devise, l.montant_devise, l.montant_cdf, c.numero from ligne_ecriture l
+                        join compte c on c.id = l.compte_id join ecriture e on e.id = l.ecriture_id where {cond} order by l.ecriture_id, l.rang""", params):
+        par.setdefault(r["ecriture_id"], []).append({"compte": r["numero"], "contrat": r["contrat_ref"], "sens": r["sens"], "devise": r["devise"].strip(),
+                                                     "montant": r["montant_devise"], "montantCdf": r["montant_cdf"]})
+    return [{"id": e["id"], "numero": e["numero"], "journal": e["code"], "journeeId": e["journee_id"], "libelle": e["libelle"], "piece": e["piece"],
+             "saisiPar": e["saisi_par"], "validePar": e["valide_par"], "lignes": par.get(e["id"], [])}
+            for e in lignes(f"""select e.*, j.code, p.numero as piece from ecriture e join journal j on j.id = e.journal_id join piece p on p.id = e.piece_id
+                                where {cond} order by e.id""", params)]
 
 
 def fr(iso: str) -> str:

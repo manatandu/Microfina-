@@ -6140,3 +6140,59 @@ def test_adresse_du_poste(settings, rf):
     settings.RELAIS_DE_CONFIANCE = 5; assert adresse(r) == "1.2.3.4"               # plus de relais que d'adresses : la plus ancienne
     settings.RELAIS_DE_CONFIANCE = 0; assert adresse(r) == "169.254.1.1"           # aucun relais : l'adresse de la connexion
     settings.RELAIS_DE_CONFIANCE = 2; assert adresse(rf.get("/api/session", REMOTE_ADDR="10.0.0.9")) == "10.0.0.9"
+
+
+def deplacer_dans_une_autre_agence(k: int) -> None:
+    """Le membre et ses comptes passent dans une agence témoin : les utilisateurs de la première agence ne doivent plus rien voir de lui"""
+    from django.db import connection
+    with connection.cursor() as cur:
+        cur.execute("""insert into agence (institution_id, zone_id, code, nom, fuseau) select institution_id, zone_id, '0413', 'Témoin', fuseau from agence
+                       where id = (select agence_id from tiers where id = %s) returning id""", (k,))
+        b = cur.fetchone()[0]
+        cur.execute("update tiers set agence_id = %s where id = %s", (b, k))
+        cur.execute("update compte_depot set agence_id = %s where tiers_id = %s", (b, k))
+
+
+def test_cloisonnement_du_credit(clients, journee):
+    """Essai en charge du 26/11/2026 (registres T213 et T230) : le portefeuille, l'état des crédits, les crédits en retard et la liste des demandes
+    montraient les crédits de toutes les agences ; chacun ne rend plus que les crédits des membres de l'agence de l'utilisateur"""
+    from django.db import connection
+    chef, agent = clients["chef"], clients["agent"]
+    cid = credit_debloque(clients, journee)
+    k = T("0412-000318")
+    with connection.cursor() as cur:                                     # une échéance déjà passée : le crédit est en retard
+        cur.execute("update echeance set date_due = (date_due - interval '2 months')::date where credit_id = %s", (cid,))
+    lectures = {"portefeuille": lambda: chef.get("/api/credit/portefeuille?mode=periode&du=2026-01-01&au=2026-11-05", **H),
+                "état": lambda: chef.get("/api/credit/etat?mode=periode&du=2026-01-01&au=2026-11-05", **H),
+                "retards": lambda: agent.get("/api/credit/litigieux/retards", **H),
+                "demandes": lambda: agent.get("/api/credit/dossiers?statut=mise_en_place", **H)}
+    for nom, lire in lectures.items():                                   # son agence : le crédit de Kalala y est
+        r = lire(); assert r.status_code == 200 and "0412-000318" in r.content.decode() or "Kalala" in r.content.decode(), (nom, r.content[:200])
+    deplacer_dans_une_autre_agence(k)
+    for nom, lire in lectures.items():                                   # une autre agence : plus rien de lui
+        r = lire(); assert r.status_code == 200, (nom, r.content[:200])
+        assert "0412-000318" not in r.content.decode() and "Kalala" not in r.content.decode(), nom
+
+
+def test_cloisonnement_des_credits_a_debloquer(clients, journee):
+    """La liste des crédits à débloquer (S75) ne rend que les crédits des membres de son agence (registres T213 et T230)"""
+    caisse = clients["caisse"]
+    cid = credit_vise(clients)
+    assert [x["id"] for x in caisse.get("/api/credit/deblocage", **H).json()] == [cid]
+    deplacer_dans_une_autre_agence(T("0412-000318"))
+    assert caisse.get("/api/credit/deblocage", **H).json() == []
+
+
+def test_journal_des_ecritures_en_une_lecture(clients, journee):
+    """Essai en charge (registre T230) : le journal d'une journée rend ses écritures avec leurs lignes, équilibrées, sans une requête par écriture"""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+    caisse, compta = clients["caisse"], clients["compta"]            # le droit des journaux comptables (S115)
+    for _ in range(3):
+        assert caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 500000, "coupures": {"5000": 1}, "mandataire": ""}, **H).status_code == 200
+    with CaptureQueriesContext(connection) as q:
+        r = compta.get(f"/api/etats/journal?journee={journee[0]['id']}", **H)
+    j = r.json()
+    assert r.status_code == 200 and len(j) == 3 and all(len(e["lignes"]) == 2 for e in j)
+    assert all(sum(l["montantCdf"] if l["sens"] == "D" else -l["montantCdf"] for l in e["lignes"]) == 0 for e in j)
+    assert len(q) < 25, len(q)                                            # ne grandit pas avec le nombre d'écritures

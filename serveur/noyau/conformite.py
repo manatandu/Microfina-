@@ -3,13 +3,14 @@ Loi 22/068, art. 23 ; loi 25/048, art. 92 bis (déclaration systématique à la 
 objet de l'opération, acteurs économiques) et 62 (rapport écrit confidentiel) ; Instr. BCC 15 bis, art. 5 à 7 (l'institution autorise elle-même
 après ses diligences, puis informe la CENAREF par un rapport confidentiel). Mêmes règles que web/src/donnees/api.ts (conformite)."""
 import uuid
+from datetime import date
 
 import json
 
 from django.conf import settings
 
 from .cloison import agence, clause
-from .bd import ErreurMetier, executer, lignes, une, valeur
+from .bd import ErreurMetier, executer, lignes, une, valeur, verrou_numero
 from .services import SEUIL_ESPECES_USD, en_usd, especes_du_jour_usd, exiger, journee_courante, json_lu, nom_utilisateur, titulaire
 
 TYPES = {"depot": "Dépôt en espèces", "retrait": "Retrait en espèces", "adhesion": "Adhésion", "achat_parts": "Achat de parts", "retrait_parts": "Retrait de parts",
@@ -88,6 +89,7 @@ def demander(u: dict, d: dict) -> dict:
     if valeur("""select 1 from examen_renforce where tiers_id = %s and journee_id = %s and type_operation = %s and montant = %s and devise = %s
                  and operation_id is null and statut = 'a_examiner'""", (t["id"], j["id"], type_, m, devise)):
         raise ErreurMetier("Cette opération attend déjà l'examen de la conformité.")
+    verrou_numero("examen_renforce", u["institution_id"])
     n = int(valeur("select coalesce(max(numero), 0) + 1 from examen_renforce where institution_id = %s", (u["institution_id"],)))
     eid = valeur("""insert into examen_renforce (institution_id, numero, cle_idempotence, tiers_id, journee_id, type_operation, compte_id, montant, devise,
                     montant_usd, cumul_usd, motif_demande, demande_par) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
@@ -319,9 +321,40 @@ def profils_lister(u: dict, filtre: str = "echues") -> list[dict]:
     """Clients en relation (visés) ; « échues » : jamais évalués, ou dernière évaluation de six mois ou plus"""
     exiger(u)
     jour = _jour(u)
-    ag, pa = clause(u, "agence_id")                                # ses membres (registre T213)
-    vues = [vue_profil(t, jour) for t in lignes(f"select id, numero from tiers where institution_id = %s and statut in ('actif', 'modifie_a_revalider'){ag} order by numero",
-                                                (u["institution_id"], *pa))]
+    ag, pa = clause(u, "t.agence_id")                              # ses membres (registre T213)
+    # Essai en charge (registre T230) : la liste se lit par ensembles ; la fiche d'un seul membre garde vue_profil
+    membres = f"t.institution_id = %s and t.statut in ('actif', 'modifie_a_revalider'){ag}"
+    params = (u["institution_id"], *pa)
+    tous = lignes(f"""select t.id, t.numero, t.personne_exposee, coalesce(p.nom, m.raison_sociale) as nom, p.postnom, p.prenom, coalesce(p.bp, m.bp, '') <> '' as bp,
+                             (select d.fin_fonction from dossier_ppe d where d.tiers_id = t.id limit 1) as fin_fonction
+                      from tiers t left join tiers_personne p on p.tiers_id = t.id left join tiers_morale m on m.tiers_id = t.id where {membres} order by t.numero""", params)
+    dernier = {r["tiers_id"]: r for r in lignes(f"""select distinct on (r.tiers_id) r.*, (r.evalue_le + interval '6 months')::date::text as prochaine, x.nom as evaluateur
+                                                   from profil_risque r join tiers t on t.id = r.tiers_id left join utilisateur x on x.id = r.evalue_par
+                                                   where {membres} order by r.tiers_id, r.evalue_le desc, r.id desc""", params)}
+    limite = date.fromisoformat(jour).replace(year=date.fromisoformat(jour).year - 3)      # exposition tombée 36 mois après la fin de la fonction
+    exposee = lambda r: bool(r["personne_exposee"]) and not (r["fin_fonction"] and r["fin_fonction"] < limite)
+    exposes = {r["id"] for r in tous if exposee(r)}
+    # le client lui-même, un bénéficiaire effectif, ou un dirigeant exposé (loi 22/068, art. 53 ; mêmes règles que ppe_active)
+    lies = {r["tiers_id"] for r in lignes(f"""select l.tiers_id, a.personne_exposee, (select d.fin_fonction from dossier_ppe d where d.tiers_id = a.id limit 1) as fin_fonction
+                                             from lien_tiers l join tiers t on t.id = l.tiers_id join tiers a on a.id = l.autre_id
+                                             where l.role = 'beneficiaire_effectif' and {membres}""", params) if exposee(r)}
+    lies |= {r["tiers_id"] for r in lignes(f"""select r.tiers_id from representant r join tiers t on t.id = r.tiers_id
+                                              where r.role = 'dirigeant' and r.personne_exposee and r.retire_le is null and {membres}""", params)}
+    cles = ("adresse", "province", "ville", "commune", "quartier", "rue", "numeroRue")
+    changements: dict[int, int] = {}
+    for r in lignes(f"""select x.tiers_id, x.avant, x.apres from tiers_modification x join tiers t on t.id = x.tiers_id
+                        where x.modifie_le >= %s::date - interval '12 months' and {membres}""", (jour, *params)):
+        if any(((json_lu(r["avant"]) or {}).get(k) or "") != ((json_lu(r["apres"]) or {}).get(k) or "") for k in cles):
+            changements[r["tiers_id"]] = changements.get(r["tiers_id"], 0) + 1
+    vues = []
+    for t in tous:
+        pr = dernier.get(t["id"])
+        signaux = (["Courrier domicilié dans une boîte postale (Instr. BCC 15, art. 39)"] if t["bp"] else []) + \
+            ([f"Adresse changée {changements[t['id']]} fois en douze mois (Instr. BCC 15, art. 39)"] if changements.get(t["id"], 0) >= 2 else [])
+        vues.append({"tiersId": t["id"], "membre": t["numero"], "client": " ".join(x for x in (t["nom"], t["postnom"], t["prenom"]) if x),
+                     "exposee": t["id"] in exposes or t["id"] in lies, "niveau": pr["niveau"] if pr else "", "niveauLibelle": NIVEAUX.get(pr["niveau"], "") if pr else "",
+                     "motif": (pr["motif"] or "") if pr else "", "evalueLe": pr["evalue_le"].isoformat() if pr else "", "evaluePar": (pr["evaluateur"] or "") if pr else "",
+                     "prochaineRevue": pr["prochaine"] if pr else "", "echue": not pr or pr["prochaine"] <= jour, "signaux": signaux})
     return [v for v in vues if v["echue"]] if filtre == "echues" else vues
 
 

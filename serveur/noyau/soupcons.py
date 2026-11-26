@@ -7,7 +7,7 @@ connaissance du client. Confrontation du 21/11/2026, E6. Le registre réunit les
 renforcé ou sur une opération atypique. Mêmes règles que web/src/donnees/api.ts (soupcons)."""
 import re
 
-from .bd import ErreurMetier, executer, lignes, une, valeur
+from .bd import ErreurMetier, executer, lignes, une, valeur, verrou_numero
 from .services import exiger, journee_courante, nom_utilisateur, titulaire
 
 NATURES = {"operation": "Opération exécutée", "tentative": "Tentative"}
@@ -75,6 +75,7 @@ def enregistrer(u: dict, d: dict) -> dict:
         raise ErreurMetier("La date de transmission ne peut pas dépasser la journée ouverte.")
     if t("moyen") not in MOYENS:
         raise ErreurMetier("À remplir : moyen de transmission (écrit, numérique, électronique ou téléphone).")
+    verrou_numero("declaration_soupcon", u["institution_id"])
     n = int(valeur("select coalesce(max(numero), 0) + 1 from declaration_soupcon where institution_id = %s", (u["institution_id"],)))
     sid = valeur("""insert into declaration_soupcon (institution_id, numero, tiers_id, nature, description, personnes, raisons, delai, transmise_le, moyen, saisi_par)
                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",

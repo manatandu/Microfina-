@@ -6,7 +6,7 @@ from datetime import date
 
 from psycopg.types.json import Jsonb
 
-from .bd import ErreurMetier, executer, lignes, une, valeur
+from .bd import ErreurMetier, executer, lignes, une, valeur, verrou_numero
 from .services import exiger, journee_courante, json_lu, titulaire
 from .simulation_credit import charge, simuler
 from .fuseau import jour_agence
@@ -77,6 +77,7 @@ def creer_depuis_demande(u, x: dict) -> int:
     fonds = charge(p["solidarite_nature"], p["solidarite_valeur"], x["montant_approuve"])
     lb = une("select b.numero, b.libelle, b.bailleur_id from budget_ligne b where b.id = %s", (x["ligne_budget_id"],)) if x["ligne_budget_id"] else None
     bailleur = valeur("select nom from bailleur where id = %s", (lb["bailleur_id"],)) if lb and lb["bailleur_id"] else None
+    verrou_numero("credit", u["institution_id"])
     n = int(valeur("select count(*) from credit where institution_id = %s", (u["institution_id"],))) + 1
     numero = f"{valeur('select code from agence where id = %s', (x['agence_id'],))}/{p['numero']}/{n:05d}"
     zone = valeur("select zone_id from tiers where id = %s", (x["tiers_id"],))
@@ -141,6 +142,7 @@ def mettre_en_place(u, did: int, d) -> dict:
     structure = (d or {}).get("structure") or STRUCTURES[0]
     if structure not in STRUCTURES:
         raise ErreurMetier("Structure de référencement inconnue.")
+    verrou_numero("credit", u["institution_id"])
     n = int(valeur("select count(*) from credit where institution_id = %s", (u["institution_id"],))) + 1
     numero = f"{valeur('select code from agence where id = %s', (x['agence_id'],))}/{p['numero']}/{n:05d}"
     bailleur = valeur("select nom from bailleur where id = %s", (lb["bailleur_id"],)) if lb and lb["bailleur_id"] else None

@@ -2,7 +2,7 @@
 Mêmes règles que web/src/donnees/api.ts (releves). Registre S64-1 à S64-6."""
 import re
 
-from .bd import ErreurMetier, lignes, une, valeur
+from .bd import ErreurMetier, lignes, une, valeur, verrou_numero
 from .services import exiger, lire_tiers, soldes_masques, solde_contrat
 
 CHAMPS_CLIENT = ("numero", "type", "intitule", "nom", "postnom", "prenom", "sexe", "naissance", "lieuNaissance", "profession", "nationalite", "zone", "quartier",
@@ -72,6 +72,7 @@ def editer(u, compte_id: int, du: str, au: str) -> dict:
     """Bouton Relever Compte : le relevé au modèle standard (registre S64-7), avec son numéro d'édition, gardé pour la trace des relevés remis"""
     r = releve(u, compte_id, du, au)
     i = u["institution_id"]
+    verrou_numero("releve_edition", i)
     numero = int(valeur("select coalesce(max(numero), 0) + 1 from releve_edition where institution_id = %s", (i,)))
     rid = valeur("""insert into releve_edition (institution_id, numero, compte_depot_id, du, au, edite_par) values (%s, %s, %s, %s, %s, %s) returning id""",
                  (i, numero, compte_id, du, au, u["id"]))

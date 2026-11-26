@@ -7,7 +7,7 @@ Montant prêt (comparaison et montant), Crédits archivés. La situation (capita
 from .cloison import clause
 from .bd import ErreurMetier, lignes, une, valeur
 from .releves import client
-from .remboursements import etat
+from .remboursements import charger_etats, etat
 from .services import exiger, titulaire
 from .visas_credit import NIVEAUX, date_iso, ligne
 
@@ -33,19 +33,33 @@ def situation(u, p: dict, brut: bool = False) -> list[dict]:
     if op is not None and (op not in OPERATEURS or not isinstance(m, int) or isinstance(m, bool)):
         raise ErreurMetier("Montant prêt : choisir la comparaison et saisir le montant.")
     statuts = list(STATUTS) if p.get("archives") else ["mis_en_place", "vise", "debloque"]
+    ag, pa = clause(u, "t.agence_id")     # les crédits de ses membres (registre T213 ; essai en charge, T230)
+    # Essai en charge (registre T230) : le crédit, sa demande, le membre, le produit, l'agent et le compte en une lecture, au lieu d'une douzaine par crédit
+    rows = lignes(f"""select c.*, jour_agence(dc.approuve_le) as approuve, dc.cree_le as demande_le, t.numero as membre_numero, t.type as type_tiers,
+                             coalesce(p.nom, m.raison_sociale) as nom_t, p.postnom as postnom_t, p.prenom as prenom_t, p.telephone as telephone_t,
+                             pc.nom as produit_nom, ua.nom as agent_nom,
+                             case when c.compte_epargne_id is not null then (select k.numero from compte_depot k where k.id = c.compte_epargne_id)
+                                  else (select k.numero from compte_depot k where k.tiers_id = c.tiers_id and k.statut = 'ouvert' order by k.numero limit 1) end as compte_numero
+                      from credit c join demande_credit dc on dc.id = c.demande_id join tiers t on t.id = c.tiers_id
+                      left join tiers_personne p on p.tiers_id = t.id left join tiers_morale m on m.tiers_id = t.id
+                      join produit_credit pc on pc.id = c.produit_id left join utilisateur ua on ua.id = c.agent_id
+                      where c.institution_id = %s and c.statut = any(%s) and jour_agence(dc.approuve_le) <= %s and (%s::date is null or jour_agence(dc.approuve_le) >= %s)
+                        and (%s::bigint is null or c.produit_id = %s) and (%s::bigint is null or c.agent_id = %s)
+                        and (%s::text is null or exists (select 1 from visa_credit v where v.credit_id = c.id and v.niveau = %s and v.avis = 'accepte')){ag}
+                      order by c.id""",
+                  (u["institution_id"], statuts, d, d1, d1, p.get("produitId"), p.get("produitId"), p.get("agentId"), p.get("agentId"), niveau, niveau, *pa))
+    rows = [c for c in rows if not (op and not OPERATEURS[op](c["montant"], m))]
+    charge = charger_etats([c["id"] for c in rows if c["debloque_le"] and c["debloque_le"] <= d])
     out = []
-    for c in lignes("""select c.*, jour_agence(dc.approuve_le) as approuve from credit c join demande_credit dc on dc.id = c.demande_id
-                       where c.institution_id = %s and c.statut = any(%s) and jour_agence(dc.approuve_le) <= %s and (%s::date is null or jour_agence(dc.approuve_le) >= %s)
-                       and (%s::bigint is null or c.produit_id = %s) and (%s::bigint is null or c.agent_id = %s)
-                       and (%s::text is null or exists (select 1 from visa_credit v where v.credit_id = c.id and v.niveau = %s and v.avis = 'accepte'))
-                       order by c.id""",
-                    (u["institution_id"], statuts, d, d1, d1, p.get("produitId"), p.get("produitId"), p.get("agentId"), p.get("agentId"), niveau, niveau)):
-        if op and not OPERATEURS[op](c["montant"], m):
-            continue
-        s = etat(c, d) if c["debloque_le"] and c["debloque_le"] <= d else None
-        out.append({**ligne(c), "dateApprobation": c["approuve"].isoformat(), "membre": valeur("select numero from tiers where id = %s", (c["tiers_id"],)),
-                    "contact": client(c["tiers_id"])["telephone"], "statut": STATUTS[c["statut"]], "capitalRestant": s["capitalRestant"] if s else None,
-                    "joursRetard": s["joursRetard"] if s else None, "degre": s["degreLibelle"] if s else "", **({"_c": c} if brut else {})})
+    for c in rows:
+        s = etat(c, d, charge) if c["debloque_le"] and c["debloque_le"] <= d else None
+        nom = " ".join(x for x in (c["nom_t"], c["postnom_t"], c["prenom_t"]) if x)
+        out.append({"id": c["id"], "numero": c["numero"], "dateDemande": c["demande_le"].date().isoformat(), "compte": c["compte_numero"] or "", "client": nom,
+                    "montant": c["montant"], "devise": c["devise"].strip(), "duree": c["duree_mois"], "produit": c["produit_nom"], "agentId": c["agent_id"],
+                    "agent": c["agent_nom"] or "", "groupe": nom if c["type_tiers"] == "groupe" else "",
+                    "dateApprobation": c["approuve"].isoformat(), "membre": c["membre_numero"], "contact": c["telephone_t"] or "", "statut": STATUTS[c["statut"]],
+                    "capitalRestant": s["capitalRestant"] if s else None, "joursRetard": s["joursRetard"] if s else None, "degre": s["degreLibelle"] if s else "",
+                    **({"_c": c} if brut else {})})
     return out
 
 
@@ -56,12 +70,13 @@ ETATS = {"demande": "Demandé", "verifie": "Vérifié", "decide": "Décidé", "v
 EN_COURS = ["demande", "verifie", "decide", "vise", "debloque", "proroge", "contentieux"]
 
 
-def etat_de(c: dict) -> str:
+def etat_de(c: dict, contentieux: set | None = None, proroges: set | None = None) -> str:
+    """`contentieux`, `proroges` : les crédits qui en ont un dossier, déjà lus pour une liste ; sans eux, lus ici"""
     s = c["statut"]
     if s == "debloque":
-        if valeur("select 1 from credit_contentieux where credit_id = %s and clos_le is null", (c["id"],)):
+        if (c["id"] in contentieux) if contentieux is not None else valeur("select 1 from credit_contentieux where credit_id = %s and clos_le is null", (c["id"],)):
             return "contentieux"
-        if valeur("select 1 from credit_prorogation where credit_id = %s", (c["id"],)):
+        if (c["id"] in proroges) if proroges is not None else valeur("select 1 from credit_prorogation where credit_id = %s", (c["id"],)):
             return "proroge"
         return "debloque"
     return {"mis_en_place": "decide", "vise": "vise", "solde": "solde", "refuse": "refuse", "passe_en_perte": "perte"}[s]
@@ -74,27 +89,37 @@ def portefeuille(u, p: dict) -> list[dict]:
     if e is not None and e not in ETATS:
         raise ErreurMetier("État inconnu.")
     etats = [e] if e else (list(ETATS) if p.get("archives") else EN_COURS)
-    out = [{**x, "type": "credit", "etat": etat_de(x["_c"]), "statut": ETATS[etat_de(x["_c"])], "refusNiveau": "", "appel": ""} for x in situation(u, {**p, "archives": True}, brut=True)]
-    out = [{k: v for k, v in x.items() if k != "_c"} for x in out if x["etat"] in etats]
+    credits = situation(u, {**p, "archives": True}, brut=True)
+    ids = [x["id"] for x in credits]
+    contentieux = {r["credit_id"] for r in lignes("select credit_id from credit_contentieux where clos_le is null and credit_id = any(%s)", (ids,))} if ids else set()
+    proroges = {r["credit_id"] for r in lignes("select credit_id from credit_prorogation where credit_id = any(%s)", (ids,))} if ids else set()
+    out = []
+    for x in credits:
+        k = etat_de(x["_c"], contentieux, proroges)
+        if k in etats:
+            out.append({**{a: v for a, v in x.items() if a != "_c"}, "type": "credit", "etat": k, "statut": ETATS[k], "refusNiveau": "", "appel": ""})
     if p.get("niveau"):
         return out
     d2 = date_iso(p.get("date") if p.get("mode") == "date" else p.get("au"), "Date fin")
     d1 = None if p.get("mode") == "date" else date_iso(p.get("du"), "Date début")
     op, m = p.get("operateur") or None, p.get("montant")
     statuts = [s for s, k in (("saisie", "demande"), ("controlee", "verifie"), ("rejetee", "refuse")) if k in etats]
-    ag, pa = clause(u, "(select t.agence_id from tiers t where t.id = demande_credit.tiers_id)")   # ses membres (registre T213)
-    for x in lignes(f"""select * from demande_credit where institution_id = %s and statut = any(%s) and jour_agence(cree_le) <= %s and (%s::date is null or jour_agence(cree_le) >= %s)
-                       and (%s::bigint is null or produit_id = %s) and (%s::bigint is null or coalesce(agent_id, saisi_par) = %s){ag} order by id""",
+    ag, pa = clause(u, "t.agence_id")   # ses membres (registre T213)
+    for x in lignes(f"""select dc.*, t.numero as membre_numero, t.type as type_tiers, coalesce(pp.nom, m.raison_sociale) as nom_t, pp.postnom as postnom_t, pp.prenom as prenom_t,
+                               pp.telephone as telephone_t, pc.nom as produit_nom, pc.devise as produit_devise, ua.nom as agent_nom
+                        from demande_credit dc join tiers t on t.id = dc.tiers_id left join tiers_personne pp on pp.tiers_id = t.id left join tiers_morale m on m.tiers_id = t.id
+                        join produit_credit pc on pc.id = dc.produit_id left join utilisateur ua on ua.id = coalesce(dc.agent_id, dc.saisi_par)
+                        where dc.institution_id = %s and dc.statut = any(%s) and jour_agence(dc.cree_le) <= %s and (%s::date is null or jour_agence(dc.cree_le) >= %s)
+                          and (%s::bigint is null or dc.produit_id = %s) and (%s::bigint is null or coalesce(dc.agent_id, dc.saisi_par) = %s){ag} order by dc.id""",
                     (u["institution_id"], statuts, d2, d1, d1, p.get("produitId"), p.get("produitId"), p.get("agentId"), p.get("agentId"), *pa)):
         if op and not OPERATEURS[op](x["montant_demande"], m):
             continue
         k = {"saisie": "demande", "controlee": "verifie", "rejetee": "refuse"}[x["statut"]]
+        nom = " ".join(v for v in (x["nom_t"], x["postnom_t"], x["prenom_t"]) if v)
         out.append({"type": "demande", "id": x["id"], "numero": x["numero"], "dateDemande": x["cree_le"].date().isoformat(), "dateApprobation": None,
-                    "membre": valeur("select numero from tiers where id = %s", (x["tiers_id"],)), "client": titulaire(x["tiers_id"]),
-                    "contact": client(x["tiers_id"])["telephone"], "groupe": titulaire(x["tiers_id"]) if valeur("select type from tiers where id = %s", (x["tiers_id"],)) == "groupe" else "",
-                    "montant": x["montant_demande"], "devise": (x["devise"] or valeur("select devise from produit_credit where id = %s", (x["produit_id"],))).strip(),
-                    "duree": x["duree_mois"], "produit": valeur("select nom from produit_credit where id = %s", (x["produit_id"],)),
-                    "agent": valeur("select nom from utilisateur where id = %s", (x["agent_id"] or x["saisi_par"],)) or "", "etat": k, "statut": ETATS[k],
+                    "membre": x["membre_numero"], "client": nom, "contact": x["telephone_t"] or "", "groupe": nom if x["type_tiers"] == "groupe" else "",
+                    "montant": x["montant_demande"], "devise": (x["devise"] or x["produit_devise"]).strip(),
+                    "duree": x["duree_mois"], "produit": x["produit_nom"], "agent": x["agent_nom"] or "", "etat": k, "statut": ETATS[k],
                     "capitalRestant": None, "joursRetard": None, "degre": "", "refusNiveau": x["refus_niveau"] or "", "appel": x["appel_decision"] or ""})
     return out
 

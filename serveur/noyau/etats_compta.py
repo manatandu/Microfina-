@@ -236,26 +236,29 @@ def journaux(u, p: dict) -> dict:
     piece = MODES.get(p.get("pieceMode") or "debut", "{}%").format(p["piece"].strip()) if (p.get("piece") or "").strip() else None
     libelle = MODES.get(p.get("libelleMode") or "debut", "{}%").format(p["libelle"].strip()) if (p.get("libelle") or "").strip() else None
     achats = bool(p.get("achats"))          # S107, Journal achat : les écritures des factures et de leurs règlements
-    rows = lignes("""select j.code || ' ' || j.libelle as journal, c.numero as compte, c.libelle as intitule, l.sens, l.montant_cdf, e.date_valeur, pc.numero as piece,
-                            e.libelle
-                     from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join journee_comptable jc on jc.id = e.journee_id
-                     join compte c on c.id = l.compte_id join journal j on j.id = e.journal_id join piece pc on pc.id = e.piece_id
-                     join schema_comptable sc on sc.id = e.schema_id
-                     where e.institution_id = %s and jc.statut = 'fermee' and extract(year from e.date_valeur) = %s
-                       and (not %s or sc.type_evenement in ('facture', 'reglement_facture'))
-                       and (%s::int is null or extract(month from e.date_valeur) = %s) and (%s::bigint is null or j.id = %s) and (%s::text is null or j.type = %s)
-                       and (%s::text is null or l.sens = %s) and (%s::bigint is null or l.montant_cdf = %s) and (%s::bigint is null or e.saisi_par = %s)
-                       and (%s::text is null or pc.numero ilike %s) and (%s::text is null or e.libelle ilike %s)
-                     order by j.code, e.date_valeur, e.id, l.rang""",
-                  (u["institution_id"], int(ex), achats, mois, mois, journal, journal, type_, type_, sens, sens, montant, montant, util, util, piece, piece, libelle, libelle))
+    source = """from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join journee_comptable jc on jc.id = e.journee_id
+                join compte c on c.id = l.compte_id join journal j on j.id = e.journal_id join piece pc on pc.id = e.piece_id
+                join schema_comptable sc on sc.id = e.schema_id
+                where e.institution_id = %s and jc.statut = 'fermee' and extract(year from e.date_valeur) = %s
+                  and (not %s or sc.type_evenement in ('facture', 'reglement_facture'))
+                  and (%s::int is null or extract(month from e.date_valeur) = %s) and (%s::bigint is null or j.id = %s) and (%s::text is null or j.type = %s)
+                  and (%s::text is null or l.sens = %s) and (%s::bigint is null or l.montant_cdf = %s) and (%s::bigint is null or e.saisi_par = %s)
+                  and (%s::text is null or pc.numero ilike %s) and (%s::text is null or e.libelle ilike %s)"""
+    params = (u["institution_id"], int(ex), achats, mois, mois, journal, journal, type_, type_, sens, sens, montant, montant, util, util, piece, piece, libelle, libelle)
     if journal or achats:
+        # Détail d'un journal : borné comme le grand livre (essai en charge, registres T226 et T230)
+        n = valeur(f"select count(*) {source}", params)
+        if n > LIGNES_MAX:
+            raise ErreurMetier(f"Journal : {n} lignes sur la période. Choisir un mois ({LIGNES_MAX} lignes au plus par édition).")
         out = [{"journal": r["journal"], "compte": r["compte"], "intitule": r["intitule"], "debit": r["montant_cdf"] if r["sens"] == "D" else 0,
-                "credit": r["montant_cdf"] if r["sens"] == "C" else 0} for r in rows]
+                "credit": r["montant_cdf"] if r["sens"] == "C" else 0}
+               for r in lignes(f"""select j.code || ' ' || j.libelle as journal, c.numero as compte, c.libelle as intitule, l.sens, l.montant_cdf {source}
+                                   order by j.code, e.date_valeur, e.id, l.rang""", params)]
     else:
-        tot = defaultdict(lambda: [0, 0, ""])
-        for r in rows:
-            t = tot[(r["journal"], r["compte"])]
-            t[0 if r["sens"] == "D" else 1] += r["montant_cdf"]
-            t[2] = r["intitule"]
-        out = [{"journal": k[0], "compte": k[1], "intitule": v[2], "debit": v[0], "credit": v[1]} for k, v in sorted(tot.items())]
+        # Journal centralisé : la base fait les totaux par journal et par compte (PCCI § 3.3)
+        out = [{"journal": r["journal"], "compte": r["compte"], "intitule": r["intitule"], "debit": int(r["debit"]), "credit": int(r["credit"])}
+               for r in lignes(f"""select j.code || ' ' || j.libelle as journal, c.numero as compte, max(c.libelle) as intitule,
+                                          coalesce(sum(l.montant_cdf) filter (where l.sens = 'D'), 0) as debit,
+                                          coalesce(sum(l.montant_cdf) filter (where l.sens = 'C'), 0) as credit
+                                   {source} group by 1, 2 order by 1, 2""", params)]
     return {"lignes": out, "totalDebit": sum(x["debit"] for x in out), "totalCredit": sum(x["credit"] for x in out)}

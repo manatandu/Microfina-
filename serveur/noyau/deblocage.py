@@ -103,8 +103,10 @@ def echeancier_recale(u, c: dict, d: date) -> list[dict]:
 
 def a_debloquer(u) -> list[dict]:
     exiger(u)
+    from .cloison import clause
+    ag, pa = clause(u, "(select t.agence_id from tiers t where t.id = credit.tiers_id)")     # les crédits de ses membres (registre T213, T230)
     return [{"id": c["id"], "numero": c["numero"], "client": titulaire(c["tiers_id"]), "montant": c["montant"], "devise": c["devise"].strip()}
-            for c in lignes("select * from credit where institution_id = %s and statut = 'vise' order by id", (u["institution_id"],))]
+            for c in lignes(f"select * from credit where institution_id = %s and statut = 'vise'{ag} order by id", (u["institution_id"], *pa))]
 
 
 def compte_positionnement(c) -> dict | None:

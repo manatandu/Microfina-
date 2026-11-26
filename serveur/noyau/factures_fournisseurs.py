@@ -13,7 +13,7 @@ from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from psycopg.types.json import Jsonb
 
 from .banques import compte_du_plan
-from .bd import ErreurMetier, executer, lignes, une, valeur
+from .bd import ErreurMetier, executer, lignes, une, valeur, verrou_numero
 from .operations_compta import L, budget, cle_de, entier, jour_ouvert, tenu_par_la_gestion, texte
 from .services import (controler_montant_coupures, creer_operation, exiger, json_lu, nettoyer, nom_utilisateur, nouvelle_piece, poster, session_ouverte,
                        theorique)
@@ -204,6 +204,7 @@ def enregistrer_commande(u, d) -> dict:
     l = lignes_commande(u, d.get("lignes"))
     ht, tva = sum(x["ht"] for x in l), sum(x["tva"] for x in l)
     tr = tranches_commande(d.get("tranches"), ht, date_op)
+    verrou_numero("commande_fournisseur", i)
     n = int(valeur("select count(*) from commande_fournisseur where institution_id = %s", (i,))) + 1
     cid = valeur("""insert into commande_fournisseur (institution_id, agence_id, numero, type_commande_id, fournisseur_id, libelle, date_operation, lignes, tranches,
                                                       montant_ht, tva, ttc, saisi_par, cle_idempotence)
@@ -331,6 +332,7 @@ def enregistrer_facture(u, d) -> dict:
     if une("select 1 from facture_fournisseur where institution_id = %s and fournisseur_id = %s and upper(reference) = upper(%s) and statut <> 'annulee'",
            (i, x["fournisseur"]["id"], reference)):
         raise ErreurMetier("Réf. Facture : cette facture du fournisseur est déjà enregistrée.")
+    verrou_numero("facture_fournisseur", i)
     n = int(valeur("select count(*) from facture_fournisseur where institution_id = %s", (i,))) + 1
     fid = valeur("""insert into facture_fournisseur (institution_id, agence_id, numero, commande_id, tranche, fournisseur_id, type_facture, reference, date_facture,
                                                      date_echeance, libelle, montant_ht, tva, ttc, charges, lignes, montant_du, montant_a_payer, a_jour, nif,

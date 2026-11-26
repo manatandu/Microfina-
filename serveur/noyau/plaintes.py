@@ -6,7 +6,7 @@ import re
 import uuid
 from datetime import date, timedelta
 
-from .bd import ErreurMetier, executer, lignes, une, valeur
+from .bd import ErreurMetier, executer, lignes, une, valeur, verrou_numero
 from .services import exiger, journee_courante, nom_utilisateur, titulaire
 from .fuseau import jour_agence
 
@@ -60,6 +60,7 @@ def enregistrer(u: dict, d: dict) -> dict:
         raise ErreurMetier("À remplir : " + ", ".join(manque) + ".")
     if t("canal") not in CANAUX or t("provenance") not in PROVENANCES or t("nature") not in NATURES:
         raise ErreurMetier("Choisir le canal, la provenance et la nature de l'opération (Instr. BCC 39, art. 10 et 19).")
+    verrou_numero("plainte", u["institution_id"])
     n = int(valeur("select count(*) + 1 from plainte where institution_id = %s and extract(year from recue_le) = %s", (u["institution_id"], int(recue[:4]))))
     ref = f"PL-{recue[:4]}-{n:06d}"                          # art. 7 : référence unique, transmise au client
     pid = valeur("""insert into plainte (institution_id, agence_id, reference, cle_idempotence, recue_le, tiers_id, plaignant, contact, canal, provenance, nature,

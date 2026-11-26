@@ -10,7 +10,7 @@ from datetime import date
 
 from psycopg.types.json import Jsonb
 
-from .bd import ErreurMetier, executer, lignes, une, valeur
+from .bd import ErreurMetier, executer, lignes, une, valeur, verrou_numero
 from .services import cours, est_coopec, exiger, journee_courante, json_lu, titulaire
 from .fuseau import jour_agence
 
@@ -121,7 +121,9 @@ def lister(u, statut: str) -> list[dict]:
     exiger(u)
     if statut not in ("saisie", "controlee", "approuvee", "rejetee", "mise_en_place"):
         raise ErreurMetier("Statut inconnu.")
-    return [vue(x) for x in lignes("select * from demande_credit where institution_id = %s and statut = %s order by id", (u["institution_id"], statut))]
+    from .cloison import clause
+    ag, pa = clause(u, "(select t.agence_id from tiers t where t.id = demande_credit.tiers_id)")     # les demandes de ses membres (registre T213, T230)
+    return [vue(x) for x in lignes(f"select * from demande_credit where institution_id = %s and statut = %s{ag} order by id", (u["institution_id"], statut, *pa))]
 
 
 def effectifs(d) -> dict:
@@ -214,6 +216,7 @@ def demander(u, d) -> dict:
     if cons_le > jour(u):
         raise ErreurMetier("Consentement à la Centrale des risques : la date de signature ne peut pas être après la journée.")
     ic = infos_credit(u, d, t, p, montant, duree)
+    verrou_numero("demande_credit", u["institution_id"])
     n = int(valeur("select count(*) from demande_credit where institution_id = %s", (u["institution_id"],))) + 1
     executer("insert into consentement (tiers_id, code, date_debut, date_fin, commentaire, saisi_par) values (%s, %s, %s, null, %s, %s)",
              (t["id"], cons_ref, cons_le.isoformat(), f"Demande de crédit DC{n:06d}", u["id"]))

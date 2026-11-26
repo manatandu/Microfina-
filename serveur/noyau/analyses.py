@@ -3,7 +3,7 @@ La capture montre les onglets, pas leur contenu ; la grille est proposée par no
 Indicative : elle ne bloque pas la demande. Montants en centimes, mensuels."""
 from decimal import ROUND_HALF_UP, Decimal
 
-from .bd import ErreurMetier, lignes, une, valeur
+from .bd import ErreurMetier, lignes, une, valeur, verrou_numero
 from .services import exiger, json_lu, titulaire
 
 AVIS = ("favorable", "reserve", "defavorable")
@@ -108,6 +108,7 @@ def enregistrer(u, d) -> dict:
         raise ErreurMetier("Montant recommandé : un montant supérieur à zéro.")
     if dr is not None and (not isinstance(dr, int) or isinstance(dr, bool) or dr <= 0):
         raise ErreurMetier("Durée recommandée : un nombre de mois.")
+    verrou_numero("analyse_financiere", u["institution_id"])
     n = int(valeur("select count(*) from analyse_financiere where institution_id = %s", (u["institution_id"],))) + 1
     from psycopg.types.json import Jsonb
     aid = valeur("""insert into analyse_financiere (institution_id, agence_id, numero, type, tiers_id, produit_id, montant, duree, objet, donnees,

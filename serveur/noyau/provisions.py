@@ -63,10 +63,15 @@ def charger(u, p) -> list[dict]:
     d = date_operation(u, (p or {}).get("date") if isinstance(p, dict) else None)
     b = balance(u, d)
     out = []
-    for l in lignes("""select l.*, c.numero, c.debloque_le, c.provision, c.statut from balance_agee_ligne l join credit c on c.id = l.credit_id
-                       where l.balance_id = %s order by c.numero""", (b,)):
+    from .cloison import clause
+    ag, pa = clause(u, "(select t.agence_id from tiers t where t.id = l.tiers_id)")      # les crédits de ses membres (registres T213 et T230)
+    for l in lignes(f"""select l.*, c.numero, c.debloque_le, c.provision, c.statut, coalesce(p.nom, m.raison_sociale) as nom, p.postnom, p.prenom
+                        from balance_agee_ligne l join credit c on c.id = l.credit_id
+                        left join tiers_personne p on p.tiers_id = l.tiers_id left join tiers_morale m on m.tiers_id = l.tiers_id
+                        where l.balance_id = %s{ag} order by c.numero""", (b, *pa)):
         g = cible(l)
-        out.append({"id": l["credit_id"], "numero": l["numero"], "client": titulaire(l["tiers_id"]), "montant": l["montant"], "devise": l["devise"],
+        out.append({"id": l["credit_id"], "numero": l["numero"], "client": " ".join(x for x in (l["nom"], l["postnom"], l["prenom"]) if x), "montant": l["montant"],
+                    "devise": l["devise"],
                     "dateDeblocage": l["debloque_le"].isoformat(), "capitalRestant": l["capital_restant"], "joursRetard": l["jours_retard"],
                     "degre": DEGRES[g - 1]["libelle"] + (" (assimilé)" if l["assimile"] else ""), "tranche": g - 1, "taux": taux(g),
                     "provisionRequise": l["capital_restant"] * taux(g) // 100, "provision": l["provision"], "statut": l["statut"],

@@ -99,14 +99,24 @@ def retards(u) -> list[dict]:
     exiger(u)
     d = jour(u)
     out = []
-    for c in lignes("select * from credit where institution_id = %s and statut = 'debloque' order by id", (u["institution_id"],)):
-        s = etat(c, d)
+    from .cloison import clause
+    from .remboursements import charger_etats
+    ag, pa = clause(u, "t.agence_id")     # les crédits de ses membres (registres T213 et T230)
+    credits = lignes(f"""select c.*, t.numero as membre_numero, coalesce(p.nom, m.raison_sociale) as nom_t, p.postnom as postnom_t, p.prenom as prenom_t
+                         from credit c join tiers t on t.id = c.tiers_id left join tiers_personne p on p.tiers_id = t.id left join tiers_morale m on m.tiers_id = t.id
+                         where c.institution_id = %s and c.statut = 'debloque'{ag} order by c.id""", (u["institution_id"], *pa))
+    ids = [c["id"] for c in credits]
+    charge = charger_etats(ids)
+    derniere = {r["credit_id"]: r for r in lignes("""select distinct on (d.credit_id) d.credit_id, d.date_demarche, n.libelle from credit_demarche d
+                                                      join credit_demarche_nature n on n.id = d.nature_id where d.credit_id = any(%s)
+                                                      order by d.credit_id, d.date_demarche desc, d.id desc""", (ids,))} if ids else {}
+    for c in credits:
+        s = etat(c, d, charge)
         if s["joursRetard"] < 1:
             continue
-        x = une("""select d.date_demarche, n.libelle from credit_demarche d join credit_demarche_nature n on n.id = d.nature_id
-                   where d.credit_id = %s order by d.date_demarche desc, d.id desc limit 1""", (c["id"],))
-        out.append({"id": c["id"], "numero": c["numero"], "client": titulaire(c["tiers_id"]), "tiersId": c["tiers_id"],
-                    "membre": valeur("select numero from tiers where id = %s", (c["tiers_id"],)), "joursRetard": s["joursRetard"],
+        x = derniere.get(c["id"])
+        out.append({"id": c["id"], "numero": c["numero"], "client": " ".join(v for v in (c["nom_t"], c["postnom_t"], c["prenom_t"]) if v), "tiersId": c["tiers_id"],
+                    "membre": c["membre_numero"], "joursRetard": s["joursRetard"],
                     "capitalRestant": s["capitalRestant"], "devise": c["devise"].strip(),
                     "derniereDemarche": x["libelle"] if x else "", "derniereLe": x["date_demarche"].isoformat() if x else "",
                     "joursDepuis": (d - x["date_demarche"]).days if x else None})

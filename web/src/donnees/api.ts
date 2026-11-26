@@ -9255,6 +9255,9 @@ const etatsCompta = {
     }
     rows.sort((a, b) => a.journal.localeCompare(b.journal));
     let lignes: { journal: string; compte: string; intitule: string; debit: number; credit: number }[];
+    // Détail d'un journal : borné comme le grand livre (essai en charge, registres T226 et T230)
+    const nb = rows.length, max = 50000;
+    if ((journal || p.achats) && nb > max) throw new ErreurMetier(`Journal : ${nb} lignes sur la période. Choisir un mois (${max} lignes au plus par édition).`);
     if (journal || p.achats) lignes = rows.map((r) => ({ journal: r.journal, compte: r.compte, intitule: r.intitule, debit: r.sens === "D" ? r.montantCdf : 0, credit: r.sens === "C" ? r.montantCdf : 0 }));
     else {
       const tot = new Map<string, { journal: string; compte: string; intitule: string; debit: number; credit: number }>();

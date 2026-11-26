@@ -9,7 +9,7 @@ import uuid
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
-from .bd import ErreurMetier, executer, lignes, une, valeur
+from .bd import ErreurMetier, executer, lignes, une, valeur, verrou_numero
 from .depots_terme import COMPTE_IRC, ajouter_mois, disponible, taux_irc
 from .produits_credit import FIXES
 from .services import compte_du_produit, exiger, journee_courante, nouvelle_piece, poster, titulaire
@@ -142,6 +142,7 @@ def creer(u, d) -> dict:
     n = nombre_echeances(duree, code)
     d0 = date.fromisoformat(debut)
     taux = Decimal(p["taux_interet"] or 0)
+    verrou_numero("plan_epargne", i)
     numero = int(valeur("select coalesce(max(numero), 0) + 1 from plan_epargne where institution_id = %s", (i,)))
     pid = valeur("""insert into plan_epargne (institution_id, agence_id, numero, tiers_id, produit_id, compte_epargne_id, compte_plan_id, devise, duree_mois, periodicite,
                                               montant, taux_interet, mode_reglement, date_debut, date_fin, cle_idempotence, saisi_par)

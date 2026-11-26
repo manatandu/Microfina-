@@ -5,7 +5,7 @@ import re
 import uuid
 from decimal import Decimal
 
-from .bd import ErreurMetier, lignes, une, valeur
+from .bd import ErreurMetier, lignes, une, valeur, verrou_numero
 from .services import compte_institution, exiger, journee_courante
 
 
@@ -94,6 +94,7 @@ def mettre_en_place(u, d) -> dict:
         raise ErreurMetier("Emprunt subordonné : à remplir, Autorisation BCC (Instr. BCC 002, art. 10 : autorisation préalable).")
     if not (c["saisissable"] and c["ouvert"]):
         raise ErreurMetier(f"Compte Emprunt : {compte} est fermé ou non saisissable.")
+    verrou_numero("emprunt", i)
     numero = int(valeur("select coalesce(max(numero), 0) + 1 from emprunt where institution_id = %s", (i,)))
     eid = valeur("""insert into emprunt (institution_id, agence_id, numero, compte_bancaire_id, reference, montant, devise, duree_mois, date_emprunt, taux_annuel,
                                          total_interet, total_commission, total_frais, commentaire, compte_emprunt, date_saisie, cle_idempotence, saisi_par,
