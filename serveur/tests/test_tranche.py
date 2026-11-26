@@ -5812,3 +5812,41 @@ def test_lectures_rattachees(clients):
     assert clients["resp"].get("/api/operations/1/recu", **H).status_code == 403
     assert clients["caisse"].get("/api/tiers", **H).status_code == 200
     assert ident("select count(*) from journal_securite where evenement = 'acces_refuse'") >= 2      # Instr. BCC 008, art. 16
+
+
+def test_cloisonnement_agences(clients, journee):
+    """Décision du porteur du 26/11/2026 (registre T213) : chaque agence ne voit que ses membres, et n'agit que sur eux. L'utilisateur laissé
+    « Toutes les agences » (audit interne, conformité) voit toute l'institution (Instr. BCC 008, art. 33, 52 et 54 ; Instr. BCC 15, art. 85)"""
+    from django.db import connection
+    caisse, chef, agent, admin = clients["caisse"], clients["chef"], clients["agent"], clients["compta"]
+    k = T("0412-000318")
+    with connection.cursor() as cur:
+        cur.execute("""insert into agence (institution_id, zone_id, code, nom, fuseau) select institution_id, zone_id, '0413', 'Témoin', fuseau from agence
+                       where id = (select agence_id from tiers where id = %s) returning id""", (k,))
+        b = cur.fetchone()[0]
+        cur.execute("update tiers set agence_id = %s where id = %s", (b, k))
+        cur.execute("update compte_depot set agence_id = %s where tiers_id = %s", (b, k))
+    # Lire : la recherche, la fiche, les comptes, le rapport des clients
+    assert agent.get("/api/tiers?q=0412-000318", **H).json() == []
+    r = agent.get(f"/api/tiers/{k}", **H)
+    assert r.status_code == 403 and r.json()["message"] == "Ce membre relève d'une autre agence."
+    assert agent.get(f"/api/tiers/{k}/comptes", **H).status_code == 403
+    assert "0412-000318" not in chef.get("/api/rapports/clients", **H).content.decode()
+    assert T("0412-000319") in [x["id"] for x in agent.get("/api/tiers?q=0412-000319", **H).json()]          # ses membres, toujours
+    # Agir : un dépôt au guichet sur le compte d'un membre d'une autre agence
+    r = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}, "mandataire": ""}, **H)
+    assert r.status_code == 403 and "autre agence" in r.json()["message"]
+    # « Toutes les agences » : choisi par l'administrateur sécurité, pour l'audit interne et la conformité
+    connecter(admin, "gmbuyi")
+    corps = {"nom": "Audit Interne", "agenceId": "toutes", "login": "audit1", "motDePasse": "Audit-2026-x", "confirmation": "Audit-2026-x", "portable": "+243 810 000 999"}
+    assert admin.post("/api/gestion-utilisateurs", corps, **H).status_code == 200, "création sans agence"
+    assert ident("select agence_id from utilisateur where login = 'audit1'") is None
+    assert admin.post("/api/gestion-utilisateurs", {**corps, "login": "audit2", "agenceId": None}, **H).json()["message"] == "À remplir : Agence."
+    with connection.cursor() as cur:
+        cur.execute("""insert into utilisateur_profil select u.id, p.profil_id from utilisateur u, utilisateur_profil p
+                       where u.login = 'audit1' and p.utilisateur_id = (select id from utilisateur where login = 'jpmukendi')""")
+        cur.execute("update utilisateur set mot_de_passe_a_changer = false where login = 'audit1'")
+    audit = Client()
+    connecter(audit, "audit1")
+    assert [x["id"] for x in audit.get("/api/tiers?q=0412-000318", **H).json()] == [k]
+    assert audit.get(f"/api/tiers/{k}", **H).status_code == 200

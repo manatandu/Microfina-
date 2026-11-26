@@ -34,7 +34,10 @@ def enregistrer(u, d, uid: int | None = None) -> dict:
     v = {k: t(k) for k in ("nom", "login", "rue", "adresse", "bp", "telephoneFixe", "portable", "email")}
     mdp, conf = d.get("motDePasse") if isinstance(d.get("motDePasse"), str) else "", d.get("confirmation") if isinstance(d.get("confirmation"), str) else ""
     agence = d.get("agenceId") if isinstance(d.get("agenceId"), int) and not isinstance(d.get("agenceId"), bool) else None
-    oblig = [("Nom et prénoms", v["nom"]), ("Agence", agence), ("Identifiant de connexion", v["login"])]
+    # « Toutes les agences » : l'audit interne et la conformité voient toute l'institution (Instr. BCC 008, art. 33, 52 et 54 ; Instr. BCC 15, art. 85) ;
+    # les autres utilisateurs ne voient que les membres de leur agence (cloisonnement, registre T213)
+    toutes = d.get("agenceId") == "toutes"
+    oblig = [("Nom et prénoms", v["nom"]), ("Agence", agence or toutes), ("Identifiant de connexion", v["login"])]
     if uid is None:
         oblig += [("Mot de passe", mdp), ("Confirmation", conf)]
     oblig.append(("Portable", v["portable"]))
@@ -49,7 +52,7 @@ def enregistrer(u, d, uid: int | None = None) -> dict:
         raise ErreurMetier("Identifiant de connexion : sans espace.")
     if v["email"] and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", v["email"]):
         raise ErreurMetier("Email invalide.")
-    if not une("select 1 from agence where id = %s and institution_id = %s and not supprime", (agence, i)):
+    if not toutes and not une("select 1 from agence where id = %s and institution_id = %s and not supprime", (agence, i)):
         raise ErreurMetier("Agence inconnue.")
     if uid is not None and not une("select 1 from utilisateur where id = %s and institution_id = %s and actif for update", (uid, i)):
         raise ErreurMetier("Utilisateur introuvable.")

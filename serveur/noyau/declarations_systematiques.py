@@ -13,6 +13,7 @@ Mêmes règles que web/src/donnees/api.ts (declarationsSystematiques)."""
 import re
 from datetime import date
 
+from .cloison import clause
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import SEUIL_ESPECES_USD, cours, exiger, journee_courante, nom_utilisateur, titulaire
 
@@ -78,7 +79,11 @@ def etat(u: dict, annee, mois) -> dict:
     for d in lignes("select * from declaration_systematique where institution_id = %s and annee = %s and mois = %s order by id", (u["institution_id"], a, m)):
         notees.setdefault((d["tiers_id"], d["sens"]), []).append(d)
     sortie = []
+    ag, pa = clause(u, "agence_id")                                # ses membres (registre T213)
+    visibles = {r["id"] for r in lignes(f"select id from tiers where institution_id = %s{ag}", (u["institution_id"], *pa))}
     for (tid, sens) in sorted(set(k for k, c in cumul.items() if c["total"] >= SEUIL_ESPECES_USD) | set(notees)):
+        if tid not in visibles:
+            continue
         c = cumul.get((tid, sens), {"operations": 0, "total": 0.0, "max": 0.0, "modes": set()})
         ds = notees.get((tid, sens), [])
         total = round(c["total"], 2)

@@ -21,6 +21,7 @@ from collections import defaultdict
 from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
+from .cloison import clause
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .depots_terme import COMPTE_COURUS as DETTES_DAT, COMPTE_IRC, compte_interet, disponible, taux_irc
 from .deblocage import comptes_credit
@@ -311,8 +312,9 @@ def apercu_interets_credits(u, p: dict) -> dict:
     exiger(u)
     d = date_arrete(u, p)
     out = []
-    for c in lignes("""select * from credit where institution_id = %s and debloque_le <= %s and (statut = 'debloque' or interets_courus > 0) order by numero""",
-                    (u["institution_id"], d)):
+    ag, pa = clause(u, "(select t.agence_id from tiers t where t.id = credit.tiers_id)")   # les crédits de son agence, comme les comptes et les DAT (registre T213)
+    for c in lignes(f"""select * from credit where institution_id = %s and debloque_le <= %s and (statut = 'debloque' or interets_courus > 0){ag} order by numero""",
+                    (u["institution_id"], d, *pa)):
         couru_ = couru_credit(c, d)
         if not couru_ and not c["interets_courus"]:
             continue

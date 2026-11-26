@@ -5,6 +5,7 @@ L'indicateur de gestion suit l'annexe de l'Instr. BCC 004 (formules et normes)."
 from collections import defaultdict
 from datetime import date, timedelta
 
+from .cloison import clause
 from .bd import ErreurMetier, lignes, valeur
 from .modeles_credit import DEGRES
 from .releves import client
@@ -31,10 +32,11 @@ def periode(p: dict) -> tuple[date, date]:
 
 
 def credits(u, p: dict, jusqu_au: date) -> list[dict]:
-    """Crédits débloqués au plus tard à la date, filtrés par produit et agent"""
-    return lignes("""select * from credit where institution_id = %s and statut in ('debloque', 'solde', 'passe_en_perte') and debloque_le <= %s
-                     and (%s::bigint is null or produit_id = %s) and (%s::bigint is null or agent_id = %s) order by numero""",
-                  (u["institution_id"], jusqu_au, p.get("produitId"), p.get("produitId"), p.get("agentId"), p.get("agentId")))
+    """Crédits débloqués au plus tard à la date, filtrés par produit et agent ; ceux des membres de son agence (registre T213)"""
+    ag, pa = clause(u, "(select t.agence_id from tiers t where t.id = credit.tiers_id)")
+    return lignes(f"""select * from credit where institution_id = %s and statut in ('debloque', 'solde', 'passe_en_perte') and debloque_le <= %s
+                     and (%s::bigint is null or produit_id = %s) and (%s::bigint is null or agent_id = %s){ag} order by numero""",
+                  (u["institution_id"], jusqu_au, p.get("produitId"), p.get("produitId"), p.get("agentId"), p.get("agentId"), *pa))
 
 
 def col(*x) -> list[dict]:
@@ -134,8 +136,9 @@ def synthese(u, p) -> dict:
         raise ErreurMetier(f"Aucune balance âgée au {d.strftime('%d/%m/%Y')} : la lancer d'abord (Génération de balance âgée).")
     g = defaultdict(lambda: [0, 0, 0, 0])
     tot = defaultdict(int)
-    for x in lignes("""select * from balance_agee_ligne where balance_id = %s and (%s::bigint is null or produit_id = %s) and (%s::bigint is null or agent_id = %s)""",
-                    (b, p.get("produitId"), p.get("produitId"), p.get("agentId"), p.get("agentId"))):
+    ag, pa = clause(u, "(select t.agence_id from tiers t where t.id = balance_agee_ligne.tiers_id)")
+    for x in lignes(f"""select * from balance_agee_ligne where balance_id = %s and (%s::bigint is null or produit_id = %s) and (%s::bigint is null or agent_id = %s){ag}""",
+                    (b, p.get("produitId"), p.get("produitId"), p.get("agentId"), p.get("agentId"), *pa)):
         rang = 2 if x["assimile"] else x["degre"]
         t = g[(rang, x["devise"])]
         t[0] += 1; t[1] += x["capital_restant"]; t[2] += x["capital_impaye"]; t[3] += x["interet_impaye"]

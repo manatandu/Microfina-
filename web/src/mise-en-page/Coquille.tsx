@@ -112,9 +112,9 @@ export function Coquille() {
           <button type="button" className="sortir" title="Aide en ligne" aria-label="Aide en ligne" aria-expanded={aide} onClick={() => setAide((v) => !v)}>?</button>
           {!force && <button type="button" className="sortir" title="Changer mon mot de passe" aria-label="Changer mon mot de passe" onClick={() => setMdp(true)}>{ICONES.cle}</button>}
           <button type="button" className="sortir" title="Se déconnecter" aria-label="Se déconnecter"
-            onClick={async () => {   // plan 11.6 : l'écran de connexion dit si le navigateur n'a pas nettoyé le poste
-              const r = await api.session.fermer() as { nettoye?: boolean } | undefined;
-              nav("/connexion", r?.nettoye === false ? { state: { nettoyage: false } } : undefined); }}>{ICONES.sortie}</button>
+            onClick={() => setBoite({ type: "confirmation", message: "Voulez-vous vraiment vous déconnecter ?", oui: async () => {   // demande du porteur du 26/11/2026
+              const r = await api.session.fermer() as { nettoye?: boolean } | undefined;   // plan 11.6 : l'écran de connexion dit si le navigateur n'a pas nettoyé le poste
+              nav("/connexion", r?.nettoye === false ? { state: { nettoyage: false } } : undefined); } })}>{ICONES.sortie}</button>
         </div>
       </header>
 
@@ -152,7 +152,7 @@ export function Coquille() {
         <span className="muet">{ctx.institution.nom} · agence de {ctx.agence.nom}</span>
       </footer>
       <Fiche titre="Changer mon mot de passe" ouverte={mdp} fermer={() => setMdp(false)}>
-        <ChangerMotDePasse fait={() => { setMdp(false); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }} />
+        <ChangerMotDePasse fait={() => { setMdp(false); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }} annuler={() => setMdp(false)} />
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
     </div>

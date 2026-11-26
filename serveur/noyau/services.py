@@ -14,6 +14,7 @@ from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
 
 from .bd import ErreurMetier, executer, lignes, une, valeur
+from .cloison import clause
 from .fuseau import fuseau_agence, instant_agence, jour_agence
 
 # Seuils, valeurs des maquettes
@@ -483,6 +484,8 @@ def theorique(session_id: int, devise: str) -> dict:
     """Coupures que la caisse devrait contenir (« Solde Caisse », S79) : fonds du dernier arrêté validé de ce guichet,
     plus les entrées, moins les sorties de la journée."""
     s = une("select * from session_caisse where id = %s", (session_id,))
+    if not s:
+        raise ErreurMetier("Caisse inconnue.")
     veille = une("""select b.id from billetage b join session_caisse s on s.id = b.session_caisse_id
                     where s.guichet_id = %s and b.moment = 'arret' and b.devise = %s and b.valide_par is not null and s.id <> %s
                     order by b.valide_le desc nulls last, b.id desc limit 1""", (s["guichet_id"], devise, session_id))
@@ -673,10 +676,11 @@ def rechercher_tiers(u: dict, q: str) -> list[dict]:
     if not q:
         return []
     motif = f"%{q}%"
-    return [vue_tiers(t) for t in lignes(SQL_TIERS + """ where t.institution_id = %s and (
+    ag, pa = clause(u)                                             # ses membres seulement (registre T213)
+    return [vue_tiers(t) for t in lignes(SQL_TIERS + f""" where t.institution_id = %s{ag} and (
                 lower(concat_ws(' ', t.numero, p.nom, p.postnom, p.prenom, m.raison_sociale)) like %s
                 or exists (select 1 from compte_depot c where c.tiers_id = t.id and c.numero like %s))
-            order by t.id limit 20""", (u["institution_id"], motif, motif))]
+            order by t.id limit 20""", (u["institution_id"], *pa, motif, motif))]
 
 
 def texte_de(d: dict):
@@ -802,7 +806,8 @@ def apercu_numero_client(u: dict) -> str:
     """Prochain numéro de la règle S15, sans avancer le compteur (code proposé d'un groupe solidaire, registre S44-2)"""
     r = une("select regle from numerotation_client where institution_id = %s", (u["institution_id"],))
     regle = json_lu(r["regle"]) if r else None
-    ag = une("select a.code, i.sigle from agence a join institution i on i.id = a.institution_id where a.id = %s", (u["agence_id"],))
+    ag = une("select a.code, i.sigle from agence a join institution i on i.id = a.institution_id where a.id = %s", (u["agence_id"],)) \
+        or une("select '' as code, sigle from institution where id = %s", (u["institution_id"],))   # utilisateur sans agence (audit interne, conformité ; registre T213)
     dernier = valeur("""select coalesce((select dernier from compteur_client where agence_id = %s),
                                         (select case when is_called then last_value else last_value - 1 end from numero_tiers))""", (u["agence_id"],))
     n = max(dernier + 1, regle["compteur"] if regle else 1)
@@ -1211,7 +1216,8 @@ def creer_groupe(u: dict, d: dict) -> dict:
 
 
 def tiers_a_viser(u: dict) -> list[dict]:
-    return [vue_tiers(t) for t in lignes(SQL_TIERS + " where t.institution_id = %s and t.statut = 'a_viser' order by t.id", (u["institution_id"],))]
+    ag, pa = clause(u)
+    return [vue_tiers(t) for t in lignes(SQL_TIERS + f" where t.institution_id = %s{ag} and t.statut = 'a_viser' order by t.id", (u["institution_id"], *pa))]
 
 
 MAJORITE = 18     # Code de la famille, art. 219
@@ -1503,7 +1509,8 @@ def creer_consentement(u: dict, tid: int, d: dict) -> list[dict]:
 def rapport_clients(u: dict) -> list[dict]:
     """S51 : tous les clients et prospects de l'institution, filtrés à l'écran (Client > Rapport, manuel p. 58 et 59)"""
     exiger(u)
-    return [vue_tiers(t) for t in lignes(SQL_TIERS + " where t.institution_id = %s order by t.numero", (u["institution_id"],))]
+    ag, pa = clause(u)
+    return [vue_tiers(t) for t in lignes(SQL_TIERS + f" where t.institution_id = %s{ag} order by t.numero", (u["institution_id"], *pa))]
 
 
 def rapport_modifications(u: dict) -> list[dict]:
@@ -1511,8 +1518,8 @@ def rapport_modifications(u: dict) -> list[dict]:
     exiger(u)
     return [{"tiersId": r["tiers_id"], "numero": r["numero"], "avant": json_lu(r["avant"]), "apres": json_lu(r["apres"]), "modifiePar": r["modifie_par"],
              "modifieLe": r["modifie_le"].isoformat(), "validePar": r["valide_par"]}
-            for r in lignes("""select m.*, t.numero from tiers_modification m join tiers t on t.id = m.tiers_id where t.institution_id = %s
-                               order by m.modifie_le desc""", (u["institution_id"],))]
+            for r in lignes(f"""select m.*, t.numero from tiers_modification m join tiers t on t.id = m.tiers_id where t.institution_id = %s{clause(u)[0]}
+                               order by m.modifie_le desc""", (u["institution_id"], *clause(u)[1]))]
 
 
 def rapport_transactions(u: dict, du: str, au: str) -> list[dict]:
@@ -2326,8 +2333,9 @@ def lire_operation(oid: int) -> dict | None:
     return vue_operation(o) if o else None
 
 
-def operations_du_jour(jid: int) -> list[dict]:
-    return [vue_operation(o) for o in lignes("select * from operation where journee_id = %s order by id", (jid,))]
+def operations_du_jour(jid: int, u: dict) -> list[dict]:
+    ag, pa = clause(u, "agence_id")                                # opérations de son agence (registre T213)
+    return [vue_operation(o) for o in lignes(f"select * from operation where journee_id = %s{ag} order by id", (jid, *pa))]
 
 
 def viser_operation(u: dict, oid: int) -> dict:
@@ -2379,8 +2387,9 @@ def balance(u: dict) -> list[dict]:
 
 def journal(u: dict, journee_id: int | None) -> list[dict]:
     res = []
-    for e in lignes("""select e.*, j.code, p.numero as piece from ecriture e join journal j on j.id = e.journal_id join piece p on p.id = e.piece_id
-                       where e.institution_id = %s and (%s::bigint is null or e.journee_id = %s) order by e.id""", (u["institution_id"], journee_id, journee_id)):
+    ag, pa = clause(u, "(select jc.agence_id from journee_comptable jc where jc.id = e.journee_id)")   # les journées de son agence (registre T213)
+    for e in lignes(f"""select e.*, j.code, p.numero as piece from ecriture e join journal j on j.id = e.journal_id join piece p on p.id = e.piece_id
+                       where e.institution_id = %s and (%s::bigint is null or e.journee_id = %s){ag} order by e.id""", (u["institution_id"], journee_id, journee_id, *pa)):
         res.append({"id": e["id"], "numero": e["numero"], "journal": e["code"], "journeeId": e["journee_id"], "libelle": e["libelle"], "piece": e["piece"],
                     "saisiPar": e["saisi_par"], "validePar": e["valide_par"], "lignes": lignes_ecriture(e["id"])})
     return res

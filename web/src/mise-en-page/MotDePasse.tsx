@@ -5,7 +5,7 @@ import { api } from "../donnees/api";
 import { message } from "../lib/useDonnees";
 import { Attention, Champ, Formulaire } from "../composants";
 
-export default function ChangerMotDePasse({ force, fait }: { force?: boolean; fait: () => void }) {
+export default function ChangerMotDePasse({ force, fait, annuler }: { force?: boolean; fait: () => void; annuler?: () => void }) {
   const [f, setF] = useState({ ancien: "", nouveau: "", confirmation: "" });
   const [erreur, setErreur] = useState("");
   const envoyer = async () => {
@@ -21,7 +21,8 @@ export default function ChangerMotDePasse({ force, fait }: { force?: boolean; fa
       {zone("nouveau", "Nouveau mot de passe *", "new-password")}
       {zone("confirmation", "Confirmation *", "new-password")}
       {erreur && <p className="attention" role="alert">{erreur}</p>}
-      <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button></div>
+      <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button>
+        {annuler && <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>}</div>
     </Formulaire>
   );
 }

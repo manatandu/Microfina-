@@ -8,6 +8,7 @@ import json
 
 from django.conf import settings
 
+from .cloison import agence, clause
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import SEUIL_ESPECES_USD, en_usd, especes_du_jour_usd, exiger, journee_courante, json_lu, nom_utilisateur, titulaire
 
@@ -102,8 +103,9 @@ def lister(u: dict, statut: str = "") -> list[dict]:
     # À déclarer : l'opération autorisée (rapport à la CENAREF : Instr. BCC 15 bis, art. 7) et l'opération refusée, qui est une tentative
     # (loi 22/068, art. 92 : « il en va de même pour les tentatives d'opérations suspectes » ; confrontation du 21/11/2026, E6)
     filtre = {"": "true", "a_declarer": "statut in ('autorise', 'refuse') and declare_le is null"}.get(statut, "statut = %(s)s")
-    return [vue(x) for x in lignes(f"select * from examen_renforce where institution_id = %(i)s and {filtre} order by numero desc",
-                                   {"i": u["institution_id"], "s": statut})]
+    ag = "" if agence(u) is None else " and (select t.agence_id from tiers t where t.id = examen_renforce.tiers_id) = %(a)s"   # registre T213
+    return [vue(x) for x in lignes(f"select * from examen_renforce where institution_id = %(i)s and {filtre}{ag} order by numero desc",
+                                   {"i": u["institution_id"], "s": statut, "a": agence(u)})]
 
 
 def examiner(u: dict, eid: int, d: dict) -> dict:
@@ -316,8 +318,9 @@ def profils_lister(u: dict, filtre: str = "echues") -> list[dict]:
     """Clients en relation (visés) ; « échues » : jamais évalués, ou dernière évaluation de six mois ou plus"""
     exiger(u)
     jour = _jour(u)
-    vues = [vue_profil(t, jour) for t in lignes("select id, numero from tiers where institution_id = %s and statut in ('actif', 'modifie_a_revalider') order by numero",
-                                                (u["institution_id"],))]
+    ag, pa = clause(u, "agence_id")                                # ses membres (registre T213)
+    vues = [vue_profil(t, jour) for t in lignes(f"select id, numero from tiers where institution_id = %s and statut in ('actif', 'modifie_a_revalider'){ag} order by numero",
+                                                (u["institution_id"], *pa))]
     return [v for v in vues if v["echue"]] if filtre == "echues" else vues
 
 

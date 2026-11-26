@@ -8,6 +8,7 @@ from . import chequiers
 from psycopg.types.json import Jsonb
 
 from .services import json_lu
+from .cloison import agence, clause
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import compte_du_produit, compte_institution, controler_statut_actif, est_coopec, exiger, journee_courante, nom_utilisateur, numero_compte, preparer_adhesion, solde_contrat
 
@@ -310,10 +311,11 @@ def releve(u, du: str, au: str, compte_bancaire_id: int) -> dict:
         raise ErreurMetier("À remplir : N° Compte.")
     dev = cb["devise"].strip()
     ouverture, lignes_, td, tc = 0, [], 0, 0
-    for m in lignes("""select e.date_valeur, j.code as journal, p.numero as piece, e.libelle, l.sens, l.montant_devise
+    ag, pa = clause(u, "(select jc.agence_id from journee_comptable jc where jc.id = e.journee_id)")   # les journées de son agence (registre T213)
+    for m in lignes(f"""select e.date_valeur, j.code as journal, p.numero as piece, e.libelle, l.sens, l.montant_devise
                        from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join journal j on j.id = e.journal_id join piece p on p.id = e.piece_id
-                       where l.compte_id = %s and e.institution_id = %s and e.date_valeur <= %s and l.devise = %s order by e.date_valeur, e.id, l.rang""",
-                    (cb["compte_id"], u["institution_id"], au, dev)):
+                       where l.compte_id = %s and e.institution_id = %s and e.date_valeur <= %s and l.devise = %s{ag} order by e.date_valeur, e.id, l.rang""",
+                    (cb["compte_id"], u["institution_id"], au, dev, *pa)):
         signe = m["montant_devise"] if m["sens"] == "D" else -m["montant_devise"]
         if m["date_valeur"].isoformat() < du:
             ouverture += signe
@@ -326,9 +328,10 @@ def releve(u, du: str, au: str, compte_bancaire_id: int) -> dict:
     for l in lignes_:
         solde += l["debit"] - l["credit"]
         l["solde"] = solde
-    attente = [ligne_liste(o) for o in lignes(SELECT_LIGNES + """ where o.institution_id = %s and o.statut in ('saisie', 'visee', 'validee')
-                                                  and (o.compte_bancaire_id = %s or o.compte_bancaire_dest_id = %s) order by o.date_operation, o.id""",
-                                              (u["institution_id"], cb["id"], cb["id"]))]
+    ag, pa = clause(u, "o.agence_id")
+    attente = [ligne_liste(o) for o in lignes(SELECT_LIGNES + f""" where o.institution_id = %s and o.statut in ('saisie', 'visee', 'validee')
+                                                  and (o.compte_bancaire_id = %s or o.compte_bancaire_dest_id = %s){ag} order by o.date_operation, o.id""",
+                                              (u["institution_id"], cb["id"], cb["id"], *pa))]
     return {"compte": cb["compte"], "intitule": cb["intitule"], "numeroBancaire": cb["numero"], "banque": cb["banque"], "devise": dev, "du": du, "au": au,
             "ouverture": ouverture, "lignes": lignes_, "totalDebit": td, "totalCredit": tc, "cloture": solde, "enAttente": attente}
 
@@ -344,6 +347,8 @@ def rapport(u, du: str, au: str, banque_id: int, compte_bancaire_id: int | None 
         raise ErreurMetier("La date de début dépasse la date de fin.")
     if not une("select 1 from banque where id = %s and institution_id = %s and supprime_le is null", (banque_id, u["institution_id"])):
         raise ErreurMetier("À remplir : banque.")
+    if agence(u) is not None:
+        agence_id = agence(u)                                      # les opérations de son agence seulement (registre T213)
     return [ligne_liste(o) for o in lignes(SELECT_LIGNES + """ where o.institution_id = %s and o.statut <> 'refusee' and o.date_operation between %s and %s
                                                 and (cb.banque_id = %s or cbd.banque_id = %s)
                                                 and (%s::bigint is null or o.compte_bancaire_id = %s or o.compte_bancaire_dest_id = %s)

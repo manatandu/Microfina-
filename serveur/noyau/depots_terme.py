@@ -6,6 +6,7 @@ import uuid
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
 
+from .cloison import clause
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import compte_du_produit, controler_collecte_epargne, controler_statut_actif, exiger, journee_courante, nouvelle_piece, poster, solde_contrat, titulaire
 
@@ -162,8 +163,9 @@ def liste(u, statut: str = "") -> list[dict]:
     exiger(u)
     if statut and statut not in ("saisie", "valide", "rompu", "echu", "annule", "reconduit"):
         raise ErreurMetier("Statut inconnu.")
-    return [vue(x) for x in lignes("select * from depot_terme where institution_id = %s and (%s = '' or statut = %s) order by certificat",
-                                     (u["institution_id"], statut, statut))]
+    ag, pa = clause(u, "(select t.agence_id from tiers t where t.id = depot_terme.tiers_id)")   # ses membres seulement (registre T213)
+    return [vue(x) for x in lignes(f"select * from depot_terme where institution_id = %s and (%s = '' or statut = %s){ag} order by certificat",
+                                     (u["institution_id"], statut, statut, *pa))]
 
 
 def valider(u, did: int) -> dict:

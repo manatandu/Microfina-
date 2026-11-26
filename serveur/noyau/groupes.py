@@ -1,4 +1,5 @@
 """S44 : groupes solidaires et affectation des clients (manuel Microfina++, p. 54 et 55). Mêmes règles que web/src/donnees/api.ts (groupes)."""
+from .cloison import clause
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import apercu_numero_client, exiger, numero_client, titulaire
 
@@ -11,14 +12,16 @@ def texte(d, k):
 def lire(u) -> dict:
     exiger(u)
     i = u["institution_id"]
+    ag, pa = clause(u, "g.agence_id")                              # les groupes et les membres de son agence (registre T213)
+    ag_t, pa_t = clause(u, "t.agence_id")
     return {
         "codeSuivant": apercu_numero_client(u),     # code proposé selon la règle de numérotation des clients (S15), registre S44-2
-        "groupes": lignes("""select g.id, g.code, g.nom, a.nom as agence from groupe_solidaire g left join agence a on a.id = g.agence_id
-                             where g.institution_id = %s and g.supprime_le is null order by g.id""", (i,)),
+        "groupes": lignes(f"""select g.id, g.code, g.nom, a.nom as agence from groupe_solidaire g left join agence a on a.id = g.agence_id
+                             where g.institution_id = %s and g.supprime_le is null{ag} order by g.id""", (i, *pa)),
         "membres": [{**r, "membre": titulaire(r["tiersId"])} for r in
-                    lignes("""select m.groupe_id as "groupeId", m.tiers_id as "tiersId", t.numero from groupe_solidaire_membre m
+                    lignes(f"""select m.groupe_id as "groupeId", m.tiers_id as "tiersId", t.numero from groupe_solidaire_membre m
                               join tiers t on t.id = m.tiers_id join groupe_solidaire g on g.id = m.groupe_id
-                              where g.institution_id = %s order by m.affecte_le, t.numero""", (i,))],
+                              where g.institution_id = %s{ag}{ag_t} order by m.affecte_le, t.numero""", (i, *pa, *pa_t))],
     }
 
 

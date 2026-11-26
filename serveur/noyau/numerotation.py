@@ -2,6 +2,7 @@
 La règle s'applique aux clients créés après son enregistrement (registre S15-9, services.numero_client)."""
 from psycopg.types.json import Jsonb
 
+from .cloison import clause
 from .bd import ErreurMetier, executer, lignes, une
 from .services import exiger, json_lu
 from .listes import valeurs
@@ -13,7 +14,8 @@ def lire(u) -> dict:
     exiger(u)
     i = u["institution_id"]
     r = une("select regle from numerotation_client where institution_id = %s", (i,))
-    ag = une("select a.code, i.sigle from agence a join institution i on i.id = a.institution_id where a.id = %s", (u["agence_id"],))
+    ag = une("select a.code, i.sigle from agence a join institution i on i.id = a.institution_id where a.id = %s", (u["agence_id"],)) \
+        or une("select '' as code, sigle from institution where id = %s", (u["institution_id"],))   # utilisateur sans agence (registre T213)
     cat = valeurs(u, "categorie")
     compteurs = lignes("""select a.nom as agence, coalesce(c.dernier, (select case when is_called then last_value else last_value - 1 end from numero_tiers)) as dernier
                           from agence a left join compteur_client c on c.agence_id = a.id where a.institution_id = %s order by a.code""", (i,))
@@ -65,8 +67,9 @@ def lire_compte(u) -> dict:
     """La règle enregistrée (« Pamamétrage du N° des Compte Client ») et un exemple pour Générer (registre S17-7)"""
     exiger(u)
     r = une("select prefixe, suffixe, position from numerotation_compte where institution_id = %s", (u["institution_id"],))
-    ag = une("select code from agence where id = %s", (u["agence_id"],))
-    t = une("select numero from tiers where institution_id = %s and statut = 'actif' order by id limit 1", (u["institution_id"],))
+    ag = une("select code from agence where id = %s", (u["agence_id"],)) or {"code": ""}
+    cl, pa = clause(u, "agence_id")                                # l'exemple vient d'un membre de son agence (registre T213)
+    t = une(f"select numero from tiers where institution_id = %s and statut = 'actif'{cl} order by id limit 1", (u["institution_id"], *pa))
     p = une("select numero from produit_epargne where institution_id = %s and numero is not null order by numero desc limit 1", (u["institution_id"],))
     return {"regle": r, "exemple": {"numeroClient": t["numero"] if t else "", "agence": ag["code"], "produit": p["numero"] if p else 1}}
 
@@ -92,7 +95,8 @@ def lire_piece(u) -> dict:
     i = u["institution_id"]
     r = une("select regle from numerotation_piece where institution_id = %s", (i,))
     ex = une("select annee from exercice where institution_id = %s and actif", (i,))
-    ag = une("select a.code, i.sigle from agence a join institution i on i.id = a.institution_id where a.id = %s", (u["agence_id"],))
+    ag = une("select a.code, i.sigle from agence a join institution i on i.id = a.institution_id where a.id = %s", (u["agence_id"],)) \
+        or une("select '' as code, sigle from institution where id = %s", (u["institution_id"],))   # utilisateur sans agence (registre T213)
     n = une("""select d.compteur from journal_detail d join journal j on j.id = d.journal_id where d.institution_id = %s and d.annee = %s and j.code = 'CA'""",
             (i, ex["annee"] if ex else 0))
     return {"institutions": lignes("select id, nom from institution where id = %s", (i,)), "regle": json_lu(r["regle"]) if r else None,

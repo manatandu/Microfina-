@@ -48,6 +48,12 @@ const OUT = process.argv[2];
   await p.getByLabel('Date à ouvrir').fill('05112026'); await etape('02-chef-avant-ouverture');
   await p.getByRole('button', { name: 'Enregistrer', exact: true }).click(); await oui();
   await p.getByRole('cell', { name: '05/11/2026', exact: true }).first().waitFor(); await etape('02-journee-ouverte');
+  // Demande du porteur du 26/11/2026 (registre T214) : la fenêtre du mot de passe se ferme par Annuler ; la déconnexion se confirme
+  await p.getByRole('button', { name: 'Changer mon mot de passe' }).click(); const fmdp = p.getByRole('dialog', { name: 'Changer mon mot de passe' });
+  await fmdp.getByRole('button', { name: 'Annuler' }).click(); await fmdp.waitFor({ state: 'hidden' });
+  await p.getByRole('button', { name: 'Se déconnecter' }).click();
+  await p.getByRole('dialog', { name: 'Confirmation' }).getByText('Voulez-vous vraiment vous déconnecter ?').waitFor(); await etape('02-deconnexion-confirmation');
+  await p.getByRole('button', { name: 'Non', exact: true }).click(); await p.getByRole('cell', { name: '05/11/2026', exact: true }).first().waitFor();
   // Journée du jour (plan d'allègement, point 8.5) : le cours du jour se saisit sur le même écran, juste après l'ouverture
   await p.getByLabel('Cours USD (CDF pour une unité) *').fill('2850'); await p.getByRole('button', { name: 'Enregistrer les cours' }).click(); await oui(); await etape('02f28-cours');
   // Chef : créer un guichet (plan d'allègement, point 8.4 : Guichets, « Nouveau guichet »)

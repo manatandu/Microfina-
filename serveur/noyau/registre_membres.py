@@ -2,8 +2,10 @@
 conservés au siège, consultables par les membres ; leur contenu est fixé par le règlement intérieur. Le registre reprend les données de la fiche du membre.
 L'Acte uniforme OHADA sur les coopératives n'est pas suivi (décision du porteur du 21/11/2026). Mêmes règles que web/src/donnees/api.ts (registreMembres)."""
 from .bd import ErreurMetier, lignes
+from .cloison import voit
 from .releves import client, entete
 from .services import est_coopec, exiger, lire_tiers, parts_du_tiers, valeur_part
+
 
 
 def membres(u: dict) -> dict:
@@ -11,8 +13,10 @@ def membres(u: dict) -> dict:
     if not est_coopec(u):
         raise ErreurMetier("Registre des membres : propre aux coopératives (loi 002/2002, art. 67).")
     sortie = []
-    for n, r in enumerate(lignes("""select id from tiers where institution_id = %s and date_visa is not null
+    for n, r in enumerate(lignes("""select id, agence_id from tiers where institution_id = %s and date_visa is not null
                                     order by coalesce(admission_le, date_visa), numero""", (u["institution_id"],)), start=1):
+        if not voit(u, r["agence_id"]):
+            continue                                               # ses membres seulement ; le rang reste celui du registre de l'institution (registre T213)
         c, t = client(r["id"]), lire_tiers(r["id"]) or {}
         parts = round(parts_du_tiers(r["id"]))
         sortie.append({"rang": n, "tiersId": r["id"], "numero": c["numero"], "nom": " ".join(x for x in (c["nom"], c["postnom"]) if x) if c["type"] == "physique" else c["intitule"] or c["nom"],

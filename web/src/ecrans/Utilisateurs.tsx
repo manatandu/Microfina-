@@ -118,7 +118,8 @@ function Inactivite({ minutes, fermer, poser, fait }: { minutes: number; fermer:
 
 /** Fiche (S05, capture p. 17) : Informations, Authentification ; portable et adresse électronique restent */
 function FicheUtilisateur({ f, agences, fermer, fait }: { f: Fichier | null; agences: { id: number; nom: string }[]; fermer: () => void; fait: () => void }) {
-  const [v, setV] = useState(() => ({ ...decouper(f?.nom ?? ""), agenceId: f?.agenceId ? String(f.agenceId) : "", controleConnecte: f?.controleConnecte ?? false, login: f?.login ?? "",
+  // Registre T213 : une agence, ou « Toutes les agences » (audit interne, conformité) ; une seule agence : elle est proposée
+  const [v, setV] = useState(() => ({ ...decouper(f?.nom ?? ""), agenceId: f ? (f.agenceId ? String(f.agenceId) : "toutes") : agences.length === 1 ? String(agences[0]!.id) : "", controleConnecte: f?.controleConnecte ?? false, login: f?.login ?? "",
     motDePasse: "", confirmation: "", portable: f?.portable ?? "", email: f?.email ?? "" }));
   const [boite, setBoite] = useState<Boite | null>(null);
   const texte = (k: "nom" | "prenoms" | "login" | "motDePasse" | "confirmation" | "portable" | "email", libelle: string, type = "text") => (
@@ -126,7 +127,7 @@ function FicheUtilisateur({ f, agences, fermer, fait }: { f: Fichier | null; age
       onChange={(e) => setV({ ...v, [k]: e.target.value })} />}</Champ>);
   const enregistrer = () => setBoite({ type: "confirmation", message: f ? "Voulez-vous vraiment modifier ?" : "Voulez-vous vraiment enregistrer ?", oui: async () => {
     try {
-      await api.comptesUtilisateurs.enregistrer({ nom: [v.nom.trim(), v.prenoms.trim()].filter(Boolean).join(" "), agenceId: v.agenceId ? Number(v.agenceId) : agences.length === 1 ? agences[0]!.id : null,
+      await api.comptesUtilisateurs.enregistrer({ nom: [v.nom.trim(), v.prenoms.trim()].filter(Boolean).join(" "), agenceId: v.agenceId === "toutes" ? "toutes" : v.agenceId ? Number(v.agenceId) : null,
         controleConnecte: v.controleConnecte, login: v.login, motDePasse: v.motDePasse, confirmation: v.confirmation,
         rue: f?.rue ?? "", adresse: f?.adresse ?? "", bp: f?.bp ?? "", telephoneFixe: f?.telephoneFixe ?? "", portable: v.portable, email: v.email }, f?.id);
       fait();
@@ -138,8 +139,8 @@ function FicheUtilisateur({ f, agences, fermer, fait }: { f: Fichier | null; age
         <fieldset className="cadre-champs pile champs-a-gauche">
           <legend>Informations</legend>
           {texte("nom", "Nom *")}{texte("prenoms", "Prénoms")}
-          {agences.length > 1 && <Champ libelle="Agence *">{(p) => <select {...p} className="saisie" value={v.agenceId} onChange={(e) => setV({ ...v, agenceId: e.target.value })}>
-            <option value=""></option>{agences.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>}
+          <Champ libelle="Agence *">{(p) => <select {...p} className="saisie" value={v.agenceId} onChange={(e) => setV({ ...v, agenceId: e.target.value })}>
+            <option value=""></option>{agences.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}<option value="toutes">Toutes les agences</option></select>}</Champ>
           {texte("portable", "Portable : *")}{texte("email", "Email :")}
           <label className="case-jour"><input type="checkbox" checked={v.controleConnecte} onChange={(e) => setV({ ...v, controleConnecte: e.target.checked })} /> Control utilisateur connecté</label>
         </fieldset>

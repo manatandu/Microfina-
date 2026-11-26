@@ -136,3 +136,14 @@ Effort : une demi-journée pour les étapes 1 à 4, une à deux journées pour l
 - **Couche locale** : `replica/droits_gen.py` tire de `LECTURES_ADMIN` la table `DROITS_LECTURES` de `droits.gen.ts`, appliquée par la même enveloppe que les écritures. Une lecture ne vaut pas droit de la tâche, comme sur le serveur.
 - **Essais** : `test_lectures_rattachees` (chaque lecture refusée sans le droit, permise avec) ; parcours par profil (chaque profil de départ ouvre chacun de ses écrans sans « Droit manquant ») ; parcours de bout en bout, local et serveur.
 - **Reste** : le contrôle de l'objet lu (§ 4) et la question de l'agence au porteur.
+
+## 8. Cloisonnement par agence, construit le 26/11/2026 (registre T213)
+
+Décision du porteur : « Chaque agence ne voit que ses membres. Cloisonnement strict. »
+
+- **Règle** : l'utilisateur rattaché à une agence ne voit que les membres de son agence et n'agit que sur eux (`serveur/noyau/cloison.py`).
+- **Garde des identifiants** : chaque identifiant de membre ou d'objet de membre (fiche, compte, crédit, dossier, DAT, plan, opération, groupe, analyse, plainte, chèque, garantie, blocage, procuration, examen, journée, caisse) reçu dans l'adresse, les paramètres ou le corps d'une requête est rapporté à l'agence du membre ; une autre agence : refus, noté au journal de sécurité. Ce garde règle aussi le contrôle de l'objet lu du § 4 pour l'agence.
+- **Listes** : recherche, membres à viser, rapports des clients et des modifications, registre des membres (le rang reste celui du registre de l'institution), DAT, groupes, chèques, conformité (examens, profils de risque, déclarations systématiques), rapports de crédit, journal comptable et relevé bancaire (journées de l'agence), intérêts courus des crédits.
+- **Exception imposée par les textes** : « Toutes les agences », choisi par l'administrateur sécurité sur la fiche de l'utilisateur, pour l'audit interne et la conformité (Instr. BCC 008, art. 33, 52 et 54 ; Instr. BCC 15, art. 85).
+- **Restent consolidés** : balance, états financiers, indicateurs et normes prudentielles (aucun membre n'y est nommé).
+- **Contrôle** : une base à deux agences tirée du parcours complet ; chaque lecture du serveur (247) appelée par chaque profil de départ ; avant : 46 lectures montraient des membres de l'autre agence ; après : aucune.

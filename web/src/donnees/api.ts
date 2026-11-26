@@ -10928,7 +10928,7 @@ const differees = {
 };
 
 // ---------- Administration > Utilisateur > Création (S05, manuel p. 16 et 17). Règles identiques côté serveur (noyau/comptes_utilisateurs.py). ----------
-export type SaisieUtilisateur = { nom?: string; agenceId?: number | null; login?: string; motDePasse?: string; confirmation?: string; controleConnecte?: boolean;
+export type SaisieUtilisateur = { nom?: string; agenceId?: number | "toutes" | null; login?: string; motDePasse?: string; confirmation?: string; controleConnecte?: boolean;
   rue?: string; adresse?: string; bp?: string; telephoneFixe?: string; portable?: string; email?: string };
 /** Lecture d'une route d'administration (registre T27) : seulement avec le droit de l'écran ; mêmes règles que noyau/droits.py (LECTURES_ADMIN) */
 function lectureAdmin(ecrans: string[]) {
@@ -10994,8 +10994,8 @@ const comptesUtilisateurs = {
     exiger("chef_agence");
     const v = { nom: txt(d.nom), login: txt(d.login), rue: txt(d.rue), adresse: txt(d.adresse), bp: txt(d.bp), telephoneFixe: txt(d.telephoneFixe), portable: txt(d.portable), email: txt(d.email) };
     const mdp = typeof d.motDePasse === "string" ? d.motDePasse : "", conf = typeof d.confirmation === "string" ? d.confirmation : "";
-    const agenceId = typeof d.agenceId === "number" ? d.agenceId : null;
-    const oblig: [string, string][] = [["Nom et prénoms", v.nom], ["Agence", agenceId ? "x" : ""], ["Identifiant de connexion", v.login]];
+    const agenceId = typeof d.agenceId === "number" ? d.agenceId : null, toutes = d.agenceId === "toutes";   // registre T213 : audit interne, conformité
+    const oblig: [string, string][] = [["Nom et prénoms", v.nom], ["Agence", agenceId || toutes ? "x" : ""], ["Identifiant de connexion", v.login]];
     if (id === undefined) oblig.push(["Mot de passe", mdp], ["Confirmation", conf]);
     oblig.push(["Portable", v.portable]);
     const manque = manquants(oblig);
@@ -11007,11 +11007,11 @@ const comptesUtilisateurs = {
     }
     if (/\s/.test(v.login)) throw new ErreurMetier("Identifiant de connexion : sans espace.");
     if (v.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email)) throw new ErreurMetier("Email invalide.");
-    if (!E.agences.some((a) => a.id === agenceId && !a.supprime)) throw new ErreurMetier("Agence inconnue.");
+    if (!toutes && !E.agences.some((a) => a.id === agenceId && !a.supprime)) throw new ErreurMetier("Agence inconnue.");
     const x = id === undefined ? undefined : E.utilisateurs.find((y) => y.id === id);
     if (id !== undefined && !x) throw new ErreurMetier("Utilisateur introuvable.");
     if (E.utilisateurs.some((y) => y.id !== id && y.login.toLowerCase() === v.login.toLowerCase())) throw new ErreurMetier("Cet identifiant de connexion existe déjà.");
-    const f = { ...v, agenceId: agenceId!, controleConnecte: !!d.controleConnecte };
+    const f = { ...v, agenceId: toutes ? undefined : agenceId!, controleConnecte: !!d.controleConnecte };
     if (x && x.actif === false) throw new ErreurMetier("Utilisateur introuvable.");   // désactivé : il ne se modifie plus (registre S05-4)
     if (x) Object.assign(x, f); else E.utilisateurs.push({ id: prochain(E.utilisateurs), roles: [], ...f });
     enregistrer(); return comptesUtilisateurs.lire();

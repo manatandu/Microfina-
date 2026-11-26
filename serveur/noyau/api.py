@@ -5,6 +5,7 @@ from django.db import transaction
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from ninja import Body, NinjaAPI
 
+from . import cloison
 from . import frais as fr
 from . import groupes as gs
 from . import procurations as pr
@@ -85,6 +86,7 @@ def u(request: HttpRequest) -> dict:
     if util.get("mot_de_passe_a_changer") and request.method not in METHODES_SURES and request.path.removeprefix("/api") != "/session/mot-de-passe":
         raise ErreurMetier("Changez d'abord votre mot de passe : celui donné par l'administrateur se remplace à la première connexion.", 403)   # T207
     dr.verifier_route(util, request.method, request.path)      # droit de la tâche (registre S04-3)
+    cloison.verifier(util, request)                              # ses membres seulement, s'il est rattaché à une agence (registre T213)
     executer("select set_config('exofina.utilisateur', %s, true)", (str(util["id"]),))   # auteur des changements de paramètres (registre T208)
     s.noter_activite(util["id"])                                   # verrouillage après inactivité (registre T211)
     # Jour de l'agence dans les requêtes SQL (fonctions jour_agence ; plan d'allègement, point 11.4 ; registre T153)
@@ -202,8 +204,7 @@ def caisses_journee(request, jid: int):
 
 @api.get("/journees/{jid}/operations")
 def operations_journee(request, jid: int):
-    u(request)
-    return s.operations_du_jour(jid)
+    return s.operations_du_jour(jid, u(request))
 
 
 # ---------- Caisses et billetages ----------

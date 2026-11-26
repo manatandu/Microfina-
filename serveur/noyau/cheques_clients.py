@@ -3,6 +3,7 @@ Mêmes règles que web/src/donnees/api.ts (chequesClients). La comptabilisation 
 import re
 import uuid
 
+from .cloison import clause
 from .bd import ErreurMetier, executer, lignes, une, valeur
 from .services import controler_statut_actif, exiger, journee_courante, nom_utilisateur, titulaire
 
@@ -92,8 +93,9 @@ def lister(u, compte_bancaire_id: int, statut: str = "") -> list[dict]:
     exiger(u)
     if statut and statut not in LIBELLES:
         raise ErreurMetier("Statut inconnu.")
-    return [vue(c) for c in lignes("""select * from cheque_client where institution_id = %s and compte_bancaire_id = %s and (%s = '' or statut = %s)
-                                      order by date_operation, id""", (u["institution_id"], compte_bancaire_id, statut, statut))]
+    ag, pa = clause(u, "(select t.agence_id from tiers t where t.id = cheque_client.tiers_id)")   # chèques de ses membres (registre T213)
+    return [vue(c) for c in lignes(f"""select * from cheque_client where institution_id = %s and compte_bancaire_id = %s and (%s = '' or statut = %s){ag}
+                                      order by date_operation, id""", (u["institution_id"], compte_bancaire_id, statut, statut, *pa))]
 
 
 def traiter(u, cid: int, action: str, d=None) -> dict:
