@@ -101,6 +101,17 @@ describe("graine", () => {
 });
 
 describe("journée de guichet", () => {
+  it("reçu : en-tête de l'institution, original puis duplicatas numérotés (point B12, registre T215)", async () => {
+    await journeeOuverte();
+    const o = await api.guichet.depot({ cle: cle(), compteId: 2, montant: 5000000, coupures: { 20000: 2, 10000: 1 } });
+    const r = await api.operations.recu(o.id);
+    expect([r.entete.nom.length > 0, r.agence.length > 0]).toEqual([true, true]);
+    const x1 = await api.impressions.noter({ document: "recu", objet: o.id }), x2 = await api.impressions.noter({ document: "recu", objet: o.id });
+    expect([x1.exemplaire, x1.duplicata, x2.exemplaire, x2.duplicata]).toEqual([1, 0, 2, 1]);
+    await expect(api.impressions.noter({ document: "recu", objet: 99999 })).rejects.toThrow("Document inconnu");
+    await connecter("gmbuyi");
+    await expect(api.impressions.noter({ document: "recu", objet: o.id })).rejects.toThrow("Droit manquant");
+  });
   it("dépôt puis retrait : grand livre équilibré, caisse et compte à jour", async () => {
     const { s } = await journeeOuverte();
     await api.guichet.depot({ cle: cle(), compteId: 2, montant: 5000000, coupures: { 20000: 2, 10000: 1 } });

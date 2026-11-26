@@ -1,12 +1,13 @@
 // Écart E04 (docs/reglementaire/ECARTS-2026-11-15.md) : convention de compte remise au client à l'ouverture (loi 22/069, titre III, chap. Ier).
 // Document de l'institution cliente (registre S64-3), police 12 (Instr. BCC 40, art. 5). Registre E04-1 et E04-2.
 import { api } from "../donnees/api";
+import { MentionExemplaire, type Exemplaire } from "../composants/Documents";
 import { fr } from "../lib/dates";
 import { montant, type Devise } from "@design/montant.js";
 
 export type DonneesConvention = Awaited<ReturnType<typeof api.comptesEpargne.convention>>;
 
-export function ConventionCompte({ c }: { c: DonneesConvention }) {
+export function ConventionCompte({ c, x: exemplaire = null }: { c: DonneesConvention; x?: Exemplaire | null }) {
   const x = c.compte, e = c.entete, cl = c.client, dev = x.devise as Devise;
   const nom = cl.intitule || [cl.nom, cl.postnom, cl.prenom].filter(Boolean).join(" ");
   const qui = c.coopec ? "le membre" : "le client";
@@ -39,6 +40,7 @@ export function ConventionCompte({ c }: { c: DonneesConvention }) {
         <div><strong>Le titulaire</strong><br /><br /><br />{nom}</div>
         <div style={{ textAlign: "right" }}><strong>Pour {e.nom}</strong><br /><br /><br />Fait le {fr(x.ouvertLe)}</div>
       </div>
+      <MentionExemplaire x={exemplaire} originaux={2} suite="COPIE" />
       <footer className="releve-pied">
         <strong>{e.nom.toUpperCase()}</strong>
         <span>{[e.adresse, e.commune, e.ville, e.pays].filter(Boolean).join(", ")}</span>

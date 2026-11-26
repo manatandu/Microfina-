@@ -62,6 +62,8 @@ function InformationSociete() {
             <Champ libelle="Description :">{(p) => <textarea {...p} className="saisie" rows={3} value={v.description} onChange={(e) => maj({ description: e.target.value })} />}</Champ>
             {texte("directeur", "Directeur :")}
             {texte("agrement", "N° Agrément", "saisie code")}
+            {/* Instr. BCC 40, art. 14 : coordonnées de l'Unité de traitement des plaintes, reprises dans le contrat de crédit (registre T216) */}
+            {texte("plaintesContact", "Unité des plaintes (contact) :")}
             <Champ libelle="Journée Maxi ouvert : *">{(p) => <input {...p} className="saisie code" inputMode="numeric" value={String(v.journeeMax ?? "")}
               onChange={(e) => setF({ ...v, journeeMax: e.target.value as unknown as number })} />}</Champ>
             {texte("ifu", "NIF")}

@@ -747,3 +747,25 @@ select.saisie { max-width: 100%; }
   font: 600 var(--taille-dense)/1.4 var(--police-chiffres); text-align: center; font-variant-numeric: tabular-nums; }
 [aria-current="page"] .compteur, .actif .compteur { background: var(--sur-tampon); color: var(--tampon); }
 }
+
+/* ---------- Documents remis au client (point bloquant B12 ; registre T215 ; DESIGN § 2.8) ----------
+   En-tête commun (l'institution cliente, registre D01-7), mention de l'exemplaire, reçu en ticket de 80 mm (72 mm imprimables).
+   Tout le texte du ticket en 12 points au moins, comme les autres documents remis au client (Instr. BCC 40, art. 5 ; registre E22-1). */
+.doc-tete { display: grid; justify-items: center; gap: 1px; text-align: center; }
+.doc-tete img { max-height: 14mm; max-width: 40mm; object-fit: contain; margin-bottom: 1mm; }
+.doc-tete strong { font-size: 1.15em; }
+.doc-exemplaire { margin: 0; text-align: center; }
+.doc-bon-pour { margin: 0; padding-bottom: 12mm; border-bottom: 1px dotted var(--encre); }   /* Code civil, livre III, art. 208 */
+.apercu-ticket { display: flex; justify-content: center; padding: var(--espace-3); background: var(--papier); border-radius: var(--rayon-champ); }
+.ticket { width: 72mm; box-sizing: border-box; padding: 3mm 2mm; display: grid; gap: 2mm; background: var(--feuille); color: var(--encre); font-size: 12pt; line-height: 1.3; }
+.ticket-titre { margin: 0; padding: 1mm 0; text-align: center; font-size: 1.1em; text-transform: uppercase; letter-spacing: .03em; border-block: 1px dashed var(--encre); }
+.ticket-lignes { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 1mm 3mm; margin: 0; }
+.ticket-lignes dt { color: var(--encre-2); }
+.ticket-lignes dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.ticket-montant { font-weight: 700; font-size: 1.15em; }
+.ticket-signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; padding-top: 12mm; text-align: center; }
+.ticket-signatures span { border-top: 1px solid var(--encre); padding-top: 1mm; }
+@media print {
+  .apercu-ticket { padding: 0; background: none; border-radius: 0; }
+  .ticket { margin: 0 auto; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

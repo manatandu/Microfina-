@@ -8,6 +8,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
+import { MentionExemplaire, useImpression, type Exemplaire } from "../composants/Documents";
 import { lireMontant, montant, montantEnLettres, type Devise } from "@design/montant.js";
 import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Paginee, LigneFiltres, Formulaire } from "../composants";
 import { RechercheClient } from "./Visa";
@@ -144,6 +145,7 @@ export default function DepotsATerme() {
   const [courus, setCourus] = useState(false);
   const [rompre, setRompre] = useState<Dat | null>(null);
   const [contrat, setContrat] = useState<Contrat | null>(null);
+  const imp = useImpression("contrat_dat", contrat?.dat.id, ".fiche .a-imprimer");   // Code civil, livre III, art. 207 : deux originaux (registre T215)
   const [avis, setAvis] = useState<Contrat | null>(null);
   const [piece, setPiece] = useState("");
   const [boite, setBoite] = useState<Boite | null>(null);
@@ -209,10 +211,11 @@ export default function DepotsATerme() {
         {rompre && <FormulaireRupture dat={rompre} fini={(pc) => { setRompre(null); if (pc) setPiece(pc); relire(); }} />}
       </Fiche>
       <Fiche titre="Contrat de dépôt à terme" ouverte={!!contrat} fermer={() => setContrat(null)}>
-        {contrat && <ContratDat c={contrat} />}
+        {contrat && <ContratDat c={contrat} x={imp.exemplaire} />}
+        {imp.erreur && <p className="attention" role="alert">{imp.erreur}</p>}
         <div className="actions-onglets sans-impression">
           <button className="bouton secondaire" type="button" onClick={() => setContrat(null)}>Fermer</button>
-          <button className="bouton" type="button" onClick={() => imprimer(".fiche .a-imprimer")}>Imprimer</button>
+          <button className="bouton" type="button" onClick={() => void imp.imprimer()}>Imprimer</button>
         </div>
       </Fiche>
       <Fiche titre="Avis de rupture de DAT" ouverte={!!avis} fermer={() => setAvis(null)}>
@@ -228,7 +231,7 @@ export default function DepotsATerme() {
 }
 
 /** Contrat de dépôt à terme (registre S65-7) : document de l'institution cliente, conditions du DAT, signatures */
-function ContratDat({ c }: { c: Contrat }) {
+function ContratDat({ c, x: exemplaire = null }: { c: Contrat; x?: Exemplaire | null }) {
   const x = c.dat, e = c.entete, cl = c.client, dev = x.devise as Devise;
   const nom = cl.intitule || [cl.nom, cl.postnom, cl.prenom].filter(Boolean).join(" ");
   const lignes: [string, string][] = [
@@ -252,8 +255,9 @@ function ContratDat({ c }: { c: Contrat }) {
       {x.observation && <p>Observation : {x.observation}</p>}
       <div className="releve-haut">
         <div><strong>Le client</strong><br /><br /><br />{nom}</div>
-        <div style={{ textAlign: "right" }}><strong>Pour {e.nom}</strong><br /><br /><br />Fait le {fr(x.dateDepot)}</div>
+        <div style={{ textAlign: "right" }}><strong>Pour {e.nom}</strong><br /><br /><br />Fait le {fr(x.dateDepot)}, en deux originaux, un pour chaque partie</div>
       </div>
+      <MentionExemplaire x={exemplaire} originaux={2} suite="COPIE" />
       <footer className="releve-pied">
         <strong>{e.nom.toUpperCase()}</strong>
         <span>{[e.adresse, e.commune, e.ville, e.pays].filter(Boolean).join(", ")}</span>

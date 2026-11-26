@@ -12,7 +12,7 @@ export interface Institution {
   partEffet?: string;   // date d'effet de la valeur de la part (statuts ; registre T134)
   inactiviteMinutes?: number;   // verrouillage de la session après inactivité, 5 à 60 minutes, 15 par défaut (registre T211)
   // S32 Info générale
-  description?: string; directeur?: string; numeroAgrement?: string; journeeMax?: number; compteHorsBilan1?: string | null; compteHorsBilan2?: string | null;
+  description?: string; directeur?: string; numeroAgrement?: string; plaintesContact?: string; journeeMax?: number; compteHorsBilan1?: string | null; compteHorsBilan2?: string | null;
   ifu?: string; nrc?: string; assuranceAssureur?: string; assurancePolice?: string; assuranceEcheance?: string;   // police de la trésorerie (SN01-4)
    pays?: string; province?: string; ville?: string; commune?: string; quartier?: string; rue?: string; numeroRue?: string; email?: string; bp?: string; telephoneFixe?: string; adresse?: string; logo?: string | null;
   delegationAdmission?: string;
@@ -439,6 +439,7 @@ export interface Etat {
   motifsRefus: { source: string; objetId: number; etape: "visa" | "validation"; motif: string; refusePar: number; refuseLe: string }[];   // plan d'allègement 7.1   // plan d'allègement 7.10 : déclaration ou quittance d'une taxe du mois (S108)
   operationsDifferees: OperationDifferee[];   // plan d'allègement, point 7.2 : déblocages et remboursements saisis hors guichet, en attente
   journalSecurite: EvenementSecurite[];   // écart E17
+  impressions?: { document: string; objet: number; exemplaire: number; par: number; le: string }[];   // point bloquant B12 : original puis duplicatas (registre T215)
   declarationsCip: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];   // écart E06   // S46, S42, S43
   banques: { id: number; code: string; libelle: string; compteLiaison: string; adresse: string }[];   // S58
   budget: Record<string, LigneBudget[]>;

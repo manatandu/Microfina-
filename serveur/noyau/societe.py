@@ -10,7 +10,7 @@ from .fuseau import FUSEAUX
 PROFILS = {"coopec": "COOPEC", "societe_microfinance": "Société de microfinance", "entreprise_microcredit": "Entreprise de micro-crédit",
            "faitiere": "Structure faîtière"}       # loi 002/2002 (COOPEC, faîtières) ; loi 11/020, art. 11 (IMF)
 CHAMPS = {"code": "sigle", "denomination": "nom", "typeBase": "profil", "description": "description", "directeur": "directeur",
-          "agrement": "numero_agrement", "journeeMax": "journee_max", "compteHorsBilan1": "compte_hors_bilan_1", "compteHorsBilan2": "compte_hors_bilan_2",
+          "agrement": "numero_agrement", "plaintesContact": "plaintes_contact", "journeeMax": "journee_max", "compteHorsBilan1": "compte_hors_bilan_1", "compteHorsBilan2": "compte_hors_bilan_2",
           "ifu": "ifu", "nrc": "nrc", "pays": "pays", "province": "province", "ville": "ville", "commune": "commune", "quartier": "quartier", "rue": "rue",
           "numeroRue": "numero_rue", "email": "email", "bp": "bp",
           "telephoneFixe": "telephone_fixe", "adresse": "adresse", "logo": "logo",

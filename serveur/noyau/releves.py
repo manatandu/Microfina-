@@ -11,10 +11,10 @@ CHAMPS_CLIENT = ("numero", "type", "intitule", "nom", "postnom", "prenom", "sexe
 
 def entete(i: int) -> dict:
     """En-tête des documents imprimés : l'institution cliente (Information société, S32 ; registre D01)"""
-    s = une("select nom, sigle, adresse, telephone_fixe, bp, ville, commune, pays, email, numero_agrement, ifu, logo from institution where id = %s", (i,))
+    s = une("select nom, sigle, adresse, telephone_fixe, bp, ville, commune, pays, email, numero_agrement, ifu, logo, plaintes_contact from institution where id = %s", (i,))
     return {"nom": s["nom"], "sigle": s["sigle"] or "", "adresse": s["adresse"] or "", "telephone": s["telephone_fixe"] or "", "bp": s["bp"] or "",
             "ville": s["ville"] or "", "commune": s["commune"] or "", "pays": s["pays"] or "", "email": s["email"] or "", "agrement": s["numero_agrement"] or "",
-            "ifu": s["ifu"] or "", "logo": s["logo"]}
+            "ifu": s["ifu"] or "", "logo": s["logo"], "plaintes": s["plaintes_contact"] or ""}
 
 
 def client(tid: int) -> dict:

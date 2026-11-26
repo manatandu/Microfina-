@@ -7,10 +7,10 @@ import type { Operation, Tiers } from "../donnees/types";
 import { useDonnees } from "../lib/useDonnees";
 import { nouvelleCle } from "../lib/cle";
 import { fr, aujourdhui } from "../lib/dates";
-import { imprimer } from "../lib/imprimer";
 import { lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Billetage, Champ, Chargement, Dialogue, Fiche, Formulaire, Paginee, Silhouette, Specimen, Textes, Touche, type Boite, Lecture, LigneFiltres } from "../composants";
 import { RechercheClient } from "./Visa";
+import { EnTeteDocument, MentionExemplaire, useImpression } from "../composants/Documents";
 
 export const titulaireDe = (t: Tiers) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
 
@@ -274,6 +274,11 @@ export default function GuichetDepotRetrait() {
   );
 }
 
+/** Titre imprimé de chaque reçu, et les opérations où l'argent sort de la caisse (« Remis à », « Le bénéficiaire ») */
+const PAPIER: Partial<Record<Operation["type"], string>> = { depot: "Reçu de dépôt", retrait: "Reçu de retrait", adhesion: "Reçu d'adhésion", achat_parts: "Reçu d'achat de parts",
+  retrait_parts: "Reçu de retrait de parts", ed_encaissement: "Reçu d'encaissement", ed_decaissement: "Reçu de décaissement", deblocage_credit: "Reçu de déblocage de crédit",
+  remboursement_credit: "Reçu de remboursement de crédit", transfert_sortie: "Bordereau de transfert", transfert_entree: "Bordereau de réception", versement_banque: "Bordereau de versement en banque" };
+const SORTIE = new Set<Operation["type"]>(["retrait", "retrait_parts", "ed_decaissement", "deblocage_credit"]);
 /** Reçu : ce que le membre reçoit (Instr. BCC 40, art. 13) */
 /** Reçu d'une opération de caisse. « Échap » n'est rappelé que là où la touche lance vraiment une nouvelle opération (guichet ; DESIGN § 2.1 ; plan d'allègement, point 11.1) */
 export function Recu({ id, onNouveau, echap = false }: { id: number; onNouveau: () => void; echap?: boolean }) {
@@ -281,31 +286,40 @@ export function Recu({ id, onNouveau, echap = false }: { id: number; onNouveau: 
   const nouvelle = useRef<HTMLButtonElement>(null);
   useEffect(() => { if (r) nouvelle.current?.focus(); }, [r]);   // l'action principale du reçu reçoit le focus (guide dialog), une fois le reçu chargé
   const lettres = useMemo(() => (r ? montantEnLettres(r.o.montant, r.o.devise) : ""), [r]);
+  const imp = useImpression("recu", id, ".fiche .a-imprimer");
   if (!r) return <Chargement />;
   const titre = { depot: "Dépôt enregistré", retrait: "Retrait enregistré", adhesion: "Adhésion enregistrée", achat_parts: "Achat de parts enregistré", retrait_parts: "Retrait de parts enregistré", ed_encaissement: "Encaissement enregistré", ed_decaissement: "Décaissement enregistré", transfert_sortie: "Transfert enregistré", transfert_entree: "Transfert reçu", versement_banque: "Versement en banque enregistré", deblocage_credit: "Déblocage de crédit", remboursement_credit: "Remboursement de crédit enregistré" }[r.o.type];
   return (
     <div className="pile">
       <p className="resultat-ok" role="status"><strong>{titre}.</strong> Pièce <span className="chiffres">{r.piece}</span>.</p>
-      <div className="papier a-imprimer" aria-label="Aperçu du reçu">
-        <dl>
-          <dt>Pièce</dt><dd className="chiffres">{r.piece}</dd>
-          <dt>Date</dt><dd className="chiffres">{fr(r.date)} à {r.o.heure}</dd>
-          <dt>Membre</dt><dd>{r.titulaire} <span className="chiffres">{r.numeroMembre}</span></dd>
-          {r.compte && <><dt>Compte</dt><dd className="chiffres">{r.compte}</dd></>}
-          {r.o.parts ? <><dt>Parts</dt><dd>{r.o.parts}</dd></> : null}
-          <dt>Montant</dt><dd className="chiffres">{montant(r.o.montant, r.o.devise)}</dd>
-          <dt>En lettres</dt><dd>{lettres}</dd>
-          <dt>{r.o.type === "retrait" ? "Remis à" : "Versé par"}</dt><dd>{r.o.remisPar}</dd>
-          {r.o.motif ? <><dt>Motif</dt><dd>{r.o.motif}</dd></> : null}
-          <dt>Caissier</dt><dd>{r.caissier}{r.viseur ? `, visa ${r.viseur}` : ""}</dd>
-        </dl>
+      {/* Point bloquant B12 : ticket de 80 mm, à la taille réelle du papier (DESIGN § 2.8 ; registre T215) */}
+      <div className="papier a-imprimer apercu-ticket">
+        <article className="ticket" aria-label="Aperçu du reçu">
+          <EnTeteDocument e={r.entete} agence={r.agence} />
+          <h2 className="ticket-titre">{PAPIER[r.o.type] ?? titre}</h2>
+          <dl className="ticket-lignes">
+            <dt>Pièce</dt><dd className="chiffres">{r.piece}</dd>
+            <dt>Date</dt><dd className="chiffres">{fr(r.date)} à {r.o.heure}</dd>
+            {r.numeroMembre && <><dt>{r.o.type === "adhesion" ? "Membre" : "Client"}</dt><dd>{r.titulaire}<br /><span className="chiffres">{r.numeroMembre}</span></dd></>}
+            {r.compte && <><dt>Compte</dt><dd className="chiffres">{r.compte}</dd></>}
+            {r.o.parts ? <><dt>Parts</dt><dd>{r.o.parts}</dd></> : null}
+            <dt>Montant</dt><dd className="chiffres ticket-montant">{montant(r.o.montant, r.o.devise)}</dd>
+            <dt>En lettres</dt><dd>{lettres}</dd>
+            {r.o.remisPar ? <><dt>{SORTIE.has(r.o.type) ? "Remis à" : "Versé par"}</dt><dd>{r.o.remisPar}</dd></> : null}
+            {r.o.motif ? <><dt>Motif</dt><dd>{r.o.motif}</dd></> : null}
+            <dt>Caissier</dt><dd>{r.caissier}{r.viseur ? `, visa ${r.viseur}` : ""}</dd>
+          </dl>
+          <div className="ticket-signatures"><span>Le caissier</span><span>{SORTIE.has(r.o.type) ? "Le bénéficiaire" : "Le déposant"}</span></div>
+          <MentionExemplaire x={imp.exemplaire} />
+        </article>
       </div>
+      {imp.erreur && <p className="attention" role="alert">{imp.erreur}</p>}
       <details className="textes"><summary>Écriture</summary>
         <table className="grille"><thead><tr><th scope="col">Compte</th><th scope="col" className="num">Débit</th><th scope="col" className="num">Crédit</th></tr></thead>
           <tbody>{r.lignes.map((l, i) => <tr key={i}><td className="chiffres">{l.compte}</td><td className="num">{l.sens === "D" ? montant(l.montant, l.devise) : ""}</td><td className="num">{l.sens === "C" ? montant(l.montant, l.devise) : ""}</td></tr>)}</tbody></table>
       </details>
       <div className="rangee">
-        <button type="button" className="bouton secondaire" onClick={() => imprimer(".fiche .a-imprimer")}>Imprimer</button>
+        <button type="button" className="bouton secondaire" onClick={() => void imp.imprimer()}>Imprimer</button>
         <button ref={nouvelle} type="button" className="bouton" onClick={onNouveau}>Nouvelle opération{echap && <> <Touche>Échap</Touche></>}</button>
       </div>
     </div>

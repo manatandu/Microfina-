@@ -1005,6 +1005,12 @@ def operation_lire(request, oid: int):
     return s.lire_operation(oid)
 
 
+@api.post("/impressions")
+def impressions_noter(request, corps: dict = Body(...)):
+    from . import impressions
+    return impressions.noter(u(request), corps)
+
+
 @api.get("/operations/{oid}/recu")
 def operation_recu(request, oid: int):
     u(request)

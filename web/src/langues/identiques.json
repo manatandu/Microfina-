@@ -251,5 +251,7 @@
 "style, link[rel='stylesheet']",
 "{0} USD",
 "{0} | Exofina",
-"{0}, Kinshasa"
+"{0}, Kinshasa",
+"@page { size: 80mm {0}mm; margin: 0; @bottom-center { content: none; } } body { margin: 0; }",
+"Article"
 ]

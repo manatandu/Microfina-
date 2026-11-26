@@ -18,7 +18,17 @@ export function imprimer(selecteur: string) {
       d.head.append(copie);
     }
     d.body.append(d.importNode(el, true));
-    const lancer = () => { cadre.contentWindow?.focus(); cadre.contentWindow?.print(); setTimeout(() => cadre.remove(), 1000); };
+    // Reçu en ticket (point bloquant B12) : une page de 80 mm de large et de la hauteur du reçu, sans marge ni numéro de page,
+    // pour que l'imprimante de reçus coupe juste après les signatures
+    const pageTicket = () => {
+      const t = d.querySelector<HTMLElement>(".ticket");
+      if (!t) return;
+      const hauteur = Math.ceil(t.getBoundingClientRect().height * 25.4 / 96) + 6;
+      const style = d.createElement("style");
+      style.textContent = `@page { size: 80mm ${hauteur}mm; margin: 0; @bottom-center { content: none; } } body { margin: 0; }`;
+      d.head.append(style);
+    };
+    const lancer = () => { pageTicket(); cadre.contentWindow?.focus(); cadre.contentWindow?.print(); setTimeout(() => cadre.remove(), 1000); };
     void Promise.all(charges).then(() => setTimeout(lancer, 100));
   }, { once: true });
   cadre.src = "/impression.html";

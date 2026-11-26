@@ -10,7 +10,7 @@ import { Champ, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Formul
 import { fr } from "../lib/dates";
 import { RechercheClient } from "./Visa";
 import { ConventionCompte, type DonneesConvention } from "./Convention";
-import { imprimer } from "../lib/imprimer";
+import { useImpression } from "../composants/Documents";
 
 const nomComplet = (t: Tiers) => t.intitule || [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
 
@@ -23,6 +23,8 @@ export function NouveauCompte() {
   const [relu, setRelu] = useState(0);
   const [recherche, setRecherche] = useState(false);
   const [convention, setConvention] = useState<DonneesConvention | null>(null);
+  const [conventionDe, setConventionDe] = useState<number | null>(null);
+  const imp = useImpression("convention", conventionDe, ".fiche .a-imprimer");   // original 1 et 2, puis copies (registre T215)
   const [boite, setBoite] = useState<Boite | null>(null);
   const { donnees: ap, erreur } = useDonnees(async () => (t && produit ? await api.comptesEpargne.apercu(t.id, Number(produit)) : null), [t?.id, produit, relu]);
   const { donnees: comptes } = useDonnees(() => (t ? api.tiers.comptes(t.id) : Promise.resolve([])), [t?.id, relu]);
@@ -77,7 +79,7 @@ export function NouveauCompte() {
               {(comptes ?? []).map((c) => <tr key={c.id}><td className="chiffres">{c.numero}</td><td>{c.intitule}</td><td>{c.devise}</td>
                 <td className="montant chiffres">{c.solde === null || c.solde === undefined ? "" : montant(c.solde, c.devise as Devise)}</td>
                 <td><button className="bouton secondaire" type="button" aria-label={`Convention du compte ${c.numero}`} onClick={async () => {
-                  try { setConvention(await api.comptesEpargne.convention(c.id)); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }}>Imprimer</button></td></tr>)}
+                  try { setConvention(await api.comptesEpargne.convention(c.id)); setConventionDe(c.id); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }}>Imprimer</button></td></tr>)}
             </tbody>
           </table></div>
         </fieldset>
@@ -87,10 +89,11 @@ export function NouveauCompte() {
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
       </Formulaire>
       <Fiche titre="Convention de compte" ouverte={!!convention} fermer={() => setConvention(null)}>
-        {convention && <ConventionCompte c={convention} />}
+        {convention && <ConventionCompte c={convention} x={imp.exemplaire} />}
+        {imp.erreur && <p className="attention" role="alert">{imp.erreur}</p>}
         <div className="actions-onglets sans-impression">
           <button className="bouton secondaire" type="button" onClick={() => setConvention(null)}>Fermer</button>
-          <button className="bouton" type="button" onClick={() => imprimer(".fiche .a-imprimer")}>Imprimer</button>
+          <button className="bouton" type="button" onClick={() => void imp.imprimer()}>Imprimer</button>
         </div>
       </Fiche>
       <Fiche titre="Recherche d'un client" ouverte={recherche} fermer={() => setRecherche(false)}>

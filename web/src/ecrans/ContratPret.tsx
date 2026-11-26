@@ -3,7 +3,7 @@
 import { api } from "../donnees/api";
 import { useDonnees } from "../lib/useDonnees";
 import { fr } from "../lib/dates";
-import { imprimer } from "../lib/imprimer";
+import { MentionExemplaire, useImpression } from "../composants/Documents";
 import { montant, montantEnLettres, type Devise } from "@design/montant.js";
 import { Chargement } from "../composants";
 
@@ -11,10 +11,17 @@ const pct = (x: number | null | undefined) => (x === null || x === undefined ? "
 
 export function ContratPret({ id, titre, fermer }: { id: number; titre: "Contrat de prêt" | "Reconnaissance de dette"; fermer: () => void }) {
   const { donnees: d } = useDonnees(() => api.deblocage.contrat(id), [id]);
+  const contrat = titre === "Contrat de prêt";
+  const imp = useImpression(contrat ? "contrat_pret" : "reconnaissance_dette", id, "#contrat-pret");
   if (!d) return <Chargement />;
   const c = d.credit, dv = c.devise as Devise, e = d.entete, k = d.client;
   const emprunteur = [k.intitule || [k.nom, k.postnom, k.prenom].filter(Boolean).join(" "), k.numero ? `, ${d.coopec ? "membre" : "client"} n° ${k.numero}` : ""].join("");
   const total = c.echeancier.reduce((s, l) => s + l.capital + l.interet, 0);
+  // Instr. BCC 40, art. 14 : coût total agrégé (intérêts, frais, assurance), risques significatifs, résumé de la politique de confidentialité,
+  // coordonnées de l'Unité de traitement des plaintes (registre T216)
+  const fraisTotal = d.retenues.frais.reduce((s, f) => s + f.montant, 0) + (d.retenues.assurance || 0);
+  let art = d.garanties.length > 0 ? 6 : 5;
+  const article = (titreArt: string) => <strong>Article {++art} : {titreArt}.</strong>;
   return (
     <div className="pile">
       <article className="releve-std contrat-dat a-imprimer" id="contrat-pret" aria-label={titre}>
@@ -38,6 +45,13 @@ export function ContratPret({ id, titre, fermer }: { id: number; titre: "Contrat
           <p><strong>Article 5 : remboursement anticipé.</strong> L'emprunteur peut rembourser par anticipation, en tout ou en partie. La pénalité est de {String(d.penaliteAnticipation).replace(".", ",")} % des intérêts
             restant dus, sans dépasser 50 % (Instr. BCC 38, art. 14).</p>
           {d.garanties.length > 0 && <p><strong>Article 6 : garanties.</strong> {d.garanties.map((g) => `${({ caution: "Caution", depot_garantie: "Dépôt de garantie", materiel: "Nantissement du matériel professionnel" } as Record<string, string>)[g.type] ?? g.type}${g.caution ? ` de ${g.caution}` : ""}${g.description ? ` (${g.description}, ${g.emplacement})` : ""} : ${montant(g.montant, dv)}`).join(" ; ")}.</p>}
+          <p>{article("coût total du crédit")} Intérêts {montant(total - c.montant, dv)}, frais et assurance {montant(fraisTotal, dv)}, soit {montant(total - c.montant + fraisTotal, dv)} en plus du capital emprunté.</p>
+          <p>{article("risques")} Une échéance impayée porte la pénalité de l'article 4{d.garanties.length > 0 ? " et peut entraîner la réalisation des garanties de l'article 6" : ""} ;
+            le crédit est déclaré à la Centrale des risques de la Banque Centrale du Congo (Instr. BCC 05, art. 5).{dv !== "CDF" ? ` Le crédit se rembourse en ${dv} : l'emprunteur dont les revenus sont en francs congolais porte le risque de change.` : ""}</p>
+          <p>{article("confidentialité")} {e.nom} garde le secret professionnel sur le crédit et préserve la confidentialité des données personnelles de l'emprunteur
+            (loi n° 002/2002, art. 79 ; loi n° 11/020, art. 60). Ce secret ne s'oppose pas à la Banque Centrale du Congo, à l'autorité judiciaire ni aux personnes que la loi habilite (loi n° 22/069, titre III, chapitre II).</p>
+          <p>{article("réclamations")} Toute réclamation se dépose dans une agence{e.plaintes ? ` ou auprès de l'Unité centrale de traitement des plaintes : ${e.plaintes}` : ""}.
+            Elle reçoit une suite dans 45 jours calendaires au plus ; à défaut de satisfaction, l'emprunteur peut saisir la Banque Centrale du Congo (Instr. BCC 39, art. 5).</p>
         </> : <>
           <p>Je soussigné(e) {emprunteur}, reconnais devoir à {e.nom} la somme de {montant(c.montant, dv)} ({montantEnLettres(c.montant, dv)}), montant du crédit n° {c.numero}
             débloqué le {fr(c.debloqueLe || d.date)}, que je m'engage à rembourser en capital et intérêts, soit {montant(total, dv)}, selon l'échéancier ci-dessous.</p>
@@ -48,17 +62,22 @@ export function ContratPret({ id, titre, fermer }: { id: number; titre: "Contrat
             <td className="num chiffres">{montant(l.interet, dv)}</td><td className="num chiffres">{montant(l.capital + l.interet, dv)}</td></tr>)}</tbody>
           <tfoot><tr><th scope="row" colSpan={2}>Total</th><td className="num chiffres">{montant(c.montant, dv)}</td><td className="num chiffres">{montant(total - c.montant, dv)}</td><td className="num chiffres">{montant(total, dv)}</td></tr></tfoot>
         </table>
+        {/* Code civil, livre III, art. 208 : l'engagement d'une seule partie porte, de sa main, un « bon pour » de la somme en toutes lettres */}
+        {!contrat && <p className="doc-bon-pour">Bon pour la somme de (en toutes lettres, de la main du souscripteur) :</p>}
         <div className="releve-haut">
-          <div><strong>L'emprunteur</strong>{titre === "Reconnaissance de dette" ? " (lu et approuvé)" : ""}<br /><br /><br />{emprunteur.split(",")[0]}</div>
-          <div style={{ textAlign: "right" }}>{titre === "Contrat de prêt" && <strong>Pour {e.nom}</strong>}<br /><br /><br />Fait à {e.ville || d.agence}, le {fr(d.date)}</div>
+          <div><strong>L'emprunteur</strong>{!contrat ? " (lu et approuvé)" : ""}<br /><br /><br />{emprunteur.split(",")[0]}</div>
+          <div style={{ textAlign: "right" }}>{contrat && <strong>Pour {e.nom}</strong>}<br /><br /><br />Fait à {e.ville || d.agence}, le {fr(d.date)}{contrat ? ", en deux originaux, un pour chaque partie" : ""}</div>
         </div>
+        <MentionExemplaire x={imp.exemplaire} originaux={contrat ? 2 : 1} suite="COPIE" />
         <footer className="releve-pied">
           <strong>{e.nom.toUpperCase()}</strong>
           <span>{[e.adresse, e.commune, e.ville, e.pays].filter(Boolean).join(", ")}</span>
           <span>{[e.agrement && `Agrément BCC n° ${e.agrement}`, e.ifu && `N° impôt : ${e.ifu}`, e.bp && `B.P. ${e.bp}`].filter(Boolean).join(" · ")}</span>
         </footer>
       </article>
-      <div className="actions-onglets"><button className="bouton" type="button" onClick={() => imprimer("#contrat-pret")}>Imprimer</button>
+      {contrat && !e.plaintes && <p className="attention sans-impression">Coordonnées de l'Unité des plaintes à renseigner dans Information société (Instr. BCC 40, art. 14).</p>}
+      {imp.erreur && <p className="attention" role="alert">{imp.erreur}</p>}
+      <div className="actions-onglets"><button className="bouton" type="button" onClick={() => void imp.imprimer()}>Imprimer</button>
         <button className="bouton secondaire" type="button" onClick={fermer}>Fermer</button></div>
     </div>
   );

@@ -5852,3 +5852,39 @@ def test_cloisonnement_agences(clients, journee):
     connecter(audit, "audit1")
     assert [x["id"] for x in audit.get("/api/tiers?q=0412-000318", **H).json()] == [k]
     assert audit.get(f"/api/tiers/{k}", **H).status_code == 200
+
+
+def test_impressions_original_duplicata(clients, journee):
+    """Point bloquant B12 (registre T215) : la première impression d'un reçu est l'original, les suivantes des duplicatas numérotés ; le journal
+    garde qui a imprimé et quand, et se lit seulement (Instr. BCC 008, art. 16) ; imprimer demande le droit de lire le reçu"""
+    from django.db import connection, transaction
+    caisse, admin = clients["caisse"], clients["compta"]
+    o = caisse.post("/api/guichet/depots", {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}, "mandataire": ""}, **H).json()
+    r = caisse.get(f"/api/operations/{o['id']}/recu", **H).json()
+    assert r["entete"]["nom"] and r["agence"] == "Matete"
+    x1 = caisse.post("/api/impressions", {"document": "recu", "objet": o["id"]}, **H).json()
+    x2 = caisse.post("/api/impressions", {"document": "recu", "objet": o["id"]}, **H).json()
+    assert (x1["exemplaire"], x1["duplicata"], x2["exemplaire"], x2["duplicata"]) == (1, 0, 2, 1) and x2["par"] == "Esther Ngalula"
+    assert caisse.post("/api/impressions", {"document": "inconnu", "objet": o["id"]}, **H).json()["message"] == "Document inconnu."
+    assert caisse.post("/api/impressions", {"document": "recu", "objet": 999999}, **H).json()["message"] == "Document inconnu."
+    connecter(admin, "gmbuyi")                                        # l'administrateur sécurité ne lit pas les reçus
+    assert admin.post("/api/impressions", {"document": "recu", "objet": o["id"]}, **H).status_code == 403
+    with pytest.raises(Exception, match="se lit seulement"):
+        with transaction.atomic():
+            connection.cursor().execute("delete from impression")
+    assert ident("select count(*) from impression where document = 'recu' and objet = %s", (o["id"],)) == 2
+
+
+def test_contrat_deux_originaux_puis_copies(clients, journee):
+    """Code civil, livre III, art. 207 : le contrat de prêt se fait en deux originaux ; au-delà, chaque impression est une copie, notée au journal.
+    Instr. BCC 40, art. 14 : le contrat donne les coordonnées de l'Unité de traitement des plaintes (Information société ; registres T215, T216)"""
+    from noyau.bd import executer
+    chef = clients["chef"]
+    cid = credit_vise(clients)
+    executer("update institution set plaintes_contact = 'Unité centrale des plaintes, tél. +243 810 000 111'")
+    assert chef.get(f"/api/credit/credits/{cid}/contrat", **H).json()["entete"]["plaintes"].startswith("Unité centrale")
+    n = [chef.post("/api/impressions", {"document": "contrat_pret", "objet": cid}, **H).json()["exemplaire"] for _ in range(3)]
+    assert n == [1, 2, 3]                                             # l'écran écrit ORIGINAL 1 sur 2, ORIGINAL 2 sur 2, COPIE n° 1
+    assert chef.post("/api/impressions", {"document": "reconnaissance_dette", "objet": cid}, **H).json()["exemplaire"] == 1
+    s = chef.get("/api/societe", **H).json()
+    assert s["institution"]["plaintesContact"].startswith("Unité centrale")

@@ -2366,9 +2366,12 @@ def recu(oid: int) -> dict:
     t = une("select numero from tiers where id = %s", (o["tiers_id"],)) if o["tiers_id"] else None   # aucun client pour un ED divers (S78)
     j = une("select date_comptable from journee_comptable where id = %s", (o["journee_id"],))
     compte = une("select numero from compte_depot where id = %s", (int(o["contrat_ref"].split(":")[1]),)) if (o["contrat_ref"] or "").startswith("depot:") else None
+    from .releves import entete
     return {"o": vue_operation(o), "piece": e["piece"] if e else "", "lignes": lignes_ecriture(e["id"]) if e else [], "titulaire": titulaire(o["tiers_id"]) if t else "",
             "numeroMembre": t["numero"] if t else "", "compte": compte["numero"] if compte else "", "date": j["date_comptable"].isoformat(),
-            "caissier": nom_utilisateur(o["saisi_par"]), "viseur": nom_utilisateur(o["vise_par"])}
+            "caissier": nom_utilisateur(o["saisi_par"]), "viseur": nom_utilisateur(o["vise_par"]),
+            # Le reçu porte l'institution et l'agence où l'opération a eu lieu (registre D01-7 ; point bloquant B12)
+            "entete": entete(o["institution_id"]), "agence": valeur("select nom from agence where id = %s", (o["agence_id"],)) or ""}
 
 
 # ---------- États ----------

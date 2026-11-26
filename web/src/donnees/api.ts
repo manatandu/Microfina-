@@ -2216,7 +2216,7 @@ const CHAMPS_CLIENT = ["numero", "type", "intitule", "nom", "postnom", "prenom",
 type FicheClient = Record<(typeof CHAMPS_CLIENT)[number], string>;
 const enteteDocument = () => { const i = E.institution;
   return { nom: i.nom, sigle: i.sigle ?? "", adresse: i.adresse ?? "", telephone: i.telephoneFixe ?? "", bp: i.bp ?? "", ville: i.ville ?? "", commune: i.commune ?? "",
-    pays: i.pays ?? "", email: i.email ?? "", agrement: i.numeroAgrement ?? "", ifu: i.ifu ?? "", logo: i.logo ?? null }; };
+    pays: i.pays ?? "", email: i.email ?? "", agrement: i.numeroAgrement ?? "", ifu: i.ifu ?? "", logo: i.logo ?? null, plaintes: i.plaintesContact ?? "" }; };
 const ficheClient = (tid: number): FicheClient => { const t = E.tiers.find((x) => x.id === tid) as unknown as Record<string, unknown> | undefined;
   return Object.fromEntries(CHAMPS_CLIENT.map((k) => [k, String(t?.[k] ?? "")])) as FicheClient; };
 const dateJournee = (jid: number) => E.journees.find((j) => j.id === jid)?.date ?? "";
@@ -6489,7 +6489,8 @@ const operations = {
     const t = E.tiers.find((x) => x.id === o.tiersId);   // aucun client pour un encaissement ou décaissement divers (S78)
     const c = E.comptes.find((x) => x.id === o.compteId);
     const j = E.journees.find((x) => E.sessions.some((s) => s.id === o.sessionId && s.journeeId === x.id))!;
-    return { o, piece: e?.piece ?? "", lignes: e?.lignes ?? [], titulaire: t ? titulaire(t) : "", numeroMembre: t?.numero ?? "", compte: c?.numero ?? "", date: j.date, caissier: nomUtilisateur(o.saisiPar), viseur: nomUtilisateur(o.visePar) };
+    return { o, piece: e?.piece ?? "", lignes: e?.lignes ?? [], titulaire: t ? titulaire(t) : "", numeroMembre: t?.numero ?? "", compte: c?.numero ?? "", date: j.date, caissier: nomUtilisateur(o.saisiPar), viseur: nomUtilisateur(o.visePar),
+      entete: enteteDocument(), agence: E.agence.nom };   // la démonstration n'a qu'une agence   // registre D01-7 ; point bloquant B12
   },
   lire: (id: number) => E.operations.find((o) => o.id === id) ?? null,
   duJour(journeeId: number) { return E.operations.filter((o) => E.sessions.some((s) => s.id === o.sessionId && s.journeeId === journeeId)); },
@@ -10415,7 +10416,7 @@ const edDivers = {
 // ---------- Paramétrage > Info société (S32, manuel p. 42). Code Institution = sigle ; Type base = profil (loi 002/2002 ; loi 11/020, art. 11).
 // Règles identiques côté serveur (noyau/societe.py). ----------
 export const PROFILS_INSTITUTION: Record<string, string> = { coopec: "COOPEC", societe_microfinance: "Société de microfinance", entreprise_microcredit: "Entreprise de micro-crédit", faitiere: "Structure faîtière" };
-export type InfoSociete = { code: string; denomination: string; typeBase: string; description: string; directeur: string; agrement: string; journeeMax: number;
+export type InfoSociete = { code: string; denomination: string; typeBase: string; description: string; directeur: string; agrement: string; plaintesContact?: string; journeeMax: number;
   compteHorsBilan1: string | null; compteHorsBilan2: string | null; ifu: string; pays: string; province?: string; ville: string; commune: string; quartier: string; rue: string; numeroRue?: string; email: string; bp: string;
   telephoneFixe: string; adresse: string; logo: string | null; delegationAdmission?: string; membresAuxiliaires?: string; faitiereAffiliation?: string; nrc?: string;
   assuranceAssureur?: string; assurancePolice?: string; assuranceEcheance?: string; valeurPart?: number | null; partEffet?: string };
@@ -10423,7 +10424,7 @@ const societe = {
   lire() {
     exiger();
     const i = E.institution;
-    const institution: InfoSociete = { code: i.sigle ?? "", denomination: i.nom, typeBase: i.profil, description: i.description ?? "", directeur: i.directeur ?? "",
+    const institution: InfoSociete = { code: i.sigle ?? "", denomination: i.nom, typeBase: i.profil, description: i.description ?? "", directeur: i.directeur ?? "", plaintesContact: i.plaintesContact ?? "",
       agrement: i.numeroAgrement ?? "", journeeMax: i.journeeMax ?? 1, compteHorsBilan1: i.compteHorsBilan1 ?? null, compteHorsBilan2: i.compteHorsBilan2 ?? null,
       ifu: i.ifu ?? "", pays: i.pays ?? "", province: i.province ?? "", ville: i.ville ?? "", commune: i.commune ?? "", quartier: i.quartier ?? "", rue: i.rue ?? "",
       numeroRue: i.numeroRue ?? "", email: i.email ?? "", bp: i.bp ?? "",
@@ -10467,7 +10468,7 @@ const societe = {
       if (!/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(logo)) throw new ErreurMetier("Logo : une image PNG ou JPEG.");
       if (logo.length > 300_000) throw new ErreurMetier("Logo : image trop lourde (200 Ko au plus).");
     }
-    Object.assign(E.institution, { sigle: v.code, nom: v.denomination, profil: v.typeBase, description: t(d.description), directeur: t(d.directeur), numeroAgrement: t(d.agrement),
+    Object.assign(E.institution, { sigle: v.code, nom: v.denomination, profil: v.typeBase, description: t(d.description), directeur: t(d.directeur), numeroAgrement: t(d.agrement), plaintesContact: t(d.plaintesContact),
       journeeMax: d.journeeMax, compteHorsBilan1: v.compteHorsBilan1 || null, compteHorsBilan2: v.compteHorsBilan2 || null, ifu: t(d.ifu), pays: v.pays, province: v.province, ville: v.ville, commune: v.commune,
       quartier: v.quartier, rue: t(d.rue), numeroRue: t(d.numeroRue), email: v.email, bp: t(d.bp), telephoneFixe: t(d.telephoneFixe), adresse: t(d.adresse), logo,
       delegationAdmission: t(d.delegationAdmission), membresAuxiliaires: t(d.membresAuxiliaires), faitiereAffiliation: t(d.faitiereAffiliation), nrc: t(d.nrc),
@@ -10943,6 +10944,29 @@ const securite = {
     E.institution.inactiviteMinutes = d.minutes!; enregistrer(); return { inactiviteMinutes: d.minutes! };
   },
 };
+/** Point bloquant B12 : chaque impression d'un document remis au client se note ; la première est l'original, les suivantes des duplicatas numérotés
+ *  (registre T215). Mêmes règles que noyau/impressions.py : le droit de lire le document */
+const DOCUMENTS_IMPRIMES: Record<string, { ecrans: string[]; existe: (id: number) => boolean }> = {
+  recu: { ecrans: ["S52", "S54", "S55", "S73", "S74", "S75", "S76", "S77", "S78", "S81", "S95", "S105", "S106"], existe: (id) => E.operations.some((o) => o.id === id) },
+  contrat_pret: { ecrans: ["S54", "S75", "S87", "S88", "S90", "S92", "S93", "S105"], existe: (id) => E.credits.some((c) => c.id === id) },
+  reconnaissance_dette: { ecrans: ["S54", "S75", "S87", "S88", "S90", "S92", "S93", "S105"], existe: (id) => E.credits.some((c) => c.id === id) },
+  convention: { ecrans: ["S63"], existe: (id) => E.comptes.some((c) => c.id === id) },
+  contrat_dat: { ecrans: ["S65", "S66", "S67", "S68"], existe: (id) => E.depotsTerme.some((d) => d.id === id) },
+};
+const impressions = {
+  noter(d: { document?: string; objet?: number }) {
+    const u = exiger();
+    const doc = d.document ? DOCUMENTS_IMPRIMES[d.document] : undefined;
+    if (!doc || !Number.isInteger(d.objet)) throw new ErreurMetier("Document inconnu.");
+    if (!doc.ecrans.some((x) => droitsDe(u).includes(x))) throw new ErreurMetier("Droit manquant : impression de ce document (Administration > Profil > Assigner droit).");
+    if (!doc.existe(d.objet!)) throw new ErreurMetier("Document inconnu.");
+    const l = (E.impressions ??= []);
+    const n = Math.max(0, ...l.filter((x) => x.document === d.document && x.objet === d.objet).map((x) => x.exemplaire)) + 1;
+    const x = { document: d.document!, objet: d.objet!, exemplaire: n, par: u.id, le: new Date().toISOString() };
+    l.push(x); sauver();
+    return { exemplaire: n, duplicata: n - 1, le: x.le, par: u.nom };
+  },
+};
 const journalSecurite = {
   consulter(du: string, au: string, evenement = "") {
     lectureAdmin(["SA01"]);
@@ -11198,6 +11222,7 @@ const construireLocale = () => ({
   retenues: asynchrone(retenues, "retenues"),
   attente: asynchrone(attente, "attente"),
   journalSecurite: asynchrone(journalSecurite, "journalSecurite"),
+  impressions: asynchrone(impressions, "impressions"),
   securite: asynchrone(securite, "securite"),
   plaintes: asynchrone(plaintes, "plaintes"),
   banques: asynchrone(banques, "banques"),
