@@ -699,7 +699,7 @@ describe("journée de guichet", () => {
     await expect(api.exercices.enregistrer({ annee: "20x7", lignes: [] })).rejects.toThrow("invalide");
     await expect(api.exercices.enregistrer({ annee: "2026", lignes: [] })).rejects.toThrow("existe déjà");
     l = await api.exercices.enregistrer({ annee: "2027", lignes: [] });
-    expect(l.exercices).toContainEqual({ annee: 2027, actif: false, ouvert: false, valide: false });
+    expect(l.exercices).toContainEqual({ annee: 2027, actif: false, ouvert: false, valide: false, clotureLe: "" });
     await expect(api.exercices.enregistrer({ annee: "", lignes: [{ annee: 2027, actif: true, ouvert: false, valide: false }] })).rejects.toThrow("Un seul exercice actif");
     await expect(api.exercices.enregistrer({ annee: "", lignes: [{ annee: 2025, actif: false, ouvert: true, valide: false }] })).rejects.toThrow("ne se rouvre pas");
     await expect(api.journees.ouvrir("2027-01-04")).rejects.toThrow("pas ouvert");   // registre S11-2

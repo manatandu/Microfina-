@@ -83,7 +83,7 @@ function InformationSociete() {
             </>}
           </div>
           <div className="pile champs-a-gauche">
-            <BlocAdresse valeur={v} maj={(x) => maj(x)} arbre={donnees.arbreLieux} ajouterQuartier={api.adresse.ajouterQuartier} />
+            <BlocAdresse valeur={v} maj={(x) => maj(x)} arbre={donnees.arbreLieux} requis ajouterQuartier={api.adresse.ajouterQuartier} />
             {texte("email", "email :")}
             {texte("bp", "BP", "saisie code")}
             {texte("telephoneFixe", "Téléphone fixe :")}

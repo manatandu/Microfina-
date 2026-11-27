@@ -127,7 +127,7 @@ function Acces() {
         </table></div>)}</Paginee>
         <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={donnees.length === 0} onClick={exporter}>Exporter</button></div>
         <Textes sources={["Instr. BCC 008, art. 16 : le responsable de la sécurité informatique, fonction indépendante de l'exploitation du système d'information, s'assure de la maîtrise des accès et de la détection des actions anormales ; à défaut, la fonction de gestion des risques",
-          "Le droit de cet écran n'est donné à aucun profil de départ : l'administrateur l'attribue au profil du responsable désigné (Administration > Profil > Assigner droit)",
+          "Le droit de cet écran part avec le profil ADMINISTRATEUR SÉCURITÉ ; l'administrateur peut aussi l'attribuer au profil du responsable désigné (Administration > Sécurité > Profils et droits ; registre T29)",
           "Le journal garde les connexions, les refus de mot de passe, les blocages après trop d'essais, les accès refusés faute de droit et les dépassements de la limite de requêtes"]} />
       </section>
     </>

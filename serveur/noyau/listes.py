@@ -72,9 +72,9 @@ def enregistrer(u, liste: str, d, lid: int | None = None) -> dict:
         raise ErreurMetier("Ligne introuvable.")
     if c.get("sansCode") and une("select 1 from liste_reference where institution_id = %s and liste = %s and lower(libelle) = lower(%s) and actif and id is distinct from %s",
                                  (i, liste, libelle, lid)):
-        raise ErreurMetier(f"Ce {c['libelle']} existe déjà.")      # registre S18-2
+        raise ErreurMetier(f"{c['libelle']} : existe déjà.")      # registre S18-2
     if une("select 1 from liste_reference where institution_id = %s and liste = %s and code = %s and id is distinct from %s", (i, liste, code, lid)):
-        raise ErreurMetier(f"Ce {c['code']} existe déjà.")
+        raise ErreurMetier(f"{c['code']} : existe déjà.")
     if lid is None:
         executer("insert into liste_reference (institution_id, liste, code, libelle, parent_id) values (%s, %s, %s, %s, %s)",
                  (i, liste, code, libelle, parent if c.get("parent") else None))

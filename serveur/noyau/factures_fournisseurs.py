@@ -68,7 +68,7 @@ def taxe_tva(u) -> dict:
     """La TVA se lit dans les taxes (S104) : aucun taux n'est écrit dans le logiciel"""
     t = next((x for x in taxes(u) if x["code"].strip().upper() == "TVA"), None)
     if not t:
-        raise ErreurMetier("TVA : créer d'abord la taxe de code TVA (Comptabilité > Plan des comptes > Création des taxes).")
+        raise ErreurMetier("TVA : créer d'abord la taxe de code TVA (Comptabilité > Référentiels > Taxes).")
     return t
 
 
@@ -149,7 +149,7 @@ def lignes_commande(u, brut) -> list[dict]:
         if entier(x, "retenueTaxeId"):
             ret = par_id.get(entier(x, "retenueTaxeId"))
             if not ret or ret["code"].strip().upper() == "TVA":
-                raise ErreurMetier("Retenue : une taxe de la liste, autre que la TVA (Création des taxes).")
+                raise ErreurMetier("Retenue : une taxe de la liste, autre que la TVA (Comptabilité > Référentiels > Taxes).")
             m_ret = pct(ht, dec(ret["taux"], "Taux"))
         out.append({"compte": compte, "intitule": valeur("""select libelle from compte where numero = %s and (institution_id is null or institution_id = %s)
                                                              order by institution_id nulls last limit 1""", (compte, u["institution_id"])) or "",
@@ -195,7 +195,7 @@ def enregistrer_commande(u, d) -> dict:
     i = u["institution_id"]
     tc = une("select id, code, libelle from type_commande where id = %s and institution_id = %s and not supprime", (entier(d, "typeCommandeId"), i))
     if not tc:
-        raise ErreurMetier("À remplir : Type Commande (Paramétrage > Facture > Référence Commande).")
+        raise ErreurMetier("À remplir : Type Commande (Comptabilité > Référentiels > Facture : éléments et références).")
     f = fournisseur(u, entier(d, "fournisseurId"))
     jour = jour_ouvert(u)
     date_op = d_iso(d.get("date"), "Date opération", jour)

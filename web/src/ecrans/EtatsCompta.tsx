@@ -92,7 +92,7 @@ export function BalanceComptes() {
 }
 
 function EditionBalance({ ctx, jour }: { ctx: Ctx; jour: string }) {
-  const vide = { plan: "general", type: "8", balance: "groupee", agence: "", exercice: jour.slice(0, 4), du: `${jour.slice(0, 4)}-01-01`, au: jour, compteDe: "1", compteA: "99000000", niveau: "1", sansVidage: false };
+  const vide = { plan: "general", type: "6", balance: "groupee", agence: "", exercice: jour.slice(0, 4), du: `${jour.slice(0, 4)}-01-01`, au: jour, compteDe: "1", compteA: "99000000", niveau: "1", sansVidage: false };
   const [f, setF] = useState(vide);
   const [boite, setBoite] = useState<Boite | null>(null);
   const titre = "Edition de la balance des comptes";
@@ -111,7 +111,7 @@ function EditionBalance({ ctx, jour }: { ctx: Ctx; jour: string }) {
       }
       const gl = await api.etatsCompta.grandLivre(criteresGl());
       telecharger(`balance-${r.au}`, balanceClasseur(await enteteDoc(r.du, r.au), r.lignes.map((x) => ({ compte: x.compte, intitule: x.intitule, anterieurD: x.ouvertureDebit, anterieurC: x.ouvertureCredit,
-        mouvementD: x.mouvementDebit, mouvementC: x.mouvementCredit, soldeD: x.soldeDebit, soldeC: x.soldeCredit })), gl.comptes.map(versGl)));
+        mouvementD: x.mouvementDebit, mouvementC: x.mouvementCredit, soldeD: x.soldeDebit, soldeC: x.soldeCredit })), gl.comptes.map(versGl), false, f.type as "8" | "6" | "4"));
     } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
   return (

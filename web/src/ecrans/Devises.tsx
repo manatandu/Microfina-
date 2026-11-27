@@ -77,7 +77,7 @@ function PageDevise() {
     <Champ libelle={libelle}>{(p) => <input {...p} className={classe} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} />}</Champ>);
   return (
     <Volet id="devise" boite={boite} fermer={fermer} annuler={annuler}
-      champs={<>{texte("libelle", "Devise:")}{texte("code", "Code:", "saisie code")}{texte("unite", "Unité:", "saisie code")}
+      champs={<>{texte("libelle", "Devise : *")}{texte("code", "Code : *", "saisie code")}{texte("unite", "Unité:", "saisie code")}
         <Champ libelle="Subdivision:">{(p) => <input {...p} className="saisie code" inputMode="numeric" value={f.subdivision} onChange={(e) => setF({ ...f, subdivision: e.target.value })} />}</Champ></>}
       enregistrer={() => confirmer(choisie !== null, () => api.devises.enregistrerDevise(f, choisie ?? undefined), annuler)}
       grille={<table className="grille">
@@ -102,10 +102,10 @@ function PageSous() {
   return (
     <Volet id="sous" boite={boite} fermer={fermer} annuler={annuler}
       champs={<>
-        <Champ libelle="Billet ou pièce :">{(p) => <select {...p} className="saisie" value={f.typeId ? "" : f.nature} disabled={!!f.typeId} onChange={(e) => setF({ ...f, nature: e.target.value })}>
+        <Champ libelle="Billet ou pièce : *">{(p) => <select {...p} className="saisie" value={f.typeId ? "" : f.nature} disabled={!!f.typeId} onChange={(e) => setF({ ...f, nature: e.target.value })}>
           <option value=""></option><option>Billet</option><option>Pièce</option></select>}</Champ>
-        <Champ libelle="Valeur fiduciaire:">{(p) => <input {...p} className="saisie code" inputMode="decimal" value={f.valeur} onChange={(e) => setF({ ...f, valeur: e.target.value })} />}</Champ>
-        <Champ libelle="Devise :">{(p) => <select {...p} className="saisie" value={f.devise} onChange={(e) => setF({ ...f, devise: e.target.value })}>
+        <Champ libelle="Valeur fiduciaire : *">{(p) => <input {...p} className="saisie code" inputMode="decimal" value={f.valeur} onChange={(e) => setF({ ...f, valeur: e.target.value })} />}</Champ>
+        <Champ libelle="Devise : *">{(p) => <select {...p} className="saisie" value={f.devise} onChange={(e) => setF({ ...f, devise: e.target.value })}>
           <option value=""></option>{donnees.devises.map((d) => <option key={d.code} value={d.code}>{d.code}</option>)}</select>}</Champ></>}
       enregistrer={() => confirmer(choisie !== null, () => api.devises.enregistrerMonnaie(envoi, choisie ?? undefined), annuler)}
       grille={<table className="grille">

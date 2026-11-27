@@ -410,14 +410,14 @@ def verifier_route(u: dict, methode: str, chemin: str) -> None:
         e = next((x for m, x in LECTURES_ADMIN if m.fullmatch(c)), None)
         if e and not droits_utilisateur(u["id"]) & set(e):
             noms = {x["id"]: x["nom"] for x in ecrans()}
-            raise ErreurMetier(f"Droit manquant : {noms.get(e[0], e[0])} (Administration > Profil > Assigner droit).", 403)
+            raise ErreurMetier(f"Droit manquant : {noms.get(e[0], e[0])} (Administration > Sécurité > Profils et droits).", 403)
         return
     e = ecrans_de_route(chemin.removeprefix("/api"))
     if e is None:
         return
     if not droits_utilisateur(u["id"]) & set(e):
         noms = {x["id"]: x["nom"] for x in ecrans()}
-        raise ErreurMetier(f"Droit manquant : {noms.get(e[0], e[0])} (Administration > Profil > Assigner droit).", 403)
+        raise ErreurMetier(f"Droit manquant : {noms.get(e[0], e[0])} (Administration > Sécurité > Profils et droits).", 403)
     u["droit_route"] = True
 
 

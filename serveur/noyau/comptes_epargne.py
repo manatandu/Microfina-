@@ -28,7 +28,7 @@ def preparer(u, tid, pid) -> dict:
     controler_statut_actif(t["statut"])
     if est_coopec(u) and not valeur("select 1 from compte_depot where tiers_id = %s and statut <> 'clos'", (t["id"],)):
         # loi 002/2002, art. 1er : la COOPEC collecte l'épargne de ses membres ; l'adhésion ouvre le premier compte (registre S63-2)
-        raise ErreurMetier("Ce client n'a pas encore adhéré : l'adhésion (Caisse > Adhésion) ouvre son premier compte.")
+        raise ErreurMetier("Ce client n'a pas encore adhéré : l'adhésion (Caisse > Guichet, onglet Adhésion) ouvre son premier compte.")
     p = une("select * from produit_epargne where id = %s and institution_id = %s and actif and not supprime", (pid, i)) if isinstance(pid, int) and not isinstance(pid, bool) else None
     if not p:
         raise ErreurMetier("À remplir : Produit Epargne.")

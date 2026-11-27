@@ -72,7 +72,8 @@
     "but": "Créer un guichet, ses comptes, l'option billetage, l'activer",
     "module": "administration",
     "priorite": "must",
-    "chemin": "/administration/s08"
+    "chemin": "/administration/s08",
+    "aussi": ["S09"]
   },
   {
     "id": "S09",
@@ -812,9 +813,9 @@
     "id": "S89",
     "nom": "Dossier : mise en place",
     "acces": "Crédit > Dossier > Mise en place",
-    "but": "Monter le prêt",
+    "but": "Le crédit naît à la décision ; la mise en place disparaît (plan d'allègement, point 6.1)",
     "module": "credit",
-    "priorite": "must",
+    "priorite": "skip",
     "chemin": "/credit/s89",
     "menu": false
   },
@@ -835,8 +836,7 @@
     "but": "Qui a visé quoi",
     "module": "credit",
     "priorite": "must",
-    "chemin": "/credit/s91",
-    "menu": false
+    "chemin": "/credit/s91"
   },
   {
     "id": "S92",

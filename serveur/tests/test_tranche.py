@@ -1425,7 +1425,7 @@ def test_exercices(clients):
     assert "existe déjà" in refus({"annee": "2026"})
     assert agent.post("/api/exercices", {"annee": "2027"}, **H).status_code == 403
     l = chef.post("/api/exercices", {"annee": "2027", "lignes": [{"annee": 2026, "actif": True, "ouvert": True, "valide": False}]}, **H).json()
-    assert {"annee": 2027, "actif": False, "ouvert": False, "valide": False} in l["exercices"]
+    assert {"annee": 2027, "actif": False, "ouvert": False, "valide": False, "clotureLe": ""} in l["exercices"]
     assert "Un seul exercice actif" in refus({"lignes": [{"annee": 2027, "actif": True, "ouvert": False, "valide": False}]})            # registre S11-1
     assert "ne se rouvre pas" in refus({"lignes": [{"annee": 2025, "actif": False, "ouvert": True, "valide": False}]})          # registre S11-3
     r = chef.post("/api/journees", {"date": "2027-01-04"}, **H); assert r.status_code == 422 and "pas ouvert" in r.json()["message"]   # registre S11-2

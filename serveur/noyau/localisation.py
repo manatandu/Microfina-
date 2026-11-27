@@ -90,7 +90,7 @@ def enregistrer(u, niveau: str, d, lid: int | None = None) -> dict:
         raise ErreurMetier("Nature inconnue.")
     if une("""select 1 from localite where niveau = %s and parent_id is not distinct from %s and lower(nom) = lower(%s) and nature = %s and actif
               and id is distinct from %s""", (niveau, parent, nom, nature, lid)):
-        raise ErreurMetier(f"Ce {ONGLETS[niveau]['libelle'].lower()} existe déjà.")
+        raise ErreurMetier(f"{ONGLETS[niveau]['libelle']} : existe déjà.")
     if niveau == "pays" and une("select 1 from localite where niveau = 'pays' and upper(code) = upper(%s) and actif and id is distinct from %s", (texte("code"), lid)):
         raise ErreurMetier("Ce code existe déjà.")
     extra = (texte("nationalite"), texte("code").upper(), texte("zone")) if niveau == "pays" else ("", "", "")

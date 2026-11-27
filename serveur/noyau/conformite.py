@@ -30,7 +30,7 @@ def autorisation(u: dict, tid: int, journee_id: int, type_: str, montant: int, d
     if e and e["statut"] == "autorise":
         return e["id"]
     if e and e["statut"] == "a_examiner":
-        raise ErreurMetier(f"L'examen renforcé n° {e['numero']} attend la conformité (Client > Conformité > Examen renforcé).")
+        raise ErreurMetier(f"L'examen renforcé n° {e['numero']} attend la conformité (Conformité > Lutte anti-blanchiment).")
     if e and e["statut"] == "refuse":
         raise ErreurMetier(f"Opération refusée par la conformité (examen renforcé n° {e['numero']}).")
     raise ErreurMetier(MSG)
@@ -203,7 +203,7 @@ def exiger_autorisation_ppe(tid: int) -> None:
     if ppe_active(tid) and not valeur("select 1 from dossier_ppe where tiers_id = %s and autorise_par is not null", (tid,)):
         raise ErreurMetier("Personne politiquement exposée, le client ou un de ses bénéficiaires effectifs (loi 22/068, art. 53) : "
                            "l'autorisation de la conformité vient avant le visa (Instr. BCC 15, art. 64). "
-                           "Client > Conformité > Examen renforcé, onglet Personnes exposées.")
+                           "Conformité > Lutte anti-blanchiment, onglet Vigilance, Personnes exposées.")
 
 
 def vue_ppe(t: dict) -> dict:

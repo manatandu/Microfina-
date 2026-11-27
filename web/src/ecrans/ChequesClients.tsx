@@ -52,7 +52,7 @@ export function ChequesClients() {
     } });
   }
   function traiter(action: "encaisser" | "retourner") {
-    if (choisi === null) { setBoite({ type: "erreur", message: "Double-cliquez d'abord sur la ligne du chèque." }); return; }
+    if (choisi === null) { setBoite({ type: "erreur", message: "Cliquez d'abord sur la ligne du chèque." }); return; }
     setBoite({ type: "confirmation", message: action === "encaisser" ? "Voulez-vous vraiment encaisser ?" : "Voulez-vous vraiment retourner ?", oui: async () => {
       try { await api.chequesClients.traiter(choisi, action, { dateEncaissement: dateEnc }); setChoisi(null); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }
       catch (x) { setBoite({ type: "erreur", message: message(x) }); }

@@ -155,7 +155,7 @@ class Referentiel:
         if cles and une(f"select 1 from {c['table']} where institution_id = %s and actif and id is distinct from %s and " + " and ".join(egal(k) for k in cles),
                (i, lid, *[v[k] for k in cles])) or \
                 (cles == ["code"] and une(f"select 1 from {c['table']} where institution_id = %s and code = %s and id is distinct from %s", (i, v["code"], lid))):
-            raise ErreurMetier(f"Ce {sans_deux(champs[cles[-1]]['libelle'])} existe déjà.")      # T08
+            raise ErreurMetier(f"{sans_deux(champs[cles[-1]]['libelle'])} : existe déjà.")      # T08
         cols = [f["col"] for f in c["champs"]]
         vals = [v[f["cle"]] for f in c["champs"]]
         if lid is None:

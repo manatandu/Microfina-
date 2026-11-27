@@ -163,7 +163,7 @@ def ouvrir_session(login: str, mot_de_passe: str | None, machine: str = "", code
         raise ErreurMetier("Identifiant inconnu.")
     # Registre S07-3 : « Control utilisateur connecté » (S05) : pas de seconde connexion tant que la première n'est pas fermée
     if u["controle_connecte"] and u["jeton_session"]:
-        raise ErreurMetier(f"Déjà connecté ({u['machine'] or 'machine inconnue'}). Demander la déconnexion (Administration > Utilisateur > Déconnecter utilisateurs).")
+        raise ErreurMetier(f"Déjà connecté ({u['machine'] or 'machine inconnue'}). Demander la déconnexion (Administration > Sécurité > Utilisateurs, bouton Déconnecter).")
     jeton = u["jeton_session"] or secrets.token_urlsafe(24)
     executer("update utilisateur set jeton_session = %s, machine = %s, connecte_le = now(), derniere_activite = now() where id = %s", (jeton, machine[:100], u["id"]))
     return {**charger_utilisateur(u["id"]), "jeton": jeton}
@@ -232,7 +232,7 @@ def cours(devise: str, jour: date | None = None) -> float:
         return 1.0
     c = cours_ligne(devise.strip(), jour)
     if c is None:
-        raise ErreurMetier(f"Aucun cours du {devise.strip()} saisi (Préférences > Devise, page Cours).")
+        raise ErreurMetier(f"Aucun cours du {devise.strip()} saisi (Administration > Journée > Journée du jour, Cours du jour).")
     return float(c["cours"])
 
 
@@ -376,7 +376,7 @@ def ouvrir_journee(u: dict, jour: str) -> dict:
     maxi = valeur("select journee_max from institution where id = %s", (u["institution_id"],)) or 1
     if len(ouvertes) >= maxi:
         raise ErreurMetier(f"Journée Maxi ouvert atteinte ({maxi}) : comptabiliser d'abord la journée du {fr(ouvertes[0]['date_comptable'].isoformat())} "
-                           "(Comptabilité > Comptabilisation).")
+                           "(Comptabilité > Contrôle > Clôture de la journée).")
     e = une("select * from exercice where institution_id = %s and annee = %s", (u["institution_id"], int(str(jour)[:4])))
     if not e or not e["ouvert"] or e["valide"]:
         # Registre S11-2 et S12-1 : une journée ne s'ouvre que dans un exercice ouvert et non validé (S11)
@@ -387,7 +387,7 @@ def ouvrir_journee(u: dict, jour: str) -> dict:
     # Registre S34-4 : pas de journée un jour férié saisi, ni un jour que l'agence n'a pas coché (loi 22/069, art. 186) ; aucun jour coché : pas de contrôle
     ferie = une("select description from jour_ferie where institution_id = %s and date_ferie = %s", (u["institution_id"], jour))
     if ferie:
-        raise ErreurMetier(f"Le {fr(str(jour))} est férié : {ferie['description']} (Agence > Jours fériés).")
+        raise ErreurMetier(f"Le {fr(str(jour))} est férié : {ferie['description']} (Paramétrage > Institution > Agence : jours de travail et fériés).")
     jt = valeur("select jours_travail from agence where id = %s", (u["agence_id"],)) or []
     rang = date.fromisoformat(str(jour)).isoweekday() % 7
     if any(jt) and not jt[rang]:
@@ -409,7 +409,7 @@ def controles_journee(jid: int) -> list[dict]:
     ouvertes = [s for s in ses if s["statut"] != "arretee"]
     arrets = lignes("select b.* from billetage b join session_caisse s on s.id = b.session_caisse_id where s.journee_id = %s and b.moment = 'arret'", (jid,))
     non_valides = [b for b in arrets if not b["valide_par"]]
-    ecarts = [b for b in arrets if total_lignes(b["id"]) != total_comptage(b["theorique"])]
+    ecarts = [b for b in arrets if total_lignes(b["id"]) != total_comptage(b["theorique"]) and not b["ecriture_ecart_id"]]   # écart validé : passé au 671 ou au 7790
     attente = valeur("select count(*) from operation o join session_caisse s on s.id = o.session_caisse_id where s.journee_id = %s and o.statut in ('saisie', 'visee')", (jid,))
     nb_ecr = valeur("select count(*) from ecriture where journee_id = %s", (jid,))
     deseq = valeur("""select count(*) from (select e.id from ecriture e join ligne_ecriture l on l.ecriture_id = e.id where e.journee_id = %s
@@ -420,8 +420,8 @@ def controles_journee(jid: int) -> list[dict]:
          "detail": f"Encore ouvertes : {', '.join(s['guichet'] for s in ouvertes)}." if ouvertes else (f"{len(ses)} caisse{pl(len(ses))} arrêtée{pl(len(ses))}." if ses else "Aucune caisse ouverte aujourd'hui.")},
         {"titre": "Billetages d'arrêt validés", "etat": "ko" if non_valides else "ok", "source": "ARCHITECTURE § 6",
          "detail": f"{len(non_valides)} billetage{pl(len(non_valides))} à valider par le chef d'agence." if non_valides else "Tous validés."},
-        {"titre": "Caisses sans écart", "etat": "ko" if ecarts else "ok", "source": "ARCHITECTURE § 6 ; compte d'écart à confirmer",
-         "detail": "Écart constaté et justifié, mais son écriture n'est pas encore définie (compte à confirmer). Recompter ou attendre la règle." if ecarts else "Le compté égale le théorique partout."},
+        {"titre": "Caisses sans écart", "etat": "ko" if ecarts else "ok", "source": "ARCHITECTURE § 6 ; PCCI, comptes 671 et 7790",
+         "detail": "Écart pas encore passé en écriture : valider l'arrêté de caisse." if ecarts else "Le compté égale le théorique, ou l'écart est passé au compte de déficit ou d'excédent."},
         {"titre": "Opérations en attente de visa", "etat": "ko" if attente else "ok", "source": "ARCHITECTURE P7",
          "detail": f"{attente} opération{pl(attente)} à viser ou refuser." if attente else "Aucune."},
         {"titre": "Écritures équilibrées", "etat": "ko" if deseq else "ok", "source": "PCCI § 3.2",
@@ -521,7 +521,7 @@ def ouvrir_caisse(u: dict, guichet_id: int, journee_id: int | None = None) -> di
     if une("select 1 from session_caisse where journee_id = %s and caissier_id = %s and statut = 'ouverte' and fermee_le is null", (j["id"], u["id"])):
         raise ErreurMetier("Vous tenez déjà une caisse ouverte.")
     if not une("select 1 from affectation_guichet where utilisateur_id = %s and guichet_id = %s and fin is null", (u["id"], guichet_id)):
-        raise ErreurMetier("Ce guichet ne vous est pas affecté (Administration > Guichets, Affecter un caissier).")   # registre S09-4
+        raise ErreurMetier("Ce guichet ne vous est pas affecté (Administration > Journée > Guichets, Affecter un caissier).")   # registre S09-4
     sid = valeur("insert into session_caisse (guichet_id, journee_id, caissier_id, statut) values (%s, %s, %s, 'ouverte') returning id", (guichet_id, j["id"], u["id"]))
     return vue_session(une("select * from session_caisse where id = %s", (sid,)))
 
@@ -838,14 +838,16 @@ def composer_numero(regle: dict | None, valeurs: dict) -> str:
     return "-".join(morceaux)
 
 
-def numero_client(u: dict) -> str:
+def numero_client(u: dict, categorie: str = "", liste: str = "categorie") -> str:
     """Numéro d'un nouveau client selon la règle de S15 (registre S15-9 : elle vaut pour les clients créés après son enregistrement)"""
     r = une("select regle from numerotation_client where institution_id = %s", (u["institution_id"],))
     regle = json_lu(r["regle"]) if r else None
     ag = une("select a.code, i.sigle from agence a join institution i on i.id = a.institution_id where a.id = %s", (u["agence_id"],))
     n = compteur_client(u["agence_id"], regle["compteur"] if regle else 1)
-    # Categorie (S15-8) : la catégorie du client, pas encore saisie à l'enrôlement (registre S37-2) ; l'élément est sauté
-    return composer_numero(regle, {"INSTITUTION": ag["sigle"] or "", "AGENCE": ag["code"], "CATEGORIE": "", "COMPTEUR": n})
+    # Categorie (S15-8) : le code de la catégorie choisie sur la fiche (S14) ; sans catégorie, l'élément est sauté
+    cat = valeur("select code from liste_reference where institution_id = %s and liste = %s and libelle = %s and actif",
+                 (u["institution_id"], liste, categorie)) if categorie else None
+    return composer_numero(regle, {"INSTITUTION": ag["sigle"] or "", "AGENCE": ag["code"], "CATEGORIE": cat or "", "COMPTEUR": n})
 
 
 def apercu_numero_client(u: dict) -> str:
@@ -893,7 +895,7 @@ def ecrire_relation(tid: int, texte):
 
 def inserer_tiers(u: dict, d: dict, b: dict, type_: str, agent: str) -> int:
     texte = b["texte"]
-    numero = numero_client(u)
+    numero = numero_client(u, categorie_groupe(d.get("nbHommes"), d.get("nbFemmes")), "categorie_groupe") if type_ == "groupe" else numero_client(u, texte("categorie"))
     tid = valeur("""insert into tiers (institution_id, agence_id, numero, numero_manuel, type, statut, residence, agent_economique, zone_id, personne_exposee, cree_par,
                                        date_demande, matricule, type_client, produit_id, premier_depot, prelever_agios, calculer_interet)
                     values (%s, %s, %s, %s, %s, 'a_viser', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
@@ -1331,14 +1333,14 @@ def viser_tiers(u: dict, tid: int, d: dict | None = None) -> dict:
         if t.get("secteur_activite") and not sp.get("copie_habilitation"):
             manque.append("copie de la pièce d'habilitation professionnelle")
         if manque:   # art. 12 al. 2 et 3 : pièce et preuve de l'adresse ; art. 10 : avant d'entrer en relation ; art. 29 : copies gardées
-            raise ErreurMetier(f"Manquant : {', '.join(manque)}. À déposer avant le visa (Client > Photos et signatures ; Instr. BCC 15, art. 10, 12 et 29).")
+            raise ErreurMetier(f"Manquant : {', '.join(manque)}. À déposer avant le visa (Client > Fiche du membre, bouton Photos et signatures ; Instr. BCC 15, art. 10, 12 et 29).")
     # E1 : personne morale, copie des statuts et du registre (loi 22/068, art. 34, al. 1 : « Il en est pris photocopie » ; Instr. BCC 15, art. 17 a et 29).
     # Mêmes emplacements que la copie de la pièce et le justificatif d'adresse d'une personne physique (registre T43).
     if t["type"] == "morale":
         sp = une("select copie_piece, justificatif_adresse from specimen where tiers_id = %s order by id desc limit 1", (tid,)) or {}
         manque = [n for k, n in (("copie_piece", "copie des statuts"), ("justificatif_adresse", "copie du registre (acte de constitution)")) if not sp.get(k)]
         if manque:
-            raise ErreurMetier(f"Manquant : {', '.join(manque)}. À déposer avant le visa (Client > Photos et signatures ; loi 22/068, art. 34 ; Instr. BCC 15, art. 17 et 29).")
+            raise ErreurMetier(f"Manquant : {', '.join(manque)}. À déposer avant le visa (Client > Fiche du membre, bouton Photos et signatures ; loi 22/068, art. 34 ; Instr. BCC 15, art. 17 et 29).")
     # Écart E20 : membre auxiliaire, si les statuts le prévoient (loi 002/2002, art. 23)
     auxiliaire = d.get("auxiliaire") is True
     if auxiliaire and not (est_coopec(u) and valeur("select coalesce(membres_auxiliaires, '') <> '' from institution where id = %s", (u["institution_id"],))):
@@ -1377,7 +1379,7 @@ def controler_statut_actif(statut: str, suite: str = ""):
     if statut == "resilie":
         raise ErreurMetier("Client résilié : plus d'opération ; apurement de ses comptes à faire (loi 002/2002, art. 27).")
     if statut == "modifie_a_revalider":
-        raise ErreurMetier("Client modifié : à valider (Client > Visa > Valider client modifié) avant toute opération.")
+        raise ErreurMetier("Client modifié : à valider (Client > Membres à viser) avant toute opération.")
     if statut != "actif":
         raise ErreurMetier(f"Client pas encore visé{suite}.")
 
@@ -1589,6 +1591,13 @@ def rapport_transactions(u: dict, du: str, au: str) -> list[dict]:
         raise ErreurMetier("À remplir : DU et AU.")
     ops = {x["saisi_par"]: x["n"] for x in lignes("""select o.saisi_par, count(*) as n from operation o join journee_comptable j on j.id = o.journee_id
                   where o.agence_id = %s and j.date_comptable between %s and %s group by o.saisi_par""", (u["agence_id"], du, au))}
+    # Registre S13-1 : toute opération saisie, dans tous les menus : guichet, banque (S52, S53, S56) et comptabilité (S109, S116, S117), hors brouillons et refus
+    for x in lignes("""select saisi_par, count(*) as n from (
+                         select saisi_par from operation_banque where agence_id = %s and statut <> 'refusee' and date_operation between %s and %s
+                         union all
+                         select saisi_par from operation_comptable where agence_id = %s and statut <> 'brouillon' and date_operation between %s and %s) x
+                       group by saisi_par""", (u["agence_id"], du, au, u["agence_id"], du, au)):
+        ops[x["saisi_par"]] = ops.get(x["saisi_par"], 0) + x["n"]
     ann = {x["saisi_par"]: x["n"] for x in lignes("""select a.saisi_par, count(*) as n from ecriture a join journee_comptable j on j.id = a.journee_id
                   where j.agence_id = %s and a.contre_passe_id is not null and j.date_comptable between %s and %s group by a.saisi_par""", (u["agence_id"], du, au))}
     sortie = [{"utilisateur": nom_utilisateur(k), "operations": ops.get(k, 0), "annulations": ann.get(k, 0), "transactions": ops.get(k, 0) - ann.get(k, 0)}
@@ -2251,7 +2260,7 @@ def preparer_adhesion(u: dict, p: dict) -> dict:
     controler_ouverture(tid)                                         # P4 : Instr. BCC 13, art. 7
     if profil_institution(u) == "entreprise_microcredit":
         raise ErreurMetier("Une entreprise de micro-crédit ne collecte pas l'épargne du public (loi 11/020, art. 12) : pas d'adhésion avec compte épargne.")
-    if une("select 1 from compte_depot where tiers_id = %s", (tid,)):
+    if une("select 1 from compte_depot where tiers_id = %s and id is distinct from %s", (tid, p.get("compteOuvert"))):   # compte ouvert à la validation (registre S56-1)
         raise ErreurMetier("Ce membre a déjà adhéré.")
     produit = une("select * from produit_epargne where id = %s", (t["produit_id"],)) if t["produit_id"] else \
         une("select * from produit_epargne where institution_id = %s and famille = 'EPARGNE' and devise = 'CDF' and actif and not supprime order by version desc limit 1", (u["institution_id"],))

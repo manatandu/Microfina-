@@ -175,7 +175,7 @@ def fermer(u, gid: int) -> dict:
     faites = {r["devise"].strip() for r in lignes("select devise from billetage where session_caisse_id = %s and moment = 'arret'", (s["id"],))}
     manque = [d for d in devises_tenues() if d not in faites]
     if manque:
-        raise ErreurMetier("Enregistrez d'abord le billetage de la caisse (Caisse > Billetage) : " + ", ".join(manque) + ".")
+        raise ErreurMetier("Enregistrez d'abord le billetage de la caisse (Caisse > Arrêté de caisse > Comptage) : " + ", ".join(manque) + ".")
     executer("update session_caisse set fermee_le = now(), fermee_par = %s where id = %s", (u["id"], s["id"]))
     return lire(u)
 

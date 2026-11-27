@@ -50,7 +50,7 @@ def refuser(u: dict, d) -> dict:
         raise ErreurMetier("Rien à refuser.")
     droit = droit_visa if etape == "visa" else droit_validation
     if droit not in droits_utilisateur(u["id"]):
-        raise ErreurMetier("Droit manquant : Opérations en attente (Administration > Profil > Assigner droit).", 403)
+        raise ErreurMetier("Droit manquant : Opérations en attente (Administration > Sécurité > Profils et droits).", 403)
     if not motif:
         raise ErreurMetier("À remplir : motif du refus.")
     if o["saisi_par"] == u["id"]:

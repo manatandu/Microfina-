@@ -226,8 +226,8 @@ const OUT = process.argv[2];
   // Chef : devises, types de monnaie, monnaies (S35, p. 45 et 46) : la pièce de 50 centimes du franc congolais
   await aller('/parametrage/s35'); await p.getByRole('cell', { name: 'Franc congolais' }).waitFor(); await etape('02f26-devises');
   // Coupures : devise, billet ou pièce, valeur ; le libellé se compose seul (plan d'allègement, point 2.23)
-  await p.getByRole('tab', { name: 'Coupures', exact: true }).click(); await p.getByLabel('Billet ou pièce :').selectOption('Pièce'); await p.getByLabel('Valeur fiduciaire:').fill('0,50');
-  await p.getByLabel('Devise :').selectOption('CDF');
+  await p.getByRole('tab', { name: 'Coupures', exact: true }).click(); await p.getByLabel('Billet ou pièce : *').selectOption('Pièce'); await p.getByLabel('Valeur fiduciaire : *').fill('0,50');
+  await p.getByLabel('Devise : *').selectOption('CDF');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await p.getByRole('cell', { name: 'Pièce de 0,5 CDF' }).waitFor(); await etape('02f27-monnaies');
   // Administrateur sécurité (Instr. BCC 008, art. 16 ; registre T29) : profils (S03, p. 15) : un profil comme celui de la capture (AUDITEUR est désormais un profil de départ, registre T209)
   await login('Grâce Mbuyi');

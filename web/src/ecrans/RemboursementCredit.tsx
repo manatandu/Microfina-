@@ -12,9 +12,14 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { boiteOperation } from "../lib/examen";
 import { nouvelleCle } from "../lib/cle";
 import { fr } from "../lib/dates";
-import { decimal, lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
+import { coupuresDe, decimal, lireMontant, montant, montantEnLettres, totalComptage, type Comptage, type Devise } from "@design/montant.js";
 import { Attention, Billetage, Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Textes, type Boite, Formulaire } from "../composants";
 import { billetageBon, ChampClient, OngletsGuichet, recapitulatif, Recu } from "./Guichet";
+/** Registre S76-8 : le billetage peut dépasser le montant de moins que la plus petite coupure de la devise ; l'appoint va au compte d'épargne */
+const avecAppoint = (c: Comptage, m: number | null | undefined, dv: Devise) => {
+  const t = totalComptage(c), plusPetite = Math.min(...coupuresDe(dv).map((v) => Math.round(v * 100)));
+  return billetageBon(c, m) || (!!m && t > m && t - m < (Number.isFinite(plusPetite) ? plusPetite : 1));
+};
 import { RechercheClient } from "./Visa";
 
 type Rep = Record<string, number>;
@@ -217,7 +222,7 @@ export function RemboursementGuichet() {
         <div className="grille-cadres client-large">
           <InfosClient e={e} fige={fige} rechercher={() => setFiche("recherche")} choisir={(x) => { effacer(); e.setT(x); }} />
           <InfosCredit e={e} fige={fige} action={<div className="champ"><span className="libelle-vide" aria-hidden="true">&nbsp;</span>
-            <button className="bouton" type="submit" disabled={!d || fige} aria-disabled={!billetageBon(coupures, e.m) || undefined} aria-describedby={d && e.m && !billetageBon(coupures, e.m) ? `ecart-${dv}` : undefined}>Enregistrer</button></div>} />
+            <button className="bouton" type="submit" disabled={!d || fige} aria-disabled={!avecAppoint(coupures, e.m, dv) || undefined} aria-describedby={d && e.m && !avecAppoint(coupures, e.m, dv) ? `ecart-${dv}` : undefined}>Enregistrer</button></div>} />
         </div>
         {d && e.m && !fige ? <fieldset className="pile cadre-champs"><legend>Billetage</legend>
           <Billetage devise={dv} comptage={coupures} onChange={(c) => { setCoupures(c); setCle(nouvelleCle()); }} cible={e.m} sens="recue" stock={stock} /></fieldset> : null}
@@ -258,11 +263,15 @@ export function Remboursement() {
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
   const { donnees: comptesClient } = useDonnees(() => (e.t ? api.remboursementsCredit.comptesClient(e.t.id) : Promise.resolve([])), [e.t?.id, relu]);
+  // L'avis de remboursement s'imprime une fois l'opération passée, après sa validation (registre T202) : le dernier remboursement reçu dans ce mode
+  const cid = e.donnees?.d?.id;
+  const { donnees: sit } = useDonnees(() => (cid ? api.remboursementsCredit.situation(cid) : Promise.resolve(null)), [cid, relu]);
   if (!ctx) return <Chargement />;
   const { t, j, r, droits } = ctx;
   const modes = MODES_REMBOURSEMENT.filter(([, , dr]) => droits.has(dr));
   const m = mode || modes[0]?.[0] || "";
   const d = e.donnees?.d ?? null, dv = (d?.devise ?? "CDF") as Devise, fige = !!fait;
+  const passe = sit?.reel.filter((x) => x.mode === m).at(-1) ?? null;
   const banques = t.comptes.filter((c) => String(c.banqueId) === f.banque);
   const cb = banques.find((c) => String(c.id) === f.compte);
   const liste = (comptesClient ?? []).filter((c) => !d || c.devise === d.devise);
@@ -305,28 +314,27 @@ export function Remboursement() {
             <Champ libelle="Banque: *">{(p) => <select {...p} className="saisie" disabled={fige} value={f.banque} onChange={(x) => setF({ banque: x.target.value, compte: "" })}><option value=""></option>
               {t.banques.map((b) => <option key={b.id} value={b.id}>{b.libelle}</option>)}</select>}</Champ>
             <Champ libelle="Compte: *">{(p) => <select {...p} className="saisie" disabled={fige} value={f.compte} onChange={(x) => setF({ ...f, compte: x.target.value })}><option value=""></option>
-              {banques.map((c) => <option key={c.id} value={c.id}>{`${c.compte} (${c.devise})`}</option>)}</select>}</Champ>
+              {banques.map((c) => <option key={c.id} value={c.id}>{`${c.numero || c.compte} (${c.devise})`}</option>)}</select>}</Champ>
             <Champ libelle="Solde banque">{(p) => <Lecture {...p} value={cb ? montant(cb.solde, cb.devise as Devise) : ""} />}</Champ>
           </fieldset>}
         </div>
         <RepartitionDetail e={e} fige={fige} setBoite={setBoite} />
-        <BoutonsRemboursement d={!!d} fait={!!fait} ouvrir={(x) => setFiche(x as typeof fiche)} enregistrer={enregistrer} effacer={effacer} />
+        <BoutonsRemboursement d={!!d} fait={!!fait} imprimable={!!passe} ouvrir={(x) => setFiche(x as typeof fiche)} enregistrer={enregistrer} effacer={effacer} />
         <Textes sources={["Manuel Microfina++, p. 63 (banque), p. 124, 125 et 157 (prélèvement sur compte) ; plan d'allègement, point 6.6 : un écran dans le menu Crédit, le mode choisi dedans",
           "Registre S55-2 à S55-4, S106-1 à S106-4 : compte dans la devise du crédit ; date de règlement au plus la journée ouverte ; mêmes règles de répartition que S76 (CR-7, CR-20)",
           "Code civil, livre III, art. 185, 2° ; loi 11/020, art. 48 : pas de compensation contre un dépôt non nanti, le prélèvement se fait sur ordre du client (registre T71)"]} />
       </Formulaire>
       <FenetresCredit cid={d?.id ?? null} devise={dv} ouverte={(["situation", "plan", "reel", "memo"] as const).find((x) => x === fiche) ?? ""} fermer={() => setFiche("")} />
       <Fiche titre="Avis de remboursement" ouverte={fiche === "avis"} fermer={() => setFiche("")}>
-        {fait && d && <><div className="pile a-imprimer"><table className="grille"><tbody>
-          <tr><th scope="row">Numéro de pièce</th><td className="chiffres">{fait.piece}</td></tr>
-          <tr><th scope="row">Date règlement</th><td className="chiffres">{fr(fait.date ?? (date || j?.date || ""))}</td></tr>
+        {passe && d && <><div className="pile a-imprimer"><table className="grille"><tbody>
+          <tr><th scope="row">Numéro de pièce</th><td className="chiffres">{passe.piece}</td></tr>
+          <tr><th scope="row">Date règlement</th><td className="chiffres">{fr(passe.date)}</td></tr>
           <tr><th scope="row">Client</th><td>{e.t?.numero} {d.client}</td></tr>
           <tr><th scope="row">Crédit</th><td className="code">{d.numero}</td></tr>
-          <tr><th scope="row">{m === "banque" ? "Compte bancaire" : "Compte Client"}</th><td className="code">{m === "banque" ? cb?.compte ?? "" : k?.numero ?? ""}</td></tr>
-          {fait.ordreClient && <tr><th scope="row">Ordre du client</th><td>{fait.ordreClient}</td></tr>}
-          {fait.mandataire && <tr><th scope="row">Mandataire</th><td>{fait.mandataire}</td></tr>}
-          <tr><th scope="row">Montant</th><td className="chiffres">{montant(fait.montant ?? e.m ?? 0, dv)}</td></tr>
-          {fait.repartition && REPARTITION.map(([c, l]) => { const v = (fait.repartition![c] ?? 0) + (c === "penalite" ? fait.repartition!.anticipation ?? 0 : 0);
+          {passe.ordreClient && <tr><th scope="row">Ordre du client</th><td>{passe.ordreClient}</td></tr>}
+          {passe.mandataire && <tr><th scope="row">Mandataire</th><td>{passe.mandataire}</td></tr>}
+          <tr><th scope="row">Montant</th><td className="chiffres">{montant(passe.montant, dv)}</td></tr>
+          {REPARTITION.map(([c, l]) => { const v = (passe.repartition[c] ?? 0) + (c === "penalite" ? passe.repartition.anticipation ?? 0 : 0);
             return v ? <tr key={c}><th scope="row">{l}</th><td className="chiffres">{montant(v, dv)}</td></tr> : null; })}
         </tbody></table></div>
         <div className="actions-onglets sans-impression"><button className="bouton secondaire" type="button" onClick={() => setFiche("")}>Fermer</button>
@@ -342,14 +350,14 @@ export function Remboursement() {
 }
 
 /** Les boutons du remboursement, les mêmes au guichet et dans le menu Crédit (plan d'allègement, point 6.6) */
-function BoutonsRemboursement({ d, fait, ouvrir, enregistrer, effacer, imprimer = "avis" }: { d: boolean; fait: boolean; ouvrir: (f: "situation" | "plan" | "reel" | "memo" | "avis" | "recu") => void;
-  enregistrer?: () => void; effacer: () => void; imprimer?: "avis" | "recu" }) {
+function BoutonsRemboursement({ d, fait, imprimable = fait, ouvrir, enregistrer, effacer, imprimer = "avis" }: { d: boolean; fait: boolean; imprimable?: boolean;
+  ouvrir: (f: "situation" | "plan" | "reel" | "memo" | "avis" | "recu") => void; enregistrer?: () => void; effacer: () => void; imprimer?: "avis" | "recu" }) {
   return <div className="actions-onglets">
     <button className="bouton secondaire" type="button" disabled={!d} onClick={() => ouvrir("situation")}>Situation</button>
     <button className="bouton secondaire" type="button" disabled={!d} onClick={() => ouvrir("plan")}>Échéancier prévu</button>
     <button className="bouton secondaire" type="button" disabled={!d} onClick={() => ouvrir("reel")}>Paiements reçus</button>
     <button className="bouton secondaire" type="button" disabled={!d} onClick={() => ouvrir("memo")}>Mémo</button>
-    <button className="bouton secondaire" type="button" disabled={!fait} onClick={() => ouvrir(imprimer)}>Imprimer</button>
+    <button className="bouton secondaire" type="button" disabled={!imprimable} onClick={() => ouvrir(imprimer)}>Imprimer</button>
     {enregistrer && <button className="bouton" type="submit" disabled={!d || fait}>Enregistrer</button>}
     <button className="bouton secondaire" type="button" onClick={effacer}>Effacer</button>
   </div>;

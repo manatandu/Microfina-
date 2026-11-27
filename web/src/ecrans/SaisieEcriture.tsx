@@ -47,7 +47,8 @@ export default function SaisieEcriture() {
     if (!ecr) return;
     try {
       const m = f.montant.trim() ? lireMontant(f.montant) : null;
-      const e = await api.operationsCompta.ecritureAjouter({ journalId: ecr.journalId, periode: ecr.periode, id: ecr.id, jour: tete.date ? Number(tete.date.slice(8, 10)) : null, reference: f.reference,
+      // une pièce équilibrée est partie au visa : la ligne suivante commence une autre transaction (registre S109-2)
+      const e = await api.operationsCompta.ecritureAjouter({ journalId: ecr.journalId, periode: ecr.periode, id: ecr.statut === "saisie" ? null : ecr.id, jour: tete.date ? Number(tete.date.slice(8, 10)) : null, reference: f.reference,
         libelle: f.libelle, compte: f.compte.trim(), debit: f.sens === "D" ? m : null, credit: f.sens === "C" ? m : null,
         auxiliaireId: f.auxiliaire ? Number(f.auxiliaire) : null, typeBudgetId: f.typeBudget && blocBudget(ctx?.lignesBudget ?? [], [f.compte]) ? Number(f.typeBudget) : null, ligneBudgetId: f.ligneBudget && blocBudget(ctx?.lignesBudget ?? [], [f.compte]) ? Number(f.ligneBudget) : null });
       const partie = e.statut === "saisie" && ecr.statut !== "saisie";

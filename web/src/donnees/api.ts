@@ -103,7 +103,7 @@ function verifierDroit(cle: string) {
   const u = utilisateur();
   if (!u) throw new SessionFermee();
   const d = droitsDe(u);
-  if (!e.some((x) => d.includes(x))) { noterSecurite("acces_refuse", u.login, u.id, `${cle} : droit manquant`); throw new ErreurMetier(`Droit manquant : ${NOMS_ECRANS[e[0]!] ?? e[0]} (Administration > Profil > Assigner droit).`); }
+  if (!e.some((x) => d.includes(x))) { noterSecurite("acces_refuse", u.login, u.id, `${cle} : droit manquant`); throw new ErreurMetier(`Droit manquant : ${NOMS_ECRANS[e[0]!] ?? e[0]} (Administration > Sécurité > Profils et droits).`); }
   return cle in DROITS_METHODES;
 }
 // Écart E17 : journal de sécurité (Instr. BCC 008, art. 16). Le serveur note aussi les refus de mot de passe, les blocages et la limite de requêtes (noyau/securite.py).
@@ -210,7 +210,7 @@ function poster(e: Omit<Ecriture, "id" | "numero"> & { evenement: string }): Ecr
 function coursDe(d: Devise, jour = E.journees.at(-1)?.date ?? "9999-12-31"): number {
   if (d === "CDF") return 1;
   const c = E.coursListe.filter((x) => x.devise === d && x.jour <= jour).sort((a, b) => b.jour.localeCompare(a.jour))[0];
-  if (!c) throw new ErreurMetier(`Aucun cours du ${d} saisi (Préférences > Devise, page Cours).`);
+  if (!c) throw new ErreurMetier(`Aucun cours du ${d} saisi (Administration > Journée > Journée du jour, Cours du jour).`);
   return c.cours;
 }
 /** Devises qui ont des monnaies (S35) : celles que comptent les guichets (registre S79-5) */
@@ -248,7 +248,7 @@ const journees = {
     const ouvertes = E.journees.filter((j) => j.statut !== "fermee").sort((a, b) => a.date.localeCompare(b.date));
     const maxi = E.institution.journeeMax ?? 1;
     if (ouvertes.length >= maxi)
-      throw new ErreurMetier(`Journée Maxi ouvert atteinte (${maxi}) : comptabiliser d'abord la journée du ${fr(ouvertes[0]!.date)} (Comptabilité > Comptabilisation).`);
+      throw new ErreurMetier(`Journée Maxi ouvert atteinte (${maxi}) : comptabiliser d'abord la journée du ${fr(ouvertes[0]!.date)} (Comptabilité > Contrôle > Clôture de la journée).`);
     const ex = E.exercices.find((e) => e.annee === Number(date.slice(0, 4)));
     // Registre S11-2 et S12-1 : une journée ne s'ouvre que dans un exercice ouvert et non validé (S11)
     if (!ex || !ex.ouvert || ex.valide) throw new ErreurMetier(`L'exercice ${date.slice(0, 4)} n'est pas ouvert (Administration > Exercices).`);
@@ -256,7 +256,7 @@ const journees = {
     if (derniere && date <= derniere.date) throw new ErreurMetier(`La date doit suivre la dernière journée (${fr(derniere.date)}).`);
     // Registre S34-4 : pas de journée un jour férié saisi, ni un jour que l'agence n'a pas coché (loi 22/069, art. 186) ; aucun jour coché : pas de contrôle
     const ferie = E.feries.find((f) => f.date === date);
-    if (ferie) throw new ErreurMetier(`Le ${fr(date)} est férié : ${ferie.description} (Agence > Jours fériés).`);
+    if (ferie) throw new ErreurMetier(`Le ${fr(date)} est férié : ${ferie.description} (Paramétrage > Institution > Agence : jours de travail et fériés).`);
     const jt = E.agences.find((a) => a.id === E.agence.id)?.jours ?? [];
     const rang = new Date(`${date}T00:00:00Z`).getUTCDay();
     if (jt.some(Boolean) && !jt[rang]) throw new ErreurMetier(`Le ${fr(date)} est un ${["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"][rang]} : pas une journée de travail de l'agence (Agence > Journée de travail).`);
@@ -334,10 +334,13 @@ function passerEnAttente(j: Journee) {
   for (const x of enAttenteBanque(j)) {
     let lg = x.lignes;
     if (x.type === "adhesion_banque") {
-      const o = x.o!, a = preparerAdhesion({ tiersId: o.tiersId!, parts: o.parts ?? 0, depot: o.premierDepot ?? 0 });
-      const cpt: CompteDepot = { id: E.comptes.length + 1, tiersId: a.t.id, numero: numeroCompte(a.t.numero, a.produit), intitule: a.produit.libelle, pcci: compteDuProduit(a.produit), devise: "CDF", bloque: 0,
-        produitId: a.produit.id, ouvertLe: j.date };
-      E.comptes.push(cpt);
+      const o = x.o!, a = preparerAdhesion({ tiersId: o.tiersId!, parts: o.parts ?? 0, depot: o.premierDepot ?? 0, compteOuvert: o.compteDepotId });
+      let cpt = E.comptes.find((k) => k.id === o.compteDepotId);
+      if (!cpt) {   // opération validée avant le 27/11/2026
+        cpt = { id: E.comptes.length + 1, tiersId: a.t.id, numero: numeroCompte(a.t.numero, a.produit), intitule: a.produit.libelle, pcci: compteDuProduit(a.produit), devise: "CDF", bloque: 0,
+          produitId: a.produit.id, ouvertLe: j.date };
+        E.comptes.push(cpt);
+      }
       lg = [x.lignes[0]!];
       if (a.mParts) lg.push({ compte: compteParts(a.t), sens: "C", devise: "CDF", montant: a.mParts, contrat: `parts:${a.t.id}` });
       for (const f of a.frais) lg.push({ compte: f.compte!, sens: "C", devise: "CDF", montant: f.montant!, contrat: `frais:${f.fraisId}` });
@@ -379,7 +382,7 @@ function controlesJournee(id: number): Controle[] {
   const ouvertes = ses.filter((s) => s.statut !== "arretee");
   const arrets = E.billetages.filter((b) => b.moment === "arret" && ses.some((s) => s.id === b.sessionId));
   const nonValides = arrets.filter((b) => !b.validePar);
-  const ecarts = arrets.filter((b) => totalComptage(b.compte) !== totalComptage(b.theorique));
+  const ecarts = arrets.filter((b) => totalComptage(b.compte) !== totalComptage(b.theorique) && !b.ecritureEcartId);   // écart validé : passé au 671 ou au 7790
   const enAttente = E.operations.filter((o) => (o.statut === "visa_requis" || o.statut === "visee") && ses.some((s) => s.id === o.sessionId));
   const jour = E.ecritures.filter((e) => e.journeeId === id);
   const desequilibre = jour.filter((e) => e.lignes.reduce((s, x) => s + (x.sens === "D" ? x.montantCdf : -x.montantCdf), 0) !== 0);
@@ -391,8 +394,8 @@ function controlesJournee(id: number): Controle[] {
     { titre: "Billetages d'arrêt validés", etat: nonValides.length ? "ko" : "ok",
       detail: nonValides.length ? `${nonValides.length} billetage${nonValides.length > 1 ? "s" : ""} à valider par le chef d'agence.` : "Tous validés.", source: "ARCHITECTURE § 6" },
     { titre: "Caisses sans écart", etat: ecarts.length ? "ko" : "ok",
-      detail: ecarts.length ? "Écart constaté et justifié, mais son écriture n'est pas encore définie (compte à confirmer). Recompter ou attendre la règle." : "Le compté égale le théorique partout.",
-      source: "ARCHITECTURE § 6 ; compte d'écart à confirmer" },
+      detail: ecarts.length ? "Écart pas encore passé en écriture : valider l'arrêté de caisse." : "Le compté égale le théorique, ou l'écart est passé au compte de déficit ou d'excédent.",
+      source: "ARCHITECTURE § 6 ; PCCI, comptes 671 et 7790" },
     { titre: "Opérations en attente de visa", etat: enAttente.length ? "ko" : "ok",
       detail: enAttente.length ? `${enAttente.length} opération${enAttente.length > 1 ? "s" : ""} à viser ou refuser.` : "Aucune.", source: "ARCHITECTURE P7" },
     { titre: "Écritures équilibrées", etat: desequilibre.length ? "ko" : "ok",
@@ -425,7 +428,7 @@ const caisses = {
     }
     if (E.sessions.some((s) => s.journeeId === j.id && s.caissierId === u.id && s.statut === "ouverte")) throw new ErreurMetier("Vous tenez déjà une caisse ouverte.");
     if (!E.affectations.some((f) => f.utilisateurId === u.id && f.guichetId === guichetId && !f.fin))
-      throw new ErreurMetier("Ce guichet ne vous est pas affecté (Administration > Guichets, Affecter un caissier).");   // registre S09-4
+      throw new ErreurMetier("Ce guichet ne vous est pas affecté (Administration > Journée > Guichets, Affecter un caissier).");   // registre S09-4
     const s: SessionCaisse = { id: prochain(E.sessions), guichetId, journeeId: j.id, caissierId: u.id, statut: "ouverte" };
     E.sessions.push(s); enregistrer(); return s;
   },
@@ -787,7 +790,7 @@ const SANS_IDENTITE = { postnom: "", prenom: "", sexe: "" as const, naissance: "
   pieceLieu: "", pieceAutorite: "", pieceExpire: "", telephone: "" };
 function controlerStatutActif(statut: Tiers["statut"], suite = "") {
   if (statut === "resilie") throw new ErreurMetier("Client résilié : plus d'opération ; apurement de ses comptes à faire (loi 002/2002, art. 27).");
-  if (statut === "modifie_a_revalider") throw new ErreurMetier("Client modifié : à valider (Client > Visa > Valider client modifié) avant toute opération.");
+  if (statut === "modifie_a_revalider") throw new ErreurMetier("Client modifié : à valider (Client > Membres à viser) avant toute opération.");
   if (statut !== "actif") throw new ErreurMetier(`Client pas encore visé${suite}.`);
 }
 /** Champs de l'écran prospect (p. 55) */
@@ -822,7 +825,7 @@ function ctxControle() {
     physique: (id: number) => E.tiers.some((t) => t.id === id && t.type === "physique") };
 }
 function nouveauTiers(d: NouveauTiers, creePar: number, reste: Pick<Tiers, "type" | "dirigeant" | "signataires" | "membres" | "photo" | "specimen">): Tiers {
-  const t: Tiers = { ...d, ...reste, intitule: "", dateVisa: "", motifDepart: "", resilieLe: "", creeLe: aujourdhui(), id: prochain(E.tiers), numero: numeroClient(), statut: "a_viser", creePar };
+  const t: Tiers = { ...d, ...reste, intitule: "", dateVisa: "", motifDepart: "", resilieLe: "", creeLe: aujourdhui(), id: prochain(E.tiers), numero: reste.type === "groupe" ? numeroClient(categorieGroupe(d.nbHommes, d.nbFemmes), "categorie_groupe") : numeroClient(d.categorie ?? ""), statut: "a_viser", creePar };
   E.tiers.push(t); return t;
 }
 
@@ -980,12 +983,12 @@ const tiers = {
     if (t.type === "physique") {   // art. 12 al. 2 et 3 : pièce et preuve de l'adresse ; art. 10 : avant d'entrer en relation ; art. 29 : copies gardées
       const manque: string[] = ([["copiePiece", "copie de la pièce d'identité"], ["justificatifAdresse", "justificatif d'adresse"]] as const).filter(([k]) => !E.images[t.id]?.[k]).map(([, n]) => n);
       if (t.secteurActivite && !E.images[t.id]?.copieHabilitation) manque.push("copie de la pièce d'habilitation professionnelle");   // A7
-      if (manque.length) throw new ErreurMetier(`Manquant : ${manque.join(", ")}. À déposer avant le visa (Client > Photos et signatures ; Instr. BCC 15, art. 10, 12 et 29).`);
+      if (manque.length) throw new ErreurMetier(`Manquant : ${manque.join(", ")}. À déposer avant le visa (Client > Fiche du membre, bouton Photos et signatures ; Instr. BCC 15, art. 10, 12 et 29).`);
     }
     // E1 : personne morale, copie des statuts et du registre (loi 22/068, art. 34 ; Instr. BCC 15, art. 17 a et 29), aux mêmes emplacements (registre T43)
     if (t.type === "morale") {
       const manque = ([["copiePiece", "copie des statuts"], ["justificatifAdresse", "copie du registre (acte de constitution)"]] as const).filter(([k]) => !E.images[t.id]?.[k]).map(([, n]) => n);
-      if (manque.length) throw new ErreurMetier(`Manquant : ${manque.join(", ")}. À déposer avant le visa (Client > Photos et signatures ; loi 22/068, art. 34 ; Instr. BCC 15, art. 17 et 29).`);
+      if (manque.length) throw new ErreurMetier(`Manquant : ${manque.join(", ")}. À déposer avant le visa (Client > Fiche du membre, bouton Photos et signatures ; loi 22/068, art. 34 ; Instr. BCC 15, art. 17 et 29).`);
     }
     // Écart E20 : membre auxiliaire, si les statuts le prévoient (loi 002/2002, art. 23)
     const auxiliaire = v.auxiliaire === true;
@@ -1581,6 +1584,9 @@ const rapports = {
       const j = E.journees.find((x) => x.id === E.sessions.find((s) => s.id === o.sessionId)?.journeeId);
       if (j && j.date >= du && j.date <= au) n.set(o.saisiPar, (n.get(o.saisiPar) ?? 0) + 1);
     }
+    // Registre S13-1 : toute opération saisie, dans tous les menus : guichet, banque (S52, S53, S56) et comptabilité (S109, S116, S117), hors brouillons et refus
+    for (const o of [...E.operationsBanque.filter((x) => x.statut !== "refusee"), ...E.operationsCompta.filter((x) => x.statut !== "brouillon")])
+      if (o.date >= du && o.date <= au) n.set(o.saisiPar, (n.get(o.saisiPar) ?? 0) + 1);
     const a = new Map<number, number>();
     for (const e of E.ecritures) { const d = e.contrePasseId ? dateEcriture(e) : ""; if (d && d >= du && d <= au) a.set(e.saisiPar, (a.get(e.saisiPar) ?? 0) + 1); }
     return [...new Set([...n.keys(), ...a.keys()])].map((uid) => ({ utilisateur: E.utilisateurs.find((u) => u.id === uid)?.nom ?? "", operations: n.get(uid) ?? 0,
@@ -1640,8 +1646,8 @@ const listes = {
     const actuel = id === undefined ? undefined : E.listes.find((l) => l.id === id && l.liste === liste && l.actif);
     if (id !== undefined && !actuel) throw new ErreurMetier("Ligne introuvable.");
     if (c.sansCode && E.listes.some((l) => l.liste === liste && l.actif && l.libelle.toLowerCase() === v.libelle.toLowerCase() && l.id !== id))
-      throw new ErreurMetier(`Ce ${c.libelle} existe déjà.`);   // registre S18-2
-    if (E.listes.some((l) => l.liste === liste && l.code === v.code && l.id !== id)) throw new ErreurMetier(`Ce ${c.code} existe déjà.`);
+      throw new ErreurMetier(`${c.libelle} : existe déjà.`);   // registre S18-2
+    if (E.listes.some((l) => l.liste === liste && l.code === v.code && l.id !== id)) throw new ErreurMetier(`${c.code} : existe déjà.`);
     const parentId = c.parent ? d.parentId ?? undefined : undefined;
     if (actuel) Object.assign(actuel, v, { parentId }); else E.listes.push({ id: prochain(E.listes), liste, ...v, parentId, actif: true });
     enregistrer(); return listes.lire(liste);
@@ -1678,11 +1684,12 @@ function apercuNumeroClient() {
   const regle = E.numerotation[String(ID_INSTITUTION)];
   return composerNumero(regle, { INSTITUTION: E.institution.sigle ?? "", AGENCE: E.agence.code, CATEGORIE: "", COMPTEUR: Math.max(E.compteurs.tiers + 1, regle?.compteur ?? 1) });
 }
-function numeroClient() {
+function numeroClient(categorie = "", liste = "categorie") {
   const regle = E.numerotation[String(ID_INSTITUTION)];
   E.compteurs.tiers = Math.max(E.compteurs.tiers + 1, regle?.compteur ?? 1);   // registre S15-3 et S15-7
-  // Categorie (S15-8) : la catégorie du client n'est pas encore saisie à l'enrôlement (registre S37-2) ; l'élément est sauté
-  return composerNumero(regle, { INSTITUTION: E.institution.sigle ?? "", AGENCE: E.agence.code, CATEGORIE: "", COMPTEUR: E.compteurs.tiers });
+  // Categorie (S15-8) : le code de la catégorie choisie sur la fiche (S14) ; sans catégorie, l'élément est sauté
+  const cat = categorie ? valeursListe(liste).find((l) => l.libelle === categorie)?.code ?? "" : "";
+  return composerNumero(regle, { INSTITUTION: E.institution.sigle ?? "", AGENCE: E.agence.code, CATEGORIE: cat, COMPTEUR: E.compteurs.tiers });
 }
 const ELEMENTS_NUMEROTATION = ["PREFIXE", "SUFFIXE", "INSTITUTION", "AGENCE", "CATEGORIE", "COMPTEUR"];
 const ID_INSTITUTION = 1;
@@ -1877,6 +1884,12 @@ const banqueOperations = {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new ErreurMetier("À remplir : date opération.");
       if (date < o.date) throw new ErreurMetier("La date de validation précède la date de l'opération.");
       if (date > j.date) throw new ErreurMetier("La date de validation ne peut pas dépasser la journée ouverte.");
+      if (o.type === "adhesion_banque") {   // le compte épargne s'ouvre à la validation ; l'écriture suit à la comptabilisation (registre S56-1)
+        const a = preparerAdhesion({ tiersId: o.tiersId!, parts: o.parts ?? 0, depot: o.premierDepot ?? 0 });
+        const cpt: CompteDepot = { id: E.comptes.length + 1, tiersId: a.t.id, numero: numeroCompte(a.t.numero, a.produit), intitule: a.produit.libelle, pcci: compteDuProduit(a.produit), devise: "CDF", bloque: 0,
+          produitId: a.produit.id, ouvertLe: date };
+        E.comptes.push(cpt); o.compteDepotId = cpt.id;
+      }
       o.validePar = u.id; o.dateValidation = date; o.statut = "validee";
     } else { o.visePar = u.id; o.statut = "visee"; }
     enregistrer(); return o;
@@ -1975,12 +1988,12 @@ const chequesClients = {
   },
 };
 /** Contrôles communs de l'adhésion, au guichet (S73) et par banque (S56). Identiques côté serveur (services.preparer_adhesion). */
-function preparerAdhesion(p: { tiersId: number; parts: number; depot: number }) {
+function preparerAdhesion(p: { tiersId: number; parts: number; depot: number; compteOuvert?: number | null }) {
   const t = E.tiers.find((x) => x.id === p.tiersId);
   if (!t) throw new ErreurMetier("Client introuvable.");
   controlerStatutActif(t.statut, " : l'adhésion attend le visa");
   if (E.institution.profil === "entreprise_microcredit") throw new ErreurMetier("Une entreprise de micro-crédit ne collecte pas l'épargne du public (loi 11/020, art. 12) : pas d'adhésion avec compte épargne.");
-  if (E.comptes.some((c) => c.tiersId === t.id)) throw new ErreurMetier("Ce membre a déjà adhéré.");
+  if (E.comptes.some((c) => c.tiersId === t.id && c.id !== p.compteOuvert)) throw new ErreurMetier("Ce membre a déjà adhéré.");   // compte ouvert à la validation (registre S56-1)
   const produit = E.produits.find((x) => x.code === t.produitCode) ?? E.produits.find((x) => x.devise === "CDF")!;
   if (produit.devise !== "CDF") throw new ErreurMetier("Compte à créer en devise : l'adhésion par banque se fait en CDF ; passer par l'adhésion au guichet.");   // registre S56-3, S73-1
   if (!estCoopec()) { if (p.parts) exigerPartsSociales(); p = { ...p, parts: 0 }; }
@@ -2037,7 +2050,7 @@ function enregistrerOperationBanque(d: SaisieOperationBanque, client: boolean): 
     } else {
       const dest = compteBancaire(d.compteBancaireDestId, "Compte Banque destination");
       if (dest.id === origine.id) throw new ErreurMetier("Compte Banque destination : un autre compte que celui d'origine.");
-      if (dest.devise !== origine.devise) throw new ErreurMetier("Virement entre deux devises : à confirmer avec le porteur (cours du jour, S35).");   // S52-6
+      if (dest.devise !== origine.devise) throw new ErreurMetier("Virement entre deux devises : les deux comptes doivent être dans la même devise.");   // S52-6
       o.compteBancaireDestId = dest.id;
     }
     if (d.type === "encaissement" && d.cheque?.trim()) throw new ErreurMetier("N° de chèque : seulement pour un décaissement.");
@@ -2178,7 +2191,7 @@ function preparerOuverture(tiersId?: number, produitId?: number) {
   const t = E.tiers.find((x) => x.id === tiersId);
   if (!t) throw new ErreurMetier("À remplir : Numéro du Client.");
   controlerStatutActif(t.statut);
-  if (estCoopec() && !E.comptes.some((c) => c.tiersId === t.id)) throw new ErreurMetier("Ce client n'a pas encore adhéré : l'adhésion (Caisse > Adhésion) ouvre son premier compte.");   // S63-2
+  if (estCoopec() && !E.comptes.some((c) => c.tiersId === t.id)) throw new ErreurMetier("Ce client n'a pas encore adhéré : l'adhésion (Caisse > Guichet, onglet Adhésion) ouvre son premier compte.");   // S63-2
   const p = E.produits.find((x) => x.id === produitId && x.actif && !x.supprime);
   if (!p) throw new ErreurMetier("À remplir : Produit Epargne.");
   controlerCollecteEpargne(p.famille);   // loi 11/020, art. 12
@@ -2237,7 +2250,7 @@ const ficheClient = (tid: number): FicheClient => { const t = E.tiers.find((x) =
   return Object.fromEntries(CHAMPS_CLIENT.map((k) => [k, String(t?.[k] ?? "")])) as FicheClient; };
 const dateJournee = (jid: number) => E.journees.find((j) => j.id === jid)?.date ?? "";
 function controlerMasques() {
-  if (soldesMasques()) throw new ErreurMetier("Soldes des clients masqués pour vous au guichet (Administration > Guichets : case « Voir solde client »).");   // S10-1
+  if (soldesMasques()) throw new ErreurMetier("Soldes des clients masqués pour vous au guichet (Administration > Journée > Guichets, Affecter un caissier : case « Voir solde client »).");   // S10-1
 }
 const releves = {
   releve(compteId: number, du: string, au: string) {
@@ -2680,7 +2693,7 @@ const clotures = {
     const c = compteOuvertS70(d.compteId);
     const j = journees.courante();
     if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
-    if (soldeContrat(`depot:${c.id}`, c.devise, "C") !== 0) throw new ErreurMetier("Le compte a encore un solde : le retirer d'abord au guichet (Caisse > Opération > Retrait), puis clôturer. La clôture est gratuite (Instr. BCC 37, annexe).");
+    if (soldeContrat(`depot:${c.id}`, c.devise, "C") !== 0) throw new ErreurMetier("Le compte a encore un solde : le retirer d'abord au guichet (Caisse > Guichet, onglet Retrait), puis clôturer. La clôture est gratuite (Instr. BCC 37, annexe).");
     const r = attachesS70(c);
     if (r.length) throw new ErreurMetier(`Clôture impossible : ${r.join(", ")}.`);
     c.closLe = j.date;
@@ -2787,7 +2800,7 @@ const blocages = {
     const u = exiger();
     const b = E.blocages.find((x) => x.id === id);
     if (!b || b.fin) throw new ErreurMetier("Ce blocage n'est plus en cours.");
-    if (b.garantieDe != null) throw new ErreurMetier("Ce montant garantit un crédit : il se libère par Crédit > Caution et nantissement.");
+    if (b.garantieDe != null) throw new ErreurMetier("Ce montant garantit un crédit : il se libère par Crédit > Garanties, bouton Libérer.");
     const motif = (d.motif ?? "").trim();
     if (!motif) throw new ErreurMetier("À remplir : Motif.");
     let levee: number | null = null;
@@ -3375,7 +3388,8 @@ const vueAnalyse = (a: AnalyseFinanciere) => ({ id: a.id, numero: a.numero, type
 const analyses = {
   historique(tiersId: number) {
     lectureAdmin(["S85", "S86"]);
-    return { credits: [] as { numero: string; produit: string; date: string; montant: number; observation: string }[],
+    return { credits: E.credits.filter((c) => c.tiersId === tiersId).sort((a, b) => b.id - a.id)
+        .map((c) => ({ numero: c.numero, produit: String(E.produitsCredit.find((p) => p.id === c.produitId)?.nom ?? ""), date: c.debloqueLe ?? "", montant: c.montant, observation: c.statut as string })),
       analyses: E.analyses.filter((a) => a.tiersId === tiersId).sort((a, b) => b.id - a.id).map(vueAnalyse) };
   },
   lire(id: number) {
@@ -5593,7 +5607,7 @@ function autorisationExamen(tiersId: number, journeeId: number, type: Examen["ty
   if (enUsd(montant, devise) + especesDuJourUsd(tiersId, sensExamen(type)) < SEUIL_ESPECES_USD) return null;
   const e = [...E.examens].reverse().find((x) => x.tiersId === tiersId && x.journeeId === journeeId && x.type === type && x.montant === montant && x.devise === devise && x.operationId === null);
   if (e?.statut === "autorise") return e.id;
-  if (e?.statut === "a_examiner") throw new ErreurMetier(`L'examen renforcé n° ${e.numero} attend la conformité (Client > Conformité > Examen renforcé).`);
+  if (e?.statut === "a_examiner") throw new ErreurMetier(`L'examen renforcé n° ${e.numero} attend la conformité (Conformité > Lutte anti-blanchiment).`);
   if (e?.statut === "refuse") throw new ErreurMetier(`Opération refusée par la conformité (examen renforcé n° ${e.numero}).`);
   throw new ErreurMetier(MSG_EXAMEN);
 }
@@ -5614,7 +5628,7 @@ const ppeActive = (tid: number) => { const t = E.tiers.find((x) => x.id === tid)
   return ppePersonne(tid) || (t?.beneficiairesEffectifs ?? []).some(ppePersonne) || !!t?.dirigeant?.personneExposee; };
 function exigerAutorisationPpe(tid: number) {
   if (ppeActive(tid) && !E.dossiersPpe.find((x) => x.tiersId === tid)?.autorisePar)
-    throw new ErreurMetier("Personne politiquement exposée, le client ou un de ses bénéficiaires effectifs (loi 22/068, art. 53) : l'autorisation de la conformité vient avant le visa (Instr. BCC 15, art. 64). Client > Conformité > Examen renforcé, onglet Personnes exposées.");
+    throw new ErreurMetier("Personne politiquement exposée, le client ou un de ses bénéficiaires effectifs (loi 22/068, art. 53) : l'autorisation de la conformité vient avant le visa (Instr. BCC 15, art. 64). Conformité > Lutte anti-blanchiment, onglet Vigilance, Personnes exposées.");
 }
 const vuePpe = (t: Tiers) => { const d = E.dossiersPpe.find((x) => x.tiersId === t.id); const nom = (id: number | null | undefined) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
   return { tiersId: t.id, membre: t.numero, client: titulaire(t), statutClient: t.statut, exposee: ppeActive(t.id), categorie: d?.categorie ?? "", qualite: d?.qualite ?? "",
@@ -5960,7 +5974,7 @@ function rapprocherGel(ids?: number[]) {
 /** Pas de visa tant qu'une correspondance attend l'examen (art. 158 bis : sans délai). Comme le serveur (exiger_correspondances_examinees). */
 function exigerCorrespondancesExaminees(tid: number) {
   if (etatListes().correspondances.some((c) => c.tiersId === tid && c.statut === "a_examiner"))
-    throw new ErreurMetier("Correspondance avec une liste de gel à examiner d'abord (Client > Conformité > Examen renforcé, onglet Gel des avoirs ; loi 22/068, art. 158 bis).");
+    throw new ErreurMetier("Correspondance avec une liste de gel à examiner d'abord (Conformité > Lutte anti-blanchiment, onglet Gel des avoirs ; loi 22/068, art. 158 bis).");
 }
 const listesGel = {
   lire() {
@@ -6867,7 +6881,7 @@ const guichets = {
     if (s.caissierId !== u.id) throw new ErreurMetier("Cette caisse n'est pas la vôtre.");
     // Registre S09-5 : pas de Fermeture sans billetage du jour enregistré (S79), dans chaque devise (T12)
     const manque = devisesTenues().filter((d) => !E.billetages.some((b) => b.sessionId === s.id && b.moment === "arret" && b.devise === d));
-    if (manque.length) throw new ErreurMetier(`Enregistrez d'abord le billetage de la caisse (Caisse > Billetage) : ${manque.join(", ")}.`);
+    if (manque.length) throw new ErreurMetier(`Enregistrez d'abord le billetage de la caisse (Caisse > Arrêté de caisse > Comptage) : ${manque.join(", ")}.`);
     s.statut = "fermee"; enregistrer(); return guichets.lire();
   },
 };
@@ -6891,7 +6905,7 @@ const exercices = {
     exiger();
     const ex = [...E.exercices].sort((a, b) => a.annee - b.annee);
     return {
-      exercices: ex.map((e) => ({ ...e })), enCours: ex.find((e) => e.actif)?.annee ?? null, journaux: tousJournaux().map(({ id, code, libelle, type }) => ({ id, code, libelle, type })),   // registre S11-1 : l'exercice actif est en cours
+      exercices: ex.map((e) => ({ ...e, clotureLe: e.clotureLe ?? "" })), enCours: ex.find((e) => e.actif)?.annee ?? null, journaux: tousJournaux().map(({ id, code, libelle, type }) => ({ id, code, libelle, type })),   // registre S11-1 : l'exercice actif est en cours
       details: E.journauxDetail.map((d) => { const j = E.journaux.find((x) => x.id === d.journalId)!; return { ...d, libelle: j.libelle, code: j.code, type: j.type }; })
         .sort((a, b) => a.annee - b.annee || a.code.localeCompare(b.code)),
     };
@@ -6911,6 +6925,7 @@ const exercices = {
       if (e.valide && !l.valide) throw new ErreurMetier(`L'exercice ${a} est validé : il ne se rouvre pas.`);
       if (l.valide && !e.valide && E.journees.some((j) => j.date.startsWith(String(a)) && j.statut !== "fermee"))
         throw new ErreurMetier(`L'exercice ${a} a encore une journée ouverte : la comptabiliser avant de le valider.`);
+      if (l.valide && !e.valide && !e.clotureLe) throw new ErreurMetier(`Clôturer d'abord l'exercice ${a} (Comptabilité > Clôture > Clôture) : ses écritures de clôture et son résultat passent avant sa validation.`);   // la clôture annuelle (S127) vient avant la validation (S11)
       Object.assign(e, { actif: !!l.actif, ouvert: !!l.ouvert, valide: !!l.valide });
     }
     if ([...voulu.values()].filter((e) => e.actif).length > 1) throw new ErreurMetier("Un seul exercice actif à la fois.");   // registre S11-1
@@ -7194,7 +7209,7 @@ function referentiel(o: OptionsReferentiel) {
       const uniques = c.unique ?? ["code"];
       const egal = (a: unknown, b: unknown) => (typeof a === "string" && typeof b === "string" ? a.toLowerCase() === b.toLowerCase() : a === b);
       const doublon = tous.some((l) => l.id !== id && (l.actif && uniques.length > 0 && uniques.every((k) => egal(l[k], v[k])) || (uniques.length === 1 && uniques[0] === "code" && l.code === v.code)));
-      if (doublon) throw new ErreurMetier(`Ce ${sansDeux(c.champs.find((f) => f.cle === uniques.at(-1))!.libelle)} existe déjà.`);   // T08
+      if (doublon) throw new ErreurMetier(`${sansDeux(c.champs.find((f) => f.cle === uniques.at(-1))!.libelle)} : existe déjà.`);   // T08
       if (actuel) Object.assign(actuel, v); else tous.push({ id: prochain(tous), actif: true, ...v });
       enregistrer(); return moteur.lire(page);
     },
@@ -7490,7 +7505,7 @@ const operationsCompta = {
     if (d.sens !== "DEPOT" && d.sens !== "RETRAIT") throw new ErreurMetier("À remplir : Type operation.");
     const ag = E.agences.find((a) => a.id === entierOc(d.agenceId) && !a.supprime);
     if (!ag) throw new ErreurMetier("À remplir : Agence.");
-    if (ag.id === E.agence.id) throw new ErreurMetier("Agence : celle du client, autre que la vôtre ; un client de votre agence passe au guichet (Caisse > Opération).");
+    if (ag.id === E.agence.id) throw new ErreurMetier("Agence : celle du client, autre que la vôtre ; un client de votre agence passe au guichet (Caisse > Guichet).");
     const nom = texteOc(d.nom), numero = texteOc(d.numeroCompte);
     if (!nom) throw new ErreurMetier("À remplir : Nom et Prénoms.");
     if (!numero) throw new ErreurMetier("À remplir : N° Compte.");
@@ -7633,7 +7648,7 @@ const taxesF = () => valeursRef("taxes", "taxes").map((t) => ({ id: t.id, code: 
 const compteTaxe = (id: unknown) => taxesF().find((t) => t.id === id)?.compte || TAXES_RETENUES;
 function taxeTva() {
   const t = taxesF().find((x) => x.code.trim().toUpperCase() === "TVA");
-  if (!t) throw new ErreurMetier("TVA : créer d'abord la taxe de code TVA (Comptabilité > Plan des comptes > Création des taxes).");
+  if (!t) throw new ErreurMetier("TVA : créer d'abord la taxe de code TVA (Comptabilité > Référentiels > Taxes).");
   return t;
 }
 function fournisseurF(id: unknown) {
@@ -7761,7 +7776,7 @@ const facturesFournisseurs = {
     tranches?: { date: string; montant?: number | null; taux?: string | number | null }[] }) {
     const u = exiger(), cle = cleOc(d.cle), prec = E.commandesFournisseurs.find((x) => x.cle === cle); if (prec) return vueCommande(prec);
     const tc = E.typesCommande.find((x) => x.id === entierOc(d.typeCommandeId) && !x.supprime);
-    if (!tc) throw new ErreurMetier("À remplir : Type Commande (Paramétrage > Facture > Référence Commande).");
+    if (!tc) throw new ErreurMetier("À remplir : Type Commande (Comptabilité > Référentiels > Facture : éléments et références).");
     const f = fournisseurF(d.fournisseurId), jour = jourOuvertOc(), date = dateF(d.date, "Date opération", jour);
     if (date > jour) throw new ErreurMetier("La date de l'opération ne peut pas dépasser la journée ouverte.");
     const brut = Array.isArray(d.lignes) ? d.lignes : [];
@@ -7777,7 +7792,7 @@ const facturesFournisseurs = {
       const { tb, lb } = budgetOc(x), ht = Math.floor((Math.round(Number(qt) * 100) * pu + 50) / 100);
       const mTva = x.tva ? pctF(ht, taxeTva().taux) : 0;
       const ret = entierOc(x.retenueTaxeId) ? taxes.find((t) => t.id === x.retenueTaxeId) : undefined;
-      if (entierOc(x.retenueTaxeId) && (!ret || ret.code.trim().toUpperCase() === "TVA")) throw new ErreurMetier("Retenue : une taxe de la liste, autre que la TVA (Création des taxes).");
+      if (entierOc(x.retenueTaxeId) && (!ret || ret.code.trim().toUpperCase() === "TVA")) throw new ErreurMetier("Retenue : une taxe de la liste, autre que la TVA (Comptabilité > Référentiels > Taxes).");
       return { compte, intitule: intitulesComptes().get(compte) ?? "", designation, unite: texteOc(x.unite), quantite: String(Number(qt)), prixUnitaire: pu, ht, tva: mTva,
         retenueTaxeId: ret?.id ?? null, retenueLibelle: ret ? `${ret.designation} ${ret.taux} %` : "", retenueTaux: ret?.taux ?? "", retenue: ret ? pctF(ht, ret.taux) : 0, typeBudgetId: tb, ligneBudgetId: lb };
     });
@@ -8696,7 +8711,7 @@ function controlesFin(a: number, m: number | null) {
   const ajouter = (libelle: string, ok: boolean, detail = "", bloquant = false) => out.push({ libelle, ok, detail: ok ? "" : detail, bloquant });
   ajouter("Période terminée", E.journees.some((j) => j.date > fin), `Aucune journée ouverte après le ${frDate(fin)}`, true);
   const nj = E.journees.filter((j) => j.date >= debut && j.date <= fin && j.statut !== "fermee").length;
-  ajouter("Journées comptabilisées", nj === 0, `${nj} journée(s) à comptabiliser (Comptabilité > Comptabilisation)`, true);
+  ajouter("Journées comptabilisées", nj === 0, `${nj} journée(s) à comptabiliser (Comptabilité > Contrôle > Clôture de la journée)`, true);
   const ns = E.sessions.filter((x) => x.statut === "ouverte" && (E.journees.find((j) => j.id === x.journeeId)?.date ?? "") >= debut && (E.journees.find((j) => j.id === x.journeeId)?.date ?? "") <= fin).length;
   ajouter("Caisses arrêtées", ns === 0, `${ns} caisse(s) encore ouverte(s)`, true);
   const sans = E.comptesBancaires.filter((cb) => !E.rapprochements.some((r) => r.compteBancaireId === cb.id && r.au >= fin)).map((cb) => cb.numeroBancaire);
@@ -8752,7 +8767,7 @@ function controlesFin(a: number, m: number | null) {
   const parCredit = new Map<number, number>();
   for (const g of E.garanties) if (g.type === "caution" && g.montant > g.libere) parCredit.set(g.creditId, (parCredit.get(g.creditId) ?? 0) + g.montant - g.libere);
   const trop = [...parCredit].map(([cid, reste]) => ({ c: E.credits.find((x) => x.id === cid)!, reste })).filter(({ c, reste }) => c.statut !== "debloque" || reste > etatCredit(c, fin).capitalRestant).map(({ c }) => c.numero).sort();
-  ajouter("Cautions reçues au plus égales au restant dû", trop.length === 0, `À ramener au restant dû (Crédit > Caution et nantissement > Libérer caution ; PCCI § 7.3.1.2) : ${trop.join(", ")}`);
+  ajouter("Cautions reçues au plus égales au restant dû", trop.length === 0, `À ramener au restant dû (Crédit > Garanties, bouton Libérer ; PCCI § 7.3.1.2) : ${trop.join(", ")}`);
   const incidentsOuverts = (E.incidents ?? []).filter((x) => !x.regulariseLe).length;   // B17 : Instr. BCC 008, art. 49
   ajouter("Incidents et dépassements régularisés", incidentsOuverts === 0, `${incidentsOuverts} incident(s) ou dépassement(s) à traiter (Administration > Sécurité > Incidents et dépassements)`);
   ajouter("Intérêts courus des dépôts à terme", reste === 0, "À passer : Épargne > Dépôts à terme");
@@ -11524,7 +11539,7 @@ const attente = {
     const o = (listes[d.source] as (ObjetAttente & { id: number })[]).find((x) => x.id === d.id), etape = o ? etapeAttente(d.source, o) : null;
     if (!o || !etape) throw new ErreurMetier("Rien à refuser.");
     const droit = DROITS_ATTENTE[d.source]![etape === "visa" ? 0 : 1];
-    if (!droit || !droitsDe(u).includes(droit)) throw new ErreurMetier("Droit manquant : Opérations en attente (Administration > Profil > Assigner droit).");
+    if (!droit || !droitsDe(u).includes(droit)) throw new ErreurMetier("Droit manquant : Opérations en attente (Administration > Sécurité > Profils et droits).");
     if (!motif) throw new ErreurMetier("À remplir : motif du refus.");
     if (o.saisiPar === u.id) throw new ErreurMetier("Quatre yeux : pas de refus sur sa propre saisie.");
     if (etape === "validation" && o.visePar === u.id) throw new ErreurMetier("Quatre yeux : la validation, ou son refus, vient d'une autre personne que celle qui a visé.");
@@ -11612,7 +11627,7 @@ export type SaisieUtilisateur = { nom?: string; agenceId?: number | "toutes" | n
 /** Lecture d'une route d'administration (registre T27) : seulement avec le droit de l'écran ; mêmes règles que noyau/droits.py (LECTURES_ADMIN) */
 function lectureAdmin(ecrans: string[]) {
   const u = exiger();
-  if (!ecrans.some((x) => droitsDe(u).includes(x))) { noterSecurite("acces_refuse", u.login, u.id, `lecture ${ecrans.join(", ")} : droit manquant`); throw new ErreurMetier(`Droit manquant : ${NOMS_ECRANS[ecrans[0]!] ?? ecrans[0]} (Administration > Profil > Assigner droit).`); }
+  if (!ecrans.some((x) => droitsDe(u).includes(x))) { noterSecurite("acces_refuse", u.login, u.id, `lecture ${ecrans.join(", ")} : droit manquant`); throw new ErreurMetier(`Droit manquant : ${NOMS_ECRANS[ecrans[0]!] ?? ecrans[0]} (Administration > Sécurité > Profils et droits).`); }
 }
 /** Durée d'inactivité avant le verrouillage de la session, fixée par la gestion des accès (droit S05) : 5 à 60 minutes (registre T211) */
 const securite = {
@@ -11659,7 +11674,7 @@ const impressions = {
     const u = exiger();
     const doc = d.document ? DOCUMENTS_IMPRIMES[d.document] : undefined;
     if (!doc || !Number.isInteger(d.objet)) throw new ErreurMetier("Document inconnu.");
-    if (!doc.ecrans.some((x) => droitsDe(u).includes(x))) throw new ErreurMetier("Droit manquant : impression de ce document (Administration > Profil > Assigner droit).");
+    if (!doc.ecrans.some((x) => droitsDe(u).includes(x))) throw new ErreurMetier("Droit manquant : impression de ce document (Administration > Sécurité > Profils et droits).");
     if (!doc.existe(d.objet!)) throw new ErreurMetier("Document inconnu.");
     const l = (E.impressions ??= []);
     const n = Math.max(0, ...l.filter((x) => x.document === d.document && x.objet === d.objet).map((x) => x.exemplaire)) + 1;
@@ -11887,7 +11902,7 @@ const localisation = {
     if (niveau === "pays" && !ZONES_PAYS.includes(t(d.zone))) throw new ErreurMetier("Zone inconnue.");
     if (natures && !natures.includes(nature)) throw new ErreurMetier("Nature inconnue.");
     if (E.lieux.some((l) => l.actif && l.niveau === niveau && l.parentId === parentId && l.nom.toLowerCase() === nom.toLowerCase() && (l.nature ?? "") === nature && l.id !== id))
-      throw new ErreurMetier(`Ce ${o.libelle.toLowerCase()} existe déjà.`);
+      throw new ErreurMetier(`${o.libelle} : existe déjà.`);
     if (niveau === "pays" && E.lieux.some((l) => l.actif && l.niveau === "pays" && l.code.toUpperCase() === t(d.code).toUpperCase() && l.id !== id)) throw new ErreurMetier("Ce code existe déjà.");
     const v = { parentId, nom, nature, nationalite: niveau === "pays" ? t(d.nationalite) : "", code: niveau === "pays" ? t(d.code).toUpperCase() : "", zone: niveau === "pays" ? t(d.zone) : "" };
     if (actuel) Object.assign(actuel, v); else E.lieux.push({ id: prochain(E.lieux), niveau: o.niveau, actif: true, ...v });

@@ -558,7 +558,7 @@ def controles(u, annee: int, mois: int | None) -> list[dict]:
     ajouter("Période terminée", apres, "Aucune journée ouverte après le " + fin.strftime("%d/%m/%Y"), True)
     nj = valeur("""select count(*) from journee_comptable j join agence a on a.id = j.agence_id where a.institution_id = %s and j.date_comptable between %s and %s
                    and j.statut <> 'fermee'""", (i, debut, fin))
-    ajouter("Journées comptabilisées", nj == 0, f"{nj} journée(s) à comptabiliser (Comptabilité > Comptabilisation)", True)
+    ajouter("Journées comptabilisées", nj == 0, f"{nj} journée(s) à comptabiliser (Comptabilité > Contrôle > Clôture de la journée)", True)
     ns = valeur("""select count(*) from session_caisse s join journee_comptable j on j.id = s.journee_id join agence a on a.id = j.agence_id
                    where a.institution_id = %s and j.date_comptable between %s and %s and s.statut = 'ouverte'""", (i, debut, fin))
     ajouter("Caisses arrêtées", ns == 0, f"{ns} caisse(s) encore ouverte(s)", True)
@@ -641,7 +641,7 @@ def controles(u, annee: int, mois: int | None) -> list[dict]:
         c = une("select * from credit where id = %s", (g["credit_id"],))
         if c["statut"] != "debloque" or int(g["reste"]) > etat_credit(c, fin)["capitalRestant"]:
             trop.append(c["numero"])
-    ajouter("Cautions reçues au plus égales au restant dû", not trop, "À ramener au restant dû (Crédit > Caution et nantissement > Libérer caution ; PCCI § 7.3.1.2) : " + ", ".join(sorted(trop)))
+    ajouter("Cautions reçues au plus égales au restant dû", not trop, "À ramener au restant dû (Crédit > Garanties, bouton Libérer ; PCCI § 7.3.1.2) : " + ", ".join(sorted(trop)))
     from .incidents import ouverts                                     # B17 : traitement des incidents et dépassements (Instr. BCC 008, art. 49)
     no = ouverts(i)
     ajouter("Incidents et dépassements régularisés", no == 0, f"{no} incident(s) ou dépassement(s) à traiter (Administration > Sécurité > Incidents et dépassements)")

@@ -59,7 +59,7 @@ def cloturer(u, d) -> dict:
     j = journee(u)
     solde = solde_contrat(f"depot:{c['id']}", c["dv"], "C")
     if solde != 0:
-        raise ErreurMetier("Le compte a encore un solde : le retirer d'abord au guichet (Caisse > Opération > Retrait), puis clôturer. La clôture est gratuite (Instr. BCC 37, annexe).")
+        raise ErreurMetier("Le compte a encore un solde : le retirer d'abord au guichet (Caisse > Guichet, onglet Retrait), puis clôturer. La clôture est gratuite (Instr. BCC 37, annexe).")
     raisons = attaches(c)
     if raisons:
         raise ErreurMetier("Clôture impossible : " + ", ".join(raisons) + ".")

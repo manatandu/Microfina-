@@ -92,7 +92,7 @@ export default function ParametragesClients() {
                 ))}
               </tbody>
             </table>
-            <fieldset className="cadre-champs"><legend>Défintion des compteurs</legend>
+            <fieldset className="cadre-champs"><legend>Définition des compteurs</legend>
               <table className="grille">
                 <thead><tr><th scope="col">Agence</th><th scope="col" className="num">Dernier numéro</th></tr></thead>
                 <tbody>{donnees.compteurs.map((c) => <tr key={c.agence}><td>{c.agence}</td><td className="num">{String(c.dernier).padStart(6, "0")}</td></tr>)}</tbody>
@@ -105,7 +105,7 @@ export default function ParametragesClients() {
           </div>
         </Formulaire>
         <Textes sources={["Manuel Microfina++, p. 23 : « dans 1-2 [Numérotation], dans la liste des menus de la page ouverte, choisir [Paramétrages liés aux clients] puis remplir le champ institution qui est obligatoire »",
-          "Manuel Microfina++, capture p. 24 : Paramétrages liés aux clients, Institution*, Elément / Valeur (Préfixe, Suffixe), Elément / Position (Institution, Agence, Categorie), Position, Compteur, flèches, Ordre des éléments (COMPTEUR), Générer, Aperçu, Enregistrer, Défintion des compteurs",
+          "Manuel Microfina++, capture p. 24 : Paramétrages liés aux clients, Institution*, Elément / Valeur (Préfixe, Suffixe), Elément / Position (Institution, Agence, Categorie), Position, Compteur, flèches, Ordre des éléments (COMPTEUR), Générer, Aperçu, Enregistrer, Définition des compteurs",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
       </section>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
@@ -156,7 +156,7 @@ export function ParametrageCompteClient() {
           <button className="bouton secondaire" type="button" onClick={() => setF(null)}>Annuler</button>
         </div>
         <fieldset className="pile cadre-champs">
-          <legend>Pamamétrage du N° des Compte Client</legend>
+          <legend>Paramétrage du N° des comptes clients</legend>
           <table className="grille">
             <thead><tr><th scope="col">Position du N°</th><th scope="col">N° Client?</th><th scope="col">Préfixe ?</th><th scope="col">Suffixe?</th></tr></thead>
             <tbody>
@@ -168,7 +168,7 @@ export function ParametrageCompteClient() {
             </tbody>
           </table>
         </fieldset>
-        <Textes sources={["Manuel Microfina++, p. 26 : « cocher les cases utilitaires et la position correspondante puis Générer le Numéro de compte client et Enregistrer » ; capture : Parametrage du Compte Client, Configuration du N° des Compte Client (Prefixe, N° Client, Suffixe, Position, exemple « 25121200-INS000SA000001-E-05 »), Enregistrer, Annuler, Générer, Pamamétrage du N° des Compte Client (Position du N°, N° Client?, Préfixe ?, Suffixe?)",
+        <Textes sources={["Manuel Microfina++, p. 26 : « cocher les cases utilitaires et la position correspondante puis Générer le Numéro de compte client et Enregistrer » ; capture : Parametrage du Compte Client, Configuration du N° des Compte Client (Prefixe, N° Client, Suffixe, Position, exemple « 25121200-INS000SA000001-E-05 »), Enregistrer, Annuler, Générer, Paramétrage du N° des comptes clients (Position du N°, N° Client?, Préfixe ?, Suffixe?)",
           "Manuel Microfina++, p. 10 et 11 : boîtes de confirmation, de succès et d'erreur"]} />
       </Formulaire>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />

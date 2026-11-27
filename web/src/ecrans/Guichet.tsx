@@ -96,7 +96,7 @@ export function SoldesCaisse({ sessionId }: { sessionId: number }) {
 }
 
 /** S74 : Caisse > Opération > Dépôt / Retrait (manuel Microfina++, p. 86) */
-export const MASQUE = "Solde masqué : « Voir solde client » n'est pas coché pour vous (Administration > Guichets, Affecter un caissier)";
+export const MASQUE = "Solde masqué : « Voir solde client » n'est pas coché pour vous (Administration > Journée > Guichets, Affecter un caissier)";
 
 export default function GuichetDepotRetrait() {
   const [q] = useSearchParams();

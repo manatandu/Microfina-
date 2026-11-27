@@ -22,7 +22,7 @@ export default function App() {
           <Route path="principal" element={<AccueilModule />} />
           <Route path="paie" element={<AccueilModule />} />
           <Route path="immobilisations" element={<AccueilModule />} />
-          {ECRANS.map((e) => {
+          {ECRANS.filter((e) => e.priorite !== "skip").map((e) => {   // un écran non repris ne s'ouvre pas non plus par son adresse (plan d'allègement, point 0.24)
             const Ecran = CONSTRUITS[e.id];
             return <Route key={e.id} path={e.chemin} element={Ecran ? <Ecran /> : <AConstruire id={e.id} />} />;
           })}

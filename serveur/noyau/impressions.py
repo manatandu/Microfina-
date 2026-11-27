@@ -32,7 +32,7 @@ def noter(u: dict, d) -> dict:
         raise ErreurMetier("Document inconnu.")
     sorte, ecrans = DOCUMENTS[document]
     if not droits_utilisateur(u["id"]) & set(ecrans):
-        raise ErreurMetier("Droit manquant : impression de ce document (Administration > Profil > Assigner droit).", 403)
+        raise ErreurMetier("Droit manquant : impression de ce document (Administration > Sécurité > Profils et droits).", 403)
     if une(cloison.AGENCE_DE[sorte], (objet,)) is None:               # l'objet existe (opération, crédit, compte, DAT, engagement, plainte, relevé, membre)
         raise ErreurMetier("Document inconnu.")
     cloison.exiger(u, sorte, objet)                                # un membre de son agence (registre T213)

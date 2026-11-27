@@ -214,8 +214,8 @@ export function AffectationDossier() {
   }), [de, vers, relu]);
   if (!donnees) return <Chargement />;
   const { g, gauche, droite } = donnees;
-  const choix = (v: string, f: (x: string) => void, libelle: string, vider = false) => <select className="saisie" aria-label={libelle} value={v} onChange={(e) => { f(e.target.value); if (vider) setCoches([]); }}>
-    <option value=""></option>{g.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>;
+  const choix = (v: string, f: (x: string) => void, libelle: string, vider = false) => <Champ libelle={`${libelle} :`}>{(p) => <select {...p} className="saisie" value={v} onChange={(e) => { f(e.target.value); if (vider) setCoches([]); }}>
+    <option value=""></option>{g.map((x) => <option key={x.id} value={x.id}>{x.nom}</option>)}</select>}</Champ>;
   function affecter() {
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment affecter les crédits cochés ?", oui: async () => {
       try { await api.affectation.affecter({ de: de ? Number(de) : null, vers: vers ? Number(vers) : null, credits: coches }); setCoches([]); setRelu((x) => x + 1);

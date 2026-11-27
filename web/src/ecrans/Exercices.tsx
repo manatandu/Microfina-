@@ -43,9 +43,9 @@ export function Exercices() {
               <tr key={e.annee}>
                 <td className="chiffres">{e.annee}</td>
                 <td>{etat(e)}</td>
-                <td>{!e.ouvert && !e.valide && droits.has("S11b") && <button className="bouton secondaire petit" type="button" aria-label={`Ouvrir ${e.annee}`}
+                <td>{!e.ouvert && !e.valide && !e.clotureLe && droits.has("S11b") && <button className="bouton secondaire petit" type="button" aria-label={`Ouvrir ${e.annee}`}
                       onClick={() => agir(`Ouvrir l'exercice ${e.annee} ?`, () => api.exercices.ouvrir(e.annee), "Enregistré avec succès !")}>Ouvrir</button>}
-                  {e.ouvert && !e.valide && <button className="bouton secondaire petit" type="button" aria-label={`Clôturer ${e.annee}`} onClick={() => cloturer(e.annee)}>Clôturer</button>}</td>
+                  {!e.valide && e.clotureLe && <button className="bouton secondaire petit" type="button" aria-label={`Clôturer ${e.annee}`} onClick={() => cloturer(e.annee)}>Clôturer</button>}</td>
               </tr>
             ))}
           </tbody>

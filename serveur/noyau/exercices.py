@@ -10,7 +10,10 @@ def droit(u):
 def lire(u) -> dict:
     exiger(u)
     i = u["institution_id"]
-    ex = lignes("select annee, actif, ouvert, valide from exercice where institution_id = %s order by annee", (i,))
+    ex = [{**e, "clotureLe": e["cloture_le"].date().isoformat() if e["cloture_le"] else ""} for e in
+          lignes("select annee, actif, ouvert, valide, cloture_le from exercice where institution_id = %s order by annee", (i,))]
+    for e in ex:
+        del e["cloture_le"]
     en_cours = next((e["annee"] for e in ex if e["actif"]), None)   # registre S11-1 : l'exercice actif est l'exercice en cours
     return {
         "exercices": ex,
@@ -56,6 +59,8 @@ def enregistrer(u, d) -> dict:
         if valide and not e["valide"] and une("""select 1 from journee_comptable j join agence g on g.id = j.agence_id
                                                   where g.institution_id = %s and extract(year from j.date_comptable) = %s and j.statut <> 'fermee'""", (i, a)):
             raise ErreurMetier(f"L'exercice {a} a encore une journée ouverte : la comptabiliser avant de le valider.")
+        if valide and not e["valide"] and not e["cloture_le"]:          # la clôture annuelle (S127) vient avant la validation (S11)
+            raise ErreurMetier(f"Clôturer d'abord l'exercice {a} (Comptabilité > Clôture > Clôture) : ses écritures de clôture et son résultat passent avant sa validation.")
         voulu[a] = {**e, "actif": bool(l.get("actif")), "ouvert": bool(l.get("ouvert")), "valide": valide}
         maj.append(a)
     if sum(1 for e in voulu.values() if e["actif"]) > 1:

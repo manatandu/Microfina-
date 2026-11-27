@@ -193,7 +193,7 @@ def enregistrer(u, d, client: bool = False) -> dict:
         if dest["id"] == origine["id"]:
             raise ErreurMetier("Compte Banque destination : un autre compte que celui d'origine.")
         if dest["devise"] != origine["devise"]:             # registre S52-6
-            raise ErreurMetier("Virement entre deux devises : à confirmer avec le porteur (cours du jour, S35).")
+            raise ErreurMetier("Virement entre deux devises : les deux comptes doivent être dans la même devise.")
         dest = dest["id"]
         libelle = TYPES[type_]
     # A12 : virement reçu par la banque sur le compte du client, donneur d'ordre ; prélèvement vers la banque, bénéficiaire (loi 22/068, art. 57 et 61)
@@ -280,6 +280,12 @@ def faire_suivre(u, oid: int, etape: str, d=None) -> dict:
         if date_val > jour:
             raise ErreurMetier("La date de validation ne peut pas dépasser la journée ouverte.")
         executer("update operation_banque set statut = 'validee', valide_par = %s, valide_le = now(), date_validation = %s where id = %s", (u["id"], date_val, oid))
+        if o["type"] == "adhesion_banque":                 # le compte épargne s'ouvre à la validation ; l'écriture suit à la comptabilisation (registre S56-1)
+            a = preparer_adhesion(u, {"tiersId": o["tiers_id"], "parts": o["parts"], "depot": o["premier_depot"]})
+            cid = valeur("""insert into compte_depot (institution_id, agence_id, tiers_id, produit_id, numero, devise, statut, ouvert_le)
+                            values (%s, %s, %s, %s, %s, 'CDF', 'ouvert', %s) returning id""",
+                         (u["institution_id"], a["t"]["agence_id"], a["tid"], a["produit"]["id"], numero_compte(u, a["t"], a["produit"]), date_val))
+            executer("update operation_banque set compte_depot_id = %s where id = %s", (cid, oid))
     else:
         executer("update operation_banque set statut = 'visee', vise_par = %s, vise_le = now() where id = %s", (u["id"], oid))
     return vue(une("select * from operation_banque where id = %s", (oid,)))

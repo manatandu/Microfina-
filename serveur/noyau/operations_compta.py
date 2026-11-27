@@ -410,7 +410,7 @@ def enregistrer_deplacee(u, d) -> dict:
     if not ag:
         raise ErreurMetier("À remplir : Agence.")
     if ag["id"] == u["agence_id"]:
-        raise ErreurMetier("Agence : celle du client, autre que la vôtre ; un client de votre agence passe au guichet (Caisse > Opération).")
+        raise ErreurMetier("Agence : celle du client, autre que la vôtre ; un client de votre agence passe au guichet (Caisse > Guichet).")
     nom, numero = texte(d, "nom"), texte(d, "numeroCompte")
     if not nom:
         raise ErreurMetier("À remplir : Nom et Prénoms.")

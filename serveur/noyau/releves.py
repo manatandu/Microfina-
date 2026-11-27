@@ -29,7 +29,7 @@ def controler(u, d: str, nom: str):
 
 def masques(u):
     if soldes_masques(u):                                      # registre S10-1 : le caissier sans « Voir solde client » ne voit pas les soldes
-        raise ErreurMetier("Soldes des clients masqués pour vous au guichet (Administration > Guichets : case « Voir solde client »).")
+        raise ErreurMetier("Soldes des clients masqués pour vous au guichet (Administration > Journée > Guichets, Affecter un caissier : case « Voir solde client »).")
 
 
 def releve(u, compte_id: int, du: str, au: str) -> dict:

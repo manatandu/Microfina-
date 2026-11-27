@@ -96,7 +96,7 @@ def debloquer(u, bid: int, d) -> dict:
     if not b or b["fin"] is not None:
         raise ErreurMetier("Ce blocage n'est plus en cours.")
     if b["garantie_de"] is not None:
-        raise ErreurMetier("Ce montant garantit un crédit : il se libère par Crédit > Caution et nantissement.")
+        raise ErreurMetier("Ce montant garantit un crédit : il se libère par Crédit > Garanties, bouton Libérer.")
     motif = texte(d, "motif")
     if not motif:
         raise ErreurMetier("À remplir : Motif.")

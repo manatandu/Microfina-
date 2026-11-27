@@ -20,7 +20,7 @@ if (!BASE || !LOGIN || !MDP) {
 const src = path.join(__dirname, '..', 'src', 'ecrans');
 const registre = JSON.parse(fs.readFileSync(path.join(src, 'registre.json'), 'utf8'));
 const construits = new Set([...fs.readFileSync(path.join(src, 'construits.tsx'), 'utf8').matchAll(/^\s+(S\w+):/gm)].map((m) => m[1]));
-const ecrans = registre.filter((e) => construits.has(e.id));
+const ecrans = registre.filter((e) => construits.has(e.id) && e.priorite !== 'skip');
 
 (async () => {
   fs.mkdirSync(DOSSIER, { recursive: true });

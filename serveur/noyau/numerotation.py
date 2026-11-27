@@ -20,7 +20,7 @@ def lire(u) -> dict:
     compteurs = lignes("""select a.nom as agence, coalesce(c.dernier, (select case when is_called then last_value else last_value - 1 end from numero_tiers)) as dernier
                           from agence a left join compteur_client c on c.agence_id = a.id where a.institution_id = %s order by a.code""", (i,))
     return {"institutions": lignes("select id, nom from institution where id = %s", (i,)), "regles": {str(i): json_lu(r["regle"])} if r else {},
-            # Registre S15-7 : « Défintion des compteurs », un compteur par agence avec son dernier numéro
+            # Registre S15-7 : « Définition des compteurs », un compteur par agence avec son dernier numéro
             "compteurs": compteurs,
             # Registre S15-6 : valeurs d'exemple de l'Aperçu (sigle de l'institution S15-11, code de l'agence, première catégorie S15-8, prochain compteur)
             "exemple": {"INSTITUTION": ag["sigle"] or "", "AGENCE": ag["code"], "CATEGORIE": cat[0]["code"] if cat else "",
@@ -64,7 +64,7 @@ def enregistrer(u, d) -> dict:
 # ---------- S17 : Paramétrage du Compte Client (manuel Microfina++, p. 26) ----------
 
 def lire_compte(u) -> dict:
-    """La règle enregistrée (« Pamamétrage du N° des Compte Client ») et un exemple pour Générer (registre S17-7)"""
+    """La règle enregistrée (« Paramétrage du N° des comptes clients ») et un exemple pour Générer (registre S17-7)"""
     exiger(u)
     r = une("select prefixe, suffixe, position from numerotation_compte where institution_id = %s", (u["institution_id"],))
     ag = une("select code from agence where id = %s", (u["agence_id"],)) or {"code": ""}

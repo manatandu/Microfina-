@@ -17,7 +17,7 @@
     "notes": "Grille avec Franc congolais (CDF) et Dollar américain (USD)." },
   { "fichier": "S35-b.png", "figure": "Figure 3.6 : l'écran Devises et coupures, onglet Coupures", "login": "jpmukendi",
     "url": "/parametrage/s35?page=sous", "onglet": "Coupures", "attendre": "Enregistrement de monnaies",
-    "remplir": [["Valeur fiduciaire:", "0,50"]],
+    "remplir": [["Valeur fiduciaire : *", "0,50"]],
     "notes": "Choisir Pièce dans « Billet ou pièce : » et CDF dans « Devise : ». Ne pas enregistrer." },
   { "fichier": "S30.png", "figure": "Figure 3.7 : l'écran Journaux : création", "login": "jpmukendi",
     "url": "/parametrage/s30", "onglet": null, "attendre": "Liste des Journaux",

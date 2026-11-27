@@ -274,5 +274,5 @@ def examiner(u: dict, cid: int, d: dict) -> dict:
 def exiger_correspondances_examinees(tid: int) -> None:
     """Pas de visa tant qu'une correspondance avec une liste de gel attend l'examen de la conformité (art. 158 bis : sans délai)"""
     if valeur("select 1 from correspondance_gel where tiers_id = %s and statut = 'a_examiner' limit 1", (tid,)):
-        raise ErreurMetier("Correspondance avec une liste de gel à examiner d'abord (Client > Conformité > Examen renforcé, onglet Gel des avoirs ; "
+        raise ErreurMetier("Correspondance avec une liste de gel à examiner d'abord (Conformité > Lutte anti-blanchiment, onglet Gel des avoirs ; "
                            "loi 22/068, art. 158 bis).")

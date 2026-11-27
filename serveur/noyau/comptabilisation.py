@@ -115,11 +115,11 @@ def passer(u, j: dict) -> int:
         lg, apres = x["lignes"], None
         if x["type"] == "adhesion_banque":
             o = x["o"]
-            a = preparer_adhesion(u, {"tiersId": o["tiers_id"], "parts": o["parts"], "depot": o["premier_depot"]})
+            a = preparer_adhesion(u, {"tiersId": o["tiers_id"], "parts": o["parts"], "depot": o["premier_depot"], "compteOuvert": o["compte_depot_id"]})
             t, produit = a["t"], a["produit"]
-            cid = valeur("""insert into compte_depot (institution_id, agence_id, tiers_id, produit_id, numero, devise, statut, ouvert_le)
+            cid = o["compte_depot_id"] or valeur("""insert into compte_depot (institution_id, agence_id, tiers_id, produit_id, numero, devise, statut, ouvert_le)
                             values (%s, %s, %s, %s, %s, 'CDF', 'ouvert', %s) returning id""",
-                         (u["institution_id"], t["agence_id"], a["tid"], produit["id"], numero_compte(u, t, produit), j["date_comptable"]))
+                         (u["institution_id"], t["agence_id"], a["tid"], produit["id"], numero_compte(u, t, produit), j["date_comptable"]))   # opération validée avant le 27/11/2026
             lg = [x["lignes"][0]]
             if a["m_parts"]:
                 lg.append(L(compte_parts(t), "C", "CDF", a["m_parts"], f"parts:{a['tid']}"))

@@ -211,21 +211,31 @@ export function liasseClasseur(e: Entete, d: DonneesLiasse) {
 export type LigneBalanceXml = { compte: string; intitule: string; anterieurD: number; anterieurC: number; mouvementD: number; mouvementC: number; soldeD: number; soldeC: number };
 export type CompteGrandLivre = { compte: string; intitule: string; soldeInitial: number; lignes: { date: string; journal: string; piece: string; libelle: string; debit: number; credit: number }[] };
 const nomFeuille = (compte: string) => `GL ${compte}`.slice(0, 31);
-export function balanceClasseur(e: { institution: string; du: string; au: string; tirage: string }, lignes: LigneBalanceXml[], grandLivre: CompteGrandLivre[] = [], tiers = false) {
-  const t = (f: (l: LigneBalanceXml) => boolean, nom: string): Ligne => {
-    const s = lignes.filter(f), k = (x: keyof LigneBalanceXml) => s.reduce((a, l) => a + (l[x] as number), 0) / 100;
-    return { style: "neutreTotal", cellules: [nom, null, k("anterieurD"), k("anterieurC"), k("mouvementD"), k("mouvementC"), k("soldeD"), k("soldeC")] };
+export function balanceClasseur(e: { institution: string; du: string; au: string; tirage: string }, lignes: LigneBalanceXml[], grandLivre: CompteGrandLivre[] = [], tiers = false,
+  colonnes: "8" | "6" | "4" = "6") {
+  // Type de balance (S121) : 6 colonnes, le modèle FPM (registre T31) : antérieur, mouvements, soldes ; 4 colonnes : totaux et soldes ;
+  // 8 colonnes : antérieur, mouvements, totaux (antérieur + mouvements) et soldes
+  const montants = (l: Pick<LigneBalanceXml, "anterieurD" | "anterieurC" | "mouvementD" | "mouvementC" | "soldeD" | "soldeC">) => {
+    const totaux = [(l.anterieurD + l.mouvementD) / 100, (l.anterieurC + l.mouvementC) / 100], soldes = [l.soldeD / 100, l.soldeC / 100];
+    const anterieur = [l.anterieurD / 100, l.anterieurC / 100], mouvements = [l.mouvementD / 100, l.mouvementC / 100];
+    return colonnes === "4" ? [...totaux, ...soldes] : colonnes === "8" ? [...anterieur, ...mouvements, ...totaux, ...soldes] : [...anterieur, ...mouvements, ...soldes];
   };
+  const n = colonnes === "4" ? 4 : colonnes === "8" ? 8 : 6, vides = (k: number) => Array<null>(k).fill(null);
+  const t = (f: (l: LigneBalanceXml) => boolean, nom: string): Ligne => {
+    const s = lignes.filter(f), k = (x: keyof LigneBalanceXml) => s.reduce((a, l) => a + (l[x] as number), 0);
+    return { style: "neutreTotal", cellules: [nom, null, ...montants({ anterieurD: k("anterieurD"), anterieurC: k("anterieurC"), mouvementD: k("mouvementD"), mouvementC: k("mouvementC"), soldeD: k("soldeD"), soldeC: k("soldeC") })] };
+  };
+  const entetes = colonnes === "4" ? ["Totaux cumulés Débit", "Crédit", "Soldes cumulés Débit", "Crédit"]
+    : [`Mouvements au ${fr(e.du)} Débit`, "Crédit", "Mouvements Débit", "Crédit", ...(colonnes === "8" ? ["Totaux cumulés Débit", "Crédit"] : []), "Soldes cumulés Débit", "Crédit"];
   const avecFeuille = new Set(lignes.filter((l) => grandLivre.some((c) => c.compte.startsWith(l.compte))).map((l) => l.compte));
-  const rows: Ligne[] = [{ style: "neutreTitre", cellules: [e.institution, null, null, null, null, null, null, `Date de tirage : ${e.tirage}`] },
-    { style: "neutreTitre", cellules: [tiers ? "Balance des Tiers" : "Balance des comptes", null, null, null, null, null, null, null] },
-    { style: "texte", cellules: [`Période du ${fr(e.du)} au ${fr(e.au)}`, null, null, null, null, null, null, null] }, { style: "texte", cellules: ["Complète    Tenue de compte : CDF", null, null, null, null, null, null, null] },
-    { style: "neutreEntete", cellules: [tiers ? "Numéro tiers" : "Numéro de compte", tiers ? "Intitulé tiers" : "Intitulé des comptes", `Mouvements au ${fr(e.du)} Débit`, "Crédit", "Mouvements Débit", "Crédit", "Soldes cumulés Débit", "Crédit"] },
-    ...lignes.map((l): Ligne => ({ style: "neutre", cellules: [avecFeuille.has(l.compte) ? { texte: l.compte, lien: `'${nomFeuille(l.compte)}'!A1` } : l.compte, l.intitule,
-      l.anterieurD / 100, l.anterieurC / 100, l.mouvementD / 100, l.mouvementC / 100, l.soldeD / 100, l.soldeC / 100] })),
+  const rows: Ligne[] = [{ style: "neutreTitre", cellules: [e.institution, null, ...vides(n - 1), `Date de tirage : ${e.tirage}`] },
+    { style: "neutreTitre", cellules: [tiers ? "Balance des Tiers" : "Balance des comptes", null, ...vides(n)] },
+    { style: "texte", cellules: [`Période du ${fr(e.du)} au ${fr(e.au)}`, null, ...vides(n)] }, { style: "texte", cellules: ["Complète    Tenue de compte : CDF", null, ...vides(n)] },
+    { style: "neutreEntete", cellules: [tiers ? "Numéro tiers" : "Numéro de compte", tiers ? "Intitulé tiers" : "Intitulé des comptes", ...entetes] },
+    ...lignes.map((l): Ligne => ({ style: "neutre", cellules: [avecFeuille.has(l.compte) ? { texte: l.compte, lien: `'${nomFeuille(l.compte)}'!A1` } : l.compte, l.intitule, ...montants(l)] })),
     ...(tiers ? [t(() => true, "Total général")] : [t((l) => "12345".includes(l.compte[0]!), "Totaux comptes de bilan"), t((l) => "678".includes(l.compte[0]!), "Totaux comptes de gestion"),
       t(() => true, "Totaux de la balance")])];
-  const feuilles: Feuille[] = [{ nom: "Balance", largeurs: [80, 260, 85, 85, 85, 85, 85, 85], lignes: rows, filtre: { entete: 5, derniere: 5 + lignes.length, colonnes: 8 } }];
+  const feuilles: Feuille[] = [{ nom: "Balance", largeurs: [80, 260, ...Array<number>(n).fill(85)], lignes: rows, filtre: { entete: 5, derniere: 5 + lignes.length, colonnes: n + 2 } }];
   for (const l of lignes) if (avecFeuille.has(l.compte))
     feuilles.push(feuilleGrandLivre(e, `${l.compte} ${l.intitule}`, grandLivre.filter((c) => c.compte.startsWith(l.compte)), nomFeuille(l.compte), true));
   return feuilles;

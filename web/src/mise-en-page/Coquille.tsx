@@ -161,7 +161,7 @@ export function Coquille() {
         <main className="page" id="contenu" tabIndex={-1} key={lieu.pathname}>{aide && <AideEnLigne chemin={lieu.pathname} fermer={() => setAide(false)} />}
           {enroler ? <><h1 id="titre-ecran" tabIndex={-1}>Second facteur</h1><SecondFacteur fait={() => location.reload()} /></>
             : force ? <><h1 id="titre-ecran" tabIndex={-1}>Changer mon mot de passe</h1><ChangerMotDePasse force expire={!!etat.motDePasseExpire} fait={() => location.reload()} /></>
-            : <>{vise && !refuse && <h1 id="titre-ecran" tabIndex={-1}>{vise.nom}</h1>}{refuse ? <p className="attention">Droit manquant : {refuse.nom} (Administration &gt; Profil &gt; Assigner droit).</p> : <Suspense fallback={null}><Outlet /></Suspense>}</>}</main><MessageSucces />
+            : <>{vise && !refuse && <h1 id="titre-ecran" tabIndex={-1}>{vise.nom}</h1>}{refuse ? <p className="attention">Droit manquant : {refuse.nom} (Administration &gt; Sécurité &gt; Profils et droits).</p> : <Suspense fallback={null}><Outlet /></Suspense>}</>}</main><MessageSucces />
       </div>
 
       <footer className="pied">

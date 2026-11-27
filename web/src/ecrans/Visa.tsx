@@ -527,6 +527,7 @@ export function InformationsClient() {
         </div>
         <div className="actions-onglets">
           <button className="bouton secondaire" type="button" disabled={!t || t.statut === "resilie"} onClick={() => ouvrir("S46")}>Modifier</button>
+          <button className="bouton secondaire" type="button" disabled={!t || t.statut === "resilie"} onClick={() => ouvrir("S49")}>Photos et signatures</button>
           <button className="bouton secondaire" type="button" disabled={!t || t.statut !== "actif"} onClick={() => ouvrir("S47")}>Procurations</button>
           <button className="bouton secondaire" type="button" disabled={!t || t.statut !== "actif"} onClick={() => ouvrir("S48")}>Résilier</button>
         </div>

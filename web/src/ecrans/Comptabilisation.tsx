@@ -11,7 +11,7 @@ import { montant, type Devise } from "@design/montant.js";
 import { Champ, Chargement, Dialogue, Paginee, Textes, type Boite } from "../composants";
 
 /** Plan d'allègement, point 7.7 : l'écran qui règle chaque contrôle de la journée (services.controles_journee) */
-const ECRAN_DU_BLOQUANT: Record<string, string> = { "Caisses arrêtées": "S79", "Billetages d'arrêt validés": "S79", "Caisses sans écart": "S79",
+const ECRAN_DU_BLOQUANT: Record<string, string> = { "Caisses arrêtées": "S79", "Billetages d'arrêt validés": "S80", "Caisses sans écart": "S80",
   "Opérations en attente de visa": "S113", "Écritures équilibrées": "S109" };
 
 export default function Comptabilisation() {
