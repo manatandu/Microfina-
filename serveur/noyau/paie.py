@@ -16,6 +16,7 @@ SEXES = ["Masculin", "Féminin"]
 CIVILITES = ["Monsieur", "Madame"]                 # sans « Mademoiselle » : décision du porteur, 21/11/2026 (registre S14-4)
 GROUPES_SANGUINS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 TYPES_CONTRAT = ["Contrat à durée déterminée", "Contrat à durée indéterminée"]          # code du travail, art. 39 et 40
+TYPES_EMPLOYE = ["Cadre non conventionné", "Cadre conventionné", "Agent de catégorie"]   # PCCI, compte 65 : rémunérations par catégorie de salariés (registre T252)
 REGIMES = ["Régime catégoriel", "Régime indiciaire"]                                       # capture p. 206 ; grille salariale p. 273 (Salaire ou Point)
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 SESSION = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
@@ -43,7 +44,7 @@ def options(u, table: str, champ: str = "libelle") -> list[dict]:
 def contexte(u) -> dict:
     exiger(u)
     i = u["institution_id"]
-    return {"sexes": SEXES, "civilites": CIVILITES, "groupesSanguins": GROUPES_SANGUINS, "typesContrat": TYPES_CONTRAT, "regimes": REGIMES,
+    return {"sexes": SEXES, "civilites": CIVILITES, "groupesSanguins": GROUPES_SANGUINS, "typesContrat": TYPES_CONTRAT, "typesEmploye": TYPES_EMPLOYE, "regimes": REGIMES,
             "situations": [r["libelle"] for r in valeurs_liste(u, "situation_matrimoniale")],
             "categories": options(u, "paie_categorie"), "classes": options(u, "paie_classe"), "echelons": options(u, "paie_echelon"),
             "grillesSalariales": lignes("""select categorie_id as "categorieId", classe_id as "classeId", echelon_id as "echelonId", salaire, points
@@ -107,6 +108,8 @@ def valider(u, d: dict, eid: int | None) -> tuple[dict, list[dict], list[int]]:
         v["tauxAnciennete"] = f"{float(v['tauxAnciennete'].replace(',', '.')):.2f}".replace(".", ",")
     if (v["dateReferenceAnciennete"] is None) != (not v["tauxAnciennete"]):
         raise ErreurMetier("Ancienneté acquise : Date référence de prime d'ancienneté et Taux de prime d'ancienneté vont ensemble.")
+    if v["typeEmploye"] and v["typeEmploye"] not in TYPES_EMPLOYE:
+        raise ErreurMetier("Type d'employé inconnu.")
     if v["typeContrat"]:
         if v["typeContrat"] not in TYPES_CONTRAT:
             raise ErreurMetier("Type de contrat inconnu.")

@@ -301,8 +301,46 @@ def indicateurs(u, p) -> dict:
                         **({"nombres": True} if r.startswith("Nombre") else {})} for i, r, n, d, v, nm, ok in R]}
 
 
+# ---------- Deux états du manuel de procédures d'une COOPEC, demandés par le porteur le 27/11/2026 (registre T248) ----------
+LIENS = {"actionnaire": "Actionnaire ou membre fondateur", "administrateur": "Administrateur", "dirigeant": "Dirigeant", "personnel": "Personnel",
+         "famille": "Famille au premier degré d'une de ces personnes", "societe_liee": "Société liée à l'institution ou à une de ces personnes",
+         "contrat": "Lié par un contrat de garantie croisée ou d'affaires"}     # Instr. BCC 002, art. 27 ; mêmes libellés que l'écran des personnes apparentées (SC01)
+
+
+def encours_par_membre(u, d: date) -> dict[int, int]:
+    """Capital restant dû de chaque membre à la date, tous ses crédits en cours réunis, en CDF au cours du jour"""
+    par: dict[int, int] = defaultdict(int)
+    for c, s, _ in en_cours(u, {}, d):
+        par[c["tiers_id"]] += round(s["capitalRestant"] * cours(c["devise"].strip(), d))
+    return par
+
+
+def debiteurs(u, p) -> dict:
+    """« Liste des dix débiteurs les plus importants » : les dix membres au plus gros encours de prêts à la date (Instr. BCC 002, art. 28 et 29 : plafond par
+    signature ; le ratio lui-même se lit aux Normes prudentielles)"""
+    exiger(u)
+    d = d_(p.get("date"), "Date")
+    rang = sorted(encours_par_membre(u, d).items(), key=lambda x: (-x[1], x[0]))[:10]
+    return {"colonnes": col(("Rang", "nombre"), ("N°Membre", "code"), ("Noms et postnoms", "texte"), ("Encours de prêts", "montant")),
+            "lignes": [{"v": [i + 1, valeur("select numero from tiers where id = %s", (tid,)), titulaire(tid), v], "devise": "CDF"} for i, (tid, v) in enumerate(rang)]
+                      + ([{"v": [None, "", "Total", sum(v for _, v in rang)], "devise": "CDF"}] if rang else [])}
+
+
+def apparentes(u, p) -> dict:
+    """« Encours total des prêts aux dirigeants » : une ligne par personne apparentée qui a un encours à la date, avec son lien (Instr. BCC 002, art. 25 à 27 ;
+    fiche du membre, registre CR-3) ; le plafond de 20 % se lit aux Normes prudentielles"""
+    exiger(u)
+    d = d_(p.get("date"), "Date")
+    par = encours_par_membre(u, d)
+    rows = [(r, par[r["id"]]) for r in lignes("select id, numero, apparente from tiers where institution_id = %s and apparente is not null order by numero", (u["institution_id"],))
+            if par.get(r["id"])]
+    return {"colonnes": col(("N°Membre", "code"), ("Noms et postnoms", "texte"), ("Lien", "texte"), ("Encours de prêts", "montant")),
+            "lignes": [{"v": [r["numero"], titulaire(r["id"]), LIENS[r["apparente"]], v], "devise": "CDF"} for r, v in rows]
+                      + ([{"v": ["", "Total", "", sum(v for _, v in rows)], "devise": "CDF"}] if rows else [])}
+
+
 RAPPORTS = {"journal": journal, "base": base, "multicritere": multicritere, "synthese": synthese, "taux": taux_remboursement,
-            "previsionnel": encours_previsionnel, "exigibles": exigibles, "indicateurs": indicateurs}
+            "previsionnel": encours_previsionnel, "exigibles": exigibles, "indicateurs": indicateurs, "debiteurs": debiteurs, "apparentes": apparentes}
 
 
 def rapport(u, nom: str, p) -> dict:

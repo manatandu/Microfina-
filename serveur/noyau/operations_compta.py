@@ -18,6 +18,13 @@ from .services import (compte_du_produit, json_lu, controler_montant_coupures, c
                        nettoyer, nom_utilisateur, nouvelle_piece, poster, session_ouverte, solde_contrat, sorties_en_attente, theorique, titulaire)
 
 LIAISON = "451"       # PCCI, compte 451 Comptes de liaison inter agences : réciprocité entre l'agence qui paie et celle du client
+
+
+def liaison_de(a: int, b: int) -> str:
+    """450 quand l'une des deux agences est le siège, 451 entre deux agences (PCCI, compte 45 : « 450. Sièges et Agences locales », « 451. Comptes de
+    liaison inter-agences » ; même règle que les fonds entre agences, transferts.compte_de_liaison ; relecture du 27/11/2026, registre T250)"""
+    from .transferts import compte_de_liaison
+    return compte_de_liaison(a, b)
 TYPES = {"ecriture": "Écriture comptable", "virement": "Virement", "prelevement": "Prélèvement", "compte_a_compte": "Compte DAV vers un Autre Compte",
          "tontine_dav": "Compte Tontine vers un Compte DAV", "diverse": "Opération diverse", "deplacee": "Opération déplacée",
          "domiciliation": "Virement de salaire", "prelevement_auto": "Prélèvement automatique", "salaire_personnel": "Salaire du personnel"}
@@ -631,7 +638,7 @@ def a_payer(u, type_: str) -> list[dict]:
 def lignes_reflet(o: dict) -> list[dict]:
     """Reflet dans l'agence du client (PCCI, compte 45 : mouvement de montant égal et de signe contraire)"""
     dv, m, dep = o["devise"].strip(), o["montant"], o["sens"] == "DEPOT"
-    liaison = L(LIAISON, "D" if dep else "C", dv, m, f"liaison:{o['agence_id']}")
+    liaison = L(liaison_de(o["agence_id"], o["agence_client_id"]), "D" if dep else "C", dv, m, f"liaison:{o['agence_id']}")
     client = ligne_depot(o["compte_depot_id"], "C" if dep else "D", dv, m)
     return [liaison, client] if dep else [client, liaison]
 
@@ -684,7 +691,7 @@ def payer(u, oid: int, d) -> dict:
         examen = conformite.autorisation(u, c["tiers_id"], s["journeeId"], "depot" if entree else "retrait", m, dv)
         if not entree and m > disponible(c, o["id"]):
             raise ErreurMetier("Solde disponible insuffisant sur le compte du client.")
-        autres = [L(LIAISON, "C" if entree else "D", dv, m, f"liaison:{o['agence_client_id']}")]
+        autres = [L(liaison_de(o["agence_id"], o["agence_client_id"]), "C" if entree else "D", dv, m, f"liaison:{o['agence_client_id']}")]
         tiers_id, contrat = c["tiers_id"], f"liaison:{o['agence_client_id']}"
     piece = nouvelle_piece(u, "CA", j["date_comptable"])
     eid = poster(u, journal="CA", journee_id=s["journeeId"], libelle=o["libelle"], piece=piece, evenement="ed_encaissement" if entree else "ed_decaissement",

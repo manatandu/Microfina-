@@ -7,7 +7,7 @@ import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr, aujourdhui, heureDe } from "../lib/dates";
-import { balanceXml, grandLivreXml, telecharger, type CompteGrandLivre } from "../lib/liasse";
+import { balanceClasseur, grandLivreClasseur, telecharger, type CompteGrandLivre } from "../lib/liasse";
 import { Champ, ChampDate, Chargement, Dialogue, Textes, type Boite, Recherche } from "../composants";
 
 type Ctx = Awaited<ReturnType<typeof api.etatsCompta.contexte>>;
@@ -55,7 +55,7 @@ function EditionGrandLivre({ ctx, jour }: { ctx: Ctx; jour: string }) {
       const analytique = f.plan === "analytique";
       const r = await api.etatsCompta.grandLivre({ type: f.type, agenceId: f.agence ? Number(f.agence) : null, exercice: f.du.slice(0, 4), du: f.du, au: f.au, vidage: f.vidage }, analytique);
       if (r.comptes.length === 0) { setBoite({ type: "erreur", message: "Aucune écriture comptabilisée sur la période." }); return; }
-      telecharger(`${analytique ? "grand-livre-des-tiers" : "grand-livre"}-${r.au}`, grandLivreXml(await enteteDoc(r.du, r.au),
+      telecharger(`${analytique ? "grand-livre-des-tiers" : "grand-livre"}-${r.au}`, grandLivreClasseur(await enteteDoc(r.du, r.au),
         r.comptes.map((c) => versGl(analytique ? { ...c, intitule: `${c.auxiliaire || "sans tiers"} (${c.compte} ${c.intitule})` } : c)), analytique));
     } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
@@ -105,12 +105,12 @@ function EditionBalance({ ctx, jour }: { ctx: Ctx; jour: string }) {
         niveau: f.niveau, sansVidage: f.sansVidage }, analytique);
       if (r.lignes.length === 0) { setBoite({ type: "erreur", message: "Aucune écriture comptabilisée sur la période." }); return; }
       if (analytique) {      // balance des tiers (modèle FPM) : une ligne par tiers et par compte, « Total général » (registre T31)
-        telecharger(`balance-des-tiers-${r.au}`, balanceXml(await enteteDoc(r.du, r.au), r.lignes.map((x) => ({ compte: x.auxiliaire || x.compte, intitule: `${x.intitule} (${x.compte})`,
+        telecharger(`balance-des-tiers-${r.au}`, balanceClasseur(await enteteDoc(r.du, r.au), r.lignes.map((x) => ({ compte: x.auxiliaire || x.compte, intitule: `${x.intitule} (${x.compte})`,
           anterieurD: x.ouvertureDebit, anterieurC: x.ouvertureCredit, mouvementD: x.mouvementDebit, mouvementC: x.mouvementCredit, soldeD: x.soldeDebit, soldeC: x.soldeCredit })), [], true));
         return;
       }
       const gl = await api.etatsCompta.grandLivre(criteresGl());
-      telecharger(`balance-${r.au}`, balanceXml(await enteteDoc(r.du, r.au), r.lignes.map((x) => ({ compte: x.compte, intitule: x.intitule, anterieurD: x.ouvertureDebit, anterieurC: x.ouvertureCredit,
+      telecharger(`balance-${r.au}`, balanceClasseur(await enteteDoc(r.du, r.au), r.lignes.map((x) => ({ compte: x.compte, intitule: x.intitule, anterieurD: x.ouvertureDebit, anterieurC: x.ouvertureCredit,
         mouvementD: x.mouvementDebit, mouvementC: x.mouvementCredit, soldeD: x.soldeDebit, soldeC: x.soldeCredit })), gl.comptes.map(versGl)));
     } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }

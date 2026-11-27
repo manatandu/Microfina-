@@ -13,7 +13,8 @@ import { Champ, ChampDate, Chargement, Dialogue, Paginee, Textes, type Boite, Re
 
 const ONGLETS = [["journal", "Journal"], ["base", "Rapports de base"], ["multicritere", "Rapport multicritère"], ["synthese", "Synthèse de la balance Agée"],
   ["taux", "Taux de remboursements"], ["previsionnel", "Encours Prévisionnel"], ["exigibles", "Rapport des exigibles"], ["indicateurs", "Indicateur de Gestion"],
-  ["garanties", "Rapport des garanties"]] as const;   // venu des rapports d'épargne (plan d'allègement, point 5.8)
+  ["garanties", "Rapport des garanties"],   // venu des rapports d'épargne (plan d'allègement, point 5.8)
+  ["debiteurs", "Dix plus importants débiteurs"], ["apparentes", "Prêts aux personnes apparentées"]] as const;   // demande du porteur, 27/11/2026 (registre T248)
 type Onglet = (typeof ONGLETS)[number][0];
 type Rapport = Awaited<ReturnType<typeof api.rapportsCredit.rapport>>;
 const debutAnnee = debutExercice;
@@ -23,7 +24,8 @@ const CRITERES: Record<Onglet, { periode?: boolean; date?: boolean; filtres?: bo
   journal: { periode: true, filtres: true, libelle: "Période (date de l'écriture)" }, base: { periode: true, filtres: true, libelle: "Période (date de déblocage)" },
   multicritere: { date: true, filtres: true, multi: true }, synthese: { date: true, filtres: true, libelle: "Date de la balance âgée" },
   taux: { periode: true, filtres: true, libelle: "Période (date d'échéance)" }, previsionnel: { periode: true, filtres: true, libelle: "Période (mois)" },
-  exigibles: { periode: true, filtres: true, libelle: "Période (date d'échéance)" }, indicateurs: { periode: true, libelle: "Période" }, garanties: {} };
+  exigibles: { periode: true, filtres: true, libelle: "Période (date d'échéance)" }, indicateurs: { periode: true, libelle: "Période" }, garanties: {},
+  debiteurs: { date: true }, apparentes: { date: true } };
 const TEXTES: Record<Onglet, string> = {
   journal: "Registre S101-2 : les écritures de la période qui touchent un crédit (déblocage, remboursement, garanties, provisions, passage en perte)",
   base: "Registre S101-3 : les crédits débloqués dans la période et leur situation à la date de fin, colonnes de l'état de crédit (S93)",
@@ -33,7 +35,9 @@ const TEXTES: Record<Onglet, string> = {
   previsionnel: "Registre S101-7 : à partir de la journée, capital et intérêts attendus chaque mois selon les échéanciers, et encours prévu en fin de mois (l'impayé reste dans l'encours)",
   exigibles: "Registre S101-8 : échéances dues dans la période, pas entièrement payées au jour de la journée, avec le contact du client",
   indicateurs: "Registre S101-9 et S101-10 ; Instr. BCC 004, art. 3 à 8 et annexe : onze ratios, formules et normes de l'annexe ; montants en CDF ; « moyen » : moyenne du début et de la fin de la période",
-  garanties: "Registre S72-2" };
+  garanties: "Registre S72-2",
+  debiteurs: "Registre T248 : les dix membres au plus gros encours de prêts à la date, tous leurs crédits réunis, en CDF au cours du jour. Instr. BCC 002, art. 28 et 29 : plafond par signature (le ratio se lit aux Normes prudentielles)",
+  apparentes: "Registre T248, CR-3 : les personnes apparentées qui ont un encours de prêts à la date, avec leur lien. Instr. BCC 002, art. 25 à 27 : plafond de 20 % (le ratio se lit aux Normes prudentielles)" };
 
 export default function RapportsCredit() {
   const [params, setParams] = useSearchParams();

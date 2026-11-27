@@ -3683,12 +3683,14 @@ def test_reporting_lcb_mensuel(clients, journee):
 
 
 def test_attente_operation_soupconnee(clients, journee):
-    """P9 : l'assujetti s'abstient de l'opération soupçonnée jusqu'à la déclaration (loi 22/068, art. 92) : mise en attente, puis déclaration qui libère"""
+    """P9 : l'opération soupçonnée attend la déclaration (Instr. BCC 15, art. 36, 4e tiret) : mise en attente, puis déclaration qui libère ; le message
+    du guichet ne révèle ni le soupçon ni la déclaration (loi 22/068, art. 37 et 93 ; registre T249)"""
     chef, caisse = clients["chef"], clients["caisse"]
     a = chef.post("/api/conformite/attentes", {"membre": "0412-000318", "motif": "Virements entrants sans lien avec l'activité"}, **H).json()
     assert "déjà en attente" in chef.post("/api/conformite/attentes", {"membre": "0412-000318", "motif": "x"}, **H).json()["message"]
     retrait = {"cle": cle(), "compteId": C("0412-000318-02"), "montant": 1000000, "coupures": {"10000": 1}}
-    r = caisse.post("/api/guichet/retraits", retrait, **H); assert r.status_code == 422 and "en attente" in r.json()["message"], r.content
+    r = caisse.post("/api/guichet/retraits", retrait, **H); assert r.status_code == 422 and "autoriser par le responsable" in r.json()["message"], r.content
+    assert not any(mot in r.json()["message"].lower() for mot in ("soupçon", "cenaref", "déclar", "conformité"))
     assert caisse.post("/api/guichet/depots", {**retrait, "cle": cle(), "mandataire": ""}, **H).status_code == 200      # l'entrée de fonds passe
     chef.post("/api/conformite/soupcons", {"nature": "operation", "description": "Virements", "personnes": "Kalala", "raisons": "Sans lien avec l'activité",
                                            "membre": "0412-000318", "transmiseLe": "2026-11-05", "moyen": "ecrit"}, **H)
@@ -4303,6 +4305,17 @@ def test_rapports_credit(clients, journee):
     ind = {y["v"][1]: y["v"] for y in r("indicateurs", du="2026-11-01", au="2026-11-05").json()["lignes"]}
     assert ind["Portefeuille à Risque"][4] == 100 and ind["Portefeuille à Risque"][6] == "Non"
     assert ind["Nombre d'emprunteurs par agent de crédit"][4] == 1
+    # Registre T248 : dix plus importants débiteurs, prêts aux personnes apparentées (Instr. BCC 002, art. 25 à 29)
+    tid, numero = ident("select tiers_id from credit where id = %s", (cid,)), ident("select t.numero from tiers t join credit c on c.tiers_id = t.id where c.id = %s", (cid,))
+    db = r("debiteurs", date="2026-11-05").json()
+    assert [c["titre"] for c in db["colonnes"]] == ["Rang", "N°Membre", "Noms et postnoms", "Encours de prêts"]
+    assert [x["v"][:2] + x["v"][3:] for x in db["lignes"]] == [[1, numero, cap], [None, "", cap]]
+    assert r("apparentes", date="2026-11-05").json()["lignes"] == []
+    with connection.cursor() as cur:
+        cur.execute("update tiers set apparente = 'dirigeant' where id = %s", (tid,))
+    ap = r("apparentes", date="2026-11-05").json()["lignes"]
+    assert [x["v"] for x in ap] == [[numero, ap[0]["v"][1], "Dirigeant", cap], ["", "Total", "", cap]]
+    assert "Date" in r("debiteurs").json()["message"]
     assert "Rapport inconnu" in r("x").json()["message"] and "Du" in r("base", du="2026-11-06", au="2026-11-05").json()["message"]
     assert caisse.get("/api/credit/rapports/base", {"du": "2026-11-01", "au": "2026-11-05"}, **H).status_code == 403
 
@@ -5481,7 +5494,8 @@ def test_paie(clients, journee):
     assert "inconnu" in msg(compta, f"{R}/grandes_rubriques", {"code": "G02", "libelle": "X", "imposable": "Peut-être"})
     ok(compta, f"{R}/types_heure_sup", {"code": "HS1", "libelle": "Heures de nuit", "taux": "30", "elementId": gr})
     tg = ident_(ok(compta, f"{R}/types_grille", {"libelle": "Grille fiscale"}), "libelle", "Grille fiscale")
-    tr = ident_(ok(compta, f"{R}/types_retenue", {"libelle": "Avance sur salaire"}), "libelle", "Avance sur salaire")
+    assert "Compte" in msg(compta, f"{R}/types_retenue", {"libelle": "Avance sur salaire"})
+    tr = ident_(ok(compta, f"{R}/types_retenue", {"libelle": "Avance sur salaire", "compte": "42000000"}), "libelle", "Avance sur salaire")
     assert "Grille salariale" in msg(compta, f"{R}/classes/{cla}/suppression", {})
     # S132
     gi = ident_(ok(compta, f"{RS}/grilles", {"libelle": "IPR", "typeGrilleId": tg}), "libelle", "IPR")
@@ -5520,6 +5534,65 @@ def test_paie(clients, journee):
     assert ok(chef, f"/api/paie/retenues/{r['id']}/visa", {})["statut"] == "visee"
     assert "déjà visée" in msg(chef, f"/api/paie/retenues/{r['id']}/visa", {})
     assert [x["statut"] for x in compta.get("/api/paie/retenues", {"employeId": e["id"]}, **H).json()] == ["visee"]
+
+
+def test_calcul_paie(clients, journee):
+    """Calcul de la paie (registre T251 à T254) : CNSS (décret 18/041), INPP (arrêté du 24/09/2025), ONEM (arrêté 028/2025), IRPP (loi 23/053, art. 69, 71,
+    118, 123, 150) ; logement immunisé jusqu'à 30 % ; écriture au visa (PCCI 65, 421, 433, 461), une paie par session, supprimable avant le visa."""
+    sans_donnees_demo()
+    compta, chef = clients["compta"], clients["chef"]
+    R, RR = "/api/referentiels/paie", "/api/referentiels/paie_rubriques"
+    def ok(c, url, corps):
+        r = c.post(url, corps, **H); assert r.status_code == 200, r.content; return r.json()
+    msg = lambda c, url, corps: c.post(url, corps, **H).json()["message"]
+    ident_ = lambda r, k, v: next(x["id"] for x in r["lignes"] if x[k] == v)
+    fam = ident_(ok(compta, f"{R}/grandes_familles", {"libelle": "Prime et indemnité"}), "libelle", "Prime et indemnité")
+    g = {c: ident_(ok(compta, f"{R}/grandes_rubriques", {"code": c, "libelle": l, "imposable": i}), "code", c)
+         for c, l, i in (("G01", "Salaire catégoriel", "Oui"), ("G03", "Indemnité de logement", "Non"), ("G04", "Indemnité de transport", "Non"))}
+    rub = {c: ident_(ok(compta, f"{RR}/rubriques", {"familleId": fam, "grandeRubriqueId": g[gr], "code": c, "libelle": l}), "code", c)
+           for c, gr, l in (("HS", "G01", "Heures supplémentaires"), ("IL", "G03", "Indemnité de logement"), ("IT", "G04", "Indemnité de transport"))}
+    tr = ident_(ok(compta, f"{R}/types_retenue", {"libelle": "Avance sur salaire", "compte": "42000000"}), "libelle", "Avance sur salaire")
+    E = {"matricule": "EMP/010/26", "sexe": "Masculin", "civilite": "Monsieur", "nom": "KABEYA", "prenoms": "Jean", "dateNaissance": "1985-03-02",
+         "dateEmbauche": "2024-01-02", "salaireBase": 2000000, "personnesACharge": 2, "typeContrat": "Contrat à durée indéterminée", "dateDebutContrat": "2024-01-02",
+         "fonction": "Comptable"}
+    assert "Type d'employé inconnu" in msg(compta, "/api/paie/employes", {**E, "typeEmploye": "Cadre"})
+    e = ok(compta, "/api/paie/employes", E)
+    for code, montant, session in (("IL", 800000, None), ("IT", 100000, None), ("HS", 150000, "2026-11")):
+        ok(compta, "/api/paie/maquette", {"employeId": e["id"], "rubriqueId": rub[code], "montant": montant, "active": True, "permanente": session is None, "session": session or ""})
+    r = ok(compta, "/api/paie/retenues", {"employeId": e["id"], "typeId": tr, "session": "2026-10", "montant": 300000, "duree": 3})
+    ok(chef, f"/api/paie/retenues/{r['id']}/visa", {})
+    lire = lambda s: compta.get("/api/paie/calcul", {"session": s}, **H)
+    assert "2026-01" in lire("2025-12").json()["message"] and "mois en cours" in lire("2099-12").json()["message"]
+    assert "journée ouverte" in msg(compta, "/api/paie/calcul", {"session": "2026-12"})
+    assert "Type d'employé" in lire("2026-11").json()["message"]                     # PCCI 65 : la catégorie de salariés choisit le sous-compte
+    ok(compta, f"/api/paie/employes/{e['id']}", {**E, "typeEmploye": "Agent de catégorie"})
+    p = lire("2026-11").json()
+    b = p["bulletins"][0]
+    # rémunération 2 150 000 ; CNSS 5 % = 107 500 ; imposable 2 150 000 + (800 000 - 645 000) - 107 500 = 2 197 500 -> 2 197 000 ;
+    # barème mensuel 369 660, réduction 2 charges 4 % = 14 786,40, impôt 354 873,60 -> 354 900 (art. 150) ; retenue 2e mois 100 000
+    assert (b["brut"], b["remuneration"], b["cnss"], b["imposable"], b["irpp"], [x["montant"] for x in b["retenues"]], b["net"]) == \
+        (3050000, 2150000, 107500, 2197000, 354900, [100000], 2487600)
+    assert ([x["montant"] for x in b["employeur"]["cnss"]], b["employeur"]["inpp"], b["employeur"]["onem"], p["tauxInpp"]) == ([107500, 139750, 32250], 75250, 10750, 3.5)
+    assert p["enregistree"] is None and p["totaux"]["net"] == 2487600
+    o = ok(compta, "/api/paie/calcul", {"session": "2026-11"})
+    assert o["enregistree"]["statut"] == "saisie" and "déjà enregistrée" in msg(compta, "/api/paie/calcul", {"session": "2026-11"})
+    from noyau.bd import une
+    l = une("select lignes, montant, statut, periode from operation_comptable where id = %s", (o["enregistree"]["operationId"],))
+    from noyau.services import json_lu
+    assert sorted((x["compte"], x["sens"], x["montant"]) for x in json_lu(l["lignes"])) == sorted([
+        ("6502", "D", 2150000), ("6522", "D", 900000), ("6512", "D", 279500 + 75250 + 10750),
+        ("421", "C", 2487600), ("461", "C", 107500 + 279500 + 75250 + 10750), ("433", "C", 354900), ("42000000", "C", 100000)])
+    assert (l["montant"], l["statut"], l["periode"]) == (3415500, "saisie", "11/2026")
+    # Le salaire de la maquette change : la paie enregistrée ne bouge pas ; supprimée avant le visa, elle se recalcule
+    ok(compta, "/api/paie/maquette", {"employeId": e["id"], "rubriqueId": rub["HS"], "montant": 10000, "active": True, "session": "2026-10"})
+    assert lire("2026-11").json()["bulletins"][0]["net"] == 2487600
+    assert ok(compta, "/api/paie/calcul/2026-11/suppression", {})["enregistree"] is None
+    o = ok(compta, "/api/paie/calcul", {"session": "2026-11"})
+    viser_valider(clients, o["enregistree"]["operationId"])
+    assert "déjà visée" in msg(compta, "/api/paie/calcul/2026-11/suppression", {})
+    comptabiliser_journee(clients, journee)                            # l'écriture passe au grand livre comme toute écriture (S111)
+    assert (solde_compte("6502"), solde_compte("6512"), solde_compte("6522"), solde_compte("421"), solde_compte("4200")) == (2150000, 365500, 900000, -2487600, -100000)
+    assert lire("2026-11").json()["enregistree"]["statut"] == "comptabilisee" and balance_equilibree(compta)
 
 
 def test_immobilisations(clients, journee):

@@ -350,6 +350,11 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       mettreEnPlace: (d: unknown) => post("/paie/retenues", d),
       viser: (id: number) => post(`/paie/retenues/${id}/visa`),
     },
+    calculPaie: {
+      lire: (session: string) => get(`/paie/calcul?session=${encodeURIComponent(session)}`),
+      enregistrer: (d: unknown) => post("/paie/calcul", d),
+      supprimer: (session: string) => post(`/paie/calcul/${encodeURIComponent(session)}/suppression`),
+    },
     refImmo: {
       lire: (page: string) => get(`/referentiels/immobilisations/${page}`),
       enregistrer: (page: string, d: object, id?: number) => post(id === undefined ? `/referentiels/immobilisations/${page}` : `/referentiels/immobilisations/${page}/${id}`, d),

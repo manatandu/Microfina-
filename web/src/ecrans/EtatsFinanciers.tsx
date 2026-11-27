@@ -9,7 +9,7 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr, frInstant, texteEdition, aujourdhui } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
-import { liasseXml, livreInventaireXml, telecharger } from "../lib/liasse";
+import { liasseClasseur, livreInventaireClasseur, telecharger } from "../lib/liasse";
 import NormesPrudentielles, { TableauxNormes, lignesNormes, TITRES_NORMES } from "./NormesPrudentielles";
 import { decimal } from "@design/montant.js";
 import { Attention, Champ, ChampDate, Chargement, Dialogue, Lecture, Textes, type Boite, Recherche, Paginee } from "../composants";
@@ -54,6 +54,11 @@ function Edition({ ctx, f, setF, libelleType, types }: { ctx: Ctx; f: Criteres; 
 }
 
 const envoi = (f: Criteres) => ({ du: f.du, au: f.au, type: f.type, agenceId: f.agence ? Number(f.agence) : null, sansVidage: f.sansVidage, ...(f.parJour ? { parJour: true } : {}) });
+/** Les mêmes mentions, pour le classeur exporté d'un état (PCCI 14.1 à 14.3 ; relecture du 27/11/2026, registre T250) */
+async function cartouchePcci(date: string) {
+  const i = (await api.referentiel.contexte()).institution;
+  return [`Dénomination ou raison sociale : ${i.nom}`, `N° Agrément : ${i.numeroAgrement ?? ""}`, `Sigle : ${i.sigle ?? ""}`, `Date : ${fr(date)}`, `NRC : ${i.nrc ?? ""}`];
+}
 /** En-tête des modèles du PCCI (14.1 à 14.3) : dénomination ou raison sociale, n° d'agrément, sigle, date, NRC */
 function EnteteEtat({ date }: { date: string }) {
   const { donnees } = useDonnees(() => api.referentiel.contexte());
@@ -95,8 +100,8 @@ function EditionBilan({ ctx, jour }: { ctx: Ctx; jour: string }) {
       ...(r?.type === "masses" ? x.comptes.map((c, i) => <tr key={`${x.libelle}-${i}`} className="muet"><td className="chiffres">{c.compte}</td><td>{c.intitule}</td>
         <td className="num chiffres">{z(c.n)}</td><td className="num chiffres">{z(c.n1)}</td></tr>) : detail ? lignesDetail(x.comptes, x.code) : [])])}</tbody>
     <tfoot><tr><td></td><th scope="row">TOTAL {titre}</th><td className="num chiffres"><strong>{n(total.n)}</strong></td><td className="num chiffres"><strong>{n(total.n1)}</strong></td></tr></tfoot></table>;
-  const exporter = () => r && exporterExcel("Bilan", ["Côté", "N°", "Poste", "Compte", "N", "N - 1"], (["actif", "passif"] as const).flatMap((c) => r[c].flatMap((x) => [
-    [c === "actif" ? "ACTIF" : "PASSIF", x.code, x.libelle, "", x.n / 100, x.n1 / 100], ...(detail ? x.comptes.map((k) => ["", "", k.intitule, k.compte, k.n / 100, k.n1 / 100]) : [])])));
+  const exporter = async () => r && exporterExcel("Bilan", ["Côté", "N°", "Poste", "Compte", "N", "N - 1"], (["actif", "passif"] as const).flatMap((c) => r[c].flatMap((x) => [
+    [c === "actif" ? "ACTIF" : "PASSIF", x.code, x.libelle, "", x.n / 100, x.n1 / 100], ...(detail ? x.comptes.map((k) => ["", "", k.intitule, k.compte, k.n / 100, k.n1 / 100]) : [])])), await cartouchePcci(r.au));
   return (
     <section className="bloc pile" aria-label="Edition du bilan">
       <h2>Edition du bilan</h2>
@@ -124,8 +129,8 @@ function EditionHorsBilan({ ctx, jour }: { ctx: Ctx; jour: string }) {
   const [boite, setBoite] = useState<Boite | null>(null);
   async function rechercher() { try { setR(await api.etatsFinanciers.horsBilan(envoi(f))); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }
   const detail = r?.type === "developpe";
-  const exporter = () => r && exporterExcel("Hors bilan", ["Code Poste", "Poste", "Compte", "N", "N - 1"], r.postes.flatMap((x) => [[x.code, x.libelle, "", x.n / 100, x.n1 / 100],
-    ...x.lignes.flatMap((l) => [["", l.libelle, "", l.n / 100, l.n1 / 100], ...(detail ? l.comptes.map((k) => ["", k.intitule, k.compte, k.n / 100, k.n1 / 100]) : [])])]));
+  const exporter = async () => r && exporterExcel("Hors bilan", ["Code Poste", "Poste", "Compte", "N", "N - 1"], r.postes.flatMap((x) => [[x.code, x.libelle, "", x.n / 100, x.n1 / 100],
+    ...x.lignes.flatMap((l) => [["", l.libelle, "", l.n / 100, l.n1 / 100], ...(detail ? l.comptes.map((k) => ["", k.intitule, k.compte, k.n / 100, k.n1 / 100]) : [])])]), await cartouchePcci(r.au));
   return (
     <section className="bloc pile" aria-label="Edition de l'état hors bilan">
       <h2>Edition de l'état hors bilan</h2>
@@ -152,8 +157,8 @@ function EditionResultat({ ctx, jour }: { ctx: Ctx; jour: string }) {
   const [boite, setBoite] = useState<Boite | null>(null);
   async function rechercher() { try { setR(await api.etatsFinanciers.resultat(envoi(f))); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } }
   const detail = r?.type === "developpe";
-  const exporter = () => r && exporterExcel("Compte de résultat", ["Rubrique", "Compte", "Exercice", "Ex. préc."], r.lignes.flatMap((x) => [[`${x.signe ? `${x.signe} ` : ""}${x.libelle}`, "", x.n / 100, x.n1 / 100],
-    ...(detail ? x.comptes.map((k) => [k.intitule, k.compte, k.n / 100, k.n1 / 100]) : [])]));
+  const exporter = async () => r && exporterExcel("Compte de résultat", ["Rubrique", "Compte", "Exercice", "Ex. préc."], r.lignes.flatMap((x) => [[`${x.signe ? `${x.signe} ` : ""}${x.libelle}`, "", x.n / 100, x.n1 / 100],
+    ...(detail ? x.comptes.map((k) => [k.intitule, k.compte, k.n / 100, k.n1 / 100]) : [])]), await cartouchePcci(r.au));
   return (
     <section className="bloc pile" aria-label="Compte de résultat">
       <h2>Compte de résultat</h2>
@@ -193,9 +198,9 @@ function EditionAnnexes({ ctx, jour }: { ctx: Ctx; jour: string }) {
     catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
   const titre = ctx.annexes.find((a) => a.code === f.annexe)?.libelle ?? "";
-  function exporter() {
+  async function exporter() {
     if (!r) return;
-    if (r.forme === "flux") exporterExcel(r.titre, ["Rubrique", "Année N", "Année N - 1"], r.lignes.map((x) => [x.libelle, x.n === null ? "" : x.n / 100, x.n1 === null ? "" : x.n1 / 100]));
+    if (r.forme === "flux") exporterExcel(r.titre, ["Rubrique", "Année N", "Année N - 1"], r.lignes.map((x) => [x.libelle, x.n === null ? "" : x.n / 100, x.n1 === null ? "" : x.n1 / 100]), await cartouchePcci(r.au));
     else if (r.forme === "emplois") exporterExcel(r.titre, ["Côté", "N°", "Poste", "Début", "Fin", "Emplois", "Ressources"], r.lignes.map((x) => [x.cote === "actif" ? "ACTIF" : "PASSIF", x.code, x.libelle, x.debut / 100, x.fin / 100, x.emploi / 100, x.ressource / 100]));
     else if (r.forme === "monnaies") exporterExcel(r.titre, ["Monnaie", "Avoirs", "Avoirs (CDF)", "Engagements", "Engagements (CDF)", "Position nette (CDF)"],
       r.lignes.map((x) => [x.devise, x.avoirs / 100, x.avoirsCdf / 100, x.engagements / 100, x.engagementsCdf / 100, x.positionCdf / 100]));
@@ -480,7 +485,7 @@ function ExportLiasse({ jour }: { jour: string }) {
         if (a.forme === "ventilation") annexes.push({ titre: a.titre, sections: a.sections });
       }
       const i = ctx.institution;
-      telecharger(`liasse-pcci-${au}`, liasseXml({ institution: i.nom, sigle: i.sigle ?? "", agrement: i.numeroAgrement ?? "", nrc: i.nrc ?? "", adresse: [i.rue, i.quartier, i.commune, i.ville].filter(Boolean).join(", "),
+      telecharger(`liasse-pcci-${au}`, liasseClasseur({ institution: i.nom, sigle: i.sigle ?? "", agrement: i.numeroAgrement ?? "", nrc: i.nrc ?? "", adresse: [i.rue, i.quartier, i.commune, i.ville].filter(Boolean).join(", "),
         du: base.du, au, exercice: Number(ex) }, { bilan, horsBilan, resultat, flux: { lignes: flux.forme === "flux" ? flux.lignes : [] }, annexes }));
     } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }
@@ -500,7 +505,7 @@ function ExportLivre({ exercices }: { exercices: number[] }) {
     try {
       const [ctx, r] = await Promise.all([api.referentiel.contexte(), api.etatsFinanciers.livreInventaire({ exercice: ex })]);
       const i = ctx.institution, t = texteEdition(r.edition).slice(2);
-      telecharger(`livre-d-inventaire-${r.exercice}`, livreInventaireXml({ institution: i.nom, sigle: i.sigle ?? "", agrement: i.numeroAgrement ?? "", nrc: i.nrc ?? "",
+      telecharger(`livre-d-inventaire-${r.exercice}`, livreInventaireClasseur({ institution: i.nom, sigle: i.sigle ?? "", agrement: i.numeroAgrement ?? "", nrc: i.nrc ?? "",
         adresse: [i.rue, i.quartier, i.commune, i.ville].filter(Boolean).join(", "), du: r.du, au: r.au, exercice: r.exercice }, t.charAt(0).toUpperCase() + t.slice(1), r));
     } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
   }

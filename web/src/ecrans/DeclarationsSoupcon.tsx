@@ -106,7 +106,7 @@ export default function DeclarationsSoupcon({ jour }: { jour: string }) {
   );
 }
 
-/** P9 (confrontation du 21/11/2026) : l'assujetti s'abstient de l'opération soupçonnée jusqu'à la déclaration (loi 22/068, art. 92 ; Instr. BCC 15, art. 36).
+/** P9 (confrontation du 21/11/2026) : l'assujetti déclare avant de réaliser l'opération soupçonnée (Instr. BCC 15, art. 36, 4e tiret ; loi 22/068, art. 92 : déclaration immédiate ; art. 96 : opposition).
  * Les sorties de fonds du client attendent ; la déclaration enregistrée ci-dessus les libère, ou la levée d'un soupçon écarté. */
 function Attentes() {
   const [relu, setRelu] = useState(0);

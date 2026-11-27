@@ -48,7 +48,12 @@ def calculer(u: dict, annee: int, mois: int) -> dict:
          ("dispositif", "LAB10"): par_niveau("eleve"), ("dispositif", "LAB11"): par_niveau("moyen"), ("dispositif", "LAB12"): par_niveau("faible"),
          ("dispositif", "LAB13"): sum(cdf(o) for o in ops), ("dispositif", "LAB14"): sum(cdf(o) for o in ops if o["tiers_id"] in ppe),
          ("dispositif", "LAB15"): len(ppe),
-         ("dispositif", "LAB17"): valeur("select count(*) from declaration_soupcon where institution_id = %s and transmise_le between %s and %s", (ins, debut, fin)),
+         # Les trois sources du registre des déclarations de soupçon (soupcons.lister) : déclarations saisies, examens renforcés déclarés,
+         # opérations atypiques déclarées (relecture du 27/11/2026 : les deux dernières n'étaient pas comptées ; registre T250)
+         ("dispositif", "LAB17"): valeur("""select (select count(*) from declaration_soupcon where institution_id = %s and transmise_le between %s and %s)
+                                                 + (select count(*) from examen_renforce where institution_id = %s and declare_le between %s and %s)
+                                                 + (select count(*) from analyse_atypique where institution_id = %s and declare_le between %s and %s)""",
+                                         (ins, debut, fin, ins, debut, fin, ins, debut, fin)),
          ("dispositif", "LAB21"): len(comptes), ("dispositif", "LAB22"): sum(1 for c in comptes if c["residence"] == "non_resident"),
          ("localisation", "LAB8"): sum(1 for t in clients if prov.get(t["id"]) not in PROVINCES_SUIVIES),
          ("portefeuille", "LAB2"): len(ppe), ("portefeuille", "LAB4"): sum(1 for t in clients if t["residence"] == "non_resident"),

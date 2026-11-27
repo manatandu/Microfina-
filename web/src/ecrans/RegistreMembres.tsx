@@ -7,7 +7,7 @@ import { fr } from "../lib/dates";
 import { imprimer } from "../lib/imprimer";
 import { exporterExcel } from "../lib/excel";
 import { montant } from "@design/montant.js";
-import { Chargement, Fiche, Textes } from "../composants";
+import { Chargement, Fiche, Textes, Paginee } from "../composants";
 
 type Registre = Awaited<ReturnType<typeof api.registreMembres.membres>>;
 
@@ -23,7 +23,8 @@ export default function RegistreMembres() {
     <>
       
       <section className="bloc pile" aria-label="Registre des membres">
-        <div className="defile-x"><Tableau r={donnees} /></div>
+        {/* À l'écran, par pages ; l'impression et l'export portent le registre entier (registre T246) */}
+        <Paginee lignes={donnees.membres}>{(visibles) => <div className="defile-x"><Tableau r={{ ...donnees, membres: visibles }} vide={donnees.membres.length === 0} /></div>}</Paginee>
         <div className="actions-onglets">
           <button className="bouton" type="button" disabled={m.length === 0} onClick={() => setApercu(true)}>Imprimer</button>
           <button className="bouton secondaire" type="button" disabled={m.length === 0} onClick={exporter}>Exporter</button>
@@ -62,14 +63,14 @@ export default function RegistreMembres() {
   );
 }
 
-function Tableau({ r, imprime = false }: { r: Registre; imprime?: boolean }) {
+function Tableau({ r, imprime = false, vide = r.membres.length === 0 }: { r: Registre; imprime?: boolean; vide?: boolean }) {
   return (
     <table className={imprime ? "releve-detail" : "grille"}>
       <thead><tr><th scope="col">N° d'ordre</th><th scope="col">N° d'adhésion</th><th scope="col">Nom</th><th scope="col">Prénom</th><th scope="col">Pièce d'identité</th>
         <th scope="col">Adresse</th><th scope="col">Profession</th><th scope="col">Catégorie</th><th scope="col" className="montant">Parts libérées</th>
         <th scope="col">Admis le</th><th scope="col">Sorti le</th></tr></thead>
       <tbody>
-        {r.membres.length === 0 && <tr><td colSpan={11}>Aucune ligne.</td></tr>}
+        {vide && <tr><td colSpan={11}>Aucune ligne.</td></tr>}
         {r.membres.map((x) => (
           <tr key={x.tiersId}><td className="chiffres">{x.rang}</td><td className="chiffres">{x.numero}</td><td>{x.nom}</td><td>{x.prenom}</td><td>{x.piece}</td><td>{x.adresse}</td>
             <td>{x.profession}</td><td>{x.categorie}</td><td className="montant chiffres">{x.partsLiberees}</td>

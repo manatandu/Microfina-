@@ -283,5 +283,14 @@
 "identifiant du premier administrateur (gestion des accès)",
 "nom et prénoms de l'administrateur",
 "nom et prénoms du premier administrateur",
-"{0} installée : agence {1}, exercice {2}, {3} profils."
+"{0} installée : agence {1}, exercice {2}, {3} profils.",
+"Arial Black",
+"'{0}'!A1",
+"'Balance'!A1",
+"Feuille",
+"Arial",
+"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>",
+"Pensions",
+"CNSS, pension (",
+"CNSS, INPP, ONEM {0}"
 ]

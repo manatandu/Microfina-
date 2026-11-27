@@ -93,6 +93,9 @@ def verifier_paie(u, c, v, lid):
         raise ErreurMetier("Max : au moins Min.")
     if v.get("taux") and float(v["taux"].replace(",", ".")) > 100:
         raise ErreurMetier("Taux : 100 % au plus.")
+    # PCCI, compte 42 : les avances au personnel vont au 420 « Avances mensuelles sur traitements et assimilés » (4200, 4203) ; relecture du 27/11/2026 (T250)
+    if c["page"] == "types_avance" and v.get("compte") and not str(v["compte"]).startswith("420"):
+        raise ErreurMetier("Compte : un compte 420 « Avances mensuelles sur traitements et assimilés » (PCCI, compte 42).")
 
 
 VERIFIER["paie"] = verifier_paie
@@ -125,9 +128,10 @@ def verifier_immo(u, c, v, lid):
         raise ErreurMetier("Durée Max. : au moins la durée Min.")
     if c["page"] == "familles":
         # PCCI : les valeurs immobilisées sont en classe 2, leurs amortissements au compte 28, les dotations au compte 68 (vérification du 22/11/2026)
+        # Relecture du 27/11/2026 (T250) : le 283 est un compte de provisions, pas d'amortissements ; le 689 porte les exercices antérieurs
         for cle, nom, bon, attendu in (("compteAcquisition", "Compte d'acquisition", lambda n: n.startswith("2") and not n.startswith("28"), "un compte de la classe 2, hors 28"),
-                                       ("compteAmortissement", "Compte Amor.", lambda n: n.startswith("28"), "un compte 28"),
-                                       ("compteDotation", "Compte dotation", lambda n: n.startswith("68"), "un compte 68")):
+                                       ("compteAmortissement", "Compte Amor.", lambda n: n.startswith(("280", "281", "282")), "un compte 280, 281 ou 282"),
+                                       ("compteDotation", "Compte dotation", lambda n: n.startswith(("680", "681")), "un compte 680 ou 681")):
             if v.get(cle) and not bon(str(v[cle])):
                 raise ErreurMetier(f"{nom} : {attendu} (PCCI, classes 2 et 6).")
     if c["page"] == "utilisations":

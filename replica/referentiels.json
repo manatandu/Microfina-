@@ -976,6 +976,19 @@
       "defaut": null,
       "cadre": null,
       "grille": true
+     },
+     {
+      "cle": "compte",
+      "col": "compte",
+      "libelle": "Compte",
+      "type": "compteSimple",
+      "obligatoire": true,
+      "ref": null,
+      "aide": null,
+      "colonne": "Compte",
+      "defaut": null,
+      "cadre": null,
+      "grille": true
      }
     ]
    }

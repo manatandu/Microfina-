@@ -111,9 +111,3 @@ export function modifies(modifs: Modification[], clients: Tiers[], c: CriteresMo
   }
   return [...lignes.values()].sort((a, b) => b.date.localeCompare(a.date) || a.numero.localeCompare(b.numero));
 }
-
-/** Boutons « Export » et « Exporter » : fichier CSV (séparateur point-virgule, lisible par un tableur en français) */
-export function csv(entetes: string[], lignes: string[][]): string {
-  const cel = (v: string) => (/[";\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
-  return "﻿" + [entetes, ...lignes].map((l) => l.map(cel).join(";")).join("\r\n");
-}

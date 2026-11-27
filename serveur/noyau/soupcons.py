@@ -80,7 +80,7 @@ def enregistrer(u: dict, d: dict) -> dict:
     sid = valeur("""insert into declaration_soupcon (institution_id, numero, tiers_id, nature, description, personnes, raisons, delai, transmise_le, moyen, saisi_par)
                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
                  (u["institution_id"], n, tid, t("nature"), t("description"), t("personnes"), t("raisons"), t("delai") or None, t("transmiseLe"), t("moyen"), u["id"]))
-    # P9 : la déclaration faite, les opérations du client mises en attente peuvent reprendre (loi 22/068, art. 92)
+    # P9 : la déclaration faite, les opérations du client mises en attente peuvent reprendre (Instr. BCC 15, art. 36, 4e tiret)
     if tid:
         executer("""update attente_soupcon set levee_le = now(), levee_motif = %s, levee_par = %s, soupcon_id = %s where tiers_id = %s and levee_le is null""",
                  (f"Déclaration de soupçon n° {n} transmise le {t('transmiseLe')}", u["id"], sid, tid))
@@ -136,7 +136,8 @@ def attentes(u: dict) -> list[dict]:
 
 
 def mettre_en_attente(u: dict, d: dict) -> dict:
-    """La conformité suspend les sorties de fonds du client jusqu'à la déclaration (art. 92). Confidentiel : le client n'en est pas informé (art. 93)."""
+    """La conformité suspend les sorties de fonds du client jusqu'à la déclaration (Instr. BCC 15, art. 36, 4e tiret : déclarer « avant la réalisation
+    de l'opération » ; loi 22/068, art. 92 : déclaration immédiate ; art. 96 : opposition de la CENAREF). Confidentiel : le client n'en est pas informé (art. 93)."""
     exiger(u)
     d = d if isinstance(d, dict) else {}
     membre, motif = str(d.get("membre") or "").strip(), str(d.get("motif") or "").strip()
@@ -171,5 +172,6 @@ def controler_attente(tid: int) -> None:
     """Appelé à chaque sortie de fonds d'un compte de dépôt ou des parts du client (poster)"""
     x = une("select mise_le from attente_soupcon where tiers_id = %s and levee_le is null", (tid,))
     if x:
-        raise ErreurMetier("Opérations du client en attente : opération soupçonnée, à déclarer d'abord à la CENAREF (loi 22/068, art. 92). "
-                           "Client > Conformité > Examen renforcé, onglet Déclarations de soupçon.")
+        # Message neutre : le caissier le lit face au client, et rien ne doit lui révéler le soupçon ni la déclaration
+        # (loi 22/068, art. 37 modifié par la loi 25/048 et art. 93 ; Instr. BCC 15, art. 40 ; lecture du 27/11/2026, registre T249)
+        raise ErreurMetier("Opération à faire autoriser par le responsable de l'agence avant de la passer.")

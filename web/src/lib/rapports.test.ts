@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { csv, modifies, multicritere, prospects, synthese, type ContexteRapport, type CriteresMulticritere } from "./rapports";
+import { modifies, multicritere, prospects, synthese, type ContexteRapport, type CriteresMulticritere } from "./rapports";
 import { graine } from "../donnees/graine";
 import type { Tiers } from "../donnees/types";
 
@@ -54,6 +54,5 @@ describe("rapports clients (S51)", () => {
     Object.assign(l[0]!, { statut: "prospect", creeLe: "2026-11-07", profession: "Commerçant" });
     expect(prospects(l, { du: "2026-11-01", au: "2026-11-30", nom: "", prenoms: "", quartier: "", genre: "", profession: "Commerçant", commercial: "" }).map((t) => t.nom)).toEqual(["Kalala"]);
     expect(prospects(l, { du: "2026-11-01", au: "2026-11-30", nom: "", prenoms: "", quartier: "", genre: "", profession: "", commercial: "5" })).toEqual([]);
-    expect(csv(["Nom", "Note"], [["Kalala", "a;b"]])).toBe('﻿Nom;Note\r\nKalala;"a;b"');
   });
 });

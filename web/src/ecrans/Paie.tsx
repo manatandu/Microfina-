@@ -204,7 +204,7 @@ function FicheEmploye({ depart, retour }: { depart: number | null; retour: () =>
         {choix("agenceId", "Agence :", ctx.agences)}{choix("centreId", "Centre de coût :", ctx.centres)}{texte("fonction", "Fonction :")}
       </fieldset>
       <fieldset className="cadre-champs formulaire"><legend>Contrat</legend>
-        {choix("typeContrat", "Type de contrat :", ctx.typesContrat)}{texte("typeEmploye", "Type d'employé :")}
+        {choix("typeContrat", "Type de contrat :", ctx.typesContrat)}{choix("typeEmploye", "Type d'employé :", ctx.typesEmploye)}
         {date("dateDebutContrat", "Date début :")}{date("dateFinContrat", "Date fin :")}{texte("modeleContrat", "Modèle de contrat :")}
       </fieldset></div>}
       {suivant}
@@ -314,7 +314,87 @@ function ListeEmployes({ ctx }: { ctx: Ctx }) {
   </section>;
 }
 
-const PAGES_PERSONNEL = [["rubriques", "Rubrique de paie"], ["maquette", "Maquette de paie"], ["liste", "Liste des employés"]] as const;
+type Paie = Awaited<ReturnType<typeof api.calculPaie.lire>>;
+type Bulletin = Paie["bulletins"][number];
+const ETATS_ECRITURE: Record<string, string> = { saisie: "À viser", visee: "À valider", validee: "À comptabiliser", comptabilisee: "Comptabilisée" };
+
+/** Bulletin de paie (manuel p. 277 : « bulletin individuel de l'employé ») : gains, cotisation, impôt, retenues, net à payer */
+function FicheBulletin({ b, session, fermer }: { b: Bulletin | null; session: string; fermer: () => void }) {
+  return <Fiche titre="Bulletin de paie" ouverte={!!b} fermer={fermer}>{b && <>
+    <dl className="definitions">
+      <dt>Employé</dt><dd>{b.matricule} {b.nomPrenoms}</dd><dt>Session</dt><dd>{session}</dd><dt>Catégorie</dt><dd>{b.categorie}</dd><dt>Fonction</dt><dd>{b.fonction}</dd>
+      <dt>N° Sécurité sociale</dt><dd>{b.numeroSecuriteSociale}</dd><dt>Personne(s) à charge</dt><dd>{b.personnesACharge}</dd>
+    </dl>
+    <table className="grille">
+      <thead><tr><th scope="col">Libellé</th><th scope="col" className="num">Gains</th><th scope="col" className="num">Retenues</th></tr></thead>
+      <tbody>
+        {b.gains.map((g, i) => <tr key={i}><td>{g.libelle}{g.nature === "nature" ? " (en nature)" : ""}</td><td className="num chiffres">{n(g.montant)}</td><td></td></tr>)}
+        <tr><td>CNSS, pension ({CNSS_TAUX} %)</td><td></td><td className="num chiffres">{n(b.cnss)}</td></tr>
+        <tr><td>IRPP</td><td></td><td className="num chiffres">{n(b.irpp)}</td></tr>
+        {b.retenues.map((r, i) => <tr key={`r${i}`}><td>{r.libelle}</td><td></td><td className="num chiffres">{n(r.montant)}</td></tr>)}
+      </tbody>
+      <tfoot><tr><th scope="row">Total</th><td className="num chiffres">{n(b.brut)}</td><td className="num chiffres">{n(b.cnss + b.irpp + b.retenues.reduce((t, r) => t + r.montant, 0))}</td></tr>
+        <tr><th scope="row">Net à payer</th><td></td><td className="num chiffres">{n(b.net)}</td></tr></tfoot>
+    </table>
+    <div className="actions-onglets"><button className="bouton" type="button" onClick={() => window.print()}>Imprimer</button></div>
+  </>}</Fiche>;
+}
+const CNSS_TAUX = 5;
+
+/** Calcul de la paie (plan d'allègement, point 9.5 ; registre T251 à T254) : Session, Calculer ; bulletins ; Enregistrer (écriture au visa), Supprimer avant le visa */
+function CalculPaie() {
+  const [session, setSession] = useState(aujourdhui().slice(0, 7));
+  const [p, setP] = useState<Paie | null>(null);
+  const [bulletin, setBulletin] = useState<Bulletin | null>(null);
+  const [boite, setBoite] = useState<Boite | null>(null);
+  const calculer = async (s = session) => { try { setP(await api.calculPaie.lire(s)); } catch (x) { setP(null); setBoite({ type: "erreur", message: message(x) }); } };
+  const confirmer = (t: string, faire: () => Promise<Paie>) => setBoite({ type: "confirmation", message: t, oui: async () => {
+    try { setP(await faire()); setBoite({ type: "succes", message: "Enregistré avec succès !" }); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } } });
+  const t = p?.totaux, e = p?.enregistree;
+  const retenues = (b: Bulletin) => b.retenues.reduce((x, r) => x + r.montant, 0);
+  return <section className="bloc pile" aria-label="Calcul de la paie"><h2>Calcul de la paie</h2>
+    <Recherche className="pile" label="Session" envoyer={() => calculer()}><fieldset className="cadre-champs formulaire"><legend className="sr-only">Session</legend>
+      <Champ libelle="Session (AAAA-MM) *">{(pp) => <input {...pp} className="saisie code" type="month" value={session} onChange={(x) => { setSession(x.target.value); setP(null); }} />}</Champ>
+      {e && <Champ libelle="Écriture :">{(pp) => <Lecture {...pp} value={`${e.transaction} ${ETATS_ECRITURE[e.statut] ?? e.statut}`} />}</Champ>}
+    </fieldset>
+    <div className="actions-onglets"><button className="bouton" type="submit" disabled={!session}>Calculer</button></div></Recherche>
+    {p && t && <>
+      <Paginee lignes={p.bulletins}>{(vis) => <div className="defile-x"><table className="grille">
+        <thead><tr><th scope="col">Matricule</th><th scope="col">Nom et Prénoms</th><th scope="col" className="num">Brut</th><th scope="col" className="num">CNSS</th>
+          <th scope="col" className="num">IRPP</th><th scope="col" className="num">Retenues</th><th scope="col" className="num">Net à payer</th><th scope="col"><span className="sr-only">Bulletin</span></th></tr></thead>
+        <tbody>{p.bulletins.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
+          {vis.map((b) => <tr key={b.employeId}><td className="code">{b.matricule}</td><td>{b.nomPrenoms}</td><td className="num chiffres">{n(b.brut)}</td><td className="num chiffres">{n(b.cnss)}</td>
+            <td className="num chiffres">{n(b.irpp)}</td><td className="num chiffres">{n(retenues(b))}</td><td className="num chiffres">{n(b.net)}</td>
+            <td><button className="bouton secondaire" type="button" aria-label={`Bulletin de ${b.nomPrenoms}`} onClick={() => setBulletin(b)}>Bulletin</button></td></tr>)}</tbody>
+        <tfoot><tr><th scope="row" colSpan={2}>Total</th><td className="num chiffres">{n(t.brut)}</td><td className="num chiffres">{n(t.cnss)}</td><td className="num chiffres">{n(t.irpp)}</td>
+          <td className="num chiffres">{n(t.retenues)}</td><td className="num chiffres">{n(t.net)}</td><td></td></tr></tfoot>
+      </table></div>}</Paginee>
+      <table className="grille"><caption>Charges de l'employeur</caption>
+        <thead><tr><th scope="col">Organisme</th><th scope="col" className="num">Taux</th><th scope="col" className="num">Montant</th></tr></thead>
+        <tbody><tr><th scope="row">CNSS</th><td className="num chiffres">13 %</td><td className="num chiffres">{n(t.cnssEmployeur)}</td></tr>
+          <tr><th scope="row">INPP</th><td className="num chiffres">{String(p.tauxInpp).replace(".", ",")} %</td><td className="num chiffres">{n(t.inpp)}</td></tr>
+          <tr><th scope="row">ONEM</th><td className="num chiffres">0,5 %</td><td className="num chiffres">{n(t.onem)}</td></tr></tbody>
+        <tfoot><tr><th scope="row" colSpan={2}>Total</th><td className="num chiffres">{n(t.cnssEmployeur + t.inpp + t.onem)}</td></tr></tfoot></table>
+      <div className="actions-onglets">
+        <button className="bouton secondaire" type="button" disabled={!p.bulletins.length} onClick={() => exporterExcel(`Paie ${p.session}`,
+          ["Matricule", "Nom et Prénoms", "Brut", "CNSS", "IRPP", "Retenues", "Net à payer", "CNSS employeur", "INPP", "ONEM"],
+          p.bulletins.map((b) => [b.matricule, b.nomPrenoms, b.brut, b.cnss, b.irpp, retenues(b), b.net, b.employeur.cnss.reduce((x, y) => x + y.montant, 0), b.employeur.inpp, b.employeur.onem]))}>Exporter</button>
+        {!e && <button className="bouton" type="button" disabled={!p.bulletins.length}
+          onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.calculPaie.enregistrer({ session: p.session }))}>Enregistrer</button>}
+        {e && e.statut === "saisie" && <button className="bouton secondaire" type="button"
+          onClick={() => confirmer("Voulez-vous vraiment supprimer ?", () => api.calculPaie.supprimer(p.session))}>Supprimer</button>}
+      </div>
+    </>}
+    <Textes sources={[P("p. 277 : maquette de paie, « état sur le bulletin individuel de l'employé »"), "Plan d'allègement, point 9.5 ; registre T251 à T254",
+      "Code du travail, art. 7, h (rémunération) ; loi 16/009, art. 13 et 18 ; décret 18/041, art. 2 à 4 et 8 (CNSS) ; décret 25/22, art. 3 et 7 (SMIG)",
+      "Arrêté interministériel du 24/09/2025, art. 1er (INPP) ; arrêté 028/2025 (ONEM)",
+      "Loi 23/053, art. 68 à 71, 118, 123 et 150 ; arrêté du 19/02/2025 (IRPP retenu chaque mois)", "PCCI, comptes 65, 421, 433 et 461"]} />
+    <FicheBulletin b={bulletin} session={p?.session ?? ""} fermer={() => setBulletin(null)} />
+    <Dialogue boite={boite} fermer={() => setBoite(null)} />
+  </section>;
+}
+
+const PAGES_PERSONNEL = [["rubriques", "Rubrique de paie"], ["maquette", "Maquette de paie"], ["liste", "Liste des employés"], ["calcul", "Calcul de la paie"]] as const;
 /** S134 : Personnel > Rubrique de paie, Maquette de paie, Liste des employés (p. 277) */
 export function PersonnelPaie() {
   const [params, setParams] = useSearchParams();
@@ -325,7 +405,7 @@ export function PersonnelPaie() {
     onClick={() => setParams(k === "rubriques" ? {} : { page: k })}>{l}</button>)}</div>
     {page === "rubriques" && <Referentiels facade={api.refPaieRubriques as unknown as FacadeReferentiel} pages={["rubriques"]}
       sources={{ rubriques: [P("p. 277 : « Préciser la famille du regroupement, les Grandes rubriques et la rubrique ; Paramétrer ensuite la rubrique puis cliquez sur le bouton [Enregistrer] »")] }} />}
-    {page === "maquette" && <Maquette ctx={ctx} />}{page === "liste" && <ListeEmployes ctx={ctx} />}</>;
+    {page === "maquette" && <Maquette ctx={ctx} />}{page === "liste" && <ListeEmployes ctx={ctx} />}{page === "calcul" && <CalculPaie />}</>;
 }
 
 /** S135 : Retenues sur salaire (plan d'allègement, point 9.5) : un écran, la mise en place en haut, la liste à viser dessous (p. 277 et 278 ;

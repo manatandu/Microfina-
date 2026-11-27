@@ -2380,6 +2380,24 @@ def paie_retenue_viser(request, rid: int):
     return paie.viser(u(request), rid)
 
 
+@api.get("/paie/calcul")
+def paie_calcul_lire(request):
+    from . import paie_calcul
+    return paie_calcul.lire(u(request), request.GET.get("session", ""))
+
+
+@api.post("/paie/calcul")
+def paie_calcul_enregistrer(request, corps: dict = Body(...)):
+    from . import paie_calcul
+    return paie_calcul.enregistrer(u(request), corps)
+
+
+@api.post("/paie/calcul/{session}/suppression")
+def paie_calcul_supprimer(request, session: str):
+    from . import paie_calcul
+    return paie_calcul.supprimer(u(request), session)
+
+
 # ---------- Immobilisations : S137 biens, S138 mouvements, S139 amortissement, inventaire, sortie, S140 rapports ----------
 @api.get("/immobilisations/contexte")
 def immo_0_contexte(request):

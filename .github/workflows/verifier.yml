@@ -17,7 +17,7 @@ jobs:
       - name: Adresse du site
         id: cfg
         run: |
-          if [ -f deploiement/config.env ]; then set -a; . deploiement/config.env; set +a; echo "base=https://$PROJET.web.app" >> "$GITHUB_OUTPUT"; fi
+          if [ -f deploiement/config.env ]; then set -a; . deploiement/config.env; set +a; echo "base=https://${SITE:-$PROJET}.web.app" >> "$GITHUB_OUTPUT"; fi
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

@@ -1,6 +1,6 @@
 // Contrôle du site publié : se connecte avec le compte de vérification et ouvre chaque écran construit, sans rien enregistrer
 // (aucun clic sur Enregistrer, Valider ou Supprimer). Signale les erreurs de page, les réponses 5xx du serveur et les écrans introuvables.
-// Usage : BASE=https://dwacfina.web.app VERIF_LOGIN=... VERIF_MOT_DE_PASSE=... node e2e/controle-en-ligne.cjs <dossier des captures>
+// Usage : BASE=https://exofina.web.app VERIF_LOGIN=... VERIF_MOT_DE_PASSE=... node e2e/controle-en-ligne.cjs <dossier des captures>
 const fs = require('fs');
 const path = require('path');
 const { chromium, devices } = require('playwright');

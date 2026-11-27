@@ -716,19 +716,19 @@
 },
 {
 "numero": "244",
-"libelle": "Avances et acomptes sur commandes de matériel et mobilier destinés au crédit–bail ou à",
+"libelle": "Avances et acomptes sur commandes de matériel et mobilier destinés au crédit–bail ou à la location avec option d’achat",
 "classe": 2,
 "nature": "actif"
 },
 {
 "numero": "246",
-"libelle": "la location avec option d’achat",
+"libelle": "Avances et acomptes sur commandes d’immobilisations incorporelles",
 "classe": 2,
 "nature": "actif"
 },
 {
 "numero": "249",
-"libelle": "Avances et acomptes sur commandes d’immobilisations incorporelles",
+"libelle": "Avances et acomptes sur commandes d’autres immobilisations corporelles",
 "classe": 2,
 "nature": "actif"
 },

@@ -442,6 +442,7 @@ Texte : Instr. BCC 007, art. 17 (le Conseil adopte et contrôle le budget annuel
 
 **9.5 Personnel (ancien Paie).** Le module ne calcule aucune paie, mais demande douze listes.
 - Masquer, jusqu'à ce que le calcul de la paie soit décidé avec le porteur, tout sauf catégorie, classe, échelon, grille salariale et type de retenue. La « grande rubrique » disparaît. Le barème de l'IPR se lit dans la loi fiscale avant toute saisie.
+- Suite (27/11/2026) : le calcul de la paie est construit (registre T251) ; l'IRPP se calcule au barème de la loi 23/053, la grande rubrique de la graine porte la marque « imposable » (T253), le type de retenue reçoit son compte (T254).
 - Fiche de l'employé : Civilité disparaît (2.4) ; « Nom de jeune fille » ne s'affiche que pour une femme ; la date d'embauche se reprend comme début du contrat et date d'ancienneté ; l'ancienneté se calcule ; Profession, Poste et Fonction deviennent « Fonction » ; Affectation et Contrat deviennent un onglet ; Enregistrer sur chaque onglet.
 - « Employés » s'ouvre sur la liste du personnel.
 - Retenues sur salaire : un écran, la mise en place en haut, la liste à viser dessous (Instr. BCC 008, art. 66).
@@ -518,7 +519,7 @@ Elles se posent au début du lot concerné. Aucune n'a de réponse dans les text
 - 7.16 « Visé » et « Certifié » : par chéquier ou chèque par chèque ?
 - 9.3 Personnel et Immobilisations dans la barre, page des modules supprimée (change S02-2 et S02-3) ?
 - 9.4 Liaison du budget aux opérations : la brancher ou la supprimer ?
-- 9.5 Calcul de la paie : à construire, ou le module reste-t-il fiche du personnel et retenues ?
+- 9.5 Calcul de la paie : à construire, ou le module reste-t-il fiche du personnel et retenues ? Réponse (délégation du porteur, 27/11/2026) : construit, onglet « Calcul de la paie » sous Personnel, selon les textes (registre T251 à T254).
 - 10.4 Le fonds de solidarité est-il rendu au membre à la fin du prêt (compte de dépôt du membre), ou mis en commun pour couvrir les impayés du groupe ?
 
 ## Textes à lire avant d'agir

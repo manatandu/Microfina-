@@ -1275,13 +1275,14 @@ const OUT = process.argv[2];
   await aller('/comptabilite/s111');
   await p.getByRole('button', { name: 'Clôturer la journée' }).click(); await ok(); await p.getByText('Aucune journée à comptabiliser.').waitFor();
   await etape('17-journee-fermee');
-  // Registre T246 (demande du porteur, 27/11/2026) : la balance ne s'affiche plus ; Exporter sort le classeur Excel, filtres sur la ligne des en-têtes
+  // Registre T246 (demande du porteur, 27/11/2026) : la balance ne s'affiche plus ; Exporter sort le classeur Excel, filtres sur la ligne des en-têtes.
+  // Registre T247 : vrai fichier .xlsx (archive sans compression : le texte des feuilles s'y lit tel quel)
   const exporterXls = async (nom) => { const [t] = await Promise.all([p.waitForEvent('download'), p.getByRole('button', { name: 'Exporter', exact: true }).click()]);
     const x = require('fs').readFileSync(await t.path(), 'utf8'); if (!nom.test(t.suggestedFilename())) throw new Error('Export : nom ' + t.suggestedFilename());
-    if (!/<AutoFilter x:Range="R\d+C1:R\d+C\d+"/.test(x)) throw new Error('Export ' + t.suggestedFilename() + ' : pas de filtre'); return x; };
+    if (!x.startsWith('PK') || !/<autoFilter ref="A\d+:[A-Z]+\d+"\/>/.test(x)) throw new Error('Export ' + t.suggestedFilename() + ' : pas un classeur .xlsx avec filtre'); return x; };
   await login('Patrick Lumbala'); await p.goto(B + '/comptabilite/s121'); await p.getByRole('heading', { name: 'Edition de la balance des comptes' }).waitFor(); await etape('18-balance');
   if (await p.locator('table.grille').count()) throw new Error('T246 : la balance ne s\'affiche plus à l\'écran');
-  if (!(await exporterXls(/^balance-2026-\d\d-\d\d\.xls$/)).includes('Totaux de la balance')) throw new Error('Balance exportée sans totaux');
+  if (!(await exporterXls(/^balance-2026-\d\d-\d\d\.xlsx$/)).includes('Totaux de la balance')) throw new Error('Balance exportée sans totaux');
   // Journaux comptables (S115, p. 133) : lignes définitives, journal centralisé
   await aller('/comptabilite/s115'); await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('cell', { name: /^CA / }).first().waitFor(); await etape('18e-journaux-comptables');
   // Schémas comptables appliqués (B22 ; Instr. BCC 008, art. 9 ; PCCI § 3.1) : par évènement, journaux et comptes débités et crédités
@@ -1299,9 +1300,9 @@ const OUT = process.argv[2];
   await etape('18e3-aide-en-ligne'); await aide.getByRole('button', { name: "Fermer l'aide" }).click();
   // Grand livre (S120, p. 138) : écritures définitives de la journée comptabilisée ; taxes (S104, p. 124) et plan des tiers (S103, p. 123)
   await aller('/comptabilite/s120'); await p.getByRole('heading', { name: 'Edition du grand livre' }).waitFor(); await etape('18b-grand-livre');
-  if (!(await exporterXls(/^grand-livre-2026-\d\d-\d\d\.xls$/)).includes('Solde progressif')) throw new Error('Grand livre exporté sans solde progressif');
+  if (!(await exporterXls(/^grand-livre-2026-\d\d-\d\d\.xlsx$/)).includes('Solde progressif')) throw new Error('Grand livre exporté sans solde progressif');
   if (await p.getByRole('tab').count()) throw new Error('S120 : onglets Général et Analytique restés');   // allègement 7.12 : un formulaire, « Plan » si l'analytique est tenue
-  await p.getByLabel('Plan :').selectOption('analytique'); await exporterXls(/^grand-livre-des-tiers-2026-\d\d-\d\d\.xls$/); await etape('18b2-grand-livre-analytique');
+  await p.getByLabel('Plan :').selectOption('analytique'); await exporterXls(/^grand-livre-des-tiers-2026-\d\d-\d\d\.xlsx$/); await etape('18b2-grand-livre-analytique');
   // La TVA à 16 % est dans la graine ; l'essai ajoute le taux réduit de 5 % (O.-L. 10/001, art. 35, modifié par la LF 25/060, art. 46)
   await aller('/comptabilite/s104'); await p.getByRole('cell', { name: '16,00' }).waitFor(); await p.getByLabel('Code *').fill('TVA5'); await p.getByLabel('Désignation *').fill('TVA AU TAUX REDUIT'); await p.getByLabel('Taux *').fill('5'); await p.getByLabel('Compte *').fill('43200000');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok(); await p.getByRole('cell', { name: '5,00' }).waitFor(); await etape('18c-taxes');
@@ -1444,7 +1445,7 @@ const OUT = process.argv[2];
   // Livre d'inventaire (PCCI § 3.3 ; registre T244) : classeur Excel numéroté et daté (PCCI chap. 3, § 8)
   const [tli] = await Promise.all([p.waitForEvent('download'), p.getByRole('button', { name: "Exporter le livre d'inventaire" }).click()]);
   const xli = require('fs').readFileSync(await tli.path(), 'utf8');
-  if (!/^livre-d-inventaire-20\d\d\.xls$/.test(tli.suggestedFilename()) || !xli.includes("LIVRE D'INVENTAIRE") || !/Édition n° \d+ du \d\d\/\d\d\/20\d\d à/.test(xli)
+  if (!/^livre-d-inventaire-20\d\d\.xlsx$/.test(tli.suggestedFilename()) || !xli.includes("LIVRE D'INVENTAIRE") || !/Édition n° \d+ du \d\d\/\d\d\/20\d\d à/.test(xli)
     || !xli.includes('SOLDES DES COMPTES DE BILAN')) throw new Error("Livre d'inventaire : fichier inattendu " + tli.suggestedFilename());
   for (const l of ['État :', 'Période :', 'Exercice :', 'Compte :']) if (await p.getByLabel(l, { exact: true }).count()) throw new Error(`S122 : champ ${l} resté`);   // allègement 7.12
   await p.getByLabel("Date d'arrêté :").waitFor();
@@ -1532,7 +1533,7 @@ const OUT = process.argv[2];
   await listePaie('Grille salariale'); await p.getByRole('heading', { name: 'Création et mise à jour de grilles salariales' }).waitFor(); await p.getByLabel('Classe *').selectOption({ label: 'I' }); await p.getByLabel('Catégorie *').selectOption({ label: 'A' });
   await p.getByLabel('Echelon *').selectOption({ label: '1' }); await p.getByLabel('Salaire', { exact: true }).fill('250000'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await dernierePage(); await p.getByRole('cell', { name: '250000' }).waitFor(); await etape('31c-grille-salariale');
-  await listePaie('Type de retenue'); await p.getByRole('heading', { name: 'Création et mise à jour des types de retenue' }).waitFor(); await p.getByLabel('Libellé *').fill('Acompte sur salaire'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await listePaie('Type de retenue'); await p.getByRole('heading', { name: 'Création et mise à jour des types de retenue' }).waitFor(); await p.getByLabel('Libellé *').fill('Acompte sur salaire'); await p.getByLabel('Compte *').fill('42000000'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await aller('/paie/s133'); await p.getByRole('table', { name: 'Liste du personnel' }).waitFor(); await p.getByRole('button', { name: 'Nouvel employé' }).click();   // plan 9.5 : la liste d'abord
   await p.getByRole('heading', { name: "Enregistrement d'un employé" }).waitFor();
   await p.getByLabel('Matricule : *').fill('EMP/001/26'); await p.getByLabel('Sexe : *').selectOption('Féminin');
@@ -1546,6 +1547,7 @@ const OUT = process.argv[2];
   await p.getByLabel("Taux de prime d'ancienneté : *").fill('2');
   await etape('31e-employe-classification');
   await p.getByRole('tab', { name: 'Affectation et contrat' }).click(); await p.getByLabel('Type de contrat :').selectOption('Contrat à durée indéterminée');
+  await p.getByLabel("Type d'employé :").selectOption('Agent de catégorie');   // PCCI 65 : catégorie de salariés (registre T252)
   if ((await p.getByLabel('Date début :').inputValue()) !== '01/02/2024') throw new Error("9.5 : la date d'embauche reprise comme début du contrat");
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await etape('31f-employe-contrat');
   await aller('/paie/s135'); await p.getByRole('button', { name: 'Rechercher un employé' }).click();
@@ -1555,6 +1557,15 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   await login('J.-P. Mukendi'); await aller('/paie/s135');   // plan 9.5 : la liste à viser sous la mise en place
   await p.getByRole('region', { name: 'Retenues à viser' }).getByRole('cell', { name: '100 000' }).waitFor(); await etape('31h-visa-retenue'); await p.getByRole('button', { name: 'Viser' }).click(); await oui();
+  // Comptable : calcul de la paie (registre T251 à T254). 250 000 de base, sous le SMIG : CNSS sur 559 000 (décret 18/041, art. 8) = 27 950 ;
+  // IRPP sur 222 000 = 13 900 (loi 23/053, art. 118 et 150) ; retenue 100 000 ; net 108 150
+  await login('Patrick Lumbala'); await aller('/paie/s134'); await p.getByRole('tab', { name: 'Calcul de la paie' }).click();
+  const calc = p.getByRole('region', { name: 'Calcul de la paie' }); await calc.getByLabel('Session (AAAA-MM) *').fill('2026-11'); await calc.getByRole('button', { name: 'Calculer' }).click();
+  await calc.getByRole('cell', { name: '108 150' }).first().waitFor(); await etape('31i-calcul-paie');
+  await calc.getByRole('button', { name: 'Bulletin de MUJINGA Rose' }).click();
+  const bul = p.getByRole('dialog', { name: 'Bulletin de paie' }); await bul.getByRole('cell', { name: '27 950' }).waitFor(); await etape('31j-bulletin-paie'); await p.keyboard.press('Escape'); await bul.waitFor({ state: 'hidden' });
+  await calc.getByRole('button', { name: 'Enregistrer' }).click(); await oui(); await calc.getByLabel('Écriture :').waitFor(); await etape('31k-paie-enregistree');
+  if (!(await calc.getByLabel('Écriture :').inputValue()).includes('À viser')) throw new Error("T251 : l'écriture de la paie part au visa");
   // Comptable : immobilisations (S136 à S140, manuel chap. 7)
   await login('Patrick Lumbala'); await aller('/immobilisations/s136'); await p.getByRole('heading', { name: 'Type Immobilisation' }).waitFor();
   const listeImmo = async (nom, titre) => { await p.getByRole('navigation', { name: 'Données de base' }).getByRole('button', { name: nom }).click(); await p.getByRole('heading', { name: titre }).waitFor(); };

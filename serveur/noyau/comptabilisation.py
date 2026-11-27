@@ -8,7 +8,7 @@ La comptabilisation passe d'abord les écritures que la Banque laisse en attente
   adhésion par banque (le compte épargne s'ouvre alors) ; banque vers caisse : débit du compte 591 de virements internes, le caissier du guichet reçoit
   les fonds avec son billetage depuis « Fonds à recevoir » (plan d'allègement, point 7.5), pour que son stock de coupures reste juste ;
 - chèques clients encaissés (S59) : débit de la banque, crédit du compte du client ;
-- emprunts bancaires (S61) : mise en place (banque, 533) et remboursements (533, 6020 ou 6021, 60702).
+- emprunts bancaires (S61) : mise en place (banque, 533) et remboursements (533, 6020 ou 6021, 60701 ou 60702 ; emprunt subordonné : 6306 et 6316).
 Puis la journée est fermée : ses écritures deviennent définitives (T13 ; PCCI § 3.4)."""
 import uuid
 
@@ -73,14 +73,15 @@ def en_attente(u, j: dict) -> list[dict]:
         b, dv = banque(e["compte_bancaire_id"]), e["devise"].strip()
         out.append({"source": "emprunt", "id": e["id"], "type": "emprunt", "libelle": f"Mise en place de l'emprunt n° {e['numero']}", "journal": b["journal"],
                     "lignes": [L(b["compte"], "D", dv, e["montant"]), L(e["compte_emprunt"], "C", dv, e["montant"])], "date": e["date_emprunt"]})
-    from .emprunts import compte_interet
+    from .emprunts import compte_commission, compte_interet
     for r in lignes("""select r.*, e.numero, e.compte_bancaire_id, e.devise, e.compte_emprunt, e.duree_mois, e.statut as statut_emprunt, e.date_emprunt
                        from remboursement_emprunt r join emprunt e on e.id = r.emprunt_id
                        where e.institution_id = %s and e.agence_id = %s and r.statut = 'saisie' and r.date_operation <= %s order by r.date_operation, r.id""", (i, a, d)):
         if r["statut_emprunt"] == "saisie" and r["date_emprunt"] > d:   # l'emprunt lui-même n'est pas encore comptabilisable
             continue
         b, dv = banque(r["compte_bancaire_id"]), r["devise"].strip()
-        l = [L(c_, "D", dv, m) for c_, m in ((r["compte_emprunt"], r["amortissement"]), (compte_interet(r["duree_mois"]), r["interet"]), ("60702", r["commission"])) if m]
+        l = [L(c_, "D", dv, m) for c_, m in ((r["compte_emprunt"], r["amortissement"]), (compte_interet(r["duree_mois"], r["compte_emprunt"]), r["interet"]),
+                                                (compte_commission(r["compte_emprunt"], b["compte"]), r["commission"])) if m]
         l.append(L(b["compte"], "C", dv, r["amortissement"] + r["interet"] + r["commission"]))
         out.append({"source": "remboursement_emprunt", "id": r["id"], "type": "remboursement_emprunt", "libelle": f"Remboursement de l'emprunt n° {r['numero']}",
                     "journal": b["journal"], "lignes": l, "date": r["date_operation"]})

@@ -297,13 +297,15 @@
    ],
    "types_retenue": [
     {
-     "libelle": "Avance sur salaire"
+     "libelle": "Avance sur salaire",
+     "compte": "4200"
     },
     {
      "libelle": "Prêt au personnel"
     },
     {
-     "libelle": "Saisie-arrêt"
+     "libelle": "Saisie-arrêt",
+     "compte": "422"
     },
     {
      "libelle": "Cautionnement"

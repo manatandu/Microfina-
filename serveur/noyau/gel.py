@@ -32,7 +32,7 @@ def controler_lignes(lignes_ecr: list[dict], u: dict | None = None) -> None:
         c = str(l.get("contrat") or "")
         if l["sens"] != "D":
             continue
-        from .soupcons import controler_attente     # P9 : opération soupçonnée, en attente de la déclaration (loi 22/068, art. 92)
+        from .soupcons import controler_attente     # P9 : opération soupçonnée, en attente de la déclaration (Instr. BCC 15, art. 36, 4e tiret)
         if c.startswith("depot:"):
             t = une("select tiers_id from compte_depot where id = %s", (int(c[6:]),))
             if t:

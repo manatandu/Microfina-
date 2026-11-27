@@ -165,6 +165,8 @@ ROUTES = [(re.compile(m), e) for m, e in [
     (r"/paie/maquette(/\d+/suppression)?", ["S134"]),
     (r"/paie/retenues", ["S135"]),
     (r"/paie/retenues/\d+/visa", ["S135"]),
+    (r"/paie/calcul", ["S134"]),
+    (r"/paie/calcul/\d{4}-\d{2}/suppression", ["S134"]),
     (r"/credit/balance-agee", ["S98", "S99"]),   # plan d'allègement, point 6.13 : la balance se calcule dans S99
     (r"/credit/provisions/(provisionner|tout|radiation)", ["S99"]),
     (r"/credit/provisions/decouverts/(classement|\d+/recouvrement)", ["S99"]),

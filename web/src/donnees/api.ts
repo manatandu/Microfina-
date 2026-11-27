@@ -7,7 +7,7 @@ import { feriesLegaux, graine } from "./graine";
 import { creerApiHttp } from "./http";
 import {
   ErreurMetier, SessionFermee, type Billetage, type Blocage, type CompteDepot, type Ecriture, type Etat, type OperationDifferee, type Journee, type Ligne,
-  type ChequeClient, type ChequeInstitution, type Chequier, type DepotTerme, type ImmoBien, type PaieEmploye, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type OperationCompta, type LigneOc, type ChargeFacture, type CommandeFournisseur, type FactureFournisseur, type ReglementFournisseur, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
+  type ChequeClient, type ChequeInstitution, type Chequier, type DepotTerme, type ImmoBien, type PaieEmploye, type BulletinPaie, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type OperationCompta, type LigneOc, type ChargeFacture, type CommandeFournisseur, type FactureFournisseur, type ReglementFournisseur, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
   type AnalyseFinanciere, type DemandeCredit, type CreditPret, type GarantieCredit, type NantissementMateriel, type RemboursementCredit, type VisaCredit, type BalanceAgee, type Adresse, type Procuration, type DonneurOrdre, type BeneficiaireVirement,
@@ -323,7 +323,7 @@ function enAttenteBanque(j: Journee): EnAttente[] {
     const e = E.emprunts.find((x) => x.id === r.empruntId)!;
     if (!e.piece && e.dateEmprunt > j.date) continue;
     const b = banque(e.compteBancaireId);
-    const l = ([[e.compteEmprunt, r.amortissement], [e.duree > 12 ? "6020" : "6021", r.interet], ["60702", r.commission]] as [string, number][]).filter(([, m]) => m).map(([c, m]) => L(c, "D", e.devise, m));
+    const l = ([[e.compteEmprunt, r.amortissement], [compteInteretEmprunt(e), r.interet], [compteCommissionEmprunt(e, b.compte), r.commission]] as [string, number][]).filter(([, m]) => m).map(([c, m]) => L(c, "D", e.devise, m));
     l.push(L(b.compte, "C", e.devise, r.amortissement + r.interet + r.commission));
     out.push({ source: "remboursement_emprunt", id: r.id, type: "remboursement_emprunt", libelle: `Remboursement de l'emprunt n° ${e.numero}`, journal: b.journal, date: r.date, lignes: l });
   }
@@ -2084,13 +2084,16 @@ const chequiers = {
 };
 
 // ---------- Banque > Emprunts bancaires (S61, manuel p. 70, deux captures sans texte). Règles identiques côté serveur (noyau/emprunts.py). ----------
-// PCCI : capital au compte 533 « Emprunts à terme », intérêts 6020 (plus d'un an) ou 6021, commissions 60702 ; écritures à la comptabilisation (S111).
+// PCCI : capital au compte 533 « Emprunts à terme », intérêts 6020 (plus d'un an) ou 6021, commissions 60701 (organe faîtier) ou 60702 ; emprunt de la
+// classe 1 (1622, subordonné) : 6306 et 6316, compte 63 « Autres charges financières » (registre T250) ; écritures à la comptabilisation (S111).
+const compteInteretEmprunt = (e: { duree: number; compteEmprunt: string }) => (e.compteEmprunt.startsWith("1") ? "6306" : e.duree > 12 ? "6020" : "6021");
+const compteCommissionEmprunt = (e: { compteEmprunt: string }, compteBanque: string) => (e.compteEmprunt.startsWith("1") ? "6316" : compteBanque.startsWith("5600") ? "60701" : "60702");
 export type SaisieEmprunt = { cle: string; compteBancaireId?: number; reference: string; montant: number; duree: number; dateEmprunt: string; taux: string;
   totalInteret: number; totalCommission: number; totalFrais: number; commentaire: string; compteEmprunt: string; decisionConseil?: string; autorisationBcc?: string };
 const vueEmprunt = (e: Emprunt) => {
   const cb = E.comptesBancaires.find((x) => x.id === e.compteBancaireId), b = E.banques.find((x) => x.id === cb?.banqueId);
   const amorti = E.remboursementsEmprunt.filter((r) => r.empruntId === e.id).reduce((s, r) => s + r.amortissement, 0);
-  return { ...e, banque: `${b?.libelle ?? ""} ${cb?.numeroBancaire ?? ""}`, compteInteret: e.duree > 12 ? "6020" : "6021", capitalRestant: e.montant - amorti };
+  return { ...e, banque: `${b?.libelle ?? ""} ${cb?.numeroBancaire ?? ""}`, compteInteret: compteInteretEmprunt(e), capitalRestant: e.montant - amorti };
 };
 const emprunts = {
   mettreEnPlace(d: SaisieEmprunt) {
@@ -4815,6 +4818,15 @@ function portefeuilleRapport(d: string) {
   return { brut, risque, emprunteurs: tiers.size, agents: agents.size };
 }
 const veilleDe = (d: string) => new Date(Date.parse(`${d}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
+const LIENS_APPARENTES: Record<string, string> = { actionnaire: "Actionnaire ou membre fondateur", administrateur: "Administrateur", dirigeant: "Dirigeant", personnel: "Personnel",
+  famille: "Famille au premier degré d'une de ces personnes", societe_liee: "Société liée à l'institution ou à une de ces personnes",
+  contrat: "Lié par un contrat de garantie croisée ou d'affaires" };     // Instr. BCC 002, art. 27 ; mêmes libellés que l'écran des personnes apparentées (SC01)
+/** Capital restant dû de chaque membre à la date, tous ses crédits en cours réunis, en CDF au cours du jour (comme rapports_credit.encours_par_membre) */
+function encoursParMembre(d: string) {
+  const par = new Map<number, number>();
+  for (const { c, s } of enCoursRapport({}, d)) par.set(c.tiersId, (par.get(c.tiersId) ?? 0) + Math.round(s.capitalRestant * coursDe(c.devise, d)));
+  return par;
+}
 const rapportsCredit: Record<string, (p: CriteresRapport) => Rapport> = {
   journal(p) {
     const [du, au] = periodeRapport(p), ids = new Map(creditsRapport(p, au).map((c) => [c.id, c])), lignes: Rapport["lignes"] = [];
@@ -4914,6 +4926,23 @@ const rapportsCredit: Record<string, (p: CriteresRapport) => Rapport> = {
       ["Indicateur de gestion du bilan", "Taux des immobilisations", immo, actif1, pctRapport(immo, actif1), "< 10 %", (v) => v < 10]];
     return { colonnes: colRapport(["Indicateurs", "texte"], ["Ratios", "texte"], ["Numérateur", "montant"], ["Dénominateur", "montant"], ["Valeur", "taux"], ["Norme", "texte"], ["Respectée", "texte"]),
       lignes: R.map(([i, r, n, d, v, nm, ok]) => ({ v: [i, r, Math.round(n), d ? Math.round(d) : 0, v, nm, v === null ? "" : ok(v) ? "Oui" : "Non"], devise: "CDF", ...(r.startsWith("Nombre") ? { nombres: true } : {}) })) };
+  },
+  /** « Liste des dix débiteurs les plus importants » : les dix membres au plus gros encours de prêts à la date, en CDF (Instr. BCC 002, art. 28 et 29 ;
+   *  registre T248). Comme rapports_credit.debiteurs */
+  debiteurs(p) {
+    const d = dateRapport(p.date, "Date"), rang = [...encoursParMembre(d)].sort((a, b) => b[1] - a[1] || a[0] - b[0]).slice(0, 10);
+    return { colonnes: colRapport(["Rang", "nombre"], ["N°Membre", "code"], ["Noms et postnoms", "texte"], ["Encours de prêts", "montant"]),
+      lignes: [...rang.map(([tid, v], i) => ({ v: [i + 1, membreDe(tid), titulaire(E.tiers.find((t) => t.id === tid)!), v], devise: "CDF" })),
+        ...(rang.length ? [{ v: [null, "", "Total", rang.reduce((t, [, v]) => t + v, 0)], devise: "CDF" }] : [])] };
+  },
+  /** « Encours total des prêts aux dirigeants » : une ligne par personne apparentée qui a un encours à la date, avec son lien (Instr. BCC 002, art. 25 à 27 ;
+   *  registre CR-3, T248). Comme rapports_credit.apparentes */
+  apparentes(p) {
+    const d = dateRapport(p.date, "Date"), par = encoursParMembre(d);
+    const rows = E.tiers.filter((t) => t.apparente && par.get(t.id)).sort((a, b) => a.numero.localeCompare(b.numero));
+    return { colonnes: colRapport(["N°Membre", "code"], ["Noms et postnoms", "texte"], ["Lien", "texte"], ["Encours de prêts", "montant"]),
+      lignes: [...rows.map((t) => ({ v: [t.numero, titulaire(t), LIENS_APPARENTES[t.apparente!]!, par.get(t.id)!], devise: "CDF" })),
+        ...(rows.length ? [{ v: ["", "Total", "", rows.reduce((x, t) => x + par.get(t.id)!, 0)], devise: "CDF" }] : [])] };
   },
 };
 const rapportsCreditApi = {
@@ -5772,7 +5801,7 @@ const inactifs = {
 // Écart E10 : gel des avoirs (loi 22/068 modifiée, art. 121, 158, 158 bis, 162 ; loi 22/069, art. 71 à 77 ; Instr. BCC 15, art. 42). Mêmes règles que noyau/gel.py.
 const SOURCES_GEL: Record<GelAvoirs["source"], string> = { onu: "Conseil de sécurité des Nations Unies", conasafic: "Liste nationale (CONASAFIC)", bcc: "Banque Centrale du Congo", judiciaire: "Ministère public ou CENAREF" };
 const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
-/** P9 : sortie de fonds d'un client dont les opérations sont en attente de la déclaration de soupçon (loi 22/068, art. 92). Comme le serveur (controler_attente). */
+/** P9 : sortie de fonds d'un client dont les opérations sont en attente de la déclaration de soupçon (Instr. BCC 15, art. 36, 4e tiret). Comme le serveur (controler_attente). */
 /** Instr. BCC 41, art. 66 : une COOPEC n'ouvre ni agence, ni guichet, ni bureau hors de la province de son siège. Comme le serveur (controler_province_coopec). */
 function controlerProvinceCoopec(province: string, quoi: string) {
   const siege = E.institution.province ?? "";
@@ -5780,7 +5809,8 @@ function controlerProvinceCoopec(province: string, quoi: string) {
 }
 function controlerAttente(tid: number) {
   if ((E.attentesSoupcon ?? []).some((a) => a.tiersId === tid && !a.leveeLe))
-    throw new ErreurMetier("Opérations du client en attente : opération soupçonnée, à déclarer d'abord à la CENAREF (loi 22/068, art. 92). Client > Conformité > Examen renforcé, onglet Déclarations de soupçon.");
+    // Message neutre : le caissier le lit face au client (loi 22/068, art. 37 et 93 ; Instr. BCC 15, art. 40 ; registre T249). Comme le serveur.
+    throw new ErreurMetier("Opération à faire autoriser par le responsable de l'agence avant de la passer.");
 }
 function controlerGel(tid: number) {
   const g = E.gels.find((x) => x.tiersId === tid && !x.leveLe);
@@ -5845,7 +5875,8 @@ function calculerLcb(annee: number, mois: number): Record<string, number> {
     "dispositif:LAB7": nbNiveau("eleve"), "dispositif:LAB8": nbNiveau("moyen"), "dispositif:LAB9": nbNiveau("faible"),
     "dispositif:LAB10": parNiveau("eleve"), "dispositif:LAB11": parNiveau("moyen"), "dispositif:LAB12": parNiveau("faible"),
     "dispositif:LAB13": ops.reduce((s, o) => s + cdfOp(o), 0), "dispositif:LAB14": ops.filter((o) => ppe.has(o.tiersId!)).reduce((s, o) => s + cdfOp(o), 0),
-    "dispositif:LAB15": ppe.size, "dispositif:LAB17": (E.declarationsSoupcon ?? []).filter((d) => d.transmiseLe >= debut && d.transmiseLe <= fin).length,
+    "dispositif:LAB15": ppe.size, "dispositif:LAB17": (E.declarationsSoupcon ?? []).filter((d) => d.transmiseLe >= debut && d.transmiseLe <= fin).length   // les trois sources du registre (T250), comme le serveur
+      + E.examens.filter((x) => x.declareLe && x.declareLe >= debut && x.declareLe <= fin).length + E.analysesAtypiques.filter((a) => a.declareLe && a.declareLe >= debut && a.declareLe <= fin).length,
     "dispositif:LAB21": comptes.length, "dispositif:LAB22": comptes.filter((c) => !resident(c.tiersId)).length,
     "localisation:LAB8": PROVINCES_SUIVIES.includes(province) ? 0 : clients.length,
     "portefeuille:LAB2": ppe.size, "portefeuille:LAB4": clients.filter((t) => t.resident === false).length,
@@ -6469,7 +6500,7 @@ const soupcons = {
       personnes: t(d.personnes), raisons: t(d.raisons), delai: t(d.delai), transmiseLe: t(d.transmiseLe), moyen: t(d.moyen) as keyof typeof MOYENS_SOUPCON, confirmeeLe: "", accuseReference: "", accuseLe: "",
       saisiPar: u.id };
     liste.push(x);
-    // P9 : la déclaration faite, les opérations mises en attente reprennent (loi 22/068, art. 92). Comme le serveur.
+    // P9 : la déclaration faite, les opérations mises en attente reprennent (Instr. BCC 15, art. 36, 4e tiret). Comme le serveur.
     if (tiersId) for (const a of (E.attentesSoupcon ?? []).filter((y) => y.tiersId === tiersId && !y.leveeLe))
       Object.assign(a, { leveeLe: aujourdhui(), leveeMotif: `Déclaration de soupçon n° ${x.numero} transmise le ${x.transmiseLe}`, leveePar: u.id });
     enregistrer(); return soupcons.vue(x);
@@ -7214,7 +7245,6 @@ const enOuverture = (m: { compte: string; date: string }, du: string, ex: number
 // S113 Visa et S114 Validation (p. 130 à 133), S82 validation en caisse (p. 93 et 94). Mêmes règles que serveur/noyau/operations_compta.py.
 // Chaînes (COMPLEMENTS § 6) : écriture, virement, prélèvement, compte à compte : saisie, visée (S113), validée (S114), comptabilisée (S111) ;
 // opération diverse ou déplacée : saisie (S116), visée (S113), payée en caisse (S82). ----------
-const LIAISON = "451";   // PCCI, compte 451 Comptes de liaison inter agences
 const TYPES_OC: Record<OperationCompta["type"], string> = { ecriture: "Écriture comptable", virement: "Virement", prelevement: "Prélèvement",
   compte_a_compte: "Compte DAV vers un Autre Compte", tontine_dav: "Compte Tontine vers un Compte DAV", diverse: "Opération diverse", deplacee: "Opération déplacée",
   domiciliation: "Virement de salaire", prelevement_auto: "Prélèvement automatique", salaire_personnel: "Salaire du personnel" };
@@ -7333,7 +7363,7 @@ function lignesEcritureOc(o: OperationCompta): LigneGl[] {
 }
 /** Reflet dans l'agence du client (PCCI, compte 45 : mouvement de montant égal et de signe contraire) */
 function lignesRefletOc(o: OperationCompta): LigneGl[] {
-  const dep = o.sens === "DEPOT", liaison: LigneGl = { compte: LIAISON, sens: dep ? "D" : "C", devise: o.devise, montant: o.montant, contrat: `liaison:${E.agence.id}` };
+  const dep = o.sens === "DEPOT", liaison: LigneGl = { compte: compteDeLiaison(E.agence.id, o.agenceClientId ?? E.agence.id), sens: dep ? "D" : "C", devise: o.devise, montant: o.montant, contrat: `liaison:${E.agence.id}` };
   const client = ligneDepotOc(o.compteDepotId!, dep ? "C" : "D", o.devise, o.montant);
   return dep ? [liaison, client] : [client, liaison];
 }
@@ -7572,7 +7602,8 @@ const operationsCompta = {
       // dépôt ou retrait d'un client d'une autre agence : même examen renforcé qu'au guichet (Instr. BCC 15 bis, art. 5 à 7)
       examen = autorisationExamen(c.tiersId, s.journeeId, entree ? "depot" : "retrait", m, dv);
       if (!entree && m > disponibleOc(c, o.id)) throw new ErreurMetier("Solde disponible insuffisant sur le compte du client.");
-      autres = [L(LIAISON, entree ? "C" : "D", m, `liaison:${o.agenceClientId}`)]; tiersId = c.tiersId;
+      // 450 quand l'une des deux agences est le siège, 451 entre deux agences (PCCI, compte 45 ; registre T250). Comme operations_compta.liaison_de
+      autres = [L(compteDeLiaison(E.agence.id, o.agenceClientId!), entree ? "C" : "D", m, `liaison:${o.agenceClientId}`)]; tiersId = c.tiersId;
     }
     const pc = piece("CA");
     const e = poster({ evenement: entree ? "ed_encaissement" : "ed_decaissement", journal: "CA", journeeId: s.journeeId, libelle: o.libelle, piece: pc, saisiPar: u.id, validePar: u.id, lignes: entree ? [caisse, ...autres] : [...autres, caisse] });
@@ -8681,7 +8712,9 @@ function controlesFin(a: number, m: number | null) {
     if (l.compte.startsWith("45")) li.set(l.compte, (li.get(l.compte) ?? 0) + v);
     if (l.compte.startsWith("37")) { const k = `${l.compte}|${l.contrat ?? ""}`, x = susp.get(k) ?? [0, 0]; x[0] += v; if (de <= ilYaSeptJours) x[1] += v; susp.set(k, x); } } }
   const viNonSoldes = [...vi].filter(([, v]) => v).map(([k]) => k).sort();
-  ajouter("Virements internes (59) soldés", !viNonSoldes.length, `Non soldés : ${viNonSoldes.join(", ")}`);
+  // Le détail dit quoi faire : retrait en banque pas encore reçu au guichet, ou reste de change (registre T250). Comme fin_periode.controles
+  const viAttendus = E.operationsBanque.filter((o) => o.type === "banque_caisse" && o.statut === "comptabilisee" && !o.recuOperationId).length;
+  ajouter("Virements internes (59) soldés", !viNonSoldes.length, `Non soldés : ${viNonSoldes.join(", ")}${viAttendus ? `. ${viAttendus} retrait(s) en banque à recevoir au guichet (Caisse > Virements internes de trésorerie, Fonds à recevoir)` : ". Reste de change : passer la réévaluation de fin de période"}`);
   // Registre T233 : les comptes de liaison « sont soldés par agrégation » (PCCI, fiche du compte 45) ; comme le serveur
   const liNonSoldes = [...li].filter(([, v]) => v).map(([k]) => k).sort();
   ajouter("Comptes de liaison (45) soldés pour toute l'institution", !liNonSoldes.length, `Fonds en route ou reflet en attente : ${liNonSoldes.join(", ")}`);
@@ -8721,7 +8754,7 @@ function controlesFin(a: number, m: number | null) {
   const trop = [...parCredit].map(([cid, reste]) => ({ c: E.credits.find((x) => x.id === cid)!, reste })).filter(({ c, reste }) => c.statut !== "debloque" || reste > etatCredit(c, fin).capitalRestant).map(({ c }) => c.numero).sort();
   ajouter("Cautions reçues au plus égales au restant dû", trop.length === 0, `À ramener au restant dû (Crédit > Caution et nantissement > Libérer caution ; PCCI § 7.3.1.2) : ${trop.join(", ")}`);
   const incidentsOuverts = (E.incidents ?? []).filter((x) => !x.regulariseLe).length;   // B17 : Instr. BCC 008, art. 49
-  ajouter("Incidents et dépassements régularisés", incidentsOuverts === 0, `${incidentsOuverts} incident(s) ou dépassement(s) à traiter (Client > Conformité > Incidents et dépassements)`);
+  ajouter("Incidents et dépassements régularisés", incidentsOuverts === 0, `${incidentsOuverts} incident(s) ou dépassement(s) à traiter (Administration > Sécurité > Incidents et dépassements)`);
   ajouter("Intérêts courus des dépôts à terme", reste === 0, "À passer : Épargne > Dépôts à terme");
   // B8 : intérêts courus non échus des crédits sains aux créances rattachées (PCCI § 4.1.3 et § 6.4)
   const ecartCredits = E.credits.filter((c) => c.debloqueLe && c.debloqueLe <= fin && (c.statut === "debloque" || (c.interetsCourus ?? 0) > 0))
@@ -9807,6 +9840,8 @@ VERIFIER_REF.taxes = (_c, v) => {
 VERIFIER_REF.paie = (c, v) => {
   if (c.page === "baremes" && v.min !== null && v.max !== null && Number(v.min) > Number(v.max)) throw new ErreurMetier("Max : au moins Min.");
   if (v.taux && Number(String(v.taux).replace(",", ".")) > 100) throw new ErreurMetier("Taux : 100 % au plus.");
+  // PCCI, compte 42 : avances au personnel au 420 (registre T250). Comme referentiels.verifier_paie
+  if (c.page === "types_avance" && v.compte && !String(v.compte).startsWith("420")) throw new ErreurMetier("Compte : un compte 420 « Avances mensuelles sur traitements et assimilés » (PCCI, compte 42).");
 };
 UTILISE_PAR_REF.paie = { classes: [["grilles_salariales", "classeId", "Grille salariale"]], categories: [["grilles_salariales", "categorieId", "Grille salariale"]],
   echelons: [["grilles_salariales", "echelonId", "Grille salariale"]], grandes_rubriques: [["types_heure_sup", "elementId", "Type d'heure supplémentaire"]] };
@@ -9851,7 +9886,7 @@ const vueEmploye = (e: PaieEmploye) => ({ ...e, creePar: nomUtilisateur(e.creePa
 const paie = {
   contexte() {
     lectureAdmin(["S132", "S133", "S134", "S135"]);
-    return { sexes: SEXES, civilites: CIVILITES, groupesSanguins: GROUPES_SANGUINS, typesContrat: TYPES_CONTRAT, regimes: REGIMES,
+    return { sexes: SEXES, civilites: CIVILITES, groupesSanguins: GROUPES_SANGUINS, typesContrat: TYPES_CONTRAT, typesEmploye: Object.keys(TYPES_EMPLOYE), regimes: REGIMES,
       situations: valeursListe("situation_matrimoniale").map((l) => l.libelle),
       categories: optionsPaie("categories"), classes: optionsPaie("classes"), echelons: optionsPaie("echelons"),
       grillesSalariales: valeursRef("paie", "grilles_salariales").map((g) => ({ categorieId: Number(g.categorieId), classeId: Number(g.classeId), echelonId: Number(g.echelonId),
@@ -9893,6 +9928,7 @@ const paie = {
       taux = Number(taux.replace(",", ".")).toFixed(2).replace(".", ",");
     }
     if (!t("dateReferenceAnciennete") !== !taux) throw new ErreurMetier("Ancienneté acquise : Date référence de prime d'ancienneté et Taux de prime d'ancienneté vont ensemble.");
+    if (t("typeEmploye") && !(t("typeEmploye") in TYPES_EMPLOYE)) throw new ErreurMetier("Type d'employé inconnu.");   // PCCI 65 (registre T252)
     if (t("typeContrat")) {
       if (!TYPES_CONTRAT.includes(t("typeContrat"))) throw new ErreurMetier("Type de contrat inconnu.");
       if (!t("dateDebutContrat")) throw new ErreurMetier("À remplir : Date début du contrat.");
@@ -10000,6 +10036,161 @@ const paie = {
     r.statut = "visee"; r.visePar = u.id; enregistrer(); return paie.retenues().find((x) => x.id === id)!;
   },
 };
+// ---------- Calcul de la paie (Personnel > Calcul de la paie ; registre T251 à T254) : mêmes règles que serveur/noyau/paie_calcul.py ----------
+// Code du travail, art. 7, h ; CNSS : loi 16/009, art. 13 et 18, décret 18/041, art. 2 à 4 et 8 ; SMIG : décret 25/22, art. 3 et 7 ; INPP : arrêté du 24/09/2025, art. 1er ;
+// ONEM : arrêté 028/2025 ; IRPP : loi 23/053, art. 69 à 71, 118, 123, 150, arrêté du 19/02/2025 ; PCCI, comptes 65, 421, 433, 461.
+const SESSION_PAIE_MIN = "2026-01", SMIG_MENSUEL = 21_500 * 26, CNSS_TRAVAILLEUR = 5, ONEM_TAUX = 0.5;
+const CNSS_EMPLOYEUR: [string, number][] = [["Pensions", 5], ["Prestations aux familles", 6.5], ["Risques professionnels", 1.5]];
+const TRANCHES_IRPP: [number | null, number][] = [[1_944_000, 3], [21_600_000, 15], [43_200_000, 30], [null, 40]];
+const TYPES_EMPLOYE: Record<string, string> = { "Cadre non conventionné": "0", "Cadre conventionné": "1", "Agent de catégorie": "2" };   // PCCI 65 : 6500, 6501, 6502
+const tauxInpp = (n: number) => (n <= 50 ? 3.5 : n <= 300 ? 3 : 2);
+const arrondiFranc = (x: number) => Math.floor(x + 0.5);
+function baremeIrpp(base: number) {
+  let impot = 0, plancher = 0;
+  for (const [haut, taux] of TRANCHES_IRPP) {
+    if (haut === null) return impot + Math.max(0, base - plancher) * taux / 100;
+    if (base > plancher) impot += (Math.min(base, haut / 12) - plancher) * taux / 100;
+    plancher = haut / 12;
+  }
+  return impot;
+}
+/** Art. 118 (millier inférieur, plafond 30 %), art. 123 (2 % par charge, 9 au plus, pas au-delà de la 3e tranche), art. 150 (centaine, 50 F vers le haut) */
+function irppMensuel(revenu: number, charges: number) {
+  const base = Math.floor(Math.max(0, revenu) / 1000) * 1000;
+  if (!base) return 0;
+  const reduction = baremeIrpp(Math.min(base, 43_200_000 / 12)) * 2 * Math.min(Math.max(charges, 0), 9) / 100;
+  const du = Math.min(baremeIrpp(base) - reduction, base * 30 / 100), unite = Math.floor(du + 0.5);
+  return unite - (unite % 100) + (unite % 100 >= 50 ? 100 : 0);
+}
+const finSession = (s: string) => { const a = Number(s.slice(0, 4)), m = Number(s.slice(5)); return `${s}-${String(new Date(Date.UTC(a, m, 0)).getUTCDate()).padStart(2, "0")}`; };
+/** Pour enregistrer, la session ne dépasse pas le mois de la journée ouverte ; pour lire, pas le mois du jour de l'agence. Comme paie_calcul.controler_session */
+function controlerSessionPaie(session: string, ecrire = true) {
+  if (!SESSION_RE.test(session ?? "")) throw new ErreurMetier("Session : AAAA-MM.");
+  if (session < SESSION_PAIE_MIN) throw new ErreurMetier("Session : à partir de 2026-01 (IRPP, loi 23/053 ; arrêté du 19/02/2025, art. 5).");
+  if (ecrire && session > jourOuvertOc().slice(0, 7)) throw new ErreurMetier("Session : pas après le mois de la journée ouverte.");
+  if (!ecrire && session > aujourdhui().slice(0, 7)) throw new ErreurMetier("Session : pas après le mois en cours.");
+}
+function calculerPaie(session: string) {
+  const debut = `${session}-01`, fin = finSession(session);
+  const enCours = (e: PaieEmploye) => e.dateEmbauche <= fin && (!e.dateFinContrat || e.dateFinContrat >= debut);
+  const tous = E.paieEmployes.filter(enCours), effectif = tous.length;
+  const sansAgence = tous.filter((e) => !e.agenceId).map((e) => e.matricule).sort();
+  if (sansAgence.length) throw new ErreurMetier(`Agence à remplir (onglet Affectation et contrat) : ${sansAgence.join(", ")}.`);
+  const employes = tous.filter((e) => e.agenceId === E.agence.id).sort((a, b) => a.matricule.localeCompare(b.matricule));
+  const rubriques = valeursRef("paie_rubriques", "rubriques"), grandes = valeursRef("paie", "grandes_rubriques"), types = valeursRef("paie", "types_retenue");
+  const ti = tauxInpp(effectif), bulletins: BulletinPaie[] = [];
+  for (const e of employes) {
+    const gains: BulletinPaie["gains"] = ([["Salaire de base", e.salaireBase], ["Sursalaire", e.surSalaire], ["Prime d'ancienneté", e.montantAnciennete]] as [string, number | null][])
+      .filter(([, m]) => m).map(([libelle, m]) => ({ libelle, montant: m!, nature: "remuneration" }));
+    const lignesM = E.paieMaquette.filter((m) => m.employeId === e.id && m.active && (m.permanente || m.session === session) && m.montant)
+      .map((m) => ({ m, r: rubriques.find((r) => r.id === m.rubriqueId)! })).filter((x) => x.r)
+      .sort((a, b) => String(a.r.code).localeCompare(String(b.r.code)) || a.m.id - b.m.id);
+    for (const { m, r } of lignesM) {
+      const g = grandes.find((x) => x.id === r.grandeRubriqueId), lib = String(g?.libelle ?? "").toLowerCase(), imposable = g?.imposable === "Oui";
+      // Code du travail, art. 7, h ; avantage en nature : dans la rémunération pour sa valeur, sans paiement (loi 23/053, art. 68)
+      const nature = lib.includes("nature") && imposable ? "nature" : imposable ? "remuneration" : lib.includes("logement") ? "logement" : "indemnite";
+      gains.push({ libelle: `${r.code} ${r.libelle}`, montant: m.montant, nature });
+    }
+    if (!gains.length) continue;
+    if (!(e.typeEmploye in TYPES_EMPLOYE)) throw new ErreurMetier(`${e.matricule} : Type d'employé à choisir (onglet Affectation et contrat) : ${Object.keys(TYPES_EMPLOYE).join(", ")} (PCCI, compte 65).`);
+    const somme = (f: (n: BulletinPaie["gains"][number]["nature"]) => boolean) => gains.filter((g) => f(g.nature)).reduce((t, g) => t + g.montant, 0);
+    const remuneration = somme((n) => n === "remuneration" || n === "nature"), logement = somme((n) => n === "logement");
+    const baseCnss = remuneration ? Math.max(remuneration, SMIG_MENSUEL) : 0, cnss = arrondiFranc(baseCnss * CNSS_TRAVAILLEUR / 100);
+    const imposable = remuneration + Math.max(0, logement - Math.floor(remuneration * 30 / 100)) - cnss;   // art. 69, 8°, a ; art. 70 et 71
+    const irpp = irppMensuel(imposable, e.personnesACharge ?? 0);
+    const ret: BulletinPaie["retenues"] = [];
+    for (const r of E.paieRetenues.filter((x) => x.employeId === e.id && x.statut === "visee" && x.session <= session).sort((a, b) => a.id - b.id)) {
+      const k = (Number(session.slice(0, 4)) - Number(r.session.slice(0, 4))) * 12 + Number(session.slice(5)) - Number(r.session.slice(5));
+      if (k < 0 || k >= r.duree) continue;
+      const part = Math.ceil(r.montant / r.duree), t = types.find((x) => x.id === r.typeId);
+      ret.push({ libelle: String(t?.libelle ?? ""), compte: String(t?.compte ?? ""), montant: Math.min(part, r.montant - part * k) });
+    }
+    const vide = ret.find((r) => !r.compte);
+    if (vide) throw new ErreurMetier(`Type de retenue « ${vide.libelle} » : Compte à remplir (Personnel > Données de base).`);
+    const retenues = ret.filter((r) => r.montant > 0), especes = somme((n) => n !== "nature");
+    const net = especes - cnss - irpp - retenues.reduce((t, r) => t + r.montant, 0);
+    if (net < 0) throw new ErreurMetier(`${e.matricule} : le net à payer serait négatif (${net} FC) ; revoir ses retenues.`);
+    bulletins.push({ employeId: e.id, matricule: e.matricule, nomPrenoms: `${e.nom} ${e.prenoms}`, categorie: optionsPaie("categories").find((c) => c.id === e.categorieId)?.libelle ?? "",
+      fonction: e.fonction || e.poste, typeEmploye: e.typeEmploye, personnesACharge: e.personnesACharge ?? 0, numeroSecuriteSociale: e.numeroSecuriteSociale,
+      gains, brut: especes, remuneration, baseCnss, cnss, imposable: Math.floor(Math.max(0, imposable) / 1000) * 1000, irpp, retenues, net,
+      employeur: { cnss: CNSS_EMPLOYEUR.map(([libelle, taux]) => ({ libelle, taux, montant: arrondiFranc(baseCnss * taux / 100) })),
+        inpp: arrondiFranc(remuneration * ti / 100), onem: arrondiFranc(remuneration * ONEM_TAUX / 100) } });
+  }
+  return { session, effectif, tauxInpp: ti, bulletins };
+}
+type CalculPaie = ReturnType<typeof calculerPaie>;
+function totauxPaie(c: CalculPaie) {
+  const s = (f: (b: BulletinPaie) => number) => c.bulletins.reduce((t, b) => t + f(b), 0);
+  return { brut: s((b) => b.brut), cnss: s((b) => b.cnss), irpp: s((b) => b.irpp), retenues: s((b) => b.retenues.reduce((t, r) => t + r.montant, 0)), net: s((b) => b.net),
+    cnssEmployeur: s((b) => b.employeur.cnss.reduce((t, x) => t + x.montant, 0)), inpp: s((b) => b.employeur.inpp), onem: s((b) => b.employeur.onem) };
+}
+/** L'écriture de la session, par compte : charges (650, 652, 651) au débit ; net dû (421), cotisations (461), impôt retenu (433) et retenues au crédit */
+function lignesPaie(c: CalculPaie): LigneOc[] {
+  const cumul = new Map<string, { compte: string; sens: "D" | "C"; libelle: string; montant: number }>(), s = c.session;
+  const ajouter = (compte: string, sens: "D" | "C", libelle: string, montant: number) => {
+    if (!montant) return; const k = `${compte}|${sens}`, x = cumul.get(k);
+    if (x) x.montant += montant; else cumul.set(k, { compte, sens, libelle, montant });
+  };
+  for (const b of c.bulletins) {
+    const cat = TYPES_EMPLOYE[b.typeEmploye], e = b.employeur, social = e.cnss.reduce((t, x) => t + x.montant, 0) + e.inpp + e.onem;
+    ajouter(`650${cat}`, "D", `Rémunérations ${s}`, b.gains.filter((g) => g.nature === "remuneration").reduce((t, g) => t + g.montant, 0));
+    ajouter(`652${cat}`, "D", `Indemnités ${s}`, b.gains.filter((g) => g.nature === "logement" || g.nature === "indemnite").reduce((t, g) => t + g.montant, 0));
+    ajouter(`651${cat}`, "D", `Charges sociales ${s}`, social);
+    ajouter("421", "C", `Net à payer ${s}`, b.net);
+    ajouter("461", "C", `CNSS, INPP, ONEM ${s}`, b.cnss + social);
+    ajouter("433", "C", `IRPP retenu ${s}`, b.irpp);
+    for (const r of b.retenues) ajouter(r.compte, "C", `${r.libelle} ${s}`, r.montant);
+  }
+  const intitules = intitulesComptes();
+  return [...cumul.values()].sort((a, b) => (a.sens === b.sens ? (a.compte < b.compte ? -1 : a.compte > b.compte ? 1 : 0) : a.sens === "D" ? -1 : 1))
+    .map((x, n) => ({ rang: n + 1, intitule: intitules.get(x.compte) ?? "", ...x, auxiliaireId: null, typeBudgetId: null, ligneBudgetId: null }));
+}
+function vuePaie(session: string) {
+  const ps = (E.paieSessions ?? []).find((x) => x.agenceId === E.agence.id && x.session === session);
+  const o = ps ? E.operationsCompta.find((x) => x.id === ps.operationId) : undefined;
+  const c: CalculPaie = ps ? { session, effectif: ps.parametres.effectif, tauxInpp: ps.parametres.tauxInpp, bulletins: ps.bulletins } : calculerPaie(session);
+  return { ...c, totaux: totauxPaie(c), enregistree: ps ? { le: ps.saisiLe, par: nomUtilisateur(ps.saisiPar), operationId: ps.operationId, transaction: String(ps.operationId).padStart(6, "0"),
+    statut: (o?.statut ?? "") as string, piece: o?.piece ?? "" } : null };
+}
+const calculPaie = {
+  /** Bouton Calculer : les bulletins de la session ; ceux d'une session enregistrée ne se recalculent plus */
+  lire(session: string) { lectureAdmin(["S132", "S133", "S134", "S135"]); exiger(); controlerSessionPaie(session, false); return vuePaie(session); },
+  /** Bouton Enregistrer : l'écriture de la paie part au visa (journal des opérations diverses) ; une paie par session et par agence */
+  enregistrer(d: { session?: string }) {
+    const u = exiger(), session = String(d?.session ?? "").trim(); controlerSessionPaie(session);
+    if ((E.paieSessions ?? []).some((x) => x.agenceId === E.agence.id && x.session === session)) throw new ErreurMetier(`La paie de ${session} est déjà enregistrée.`);
+    const c = calculerPaie(session);
+    if (!c.bulletins.length) throw new ErreurMetier("Aucun employé à payer pour cette session.");
+    const j = journauxActifs().filter((x) => x.type === "operations_diverses").sort((a, b) => a.code.localeCompare(b.code))[0];
+    if (!j) throw new ErreurMetier("Aucun journal des opérations diverses actif (Comptabilité > Journaux).");
+    const annee = Number(session.slice(0, 4));
+    if (!E.exercices.some((x) => x.annee === annee && x.ouvert && !x.valide)) throw new ErreurMetier(`Session : l'exercice ${annee} n'est pas ouvert (Administration > Exercices).`);
+    if (!E.journauxDetail.some((x) => x.annee === annee && x.journalId === j.id && x.actif && x.ouvert))
+      throw new ErreurMetier(`Le journal des opérations diverses n'est pas ouvert sur l'exercice ${annee} (Administration > Exercices).`);
+    const l = lignesPaie(c), debit = l.filter((x) => x.sens === "D").reduce((t, x) => t + x.montant, 0);
+    if (debit !== l.filter((x) => x.sens === "C").reduce((t, x) => t + x.montant, 0)) throw new ErreurMetier("Écriture de la paie déséquilibrée.");
+    const jour = [finSession(session), jourOuvertOc()].sort()[0]!;
+    const o: OperationCompta = { id: prochain(E.operationsCompta), cle: "", type: "ecriture", statut: "saisie", date: jour, journalId: j.id, periode: `${session.slice(5)}/${session.slice(0, 4)}`,
+      reference: `PAIE ${session}`, libelle: `Paie ${session}`, montant: debit, devise: "CDF", sens: "", lignes: l, compteDepotId: null, compteDepotDestId: null, agenceClientId: null,
+      numeroClient: "", nomClient: "", typeBudgetId: null, ligneBudgetId: null, saisiPar: u.id, piece: "" };
+    E.operationsCompta.push(o);
+    const liste = (E.paieSessions ??= []);
+    liste.push({ id: prochain(liste), agenceId: E.agence.id, session, bulletins: c.bulletins, parametres: { effectif: c.effectif, tauxInpp: c.tauxInpp }, operationId: o.id, saisiPar: u.id,
+      saisiLe: jourOuvertOc() });
+    enregistrer(); return vuePaie(session);
+  },
+  /** Bouton Supprimer : tant que l'écriture n'est pas visée, la paie s'efface avec son écriture et se recalcule */
+  supprimer(session: string) {
+    exiger(); controlerSessionPaie(session);
+    const liste = E.paieSessions ?? [], ps = liste.find((x) => x.agenceId === E.agence.id && x.session === session);
+    if (!ps) throw new ErreurMetier("Rien à supprimer.");
+    const o = E.operationsCompta.find((x) => x.id === ps.operationId);
+    if (o && !["brouillon", "saisie"].includes(o.statut)) throw new ErreurMetier("L'écriture de cette paie est déjà visée : elle ne se supprime plus ; elle se corrige par une écriture inverse (PCCI § 3.3 et 3.4).");
+    E.paieSessions = liste.filter((x) => x !== ps);
+    if (o) E.operationsCompta.splice(E.operationsCompta.indexOf(o), 1);
+    enregistrer(); return vuePaie(session);
+  },
+};
 // ---------- Immobilisations : S136 données de base, S137 biens, S138 mouvements, S139 amortissement, inventaire, sortie, S140 rapports (manuel, chap. 7) ----------
 // Mêmes règles que serveur/noyau/immobilisations.py. PCCI, classe 2 (inventaire détaillé ; cession : 673, 674, 774), comptes 28 et 681.
 VERIFIER_REF.immobilisations = (c, v) => {
@@ -10008,8 +10199,8 @@ VERIFIER_REF.immobilisations = (c, v) => {
   if (c.page === "familles" && v.dureeMin !== null && v.dureeMax !== null && n(v.dureeMin) > n(v.dureeMax)) throw new ErreurMetier("Durée Max. : au moins la durée Min.");
   if (c.page === "familles")   // PCCI : valeurs immobilisées en classe 2, amortissements au 28, dotations au 68. Comme referentiels.verifier_immo
     for (const [cle, nom, bon, attendu] of [["compteAcquisition", "Compte d'acquisition", (x: string) => x.startsWith("2") && !x.startsWith("28"), "un compte de la classe 2, hors 28"],
-      ["compteAmortissement", "Compte Amor.", (x: string) => x.startsWith("28"), "un compte 28"],
-      ["compteDotation", "Compte dotation", (x: string) => x.startsWith("68"), "un compte 68"]] as [string, string, (x: string) => boolean, string][])
+      ["compteAmortissement", "Compte Amor.", (x: string) => ["280", "281", "282"].some((y) => x.startsWith(y)), "un compte 280, 281 ou 282"],     // 283 : provisions (T250)
+      ["compteDotation", "Compte dotation", (x: string) => x.startsWith("680") || x.startsWith("681"), "un compte 680 ou 681"]] as [string, string, (x: string) => boolean, string][])
       if (v[cle] && !bon(String(v[cle]))) throw new ErreurMetier(`${nom} : ${attendu} (PCCI, classes 2 et 6).`);
   if (c.page === "utilisations") {
     if (v.tvaApplicable && !v.tva) throw new ErreurMetier("À remplir : T.V.A.");
@@ -11801,6 +11992,7 @@ const construireLocale = () => ({
   refPaie: asynchrone(refPaieBase, "refPaie"),
   refPaieRubriques: asynchrone(refPaieRubriques, "refPaieRubriques"),
   paie: asynchrone(paie, "paie"),
+  calculPaie: asynchrone(calculPaie, "calculPaie"),
   refImmo: asynchrone(refImmo, "refImmo"),
   immobilisations: asynchrone(immobilisations, "immobilisations"),
   refPaieStructure: asynchrone(refPaieStructure, "refPaieStructure"),

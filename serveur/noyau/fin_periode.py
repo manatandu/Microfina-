@@ -573,7 +573,12 @@ def controles(u, annee: int, mois: int | None) -> list[dict]:
     vi = lignes("""select c.numero from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join compte c on c.id = l.compte_id
                    where e.institution_id = %s and e.date_valeur <= %s and c.numero like '59%%' group by 1
                    having sum(case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end) <> 0 order by 1""", (i, fin))
-    ajouter("Virements internes (59) soldés", not vi, "Non soldés : " + ", ".join(r["numero"] for r in vi))
+    # Lecture du 27/11/2026 (registre T250) : le solde vient d'un retrait en banque comptabilisé que le guichet n'a pas encore reçu (réception en
+    # caisse), ou d'un reste de change que la réévaluation de fin de période ramène à zéro : le détail dit quoi faire
+    attendus = valeur("""select count(*) from operation_banque o join compte_bancaire cb on cb.id = o.compte_bancaire_id
+                         where cb.institution_id = %s and o.type = 'banque_caisse' and o.statut = 'comptabilisee' and o.recu_operation_id is null""", (i,))
+    ajouter("Virements internes (59) soldés", not vi, "Non soldés : " + ", ".join(r["numero"] for r in vi)
+            + (f". {attendus} retrait(s) en banque à recevoir au guichet (Caisse > Virements internes de trésorerie, Fonds à recevoir)" if attendus else ". Reste de change : passer la réévaluation de fin de période"))
     # Registre T233 : les comptes de liaison entre le siège et les agences, et entre agences, « sont soldés par agrégation » (PCCI, fiche du compte 45) ;
     # un solde pour toute l'institution dit des fonds en route, ou un reflet qui n'est pas encore passé dans l'autre agence
     li = lignes("""select c.numero from ligne_ecriture l join ecriture e on e.id = l.ecriture_id join compte c on c.id = l.compte_id
@@ -639,7 +644,7 @@ def controles(u, annee: int, mois: int | None) -> list[dict]:
     ajouter("Cautions reçues au plus égales au restant dû", not trop, "À ramener au restant dû (Crédit > Caution et nantissement > Libérer caution ; PCCI § 7.3.1.2) : " + ", ".join(sorted(trop)))
     from .incidents import ouverts                                     # B17 : traitement des incidents et dépassements (Instr. BCC 008, art. 49)
     no = ouverts(i)
-    ajouter("Incidents et dépassements régularisés", no == 0, f"{no} incident(s) ou dépassement(s) à traiter (Client > Conformité > Incidents et dépassements)")
+    ajouter("Incidents et dépassements régularisés", no == 0, f"{no} incident(s) ou dépassement(s) à traiter (Administration > Sécurité > Incidents et dépassements)")
     reste = sum(max(couru(x, fin) - x["interets_courus"], 0) for x in lignes(
         "select * from depot_terme where institution_id = %s and statut = 'valide' and date_depot <= %s", (i, fin)))
     ajouter("Intérêts courus des dépôts à terme", reste == 0, "À passer : Épargne > Dépôts à terme")

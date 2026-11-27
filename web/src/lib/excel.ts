@@ -1,22 +1,20 @@
 /** Export d'une grille vers Excel (manuel p. 9 : « Une grille peut être exportée vers Excel » ; registre T17).
- * Fichier au format « XML Spreadsheet 2003 », qu'Excel ouvre directement, sans bibliothèque. */
+ * Vrai classeur .xlsx, écrit sans bibliothèque (lib/xlsx.ts ; registre T247). Chaque export porte les filtres automatiques d'Excel sur sa ligne
+ * de titres (demande du porteur, 27/11/2026 ; registre T246). */
 import { traduire } from "./langue";
-const echapper = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+import { telechargerXlsx, xlsx } from "./xlsx";
 
-/** En anglais, les titres et les libellés de la grille sortent en anglais, comme à l'écran (registre T118) ; les montants et les données ne changent pas */
-export function exporterExcel(nom: string, entetes0: string[], lignes0: (string | number)[][]) {
+/** La feuille de l'export : le cartouche s'il y en a un (une ligne par mention, puis une ligne vide), la ligne des titres, puis les lignes ;
+ *  filtres sur les titres dès qu'il y a une ligne */
+export function grilleXlsx(nom: string, entetes: string[], lignes: (string | number)[][], cartouche: string[] = []) {
+  const avant: (string | number)[][] = cartouche.length ? [...cartouche.map((t) => [t]), []] : [], titres = avant.length + 1;
+  return xlsx([{ nom, lignes: [...avant, entetes, ...lignes].map((cellules) => ({ style: "", cellules })), filtre: { entete: titres, derniere: titres + lignes.length, colonnes: entetes.length } }]);
+}
+
+/** En anglais, les titres et les libellés de la grille sortent en anglais, comme à l'écran (registre T118) ; les montants et les données ne changent pas.
+ *  cartouche : mentions à porter au-dessus de la grille (en-tête des modèles du PCCI 14.1 à 14.3 ; registre T250) */
+export function exporterExcel(nom: string, entetes0: string[], lignes0: (string | number)[][], cartouche: string[] = []) {
   const entetes = entetes0.map(traduire), lignes = lignes0.map((l) => l.map((v) => (typeof v === "string" ? traduire(v) : v)));
   nom = traduire(nom);
-  const cellule = (v: string | number) => typeof v === "number"
-    ? `<Cell><Data ss:Type="Number">${v}</Data></Cell>` : `<Cell><Data ss:Type="String">${echapper(v)}</Data></Cell>`;
-  const ligne = (l: (string | number)[]) => `<Row>${l.map(cellule).join("")}</Row>`;
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-<Worksheet ss:Name="${echapper(nom.slice(0, 31))}"><Table>${ligne(entetes)}${lignes.map(ligne).join("")}</Table></Worksheet>
-</Workbook>`;
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([xml], { type: "application/vnd.ms-excel" }));
-  a.download = `${nom.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.xls`;
-  a.click(); URL.revokeObjectURL(a.href);
+  telechargerXlsx(nom, grilleXlsx(nom, entetes, lignes, cartouche));
 }

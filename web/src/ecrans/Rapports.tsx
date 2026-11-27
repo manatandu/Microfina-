@@ -4,8 +4,9 @@ import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees } from "../lib/useDonnees";
 import { debutExercice, jusquAujourdhui } from "../lib/dates";
-import { Champ, ChampDate, Chargement, Textes, Recherche } from "../composants";
-import { CATEGORIES, CRITERES_TRI, csv, dateReference, INCONNU, modifies, multicritere, prospects, synthese, valeur,
+import { Champ, ChampDate, Chargement, Textes, Recherche, Paginee } from "../composants";
+import { exporterExcel } from "../lib/excel";
+import { CATEGORIES, CRITERES_TRI, dateReference, INCONNU, modifies, multicritere, prospects, synthese, valeur,
   type ContexteRapport, type CriteresModifies, type CriteresMulticritere, type CriteresProspect, type LigneModifies, type Tri } from "../lib/rapports";
 
 const ONGLETS = ["Rapport multicritère", "Rapport prospect", "Rapport des clients modifiés"] as const;
@@ -15,11 +16,7 @@ const STATUTS: Record<Tiers["statut"], string> = { prospect: "Prospect", a_viser
 const debutAnnee = debutExercice;
 const aujourdhui = jusquAujourdhui;   // fiches et modifications sont datées à l'heure réelle (registre T120)
 
-function telecharger(nom: string, contenu: string) {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([contenu], { type: "text/csv;charset=utf-8" }));
-  a.download = nom; a.click(); URL.revokeObjectURL(a.href);
-}
+// Registre T246 (demande du porteur, 27/11/2026) : les rapports sortent en classeur Excel, filtres posés sur les titres (avant : fichier CSV)
 
 type Ctx = Awaited<ReturnType<typeof api.referentiel.contexte>>;
 type Agent = { id: number; nom: string };
@@ -77,8 +74,8 @@ function Multicritere({ ctx, cx, clients }: { ctx: Ctx; cx: ContexteRapport; cli
   const libelleTri = CRITERES_TRI.find(([k]) => k === c.tri)?.[1] ?? "";
   const exporter = () => {
     if (!lignes) return;
-    if (resultat === "detaille") telecharger("rapport-multicritere.csv", csv(entetes, lignes.map(valeurs)));
-    else if (s) telecharger("rapport-multicritere-synthese.csv", csv([libelleTri, "Nombre de clients"], [...s.groupes.map(([k, n]) => [k, String(n)]), ["Total", String(s.total)]]));
+    if (resultat === "detaille") exporterExcel("Rapport multicritère", entetes, lignes.map(valeurs));
+    else if (s) exporterExcel("Rapport multicritère, synthèse", [libelleTri, "Nombre de clients"], [...s.groupes.map(([k, n]): (string | number)[] => [k, n]), ["Total", s.total]]);
   };
   return (
     <>
@@ -127,15 +124,15 @@ function Multicritere({ ctx, cx, clients }: { ctx: Ctx; cx: ContexteRapport; cli
         <>
           <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={lignes.length === 0} onClick={exporter}>Exporter</button></div>
           {resultat === "detaille" ? (
-            <div className="grille-cadre">
+            <Paginee lignes={lignes}>{(visibles) => (<div className="grille-cadre">
               <table className={entetes.length > 8 ? "grille serree" : "grille"}>
                 <thead><tr>{entetes.map((e) => <th key={e} scope="col">{e}</th>)}</tr></thead>
                 <tbody>
                   {lignes.length === 0 && <tr><td colSpan={entetes.length}>Aucune ligne.</td></tr>}
-                  {lignes.map((t) => <tr key={t.id}>{valeurs(t).map((v, i) => <td key={i} className={i === 0 || i === entetes.length - 2 ? "chiffres" : undefined}>{v}</td>)}</tr>)}
+                  {visibles.map((t) => <tr key={t.id}>{valeurs(t).map((v, i) => <td key={i} className={i === 0 || i === entetes.length - 2 ? "chiffres" : undefined}>{v}</td>)}</tr>)}
                 </tbody>
               </table>
-            </div>
+            </div>)}</Paginee>
           ) : s && (
             <table className="grille">
               <thead><tr><th scope="col">{libelleTri}</th><th scope="col">Nombre de clients</th></tr></thead>
@@ -180,15 +177,15 @@ function Prospects({ ctx, clients }: { ctx: Ctx; clients: Tiers[] }) {
       <div className="actions-onglets">
         <button className="bouton" type="submit">Rechercher</button>
         <button className="bouton secondaire" type="button" disabled={!lignes || lignes.length === 0}
-          onClick={() => lignes && telecharger("rapport-prospects.csv", csv(entetes, lignes.map(valeurs)))}>Export</button>
+          onClick={() => lignes && exporterExcel("Rapport prospects", entetes, lignes.map(valeurs))}>Export</button>
       </div></Recherche>
-      <table className="grille">
+      <Paginee lignes={lignes ?? []}>{(visibles) => (<table className="grille">
         <thead><tr>{entetes.map((e) => <th key={e} scope="col">{e}</th>)}</tr></thead>
         <tbody>
           {(!lignes || lignes.length === 0) && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
-          {lignes?.map((t) => <tr key={t.id}>{valeurs(t).map((v, i) => <td key={i} className={i === 4 ? "chiffres" : undefined}>{v}</td>)}</tr>)}
+          {visibles.map((t) => <tr key={t.id}>{valeurs(t).map((v, i) => <td key={i} className={i === 4 ? "chiffres" : undefined}>{v}</td>)}</tr>)}
         </tbody>
-      </table>
+      </table>)}</Paginee>
     </>
   );
 }
@@ -219,15 +216,15 @@ function Modifies({ ctx, clients, modifs }: { ctx: Ctx; clients: Tiers[]; modifs
       <div className="actions-onglets">
         <button className="bouton" type="submit">Afficher</button>
         <button className="bouton secondaire" type="button" disabled={!lignes || lignes.length === 0}
-          onClick={() => lignes && telecharger("rapport-clients-modifies.csv", csv(entetes, lignes.map(valeurs)))}>Exporter</button>
+          onClick={() => lignes && exporterExcel("Rapport des clients modifiés", entetes, lignes.map(valeurs))}>Exporter</button>
       </div></Recherche>
-      <table className="grille">
+      <Paginee lignes={lignes ?? []}>{(visibles) => (<table className="grille">
         <thead><tr>{entetes.map((e) => <th key={e} scope="col">{e}</th>)}</tr></thead>
         <tbody>
           {(!lignes || lignes.length === 0) && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
-          {lignes?.map((l) => <tr key={`${l.date}${l.utilisateur}${l.numero}`}>{valeurs(l).map((v, i) => <td key={i} className={i === 0 || i === 2 || i === 4 ? "chiffres" : undefined}>{v}</td>)}</tr>)}
+          {visibles.map((l) => <tr key={`${l.date}${l.utilisateur}${l.numero}`}>{valeurs(l).map((v, i) => <td key={i} className={i === 0 || i === 2 || i === 4 ? "chiffres" : undefined}>{v}</td>)}</tr>)}
         </tbody>
-      </table>
+      </table>)}</Paginee>
     </>
   );
 }

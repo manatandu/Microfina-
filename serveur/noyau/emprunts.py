@@ -1,5 +1,5 @@
 """S61 : Banque > Emprunts bancaires (manuel Microfina++, p. 70, captures « Mise en place d'emprunt » et « Remboursement emprunt », sans texte).
-Mêmes règles que web/src/donnees/api.ts (emprunts). Comptes : PCCI, 533 (capital), 6020 ou 6021 (intérêts), 60702 (commissions) ;
+Mêmes règles que web/src/donnees/api.ts (emprunts). Comptes : PCCI, 533 (capital), 6020 ou 6021 (intérêts), 60701 ou 60702 (commissions) ; emprunt subordonné 1622 : 6306 et 6316 ;
 écritures passées à la comptabilisation (S111), numéro de pièce donné à ce moment (registre S61-1 à S61-7)."""
 import re
 import uuid
@@ -19,9 +19,22 @@ def entier(d, k, defaut=None):
     return v if isinstance(v, int) and not isinstance(v, bool) else None
 
 
-def compte_interet(duree_mois: int) -> str:
-    """PCCI, compte 602 : 6020 intérêts sur emprunts à plus d'un an, 6021 à moins d'un an"""
+def compte_interet(duree_mois: int, compte_emprunt: str = "") -> str:
+    """PCCI, compte 602 : 6020 intérêts sur emprunts à plus d'un an, 6021 à moins d'un an. Un emprunt inscrit en classe 1 (1622, subordonné) est une
+    ressource permanente : ses intérêts vont au compte 63 « Autres charges financières », 6306 « Intérêts sur autres emprunts à moyen et long terme »
+    (PCCI, fiche du compte 63 ; relecture du 27/11/2026, registre T250)"""
+    if compte_emprunt.startswith("1"):
+        return "6306"
     return "6020" if duree_mois > 12 else "6021"
+
+
+def compte_commission(compte_emprunt: str, compte_banque: str) -> str:
+    """PCCI : 6316 « Commissions sur autres emprunts à moyen et longs termes » pour un emprunt de la classe 1 ; sinon compte 6070 : 60701 « commissions
+    dues à l'organe faîtier » quand le compte bancaire est un NOSTRI de l'organe faîtier (5600), 60702 « commissions dues autres intermédiaires
+    financiers » (relecture du 27/11/2026, registre T250)"""
+    if compte_emprunt.startswith("1"):
+        return "6316"
+    return "60701" if compte_banque.startswith("5600") else "60702"
 
 
 def cle_de(d):
@@ -114,7 +127,7 @@ def vue(e: dict) -> dict:
     return {"id": e["id"], "numero": e["numero"], "compteBancaireId": e["compte_bancaire_id"], "banque": f"{b['nom']} {b['numero']}", "reference": e["reference"],
             "montant": e["montant"], "devise": e["devise"].strip(), "duree": e["duree_mois"], "dateEmprunt": e["date_emprunt"].isoformat(),
             "taux": str(e["taux_annuel"].normalize()).replace(".", ","), "totalInteret": e["total_interet"], "totalCommission": e["total_commission"],
-            "totalFrais": e["total_frais"], "commentaire": e["commentaire"] or "", "compteEmprunt": e["compte_emprunt"], "compteInteret": compte_interet(e["duree_mois"]),
+            "totalFrais": e["total_frais"], "commentaire": e["commentaire"] or "", "compteEmprunt": e["compte_emprunt"], "compteInteret": compte_interet(e["duree_mois"], e["compte_emprunt"]),
             "dateSaisie": e["date_saisie"].isoformat(), "piece": e["piece"] or "", "capitalRestant": capital_restant(e),
             "decisionConseil": e.get("decision_conseil") or "", "autorisationBcc": e.get("autorisation_bcc") or ""}
 

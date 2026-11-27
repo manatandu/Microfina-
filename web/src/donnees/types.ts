@@ -493,6 +493,7 @@ export interface Etat {
   activationsUtilisateurs?: { utilisateurId: number; actif: boolean; motif: string; par: number; le: string }[];   // S05 : désactivations (registre S05-4)
   paieMaquette: { id: number; employeId: number; rubriqueId: number; montant: number; session: string; active: boolean; intersession: boolean; permanente: boolean; saisiPar: number }[];   // S134
   paieRetenues: { id: number; employeId: number; typeId: number; session: string; montant: number; duree: number; statut: "saisie" | "visee"; saisiPar: number; visePar: number | null }[];   // S135
+  paieSessions?: PaieSession[];   // calcul de la paie, une par session et par agence (registre T251)
   periodesCloturees: { annee: number; mois: number; le: string; par: number }[];   // S127 : clôture informatique mensuelle (PCCI § 3.4)   // S124, S125 : une valeur par budget, type, période, ligne budgétaire et compte
   commandesFournisseurs: CommandeFournisseur[]; facturesFournisseurs: FactureFournisseur[]; reglementsFournisseurs: ReglementFournisseur[];   // S107
   chequesClients: ChequeClient[];   // S59
@@ -657,6 +658,14 @@ export type BalanceAgee = { id: number; date: string; lanceLe: string; lancePar:
   classe: "sain" | "impaye" | "douteux" | "irrecuperable" | "proroge" | "contentieux"; assimile: boolean }[] };
 
 /** S133 : Paie > Personnel > Nouvel employé (onglets Informations générales, Classification, Affectation, Contrat ; manuel p. 276, captures GRH p. 201 à 206) */
+/** Bulletin de paie d'un employé pour une session (registre T251 à T254 ; comme serveur/noyau/paie_calcul.py) */
+export interface BulletinPaie {
+  employeId: number; matricule: string; nomPrenoms: string; categorie: string; fonction: string; typeEmploye: string; personnesACharge: number; numeroSecuriteSociale: string;
+  gains: { libelle: string; montant: number; nature: "remuneration" | "nature" | "logement" | "indemnite" }[];
+  brut: number; remuneration: number; baseCnss: number; cnss: number; imposable: number; irpp: number; retenues: { libelle: string; compte: string; montant: number }[]; net: number;
+  employeur: { cnss: { libelle: string; taux: number; montant: number }[]; inpp: number; onem: number };
+}
+export interface PaieSession { id: number; agenceId: number; session: string; bulletins: BulletinPaie[]; parametres: { effectif: number; tauxInpp: number }; operationId: number; saisiPar: number; saisiLe: string }
 export interface PaieEmploye {
   id: number; agenceId: number | null; matricule: string; numeroSecuriteSociale: string; sexe: string; civilite: string; nom: string; prenoms: string; nomJeuneFille: string;
   situationMatrimoniale: string; dateNaissance: string; lieuNaissance: string; nationalite: string; groupeSanguin: string; contact1: string; contact2: string; adresse: string;

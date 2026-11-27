@@ -67,7 +67,7 @@ jobs:
         run: |
           if [ -f deploiement/config.env ]; then
             set -a; . deploiement/config.env; set +a
-            { echo "pret=oui"; echo "projet=$PROJET"; echo "fournisseur=$FOURNISSEUR"; echo "compte=$COMPTE"; echo "bd_hote=$BD_HOTE"; echo "bd_utilisateur=$BD_UTILISATEUR"; echo "bd_base=$BD_BASE"; } >> "$GITHUB_OUTPUT"
+            { echo "pret=oui"; echo "projet=$PROJET"; echo "site=${SITE:-$PROJET}"; echo "fournisseur=$FOURNISSEUR"; echo "compte=$COMPTE"; echo "bd_hote=$BD_HOTE"; echo "bd_utilisateur=$BD_UTILISATEUR"; echo "bd_base=$BD_BASE"; } >> "$GITHUB_OUTPUT"
           else
             echo "pret=non" >> "$GITHUB_OUTPUT"
             echo "::notice::deploiement/config.env absent : tests faits, rien de publié. Lancer l'installation unique (DEPLOIEMENT.md)."
@@ -134,17 +134,23 @@ jobs:
         if: steps.cfg.outputs.pret == 'oui'
         env:
           PROJET: ${{ steps.cfg.outputs.projet }}
+          SITE: ${{ steps.cfg.outputs.site }}
           VITE_DONNEES: serveur
         run: |
           cd web && npm ci && npx vite build --outDir dist --emptyOutDir && cd ..
+          # Adresse du logiciel : SITE.web.app (demande du porteur, 27/11/2026) ; l'adresse du projet renvoie vers elle (firebase.json)
+          npx --yes firebase-tools@14 hosting:sites:get "$SITE" --project "$PROJET" --non-interactive > /dev/null 2>&1 \
+            || npx --yes firebase-tools@14 hosting:sites:create "$SITE" --project "$PROJET" --non-interactive
           npx --yes firebase-tools@14 deploy --only hosting --project "$PROJET" --non-interactive
       - name: Contrôle du site publié
         if: steps.cfg.outputs.pret == 'oui'
         env:
           PROJET: ${{ steps.cfg.outputs.projet }}
+          SITE: ${{ steps.cfg.outputs.site }}
         run: |
           sleep 10
-          curl -fsS "https://$PROJET.web.app/api/session/mode" | tee /dev/stderr | grep -q '"motDePasseRequis": true'
+          curl -fsS "https://$SITE.web.app/api/session/mode" | tee /dev/stderr | grep -q '"motDePasseRequis": true'
+          if [ "$SITE" != "$PROJET" ]; then curl -sS -o /dev/null -w '%{http_code} %{redirect_url}\n' "https://$PROJET.web.app/" | tee /dev/stderr | grep -q "^301 https://$SITE.web.app"; fi
 
   verification:
     needs: deploiement

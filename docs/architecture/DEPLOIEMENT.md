@@ -12,6 +12,8 @@ Décision du porteur, 14/11/2026 : publier le logiciel officiel (pas la démonst
 | Secrets | Secret Manager | Clé du serveur, mot de passe et adresse de la base, premier mot de passe du chef. Jamais dans le dépôt. |
 | Images | Artifact Registry, dépôt `likelemba` | Une image par envoi. |
 
+Adresse du logiciel : **exofina.web.app** (demande du porteur du 27/11/2026, registre T255). C'est un second site Firebase du même projet (`SITE=exofina` dans `deploiement/config.env`), créé par l'envoi s'il n'existe pas ; l'adresse du projet, `dwacfina.web.app`, renvoie vers lui (redirection permanente, `firebase.json`). Un domaine acheté plus tard (exofina.com par exemple) se branche sur ce site : console Firebase > Hosting > site exofina > Ajouter un domaine personnalisé, puis les deux enregistrements DNS qu'elle affiche, chez le vendeur du domaine.
+
 Région : `europe-west1` (Belgique). Page web et serveur sont sur le même domaine : le cookie de session reste « même site » et seul `__session` traverse Firebase Hosting, d'où `LIKELEMBA_COOKIE=__session`.
 
 ## Ce que fait un envoi sur la branche
@@ -19,7 +21,7 @@ Région : `europe-west1` (Belgique). Page web et serveur sont sur le même domai
 1. Tests du serveur et de la page web. S'ils échouent, rien n'est publié.
 2. Construction de l'image, puis tâche `likelemba-preparer` : migrations, graine (uniquement si la base est vide), premier mot de passe des six comptes de démonstration (`jpmukendi`, `engalula`, `bkasongo`, `stshibanda`, `plumbala`, `gmbuyi`), le même pour tous, uniquement pour un compte qui n'en a pas (demande du porteur du 25/11/2026). Chacun le change ensuite depuis l'icône de clé.
 3. Mise à jour du serveur, puis des pages web.
-4. Contrôle : `/api/session/mode` doit répondre « mot de passe requis ».
+4. Contrôle : `/api/session/mode` doit répondre « mot de passe requis » sur exofina.web.app, et dwacfina.web.app doit renvoyer vers elle.
 
 GitHub se connecte à Google sans clé (Workload Identity Federation) : aucun secret à copier dans GitHub.
 
