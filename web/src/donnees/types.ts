@@ -393,6 +393,7 @@ export interface Etat {
   plaintes: Plainte[];   // écart E07
   // Balances des affiliées importées par la faîtière pour une date d'arrêté (loi 002/2002, art. 65 ; registre T235)
   consolidationBalances?: { id: number; date: string; sigle: string; denomination: string; agrement: string; resultat: number; anterieurs: number;
+    memo?: { apparentes: number; plusGros: number; decote: number; caisseCouverte: number; actifProductif: number; positions: Record<string, { position: number; volume: number }> };
     lignes: { compte: string; pcci: string; libelle: string; debit: number; credit: number; reseau: boolean }[]; importePar: number; importeLe: string }[];
   // Fonds envoyés à une autre agence, en route puis reçus ou repris (PCCI, compte 45 ; registre T233)
   transfertsAgence?: { id: number; origineId: number; destinationId: number; devise: Devise; montant: number; compte: "450" | "451"; statut: "envoye" | "recu" | "annule";

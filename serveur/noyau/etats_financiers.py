@@ -224,17 +224,8 @@ def bilan(u, p) -> dict:
 
 
 # ---------- Hors bilan (PCCI 14.1) ----------
-def hors_bilan(u, p) -> dict:
-    exiger(u)
-    p = p if isinstance(p, dict) else {}
-    du, au, ex = periode(u, p)
-    if (p.get("type") or "developpe") not in TYPES_HORS_BILAN:
-        raise ErreurMetier("Hors bilan inconnu.")
-    agence, vid, dans = agence_de(p), not vrai(p.get("sansVidage")), bornes(p, "0", "09999999")
-    sn, _, _ = soldes(u, au, ex, vidage=vid, agence=agence)
-    s1, _, _ = soldes(u, fin_precedent(ex), ex - 1, vidage=vid, agence=agence)
-    noms = intitules(u)
-
+def postes_hors_bilan(sn: dict, s1: dict, noms: dict, dans) -> list:
+    """Les postes du hors bilan au modèle du PCCI (chap. 10), sur deux balances : l'état de l'institution et le hors bilan consolidé d'un réseau"""
     def ligne(l):
         cs = sorted(k for k in set(sn) | set(s1) if k.startswith(tuple(l["comptes"])) and dans(k))
         return {"libelle": l["libelle"], "n": abs(sum(sn.get(k, 0) for k in cs)), "n1": abs(sum(s1.get(k, 0) for k in cs)),
@@ -244,7 +235,20 @@ def hors_bilan(u, p) -> dict:
     for x in MODELE["horsBilan"]:
         ls = [ligne(l) for l in x["lignes"]]
         postes.append({"code": x["code"], "libelle": x["libelle"], "n": sum(l["n"] for l in ls), "n1": sum(l["n1"] for l in ls), "lignes": ls})
-    return {"du": du.isoformat(), "au": au.isoformat(), "exercice": ex, "precedent": fin_precedent(ex).isoformat(), "type": p.get("type") or "developpe", "postes": postes}
+    return postes
+
+
+def hors_bilan(u, p) -> dict:
+    exiger(u)
+    p = p if isinstance(p, dict) else {}
+    du, au, ex = periode(u, p)
+    if (p.get("type") or "developpe") not in TYPES_HORS_BILAN:
+        raise ErreurMetier("Hors bilan inconnu.")
+    agence, vid, dans = agence_de(p), not vrai(p.get("sansVidage")), bornes(p, "0", "09999999")
+    sn, _, _ = soldes(u, au, ex, vidage=vid, agence=agence)
+    s1, _, _ = soldes(u, fin_precedent(ex), ex - 1, vidage=vid, agence=agence)
+    return {"du": du.isoformat(), "au": au.isoformat(), "exercice": ex, "precedent": fin_precedent(ex).isoformat(), "type": p.get("type") or "developpe",
+            "postes": postes_hors_bilan(sn, s1, intitules(u), dans)}
 
 
 # ---------- Compte de résultat (PCCI 14.2 ; classe 8) ----------

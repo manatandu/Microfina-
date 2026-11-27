@@ -6387,22 +6387,31 @@ def test_consolidation_du_reseau(clients, journee):
     assert "Date d'arrêté" in refus(compta.get(f"{CO}/export", **H))
     x = compta.get(f"{CO}/export", jour, **H).json()
     lg = x["contenu"].split("\r\n")
-    assert x["nom"] == "balance-consolidation-CTJ-2026-11-05.csv" and lg[:3] == ["Exofina;balance pour consolidation;1", "Institution;CTJ;COOPEC Tujenge;", "Arrêté;2026-11-05"]
-    assert lg[5] == "Compte;PCCI;Libellé;Débit;Crédit;Réseau" and lg[-2].startswith("Total;;;") and lg[-1] == ""
+    assert x["nom"] == "balance-consolidation-CTJ-2026-11-05.csv" and lg[:3] == ["Exofina;balance pour consolidation;2", "Institution;CTJ;COOPEC Tujenge;", "Arrêté;2026-11-05"]
+    # ce que la balance ne dit pas (normes sur une base consolidée, Instr. BCC 002, art. 2 ; cotisation sur l'actif productif, Instr. BCC 0011, art. 37)
+    assert [l.split(";")[0] for l in lg[5:10]] == ["Crédits et engagements aux apparentés", "Plus gros risque sur un seul membre", "Décote des dettes subordonnées",
+                                                   "Encaisse couverte par une assurance", "Actif productif moyen"]
+    assert lg[9] == "Actif productif moyen;0.00"                                    # il ne se calcule qu'à la fin de l'exercice
+    tete = lg.index("Compte;PCCI;Libellé;Débit;Crédit;Réseau")
+    assert all(l.startswith("Position de change;") for l in lg[10:tete]) and any(l.startswith("Position de change;USD;") for l in lg[10:tete])
+    assert lg[-2].startswith("Total;;;") and lg[-1] == ""
     assert "56220001;5622;COOPEC Bolingo, compte à vue;0.00;100000.00;O" in lg and "70400001;7040;Intérêts reçus de la COOPEC Bolingo;0.00;30000.00;O" in lg
-    assert all(l.endswith(";N") for l in lg[6:-2] if not l.startswith(("56220001", "70400001")))
+    assert all(l.endswith(";N") for l in lg[tete + 1:-2] if not l.startswith(("56220001", "70400001")))
     # 4. La faîtière : sa balance se lit dans ses livres ; elle importe celle de chaque affiliée
     executer("update institution set profil = 'faitiere'")
     dec = lambda v: f"{v // 100}.{v % 100:02d}"
-    def fichier(sigle, nom, lignes, resultat=0, arrete="2026-11-05"):
+    def fichier(sigle, nom, lignes, resultat=0, arrete="2026-11-05", version="2", apparentes=0, plus_gros=0, couverte=0, productif=0, change=()):
         corps = [f"{c};{p};{l};{dec(d)};{k and dec(k) or '0.00'};{r}" for c, p, l, d, k, r in lignes]
-        return "\r\n".join(["Exofina;balance pour consolidation;1", f"Institution;{sigle};{nom};A-{sigle}", f"Arrêté;{arrete}", f"Résultat en formation;{dec(resultat)}",
-                            "Résultats antérieurs non clôturés;0.00", "Compte;PCCI;Libellé;Débit;Crédit;Réseau", *corps,
+        return "\r\n".join([f"Exofina;balance pour consolidation;{version}", f"Institution;{sigle};{nom};A-{sigle}", f"Arrêté;{arrete}", f"Résultat en formation;{dec(resultat)}",
+                            "Résultats antérieurs non clôturés;0.00", f"Crédits et engagements aux apparentés;{dec(apparentes)}", f"Plus gros risque sur un seul membre;{dec(plus_gros)}",
+                            "Décote des dettes subordonnées;0.00", f"Encaisse couverte par une assurance;{dec(couverte)}", f"Actif productif moyen;{dec(productif)}",
+                            *[f"Position de change;{dv};{pos};{vol}" for dv, pos, vol in change], "Compte;PCCI;Libellé;Débit;Crédit;Réseau", *corps,
                             f"Total;;;{dec(sum(z[3] for z in lignes))};{dec(sum(z[4] for z in lignes))};{len(lignes)}", ""])
     bolingo = [("57000001", "570", "Caisse", 25_000_000, 0, "N"), ("56000001", "5600", "COOCEC, compte à vue", 10_000_000, 0, "O"),
                ("33000001", "330", "Épargne des membres", 0, 30_000_000, "N"), ("71000001", "710", "Intérêts sur crédits", 0, 8_000_000, "N"),
-               ("60410001", "6041", "Intérêts payés à la COOCEC", 3_000_000, 0, "O")]
-    bol = fichier("BOL", "COOPEC Bolingo", bolingo, 5_000_000)
+               ("60410001", "6041", "Intérêts payés à la COOCEC", 3_000_000, 0, "O"),
+               ("00120001", "0012", "Cautions données", 2_000_000, 0, "N"), ("09000001", "090", "Compte général des engagements donnés", 0, 2_000_000, "N")]
+    bol = fichier("BOL", "COOPEC Bolingo", bolingo, 5_000_000, apparentes=400_000, plus_gros=900_000_000, change=(("USD", "-1500.00", "9000.00"), ("EUR", "250.00", "250.00")))
     imp = lambda contenu, q=jour: compta.post(f"{CO}/import", {**q, "contenu": contenu}, **H)
     assert "faîtière elle-même" in refus(imp(x["contenu"]))
     assert "pas une balance pour consolidation" in refus(imp("Compte;Débit;Crédit\r\n570;1;1\r\n" * 4))
@@ -6413,13 +6422,17 @@ def test_consolidation_du_reseau(clients, journee):
     assert "aucun compte du PCCI" in refus(imp(fichier("BOL", "COOPEC Bolingo", [("49000001", "4900", "x", 1, 0, "N"), ("57000001", "570", "Caisse", 0, 1, "N")])))
     assert "en double" in refus(imp(fichier("BOL", "COOPEC Bolingo", [("57000001", "570", "Caisse", 1, 0, "N"), ("57000001", "570", "Caisse", 0, 1, "N")])))
     assert "montant illisible" in refus(imp(bol.replace("250000.00", "=1+1", 1)))
+    assert "autre version du logiciel" in refus(imp(fichier("BOL", "COOPEC Bolingo", bolingo, 5_000_000, version="1")))
+    assert "pas une balance pour consolidation" in refus(imp(bol.replace("Actif productif moyen", "Actif moyen")))
+    assert "position de change illisible" in refus(imp(bol.replace("Position de change;EUR", "Position de change;USD")))       # devise en double
+    assert "position de change illisible" in refus(imp(bol.replace("Position de change;EUR", "Position de change;CDF")))
     r = imp(bol)
     assert r.status_code == 200, r.content
     r = r.json()
     assert [(b["sigle"], b["propre"], b["reseauDebit"], b["reseauCredit"]) for b in r["balances"]] == [("CTJ", True, 0, 13_000_000), ("BOL", False, 13_000_000, 0)]
-    assert (r["balances"][1]["debit"], r["balances"][1]["credit"], r["balances"][1]["agrement"], r["balances"][1]["importePar"]) == (38_000_000, 38_000_000, "A-BOL", "Patrick Lumbala")
+    assert (r["balances"][1]["debit"], r["balances"][1]["credit"], r["balances"][1]["agrement"], r["balances"][1]["importePar"]) == (40_000_000, 40_000_000, "A-BOL", "Patrick Lumbala")
     assert [(z["compte"], z["debit"], z["credit"]) for z in r["retire"]] == [("5600", 10_000_000, 0), ("5622", 0, 10_000_000), ("6041", 3_000_000, 0), ("7040", 0, 3_000_000)]
-    assert (r["ecart"], r["accord"]) == ({"bilan": 0, "gestion": 0}, True)
+    assert (r["ecart"], r["accord"]) == ({"bilan": 0, "gestion": 0, "horsBilan": 0}, True)
     # 5. Les états consolidés : la somme des deux institutions, moins ce qu'elles se doivent et se facturent
     q = {"du": "2026-01-01", "au": "2026-11-05", "exercice": 2026}
     seul, res = compta.get(f"{EF}/bilan", q, **H).json(), compta.get(f"{EF}/resultat", {**q, "sansVidage": True}, **H).json()
@@ -6441,7 +6454,7 @@ def test_consolidation_du_reseau(clients, journee):
     kin = fichier("KIN", "COOPEC Kintambo", [("57000001", "570", "Caisse", 4_000_000, 0, "N"), ("56000001", "5600", "COOCEC, compte à vue", 4_000_000, 0, "O"),
                                               ("33000001", "330", "Épargne des membres", 0, 8_000_000, "N")])
     r = imp(kin).json()
-    assert (len(r["balances"]), r["ecart"], r["accord"], r["etats"]) == (3, {"bilan": 4_000_000, "gestion": 0}, False, None)
+    assert (len(r["balances"]), r["ecart"], r["accord"], r["etats"], r["normes"]) == (3, {"bilan": 4_000_000, "gestion": 0, "horsBilan": 0}, False, None, None)
     kid = next(z["id"] for z in r["balances"] if z["sigle"] == "KIN")
     assert "introuvable" in refus(compta.post(f"{CO}/0/retrait", jour, **H))
     r = compta.post(f"{CO}/{kid}/retrait", jour, **H).json()
@@ -6449,6 +6462,75 @@ def test_consolidation_du_reseau(clients, journee):
     # la faîtière seule, sans balance d'affiliée : rien à consolider
     r = compta.get(CO, {"au": "2026-10-31"}, **H).json()
     assert (len(r["balances"]), r["etats"]) == (1, None)
+    # 6 bis. Hors bilan consolidé, normes sur une base consolidée (Instr. BCC 002, art. 2), états du rapport annuel (Instr. BCC 0011, art. 47) ; registre T237
+    import math
+    r = compta.get(CO, jour, **H).json()
+    donnes = lambda e: next(z for z in e["postes"] if z["code"] == "00")["n"]
+    assert donnes(r["etats"]["horsBilan"]) == donnes(compta.get(f"{EF}/hors-bilan", q, **H).json()) + 2_000_000
+    seules = compta.get("/api/comptabilite/normes-prudentielles", {"date": "2026-11-05"}, **H).json()
+    nc, ns = {z["code"]: z for z in r["normes"]["normes"]}, {z["code"]: z for z in seules["normes"]}
+    assert "capital" not in nc and r["normes"]["depots"] == seules["depots"] + 30_000_000
+    # liquidité : la caisse de l'affiliée s'ajoute ; les comptes que les deux institutions tiennent l'une chez l'autre sont retirés
+    assert (nc["liquidite"]["numerateur"], nc["liquidite"]["denominateur"]) == (ns["liquidite"]["numerateur"] + 10_000_000 + 25_000_000, ns["liquidite"]["denominateur"] + 30_000_000)
+    # ce que la balance ne dit pas vient des fichiers : les apparentés s'additionnent, le plus gros risque est le plus gros de ceux déclarés, les positions de change s'additionnent
+    assert nc["apparentes"]["numerateur"] == ns["apparentes"]["numerateur"] + 400_000 and nc["division"]["numerateur"] == 900_000_000
+    assert nc["change_USD"]["numerateur"] == ns["change_USD"]["numerateur"] - 150_000 and nc["change_EUR"]["numerateur"] == 25_000
+    assert nc["correspondants"]["numerateur"] == ns["correspondants"]["numerateur"] and nc["connexes"]["ratio"] is None
+    # l'encaisse d'une affiliée assurée pèse 0 % au lieu de 20 % (art. 15)
+    avant = nc["solvabilite"]["denominateur"]
+    r = imp(fichier("BOL", "COOPEC Bolingo", bolingo, 5_000_000, couverte=25_000_000)).json()
+    assert next(z for z in r["normes"]["normes"] if z["code"] == "solvabilite")["denominateur"] == avant - 5_000_000
+    ra = r["rapport"]
+    assert [z["libelle"] for z in ra["depots"]] == ["Epargnes et comptes ordinaires", "Comptes sur livrets", "Dépôts à terme", "Dépôts à régime spécial",
+                                                    "Autres comptes de la clientèle ou des membres", "TOTAL"]
+    assert [z["libelle"] for z in ra["credits"]] == ["Crédits à long terme", "Crédits à moyen terme", "Crédits à court terme", "Créances litigieuses ou en retard", "TOTAL"]
+    assert [z["libelle"] for z in ra["placements"]] == ["Comptes NOSTRI et prêts à terme", "Titres à court terme", "Titres de participation", "TOTAL"]
+    for nom in ("depots", "credits", "placements"):
+        assert all(ra[nom][-1][k] == sum(z[k] for z in ra[nom][:-1]) for k in ("debut", "fin", "interets"))
+        for z in ra[nom]:
+            den = z["debut"] + z["fin"]
+            assert z["moyen"] == den // 2 and z["taux"] == (math.floor(z["interets"] / den * 20000 + 0.5) / 100 if den > 0 else None)
+    assert (ra["depots"][-1]["fin"], ra["placements"][0]["interets"]) == (seules["depots"], 3_000_000)     # les dépôts des membres ; les intérêts reçus de l'affiliée (compte 704)
+    # 6 ter. Cotisations des assujettis (Instr. BCC 0011, art. 29, 31 et 37) : à la fin de l'exercice seulement
+    assert r["cotisations"] is None
+    fin = {"au": "2026-12-31"}
+    bol31 = fichier("BOL", "COOPEC Bolingo", [("57000001", "570", "Caisse", 6_000_000, 0, "N"), ("32000001", "320", "Crédits de trésorerie", 20_000_000, 0, "N"),
+                                               ("38000001", "380", "Provisions sur créances en retard", 0, 1_000_000, "N"), ("56000001", "5600", "COOCEC, compte à vue", 10_000_000, 0, "O"),
+                                               ("33000001", "330", "Épargne des membres", 0, 38_000_000, "N"), ("60410001", "6041", "Intérêts payés à la COOCEC", 3_000_000, 0, "O")],
+                    -3_000_000, "2026-12-31", productif=12_000_000)
+    r = imp(bol31, fin)
+    assert r.status_code == 200, r.content
+    r = r.json()
+    co, actif = r["cotisations"], r["etats"]["bilan"]["totalActif"]["n"]
+    assert (co["exercice"], co["echeance"], co["securite"], co["generale"]) == (2026, "2027-06-30", 190_000, 720_000)
+    # 1 % de l'encours de crédit net (20 000 000 moins 1 000 000 de provisions) ; 6 % de l'actif productif moyen
+    assert co["lignes"] == [{"sigle": "BOL", "denomination": "COOPEC Bolingo", "encoursNet": 19_000_000, "securite": 190_000, "actifProductif": 12_000_000, "generale": 720_000}]
+    assert co["fonds"] == {"dotation": 0, "actifReseau": actif, "plafond": (actif + 5) // 10, "obligatoire": True}
+    from noyau import consolidation as conso
+    from datetime import date as jour_
+    vide = {"apparentes": 0, "plusGros": 0, "decote": 0, "caisseCouverte": 0, "actifProductif": 0, "positions": {}}
+    bs = [{"propre": True, "sigle": "F", "denomination": "F", "memo": vide, "lignes": [{"pcci": "1720", "debit": 0, "credit": 150, "reseau": False}]},
+          {"propre": False, "sigle": "A", "denomination": "A", "memo": {**vide, "actifProductif": 1_049}, "lignes": [{"pcci": "320", "debit": 1_050, "credit": 0, "reseau": False}]}]
+    x = conso.cotisations(bs, 1_000, jour_(2026, 12, 31))
+    assert x["fonds"] == {"dotation": 150, "actifReseau": 1_000, "plafond": 100, "obligatoire": False}          # art. 31 : au-delà de 10 % de l'actif du réseau
+    assert (x["lignes"][0]["securite"], x["lignes"][0]["generale"]) == (11, 63) and conso.cotisations(bs, 1_000, jour_(2026, 11, 30)) is None
+    # l'actif productif moyen de l'institution : moyenne des douze fins de mois de l'exercice (art. 37)
+    lg = compta.get(f"{CO}/export", fin, **H).json()["contenu"].split("\r\n")
+    tete = lg.index("Compte;PCCI;Libellé;Débit;Crédit;Réseau")
+    cent = lambda t: round(float(t) * 100)
+    productif = sum(max(cent(c[3]) - cent(c[4]), 0) for c in (l.split(";") for l in lg[tete + 1:-2]) if c[0].startswith(("30", "31", "32", "530", "560")))
+    assert lg[9] == f"Actif productif moyen;{dec((2 * productif + 6) // 12)}"          # ici, deux fins de mois portent les soldes de novembre
+    vraies, appels = conso.ef.soldes, []
+    def fausses(u_, au_, ex_, vidage):
+        appels.append(au_.isoformat())
+        return {"32000001": 1_200 * au_.month, "38000001": -50, "56010001": 100, "56220001": -900, "39000001": 77}, 0, 0
+    conso.ef.soldes = fausses
+    try:
+        assert conso.actif_productif({}, jour_(2026, 11, 30)) == 0 and appels == []
+        assert conso.actif_productif({}, jour_(2026, 12, 31)) == 7_900                # crédits sains et dépôts placés ; ni provisions, ni créances en retard, ni comptes créditeurs
+        assert appels == ["2026-01-31", "2026-02-28", "2026-03-31", "2026-04-30", "2026-05-31", "2026-06-30", "2026-07-31", "2026-08-31", "2026-09-30", "2026-10-31", "2026-11-30", "2026-12-31"]
+    finally:
+        conso.ef.soldes = vraies
     # 7. L'auditeur, en lecture seule, lit la consolidation ; importer et retirer demandent le droit des Clôtures (registres T209 et T235)
     executer("update utilisateur_profil set profil_id = (select id from profil where code = 'auditeur') where utilisateur_id = (select id from utilisateur where login = 'bkasongo')")
     audit = Client(); connecter(audit, "bkasongo")

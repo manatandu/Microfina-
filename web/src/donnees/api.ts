@@ -8989,14 +8989,36 @@ const EMPLOIS_RESULTAT: Record<string, [string, string]> = { reserveGenerale: ["
 const IMPUTATIONS_RESULTAT: Record<string, [string, string]> = { reservesFacultatives: ["1112", "Prélèvement sur les réserves facultatives"],
   reservesStatutaires: ["1111", "Prélèvement sur les réserves statutaires"], reportANouveau: ["121", "Report à nouveau déficitaire"] };
 
+/** Les postes du hors bilan au modèle du PCCI (chap. 10), sur deux balances : l'état de l'institution et le hors bilan consolidé d'un réseau */
+function postesHorsBilan(sn: Map<string, number>, s1: Map<string, number>, noms: Map<string, string>, dans: (k: string) => boolean) {
+  return ME.horsBilan.map((x) => { const lignes = x.lignes.map((l) => { const cs = [...new Set([...sn.keys(), ...s1.keys()])].filter((k) => commence(k, l.comptes) && dans(k)).sort();
+      return { libelle: l.libelle, n: Math.abs(cs.reduce((t, k) => t + (sn.get(k) ?? 0), 0)), n1: Math.abs(cs.reduce((t, k) => t + (s1.get(k) ?? 0), 0)),
+        comptes: cs.map((k) => ({ compte: k, intitule: noms.get(k) ?? "", n: Math.abs(sn.get(k) ?? 0), n1: Math.abs(s1.get(k) ?? 0) })) }; });
+    return { code: x.code, libelle: x.libelle, n: lignes.reduce((t, l) => t + l.n, 0), n1: lignes.reduce((t, l) => t + l.n1, 0), lignes }; });
+}
+
 // ---------- Consolidation d'un réseau par sa faîtière (demande du porteur du 26/11/2026 ; registre T235). Règles identiques côté serveur
 // (noyau/consolidation.py). Loi 002/2002, art. 65 ; Instr. BCC 0011, art. 47 ; PCCI § 10.3 « Appartenance au réseau » ; PCCI § 4.3.8.
 // Aucun texte lu ne donne la méthode : les balances s'additionnent, compte du PCCI par compte du PCCI, puis les comptes que les institutions ont
 // marqués « Réseau » sont retirés. Les comptes réciproques doivent s'accorder ; sinon l'écart est montré et les états ne s'établissent pas. ----------
 type LigneBalanceReseau = { compte: string; pcci: string; libelle: string; debit: number; credit: number; reseau: boolean };
-type BalanceReseau = { sigle: string; denomination: string; agrement: string; date: string; resultat: number; anterieurs: number; lignes: LigneBalanceReseau[] };
+type MemoReseau = { apparentes: number; plusGros: number; decote: number; caisseCouverte: number; actifProductif: number; positions: Record<string, { position: number; volume: number }> };
+type BalanceReseau = { sigle: string; denomination: string; agrement: string; date: string; resultat: number; anterieurs: number; memo: MemoReseau; lignes: LigneBalanceReseau[] };
 type BalanceReunie = BalanceReseau & { id: number | null; propre: boolean; importeLe: string; importePar: string };
-const ENTETE_CONSO = ["Exofina", "balance pour consolidation", "1"], COLONNES_CONSO = ["Compte", "PCCI", "Libellé", "Débit", "Crédit", "Réseau"];
+const ENTETE_CONSO = ["Exofina", "balance pour consolidation", "2"], COLONNES_CONSO = ["Compte", "PCCI", "Libellé", "Débit", "Crédit", "Réseau"];
+// Suite (demande du porteur du 27/11/2026 ; registre T237) : hors bilan consolidé ; normes sur une base consolidée (Instr. BCC 002, art. 2) ; cotisations des
+// assujettis (Instr. BCC 0011, art. 29, 31 et 37 ; PCCI, compte 172) ; états du rapport annuel (art. 47). Ce que la balance ne dit pas voyage dans le fichier.
+const MEMOS_CONSO: [Exclude<keyof MemoReseau, "positions">, string][] = [["apparentes", "Crédits et engagements aux apparentés"], ["plusGros", "Plus gros risque sur un seul membre"],
+  ["decote", "Décote des dettes subordonnées"], ["caisseCouverte", "Encaisse couverte par une assurance"], ["actifProductif", "Actif productif moyen"]];
+const CHANGE_CONSO = "Position de change", DEVISES_MAX_CONSO = 30;
+const PRODUCTIFS_CONSO = ["30", "31", "32", "530", "560"], ENCOURS_NET_CONSO = ["30", "31", "32", "38", "39"], FONDS_SECURITE = "172";
+type CategorieRapport = [string, string[], string[]];
+const DEPOTS_RAPPORT: CategorieRapport[] = [["Epargnes et comptes ordinaires", ["330", "331", "334"], ["610"]], ["Comptes sur livrets", ["332"], ["611"]], ["Dépôts à terme", ["34"], ["612"]],
+  ["Dépôts à régime spécial", ["35"], ["613"]], ["Autres comptes de la clientèle ou des membres", ["36"], ["615"]]];
+const CREDITS_RAPPORT: CategorieRapport[] = [["Crédits à long terme", ["30"], ["710"]], ["Crédits à moyen terme", ["31"], ["711"]], ["Crédits à court terme", ["32"], ["712"]],
+  ["Créances litigieuses ou en retard", ["39"], ["717"]]];
+const PLACEMENTS_RAPPORT: CategorieRapport[] = [["Comptes NOSTRI et prêts à terme", ["530", "560"], ["702", "704"]], ["Titres à court terme", ["52"], ["732"]], ["Titres de participation", ["25"], ["730"]]];
+const MEMO_VIDE = (): MemoReseau => ({ apparentes: 0, plusGros: 0, decote: 0, caisseCouverte: 0, actifProductif: 0, positions: {} });
 const MONTANT_MAX_CONSO = 9_000_000_000_000_000, LIGNES_MAX_CONSO = 20_000, TAILLE_MAX_CONSO = 2_000_000;
 const estFaitiere = () => E.institution.profil === "faitiere";
 const ENSEMBLE_PCCI = new Set(NUMEROS_PCCI);
@@ -9009,15 +9031,27 @@ function balancePropre(au: string): BalanceReseau {
   const ex = Number(au.slice(0, 4)), { s, resultat, anterieurs } = soldesEf(au, ex, true), parts = partsTiersEf(au, true), gestion = mouvementsGestionEf(`${ex}-01-01`, au, false);
   const noms = intitulesComptes(), marques = new Set(E.comptesInstitution.filter((c) => c.reseau).map((c) => c.numero)), lignes: LigneBalanceReseau[] = [];
   for (const n of [...new Set([...s.keys(), ...gestion.keys()])].sort()) {
-    if (!"12345678".includes(n[0]!)) continue;
+    if (!"012345678".includes(n[0]!)) continue;
     let debit: number, credit: number;
     if ("678".includes(n[0]!)) { const v = gestion.get(n) ?? 0; debit = Math.max(v, 0); credit = Math.max(0 - v, 0); }
     else if (parts.has(n)) { const [d, c] = parts.get(n)!; debit = d; credit = 0 - c; }
     else { const v = s.get(n) ?? 0; debit = Math.max(v, 0); credit = Math.max(0 - v, 0); }
     if (debit || credit) lignes.push({ compte: n, pcci: pcciDe(n), libelle: noms.get(n) ?? "", debit, credit, reseau: marques.has(n) });
   }
-  const i = E.institution;
-  return { sigle: (i.sigle ?? "").trim(), denomination: i.nom, agrement: i.numeroAgrement ?? "", date: au, resultat, anterieurs, lignes };
+  const i = E.institution, el = elementsNormes(au, s);
+  const memo: MemoReseau = { apparentes: el.apparentes, plusGros: Math.max(0, ...el.groupes.values()), decote: el.decote,
+    caisseCouverte: assuranceCourante(au) ? somme([...s].filter(([k, v]) => k.startsWith("57") && v > 0).map(([, v]) => v)) : 0, actifProductif: actifProductifMoyen(au), positions: el.positions };
+  return { sigle: (i.sigle ?? "").trim(), denomination: i.nom, agrement: i.numeroAgrement ?? "", date: au, resultat, anterieurs, memo, lignes };
+}
+/** Instr. BCC 0011, art. 37 : moyenne des douze fins de mois de l'exercice. Elle n'a de sens qu'à la fin de l'exercice : zéro à une autre date. */
+function actifProductifMoyen(au: string) {
+  if (au.slice(5) !== "12-31") return 0;
+  const an = Number(au.slice(0, 4)); let total = 0;
+  for (let m = 1; m <= 12; m++) {
+    const fin = new Date(Date.UTC(an, m, 0)).toISOString().slice(0, 10);       // dernier jour du mois, calcul de calendrier sans fuseau
+    for (const [k, v] of soldesEf(fin, an, true).s) if (v > 0 && PRODUCTIFS_CONSO.some((x) => k.startsWith(x))) total += v;
+  }
+  return Math.floor((total + 6) / 12);
 }
 /** Ce qui manque pour que le bilan de la balance s'équilibre : actif moins passif, résultat compris */
 const equilibreConso = (b: BalanceReseau) => somme(b.lignes.filter((l) => "12345".includes(l.compte[0]!)).map((l) => l.debit - l.credit)) - b.resultat - b.anterieurs;
@@ -9025,7 +9059,8 @@ const equilibreConso = (b: BalanceReseau) => somme(b.lignes.filter((l) => "12345
 function ecrireBalance(b: BalanceReseau) {
   const cel = (v: string) => (/[";\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
   const rangs = [ENTETE_CONSO, ["Institution", b.sigle, b.denomination, b.agrement], ["Arrêté", b.date], ["Résultat en formation", decimalConso(b.resultat)],
-    ["Résultats antérieurs non clôturés", decimalConso(b.anterieurs)], COLONNES_CONSO,
+    ["Résultats antérieurs non clôturés", decimalConso(b.anterieurs)], ...MEMOS_CONSO.map(([cle, libelle]) => [libelle, decimalConso(b.memo[cle])]),
+    ...Object.keys(b.memo.positions).sort().map((dv) => [CHANGE_CONSO, dv, decimalConso(b.memo.positions[dv]!.position), decimalConso(b.memo.positions[dv]!.volume)]), COLONNES_CONSO,
     ...b.lignes.map((l) => [l.compte, l.pcci, l.libelle, decimalConso(l.debit), decimalConso(l.credit), l.reseau ? "O" : "N"]),
     ["Total", "", "", decimalConso(somme(b.lignes.map((l) => l.debit))), decimalConso(somme(b.lignes.map((l) => l.credit))), String(b.lignes.length)]];
   return rangs.map((r) => r.map(cel).join(";") + "\r\n").join("");
@@ -9058,20 +9093,32 @@ function lireFichierBalance(contenu: unknown): BalanceReseau {
   if (contenu.length > TAILLE_MAX_CONSO) throw new ErreurMetier("Fichier de balance : trop lourd.");
   const rangs = lireCsvConso(contenu.replace(/^\ufeff/, "")), net = (r?: string[]) => (r ?? []).map((x) => x.trim()), pareil = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
   const autre = "Fichier de balance : ce n'est pas une balance pour consolidation.";
-  if (rangs.length < 7 || !pareil(net(rangs[0]).slice(0, 3), ENTETE_CONSO) || !pareil(net(rangs[5]).slice(0, 6), COLONNES_CONSO)) throw new ErreurMetier(autre);
+  const tete = net(rangs[0]);
+  if (rangs.length && pareil(tete.slice(0, 2), ENTETE_CONSO.slice(0, 2)) && tete[2] !== ENTETE_CONSO[2]) throw new ErreurMetier("Fichier de balance : il vient d'une autre version du logiciel ; l'affiliée l'exporte de nouveau.");
+  if (rangs.length < 12 || !pareil(tete.slice(0, 3), ENTETE_CONSO)) throw new ErreurMetier(autre);
   const inst = net(rangs[1]), arr = net(rangs[2]);
   if (inst.length < 3 || inst[0] !== "Institution" || !inst[1] || !inst[2] || arr.length < 2 || arr[0] !== "Arrêté") throw new ErreurMetier(autre);
   if (inst[1]!.length > 30 || inst[2]!.length > 200) throw new ErreurMetier("Fichier de balance : sigle ou dénomination trop long.");
   if (!DATE_ISO.test(arr[1]!) || Number.isNaN(Date.parse(`${arr[1]}T00:00:00Z`))) throw new ErreurMetier("À remplir : Date d'arrêté du fichier.");
   const b: BalanceReseau = { sigle: inst[1]!, denomination: inst[2]!, agrement: (inst[3] ?? "").slice(0, 60), date: arr[1]!, resultat: montantConso(rangs[3]![1], "Résultat en formation", true),
-    anterieurs: montantConso(rangs[4]![1], "Résultats antérieurs non clôturés", true), lignes: [] };
-  const corps = rangs.slice(6, -1), total = net(rangs[rangs.length - 1]);
+    anterieurs: montantConso(rangs[4]![1], "Résultats antérieurs non clôturés", true), memo: MEMO_VIDE(), lignes: [] };
+  MEMOS_CONSO.forEach(([cle, libelle], i) => { const r = net(rangs[5 + i]); if (r[0] !== libelle) throw new ErreurMetier(autre); b.memo[cle] = montantConso(r[1], libelle); });
+  let k = 5 + MEMOS_CONSO.length;
+  while (k < rangs.length && net(rangs[k])[0] === CHANGE_CONSO) {
+    const r = [...net(rangs[k]), "", "", "", ""], dv = r[1]!;
+    if (!/^[A-Z]{3}$/.test(dv) || dv === "CDF" || dv in b.memo.positions || Object.keys(b.memo.positions).length >= DEVISES_MAX_CONSO) throw new ErreurMetier("Fichier de balance : position de change illisible.");
+    b.memo.positions[dv] = { position: montantConso(r[2], CHANGE_CONSO, true), volume: montantConso(r[3], CHANGE_CONSO) };
+    k++;
+  }
+  if (k >= rangs.length - 1 || !pareil(net(rangs[k]).slice(0, 6), COLONNES_CONSO)) throw new ErreurMetier(autre);
+  const premier = k + 2;                                // numéro, dans le fichier, de la première ligne de compte
+  const corps = rangs.slice(k + 1, -1), total = net(rangs[rangs.length - 1]);
   if (total[0] !== "Total" || total.length < 6) throw new ErreurMetier("Fichier de balance : la ligne des totaux manque ; le fichier est incomplet.");
   if (corps.length > LIGNES_MAX_CONSO) throw new ErreurMetier("Fichier de balance : trop de lignes.");
   const vus = new Set<string>();
   corps.forEach((brut, i) => {
-    const k = i + 7, r = [...net(brut), "", "", "", "", "", ""], compte = r[0]!, reseau = r[5]!.toUpperCase();
-    if (!/^[1-8][0-9]{0,19}$/.test(compte)) throw new ErreurMetier(`Fichier de balance, ligne ${k} : compte illisible.`);
+    const k = i + premier, r = [...net(brut), "", "", "", "", "", ""], compte = r[0]!, reseau = r[5]!.toUpperCase();
+    if (!/^[0-8][0-9]{0,19}$/.test(compte)) throw new ErreurMetier(`Fichier de balance, ligne ${k} : compte illisible.`);
     const parent = pcciDe(compte);          // le rattachement se refait ici : la colonne PCCI du fichier n'est qu'une lecture
     if (!parent) throw new ErreurMetier(`Fichier de balance, ligne ${k} : le compte ${compte} n'est rattaché à aucun compte du PCCI.`);
     if (vus.has(compte)) throw new ErreurMetier(`Fichier de balance, ligne ${k} : le compte ${compte} est en double.`);
@@ -9091,7 +9138,7 @@ function exigerFaitiere() { exiger(); if (!estFaitiere()) throw new ErreurMetier
 function balancesReunies(au: string): BalanceReunie[] {
   return [{ ...balancePropre(au), id: null, propre: true, importeLe: "", importePar: "" },
     ...(E.consolidationBalances ?? []).filter((x) => x.date === au).sort((a, b) => a.sigle.localeCompare(b.sigle))
-      .map((x) => ({ sigle: x.sigle, denomination: x.denomination, agrement: x.agrement, date: au, resultat: x.resultat, anterieurs: x.anterieurs, lignes: x.lignes, id: x.id, propre: false,
+      .map((x) => ({ sigle: x.sigle, denomination: x.denomination, agrement: x.agrement, date: au, resultat: x.resultat, anterieurs: x.anterieurs, memo: { ...MEMO_VIDE(), ...x.memo }, lignes: x.lignes, id: x.id, propre: false,
         importeLe: x.importeLe, importePar: nomUtilisateur(x.importePar) }))];
 }
 /** Addition des balances, compte du PCCI par compte du PCCI, puis retrait des comptes marqués « Réseau ». Comme le serveur (consolidation.consolider). */
@@ -9099,7 +9146,7 @@ function consoliderBalances(bs: BalanceReseau[]) {
   const cumul = new Map<string, [number, number]>(), retire = new Map<string, [number, number]>();
   for (const b of bs) for (const l of b.lignes) { const cible = l.reseau ? retire : cumul, x = cible.get(l.pcci) ?? [0, 0]; x[0] += l.debit; x[1] += l.credit; cible.set(l.pcci, x); }
   const ecartDe = (classes: string) => somme([...retire].filter(([n]) => classes.includes(n[0]!)).map(([, [d, c]]) => d - c));
-  return { cumul, retire, ecart: { bilan: ecartDe("12345"), gestion: ecartDe("678") }, resultat: somme(bs.map((b) => b.resultat)), anterieurs: somme(bs.map((b) => b.anterieurs)) };
+  return { cumul, retire, ecart: { bilan: ecartDe("12345"), gestion: ecartDe("678"), horsBilan: ecartDe("0") }, resultat: somme(bs.map((b) => b.resultat)), anterieurs: somme(bs.map((b) => b.anterieurs)) };
 }
 /** Bilan et compte de résultat consolidés, aux modèles du PCCI (chap. 14). Comme le serveur (consolidation.etats_consolides). */
 function etatsConsolides(c: ReturnType<typeof consoliderBalances>, c1: ReturnType<typeof consoliderBalances> | null, au: string) {
@@ -9117,11 +9164,50 @@ function etatsConsolides(c: ReturnType<typeof consoliderBalances>, c1: ReturnTyp
     return { signe: m.signe ?? "", solde: !!m.solde, libelle: m.libelle, n: n.r[i]!.valeur, n1: n1.r[i]!.valeur,
       comptes: cles.map((k) => ({ compte: k, intitule: noms.get(k) ?? "", n: n.r[i]!.comptes.get(k) ?? 0, n1: n1.r[i]!.comptes.get(k) ?? 0 })) }; });
   const total = (l: { n: number; n1: number }[]) => ({ n: somme(l.map((x) => x.n)), n1: somme(l.map((x) => x.n1)) }), ta = total(actif), tp = total(passif);
+  const hors = (x: ReturnType<typeof consoliderBalances> | null) => new Map(x ? [...x.cumul].filter(([k]) => k[0] === "0").map(([k, [d, c]]) => [k, d - c] as [string, number]) : []);
   return { bilan: { au, precedent: `${ex - 1}-12-31`, actif, passif, totalActif: ta, totalPassif: tp, equilibre: ta.n === tp.n && ta.n1 === tp.n1 },
-    resultat: { du: `${ex}-01-01`, au, lignes } };
+    resultat: { du: `${ex}-01-01`, au, lignes },
+    // Le hors bilan consolidé s'établit quand les engagements réciproques retirés s'accordent
+    horsBilan: c.ecart.horsBilan ? null : { au, precedent: `${ex - 1}-12-31`, postes: postesHorsBilan(hors(c), hors(c1), noms, tout) } };
+}
+/** Instr. BCC 002, art. 2 : les normes sur une base consolidée. Comme le serveur (consolidation.normes_consolidees). */
+function normesConsolidees(bs: BalanceReunie[], c: ReturnType<typeof consoliderBalances>, c1: ReturnType<typeof consoliderBalances> | null, usd: number) {
+  const s = new Map<string, number>();
+  for (const [n, [d, k]] of c.cumul) if ("012345".includes(n[0]!)) { if (d) s.set(n, d); if (k) s.set(`${n}~`, 0 - k); }
+  const produits = (x: ReturnType<typeof consoliderBalances>, pref: string[]) => 0 - somme([...x.cumul].filter(([n]) => pref.some((q) => n.startsWith(q))).map(([, [d, k]]) => d - k));
+  const positions: Record<string, { position: number; volume: number }> = {};
+  for (const b of bs) for (const [dv, x] of Object.entries(b.memo.positions)) { const t = (positions[dv] ??= { position: 0, volume: 0 }); t.position += x.position; t.volume += x.volume; }
+  const correspondant = Math.max(0, ...bs.flatMap((b) => b.lignes.filter((l) => !l.reseau && (l.pcci.startsWith("53") || l.pcci.startsWith("56"))).map((l) => l.debit - l.credit)));
+  return calculerNormes("faitiere", s, c.resultat + c.anterieurs, produits(c, CONNEXES), c1 ? produits(c1, ["7"]) : 0, positions, new Map(bs.map((b) => [b.sigle, b.memo.plusGros])),
+    somme(bs.map((b) => b.memo.apparentes)), usd, false, somme(bs.map((b) => b.memo.decote)), correspondant, somme(bs.map((b) => b.memo.caisseCouverte)));
+}
+/** Instr. BCC 0011, art. 29, 31 et 37 : ce que chaque assujetti doit à la faîtière, sur sa balance de fin d'exercice. Comme le serveur (consolidation.cotisations). */
+function cotisationsReseau(bs: Pick<BalanceReunie, "propre" | "sigle" | "denomination" | "memo" | "lignes">[], actifReseau: number | null, au: string) {
+  if (au.slice(5) !== "12-31") return null;
+  const an = Number(au.slice(0, 4));
+  const lignes = bs.filter((b) => !b.propre).map((b) => { const net = Math.max(somme(b.lignes.filter((l) => ENCOURS_NET_CONSO.some((x) => l.pcci.startsWith(x))).map((l) => l.debit - l.credit)), 0), ap = b.memo.actifProductif;
+    return { sigle: b.sigle, denomination: b.denomination, encoursNet: net, securite: Math.floor((net + 50) / 100), actifProductif: ap, generale: Math.floor((ap * 6 + 50) / 100) }; });
+  const dotation = somme(bs.find((b) => b.propre)!.lignes.filter((l) => l.pcci.startsWith(FONDS_SECURITE)).map((l) => l.credit - l.debit));
+  const plafond = actifReseau === null ? null : Math.floor((actifReseau + 5) / 10);
+  return { exercice: an, echeance: `${an + 1}-06-30`, lignes, securite: somme(lignes.map((x) => x.securite)), generale: somme(lignes.map((x) => x.generale)),
+    fonds: { dotation, actifReseau, plafond, obligatoire: plafond === null ? null : dotation < plafond } };
+}
+/** Instr. BCC 0011, art. 47 : les deux états que le rapport annuel de la faîtière ajoute, lus dans ses livres. Comme le serveur (consolidation.rapport_annuel). */
+function rapportAnnuelReseau(au: string) {
+  const ex = Number(au.slice(0, 4)), fin = soldesEf(au, ex, true).s, debut = soldesEf(`${ex - 1}-12-31`, ex - 1, true).s, mv = mouvementsGestionEf(`${ex}-01-01`, au, false);
+  const solde = (x: Map<string, number>, pref: string[]) => somme([...x].filter(([k]) => pref.some((q) => k.startsWith(q))).map(([, v]) => v));
+  const etat = (categories: CategorieRapport[], passif: boolean) => {
+    const sens = passif ? -1 : 1;
+    const lg: { libelle: string; total?: boolean; debut: number; fin: number; interets: number }[] = categories.map(([libelle, comptes, interets]) =>
+      ({ libelle, debut: sens * solde(debut, comptes) || 0, fin: sens * solde(fin, comptes) || 0, interets: (0 - sens) * solde(mv, interets) || 0 }));
+    lg.push({ libelle: "TOTAL", total: true, debut: somme(lg.map((x) => x.debut)), fin: somme(lg.map((x) => x.fin)), interets: somme(lg.map((x) => x.interets)) });
+    return lg.map((x) => { const den = x.debut + x.fin; return { ...x, moyen: Math.floor(den / 2), taux: den > 0 ? Math.round(x.interets / den * 20000) / 100 : null }; });
+  };
+  return { du: `${ex}-01-01`, au, precedent: `${ex - 1}-12-31`, depots: etat(DEPOTS_RAPPORT, true), credits: etat(CREDITS_RAPPORT, false), placements: etat(PLACEMENTS_RAPPORT, false) };
 }
 type EtatsConsolides = ReturnType<typeof etatsConsolides>;
-type EtatConsolidation = { faitiere: boolean; sigle: string; affiliation: string; au?: string; accord?: boolean; ecart?: { bilan: number; gestion: number }; etats?: EtatsConsolides | null;
+type EtatConsolidation = { faitiere: boolean; sigle: string; affiliation: string; au?: string; accord?: boolean; ecart?: { bilan: number; gestion: number; horsBilan: number }; etats?: EtatsConsolides | null;
+  normes?: ReturnType<typeof normesConsolidees> | null; cotisations?: ReturnType<typeof cotisationsReseau>; rapport?: ReturnType<typeof rapportAnnuelReseau>;
   balances?: { id: number | null; sigle: string; denomination: string; agrement: string; propre: boolean; debit: number; credit: number; reseauDebit: number; reseauCredit: number; importeLe: string; importePar: string }[];
   retire?: { compte: string; intitule: string; debit: number; credit: number }[] };
 const consolidation = {
@@ -9132,15 +9218,16 @@ const consolidation = {
     if (!out.faitiere || !p?.au) return out;
     const au = dateConso(p), bs = balancesReunies(au), c = consoliderBalances(bs), noms = intitulesComptes();
     const accord = !c.ecart.bilan && !c.ecart.gestion;
-    let etats: EtatsConsolides | null = null;
+    let etats: EtatsConsolides | null = null, normesReseau: EtatConsolidation["normes"] = null;
     if (accord && bs.length > 1) {
       // Colonne N-1 : la consolidation arrêtée à la fin de l'exercice précédent, quand des balances d'affiliées y ont été importées et qu'elle s'accorde
       const avant = balancesReunies(`${Number(au.slice(0, 4)) - 1}-12-31`);
       let c1 = avant.length > 1 ? consoliderBalances(avant) : null;
       if (c1 && (c1.ecart.bilan || c1.ecart.gestion)) c1 = null;
       etats = etatsConsolides(c, c1, au);
+      normesReseau = normesConsolidees(bs, c, c1, coursDe("USD", au));
     }
-    return { ...out, au, accord, ecart: c.ecart, etats,
+    return { ...out, au, accord, ecart: c.ecart, etats, normes: normesReseau, rapport: rapportAnnuelReseau(au), cotisations: bs.length > 1 ? cotisationsReseau(bs, etats ? etats.bilan.totalActif.n : null, au) : null,
       balances: bs.map((b) => ({ id: b.id, sigle: b.sigle, denomination: b.denomination, agrement: b.agrement, propre: b.propre, debit: somme(b.lignes.map((l) => l.debit)), credit: somme(b.lignes.map((l) => l.credit)),
         reseauDebit: somme(b.lignes.filter((l) => l.reseau).map((l) => l.debit)), reseauCredit: somme(b.lignes.filter((l) => l.reseau).map((l) => l.credit)), importeLe: b.importeLe, importePar: b.importePar })),
       retire: [...c.retire].sort((a, b) => a[0].localeCompare(b[0])).map(([compte, [debit, credit]]) => ({ compte, intitule: noms.get(compte) ?? "", debit, credit })) };
@@ -9160,7 +9247,7 @@ const consolidation = {
     if (b.date !== au) throw new ErreurMetier(`Ce fichier est arrêté au ${b.date.slice(8)}/${b.date.slice(5, 7)}/${b.date.slice(0, 4)}, pas à la date demandée.`);
     if (b.sigle.toUpperCase() === (E.institution.sigle ?? "").trim().toUpperCase()) throw new ErreurMetier("Ce fichier est la balance de la faîtière elle-même : elle se lit dans ses livres.");
     const liste = (E.consolidationBalances ??= []), ancien = liste.find((x) => x.date === au && x.sigle === b.sigle);
-    const x = { id: ancien?.id ?? prochain(liste), date: au, sigle: b.sigle, denomination: b.denomination, agrement: b.agrement, resultat: b.resultat, anterieurs: b.anterieurs, lignes: b.lignes, importePar: u.id,
+    const x = { id: ancien?.id ?? prochain(liste), date: au, sigle: b.sigle, denomination: b.denomination, agrement: b.agrement, resultat: b.resultat, anterieurs: b.anterieurs, memo: b.memo, lignes: b.lignes, importePar: u.id,
       importeLe: new Date().toISOString() };
     if (ancien) Object.assign(ancien, x); else liste.push(x);
     enregistrer(); return consolidation.etat(p);
@@ -9206,12 +9293,8 @@ const etatsFinanciers = {
     lectureAdmin(["S122"]);
     const { du, au, ex } = periodeEtat(p), type = p.type || "developpe";
     if (!TYPES_HB[type]) throw new ErreurMetier("Hors bilan inconnu.");
-    const vid = !p.sansVidage, dans = bornesEf(p, "0", "09999999"), precedent = `${ex - 1}-12-31`, noms = intitulesComptes(), sn = soldesEf(au, ex, vid).s, s1 = soldesEf(precedent, ex - 1, vid).s;
-    const postes = ME.horsBilan.map((x) => { const lignes = x.lignes.map((l) => { const cs = [...new Set([...sn.keys(), ...s1.keys()])].filter((k) => commence(k, l.comptes) && dans(k)).sort();
-        return { libelle: l.libelle, n: Math.abs(cs.reduce((t, k) => t + (sn.get(k) ?? 0), 0)), n1: Math.abs(cs.reduce((t, k) => t + (s1.get(k) ?? 0), 0)),
-          comptes: cs.map((k) => ({ compte: k, intitule: noms.get(k) ?? "", n: Math.abs(sn.get(k) ?? 0), n1: Math.abs(s1.get(k) ?? 0) })) }; });
-      return { code: x.code, libelle: x.libelle, n: lignes.reduce((t, l) => t + l.n, 0), n1: lignes.reduce((t, l) => t + l.n1, 0), lignes }; });
-    return { du, au, exercice: ex, precedent, type, postes };
+    const vid = !p.sansVidage, dans = bornesEf(p, "0", "09999999"), precedent = `${ex - 1}-12-31`;
+    return { du, au, exercice: ex, precedent, type, postes: postesHorsBilan(soldesEf(au, ex, vid).s, soldesEf(precedent, ex - 1, vid).s, intitulesComptes(), dans) };
   },
   /** Compte de résultat (PCCI 14.2) : exercice sur la période, exercice précédent sur les mêmes dates un an plus tôt */
   resultat(p: CriteresEf) {
@@ -9338,7 +9421,7 @@ function fondsPropresNormes(s: Map<string, number>, resultat: number, decote = 0
   return { base, complementaires, retenus, prudentiels: base + retenus };
 }
 function calculerNormes(profil: string, s: Map<string, number>, resultat: number, connexesN: number, produitsN1: number, positions: Record<string, { position: number; volume: number }>,
-  encours: Map<number, number>, apparentes: number, usd: number, tresorerieAssuree: boolean, decote = 0, correspondant = 0) {
+  encours: Map<number | string, number>, apparentes: number, usd: number, tresorerieAssuree: boolean, decote = 0, correspondant = 0, caisseCouverte = 0) {
   const coopec = profil === "coopec" || profil === "faitiere", emc = profil === "entreprise_microcredit";
   const fp = fondsPropresNormes(s, resultat, decote), fpp = fp.prudentiels, depots = creditNormes(s, ["33", "34", "35", "36", "373"]);
   const out: LigneNorme[] = [];
@@ -9347,7 +9430,7 @@ function calculerNormes(profil: string, s: Map<string, number>, resultat: number
   let pondere = 0;
   for (const [k, v] of s) if ("2345".includes(k[0]!) && !deduits.some((p) => k.startsWith(p)) && (v > 0 || provisions.some((p) => k.startsWith(p))))
     pondere += v * (k.startsWith("57") ? (tresorerieAssuree ? 0 : 20) : k.startsWith("53") || k.startsWith("56") ? 25 : 100) / 100;
-  pondere = Math.round(pondere) + debitNormes(s, ["00"]);
+  pondere = Math.round(pondere) + debitNormes(s, ["00"]) - (tresorerieAssuree ? 0 : Math.floor(caisseCouverte * 20 / 100));   // base consolidée : encaisse des institutions assurées
   out.push(ligneNorme("solvabilite", "Solvabilité : fonds propres prudentiels / actifs pondérés", "Instr. BCC 002, art. 12 à 15", fpp, pondere, 10, "min", !emc));
   out.push(ligneNorme("liquidite", "Liquidité immédiate : disponibilités / dépôts à vue", "Instr. BCC 002, art. 16 à 18", debitNormes(s, ["56", "57"]), creditNormes(s, ["330", "331", "332"]), 20, "min", !emc));
   if (coopec) out.push(ligneNorme("risques", "Risques / dépôts des membres", "Instr. BCC 002, art. 22 à 24 ; loi 002/2002, art. 59, 5°",
@@ -9376,6 +9459,34 @@ const normes = {
     return etatNormes(p);
   },
 };
+const assuranceCourante = (au: string) => !!(E.institution.assurancePolice && (E.institution.assuranceEcheance ?? "") >= au);
+/** Ce que les normes demandent en plus de la balance : positions de change, risques par signature, apparentés, décote des dettes subordonnées, plus gros
+ *  avoir chez un correspondant. L'écran SN01 et la balance remise à la faîtière les lisent ici (comme normes.elements). */
+function elementsNormes(au: string, s: Map<string, number>) {
+  const net: Record<string, { net: number; volume: number }> = {}, encours = new Map<number, number>();
+  for (const { e } of ecrituresDefinitives(null, au, true)) for (const l of e.lignes) {
+    if (l.devise !== "CDF" && "1345".includes(l.compte[0]!) && !COMPTES_POSITION.some((p) => l.compte.startsWith(p))) { const x = (net[l.devise] ??= { net: 0, volume: 0 }); x.net += l.sens === "D" ? l.montant : -l.montant; x.volume += l.montant; }
+    if (["30", "31", "32", "39", "00"].includes(l.compte.slice(0, 2)) && l.contrat) {
+      const [genre, ref] = l.contrat.split(":");
+      const tid = genre === "credit" ? E.credits.find((c) => c.id === Number(ref))?.tiersId : genre === "engagement" ? E.engagementsSignature.find((x) => x.reference === ref)?.tiersId : undefined;
+      if (tid !== undefined) encours.set(tid, (encours.get(tid) ?? 0) + (l.sens === "D" ? l.montantCdf : -l.montantCdf));
+    }
+  }
+  for (const [k, v] of encours) if (v <= 0) encours.delete(k);
+  const positions = Object.fromEntries(Object.entries(net).map(([dv, x]) => [dv, { position: Math.round(x.net * coursDe(dv as Devise, au)), volume: Math.round(x.volume * coursDe(dv as Devise, au)) }]));
+  const apparentes = [...encours].reduce((t, [k, v]) => t + (E.tiers.find((x) => x.id === k)?.apparente ? v : 0), 0);
+  // B16 : risques des clients liés par le contrôle, additionnés ; B21 : décote des dettes subordonnées (art. 10) ; B15 : plus gros avoir chez un correspondant (53, 56)
+  const groupes = new Map<number, number>();
+  for (const [tid, v] of encours) { const g = groupeSignature(tid)[0]!; groupes.set(g, (groupes.get(g) ?? 0) + v); }
+  let decote = 0;
+  for (const e of E.emprunts.filter((x) => x.compteEmprunt.startsWith("1622") && x.dateEmprunt <= au)) {
+    const amorti = E.remboursementsEmprunt.filter((r) => r.empruntId === e.id && r.date <= au).reduce((t, r) => t + r.amortissement, 0);
+    const annees = Math.floor(Math.max(joursEntre(au, ajouterMois(e.dateEmprunt, e.duree)), 0) / 365);
+    if (annees < 5) decote += Math.round((e.montant - amorti) * coursDe(e.devise, au) * (5 - annees) * 20 / 100);
+  }
+  const correspondant = Math.max(0, ...[...s].filter(([k, v]) => (k.startsWith("53") || k.startsWith("56")) && v > 0).map(([, v]) => v));
+  return { positions, groupes, apparentes, decote, correspondant };
+}
 /** Le calcul des normes à une date, sans contrôle du droit : l'écran SN01 et le rapport d'activités (B13) le font de la même façon */
 function etatNormes(p: { date?: string }) {
   {
@@ -9385,31 +9496,10 @@ function etatNormes(p: { date?: string }) {
     const mv = mouvementsGestionEf(`${an}-01-01`, au, false), mv1 = mouvementsGestionEf(`${an - 1}-01-01`, `${an - 1}-12-31`, false);
     const connexes = -[...mv].reduce((t, [k, v]) => t + (CONNEXES.some((x) => k.startsWith(x)) ? v : 0), 0);
     const produitsN1 = -[...mv1].reduce((t, [k, v]) => t + (k.startsWith("7") ? v : 0), 0);
-    const net: Record<string, { net: number; volume: number }> = {}, encours = new Map<number, number>();
-    for (const { e } of ecrituresDefinitives(null, au, true)) for (const l of e.lignes) {
-      if (l.devise !== "CDF" && "1345".includes(l.compte[0]!) && !COMPTES_POSITION.some((p) => l.compte.startsWith(p))) { const x = (net[l.devise] ??= { net: 0, volume: 0 }); x.net += l.sens === "D" ? l.montant : -l.montant; x.volume += l.montant; }
-      if (["30", "31", "32", "39", "00"].includes(l.compte.slice(0, 2)) && l.contrat) {
-        const [genre, ref] = l.contrat.split(":");
-        const tid = genre === "credit" ? E.credits.find((c) => c.id === Number(ref))?.tiersId : genre === "engagement" ? E.engagementsSignature.find((x) => x.reference === ref)?.tiersId : undefined;
-        if (tid !== undefined) encours.set(tid, (encours.get(tid) ?? 0) + (l.sens === "D" ? l.montantCdf : -l.montantCdf));
-      }
-    }
-    for (const [k, v] of encours) if (v <= 0) encours.delete(k);
-    const positions = Object.fromEntries(Object.entries(net).map(([dv, x]) => [dv, { position: Math.round(x.net * coursDe(dv as Devise, au)), volume: Math.round(x.volume * coursDe(dv as Devise, au)) }]));
-    const apparentes = [...encours].reduce((t, [k, v]) => t + (E.tiers.find((x) => x.id === k)?.apparente ? v : 0), 0);
-    // B16 : risques des clients liés par le contrôle, additionnés ; B21 : décote des dettes subordonnées (art. 10) ; B15 : plus gros avoir chez un correspondant (53, 56)
-    const groupes = new Map<number, number>();
-    for (const [tid, v] of encours) { const g = groupeSignature(tid)[0]!; groupes.set(g, (groupes.get(g) ?? 0) + v); }
-    let decote = 0;
-    for (const e of E.emprunts.filter((x) => x.compteEmprunt.startsWith("1622") && x.dateEmprunt <= au)) {
-      const amorti = E.remboursementsEmprunt.filter((r) => r.empruntId === e.id && r.date <= au).reduce((t, r) => t + r.amortissement, 0);
-      const annees = Math.floor(Math.max(joursEntre(au, ajouterMois(e.dateEmprunt, e.duree)), 0) / 365);
-      if (annees < 5) decote += Math.round((e.montant - amorti) * coursDe(e.devise, au) * (5 - annees) * 20 / 100);
-    }
-    const correspondant = Math.max(0, ...[...s].filter(([k, v]) => (k.startsWith("53") || k.startsWith("56")) && v > 0).map(([, v]) => v));
-    const ins = E.institution, assuree = !!(ins.assurancePolice && (ins.assuranceEcheance ?? "") >= au);   // police déclarée dans la fiche (S32), en cours à l'arrêté
-    return { date: au, profil: ins.profil, ...calculerNormes(ins.profil, s, resultat + anterieurs, connexes, produitsN1, positions, groupes, apparentes,
-      coursDe("USD", au), assuree, decote, correspondant),
+    const el = elementsNormes(au, s);
+    const ins = E.institution, assuree = assuranceCourante(au);   // police déclarée dans la fiche (S32), en cours à l'arrêté
+    return { date: au, profil: ins.profil, ...calculerNormes(ins.profil, s, resultat + anterieurs, connexes, produitsN1, el.positions, el.groupes, el.apparentes,
+      coursDe("USD", au), assuree, el.decote, el.correspondant),
       assuranceTresorerie: { couverte: assuree, assureur: ins.assuranceAssureur ?? "", police: ins.assurancePolice ?? "", echeance: ins.assuranceEcheance ?? "" } };
   }
 }

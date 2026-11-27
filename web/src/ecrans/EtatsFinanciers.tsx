@@ -10,7 +10,7 @@ import { useDonnees, message } from "../lib/useDonnees";
 import { fr, frInstant, texteEdition, aujourdhui } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
 import { liasseXml, telecharger } from "../lib/liasse";
-import NormesPrudentielles from "./NormesPrudentielles";
+import NormesPrudentielles, { TableauxNormes, lignesNormes, TITRES_NORMES } from "./NormesPrudentielles";
 import { decimal } from "@design/montant.js";
 import { Attention, Champ, ChampDate, Chargement, Dialogue, Lecture, Textes, type Boite, Recherche, Paginee } from "../composants";
 
@@ -284,8 +284,14 @@ function EditionAnnexes({ ctx, jour }: { ctx: Ctx; jour: string }) {
 /** Onglet « Réseau » (demande du porteur du 26/11/2026, registre T235). Une institution affiliée exporte sa balance pour sa faîtière. La faîtière importe
  *  les balances des affiliées, voit les comptes du réseau retirés et les écarts de réciprocité, puis le bilan et le compte de résultat consolidés
  *  (loi 002/2002, art. 65 ; Instr. BCC 0011, art. 47 ; PCCI § 10.3). */
+const ETATS_RESEAU = [["etats", "Bilan et résultat consolidés"], ["horsBilan", "Hors bilan consolidé"], ["normes", "Normes prudentielles consolidées"],
+  ["cotisations", "Cotisations des assujettis"], ["depots", "Dépôts des assujettis"], ["emplois", "Crédits et placements"]] as const;
+type VueReseau = typeof ETATS_RESEAU[number][0];
+type LigneRapport = NonNullable<Conso["rapport"]>["depots"][number];
+
 function Reseau({ jour }: { jour: string }) {
   const [au, setAu] = useState(jour);
+  const [vue, setVue] = useState<VueReseau>("etats");
   const [r, setR] = useState<Conso | null>(null);
   const [fichier, setFichier] = useState<{ nom: string; contenu: string } | null>(null);
   const [boite, setBoite] = useState<Boite | null>(null);
@@ -312,10 +318,30 @@ function Reseau({ jour }: { jour: string }) {
     <tbody>{postes.flatMap((x) => [<tr key={x.code}><td className="chiffres">{x.code}.</td><th scope="row">{x.libelle}</th><td className="num chiffres">{z(x.n)}</td><td className="num chiffres">{z(x.n1)}</td></tr>,
       ...lignesDetail(x.comptes, x.code)])}</tbody>
     <tfoot><tr><td></td><th scope="row">TOTAL {titre}</th><td className="num chiffres"><strong>{n(total.n)}</strong></td><td className="num chiffres"><strong>{n(total.n1)}</strong></td></tr></tfoot></table>;
-  const exporter = () => e && exporterExcel("États consolidés", ["État", "N°", "Poste", "Compte", "N", "N - 1"], [
-    ...(["actif", "passif"] as const).flatMap((c) => e.bilan[c].flatMap((x) => [[c === "actif" ? "BILAN, ACTIF" : "BILAN, PASSIF", x.code, x.libelle, "", x.n / 100, x.n1 / 100],
-      ...x.comptes.map((k) => ["", "", k.intitule, k.compte, k.n / 100, k.n1 / 100])])),
-    ...e.resultat.lignes.flatMap((x) => [["COMPTE DE RESULTAT", x.signe, x.libelle, "", x.n / 100, x.n1 / 100], ...x.comptes.map((k) => ["", "", k.intitule, k.compte, k.n / 100, k.n1 / 100])])]);
+  const co = r?.cotisations, ra = r?.rapport;
+  const rapport = (l: LigneRapport[]) => l.map((x) => [x.libelle, x.debut / 100, x.fin / 100, x.moyen / 100, x.interets / 100, x.taux ?? ""]);
+  const TITRES_RAPPORT = (interets: string) => ["Catégorie", "Solde au début", "Solde à la fin", "Encours moyen", interets, "Taux moyen (%)"];
+  const exports: Record<VueReseau, (() => void) | null> = {
+    etats: e ? () => exporterExcel("États consolidés", ["État", "N°", "Poste", "Compte", "N", "N - 1"], [
+      ...(["actif", "passif"] as const).flatMap((c) => e.bilan[c].flatMap((x) => [[c === "actif" ? "BILAN, ACTIF" : "BILAN, PASSIF", x.code, x.libelle, "", x.n / 100, x.n1 / 100],
+        ...x.comptes.map((k) => ["", "", k.intitule, k.compte, k.n / 100, k.n1 / 100])])),
+      ...e.resultat.lignes.flatMap((x) => [["COMPTE DE RESULTAT", x.signe, x.libelle, "", x.n / 100, x.n1 / 100], ...x.comptes.map((k) => ["", "", k.intitule, k.compte, k.n / 100, k.n1 / 100])])]) : null,
+    horsBilan: e?.horsBilan ? () => exporterExcel("Hors bilan consolidé", ["Code Poste", "Poste", "Compte", "N", "N - 1"], e.horsBilan!.postes.flatMap((x) => [[x.code, x.libelle, "", x.n / 100, x.n1 / 100],
+      ...x.lignes.flatMap((l) => [["", l.libelle, "", l.n / 100, l.n1 / 100], ...l.comptes.map((k) => ["", k.intitule, k.compte, k.n / 100, k.n1 / 100])])])) : null,
+    normes: r?.normes ? () => exporterExcel("Normes prudentielles consolidées", TITRES_NORMES, lignesNormes(r.normes!)) : null,
+    cotisations: co ? () => exporterExcel("Cotisations des assujettis", ["Sigle", "Dénomination", "Encours de crédit net", "Fonds de sécurité (1 %)", "Actif productif moyen", "Cotisation générale (6 %)"],
+      [...co.lignes.map((x) => [x.sigle, x.denomination, x.encoursNet / 100, x.securite / 100, x.actifProductif / 100, x.generale / 100]), ["Total", "", "", co.securite / 100, "", co.generale / 100]]) : null,
+    depots: ra ? () => exporterExcel("Dépôts des assujettis", TITRES_RAPPORT("Intérêts versés"), rapport(ra.depots)) : null,
+    emplois: ra ? () => exporterExcel("Crédits et placements", TITRES_RAPPORT("Produits reçus"), [...rapport(ra.credits), ...rapport(ra.placements)]) : null };
+  const exporter = exports[vue];
+  const etatRapport = (titre: string, interets: string, l: LigneRapport[]) => <div className="defile-x"><table className="grille"><caption>{titre}, du {fr(ra!.du)} au {fr(ra!.au)}, en CDF</caption>
+    <thead><tr><th scope="col">Catégorie</th><th scope="col" className="num">Solde au {fr(ra!.precedent)}</th><th scope="col" className="num">Solde au {fr(ra!.au)}</th><th scope="col" className="num">Encours moyen</th>
+      <th scope="col" className="num">{interets}</th><th scope="col" className="num">Taux moyen</th></tr></thead>
+    <tbody>{l.filter((x) => !x.total).map((x) => <tr key={x.libelle}><th scope="row">{x.libelle}</th><td className="num chiffres">{z(x.debut)}</td><td className="num chiffres">{z(x.fin)}</td>
+      <td className="num chiffres">{z(x.moyen)}</td><td className="num chiffres">{z(x.interets)}</td><td className="num chiffres">{x.taux === null ? "" : `${decimal.format(x.taux)} %`}</td></tr>)}</tbody>
+    <tfoot>{l.filter((x) => x.total).map((x) => <tr key="total"><th scope="row">TOTAL</th><td className="num chiffres">{n(x.debut)}</td><td className="num chiffres">{n(x.fin)}</td>
+      <td className="num chiffres">{n(x.moyen)}</td><td className="num chiffres">{n(x.interets)}</td><td className="num chiffres">{x.taux === null ? "" : `${decimal.format(x.taux)} %`}</td></tr>)}</tfoot>
+  </table></div>;
   return (
     <section className="bloc pile" aria-label="Réseau">
       <h2>Réseau</h2>
@@ -323,11 +349,13 @@ function Reseau({ jour }: { jour: string }) {
         <fieldset className="cadre-champs formulaire"><legend className="sr-only">Période</legend>
           <ChampDate libelle="Date d'arrêté :" valeur={au} onChange={(v) => { setAu(v); setR(null); }} />
           {moi.affiliation && <Champ libelle="Faîtière :">{(p) => <Lecture {...p} value={moi.affiliation} />}</Champ>}
+          {moi.faitiere && <Champ libelle="État :">{(p) => <select {...p} className="saisie" value={vue} onChange={(x) => setVue(x.target.value as VueReseau)}>
+            {ETATS_RESEAU.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>}</Champ>}
         </fieldset>
         <div className="actions-onglets">
           {moi.faitiere && <button className="bouton" type="submit">Rechercher</button>}
           {moi.faitiere ? <button className="bouton secondaire" type="button" onClick={exporterBalance}>Exporter la balance</button> : <button className="bouton" type="submit">Exporter la balance</button>}
-          {moi.faitiere && <button className="bouton secondaire" type="button" disabled={!e} onClick={exporter}>Exporter</button>}
+          {moi.faitiere && <button className="bouton secondaire" type="button" disabled={!exporter} onClick={() => exporter?.()}>Exporter</button>}
         </div>
       </Recherche>
       {r?.balances && r.retire && r.ecart && <div className="pile">
@@ -351,10 +379,11 @@ function Reseau({ jour }: { jour: string }) {
           <tbody>{r.retire.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
             {r.retire.map((x) => <tr key={x.compte}><td className="code">{x.compte}</td><td>{x.intitule}</td><td className="num chiffres">{z(x.debit)}</td><td className="num chiffres">{z(x.credit)}</td></tr>)}</tbody>
           <tfoot><tr><th scope="row" colSpan={2}>Écart au bilan</th><td className="num chiffres" colSpan={2}><strong>{n(r.ecart.bilan)}</strong></td></tr>
-            <tr><th scope="row" colSpan={2}>Écart en gestion</th><td className="num chiffres" colSpan={2}><strong>{n(r.ecart.gestion)}</strong></td></tr></tfoot>
+            <tr><th scope="row" colSpan={2}>Écart en gestion</th><td className="num chiffres" colSpan={2}><strong>{n(r.ecart.gestion)}</strong></td></tr>
+            <tr><th scope="row" colSpan={2}>Écart au hors bilan</th><td className="num chiffres" colSpan={2}><strong>{n(r.ecart.horsBilan)}</strong></td></tr></tfoot>
         </table></div>
         {!r.accord && <Attention>Les comptes réciproques ne s'accordent pas : les états consolidés s'établissent une fois l'écart levé.</Attention>}
-        {e && <>
+        {vue === "etats" && e && <>
           <p>BILAN CONSOLIDÉ au <strong className="chiffres">{fr(e.bilan.au)}</strong> (N), comparé au <span className="chiffres">{fr(e.bilan.precedent)}</span> (N - 1), en CDF</p>
           <div className="defile-x">{table("ACTIF", e.bilan.actif, e.bilan.totalActif)}</div>
           <div className="defile-x">{table("PASSIF", e.bilan.passif, e.bilan.totalPassif)}</div>
@@ -366,9 +395,42 @@ function Reseau({ jour }: { jour: string }) {
               ...lignesDetail(x.comptes, `r${i}`)])}</tbody>
           </table></div>
         </>}
+        {vue === "horsBilan" && e && !e.horsBilan && <Attention>Les engagements réciproques ne s'accordent pas : le hors bilan consolidé s'établit une fois l'écart levé.</Attention>}
+        {vue === "horsBilan" && e?.horsBilan && <div className="defile-x"><table className="grille">
+          <caption>HORS-BILAN CONSOLIDÉ au {fr(e.horsBilan.au)} (N), comparé au {fr(e.horsBilan.precedent)} (N - 1), en CDF</caption>
+          <thead><tr><th scope="col">Code Poste</th><th scope="col">HORS-BILAN</th><th scope="col" className="num">N</th><th scope="col" className="num">N - 1</th></tr></thead>
+          <tbody>{e.horsBilan.postes.flatMap((x) => [<tr key={x.code}><td className="code">{x.code}</td><th scope="row">{x.libelle}</th><td className="num chiffres">{z(x.n)}</td><td className="num chiffres">{z(x.n1)}</td></tr>,
+            ...x.lignes.filter((l) => l.libelle !== x.libelle).map((l) => <tr key={`${x.code}-${l.libelle}`}><td></td><td>{l.libelle}</td><td className="num chiffres">{z(l.n)}</td><td className="num chiffres">{z(l.n1)}</td></tr>),
+            ...x.lignes.flatMap((l) => lignesDetail(l.comptes, `${x.code}-${l.libelle}`))])}</tbody>
+        </table></div>}
+        {vue === "normes" && r.normes && <TableauxNormes r={r.normes} au={r.au ?? au} />}
+        {vue === "cotisations" && !co && <Attention>Les cotisations se calculent à la fin de l'exercice, sur les balances arrêtées au 31 décembre.</Attention>}
+        {vue === "cotisations" && co && <>
+          <div className="defile-x"><table className="grille"><caption>Cotisations des assujettis, exercice {co.exercice}, en CDF</caption>
+            <thead><tr><th scope="col">Sigle</th><th scope="col">Dénomination</th><th scope="col" className="num">Encours de crédit net</th><th scope="col" className="num">Fonds de sécurité (1 %)</th>
+              <th scope="col" className="num">Actif productif moyen</th><th scope="col" className="num">Cotisation générale (6 %)</th></tr></thead>
+            <tbody>{co.lignes.map((x) => <tr key={x.sigle}><td>{x.sigle}</td><td>{x.denomination}</td><td className="num chiffres">{z(x.encoursNet)}</td><td className="num chiffres">{z(x.securite)}</td>
+              <td className="num chiffres">{z(x.actifProductif)}</td><td className="num chiffres">{z(x.generale)}</td></tr>)}</tbody>
+            <tfoot><tr><th scope="row" colSpan={2}>Total</th><td></td><td className="num chiffres">{n(co.securite)}</td><td></td><td className="num chiffres">{n(co.generale)}</td></tr></tfoot>
+          </table></div>
+          <div className="defile-x"><table className="grille"><caption>Fonds de sécurité, en CDF</caption>
+            <tbody>
+              <tr><th scope="row">Cotisations à recevoir au plus tard le</th><td className="num chiffres">{fr(co.echeance)}</td></tr>
+              <tr><th scope="row">Dotation du fonds (compte 172)</th><td className="num chiffres">{n(co.fonds.dotation)}</td></tr>
+              <tr><th scope="row">Actif total du réseau</th><td className="num chiffres">{n(co.fonds.actifReseau)}</td></tr>
+              <tr><th scope="row">Plafond de la dotation (10 %)</th><td className="num chiffres">{n(co.fonds.plafond)}</td></tr>
+              <tr><th scope="row">Cotisation obligatoire</th><td className="num">{co.fonds.obligatoire === null ? "" : co.fonds.obligatoire ? "Oui" : "Non"}</td></tr>
+            </tbody></table></div>
+        </>}
+        {vue === "depots" && ra && etatRapport("Sommes déposées par les assujettis", "Intérêts versés", ra.depots)}
+        {vue === "emplois" && ra && <>{etatRapport("Crédits consentis", "Produits reçus", ra.credits)}{etatRapport("Placements", "Produits reçus", ra.placements)}</>}
       </div>}
       <Textes sources={["Loi 002/2002, art. 65 : la COOCEC ou la Fédération élabore le rapport annuel sur une base consolidée pour le réseau ; transmission à la Banque Centrale dans les six mois de la clôture",
         "Instr. BCC 0011, art. 47 : relevé de l'actif et du passif et celui des résultats de la faîtière et des assujettis, présentés sur une base consolidée suivant les principes comptables généralement reconnus",
+        "Instr. BCC 0011, art. 47 : état des sommes déposées par les assujettis et état des crédits consentis et des placements, par catégories, avec le taux de rendement annuel moyen de chacune ; encours moyen : moyenne du début et de la fin de la période (Instr. BCC 004, annexe)",
+        "Instr. BCC 002, art. 2 : lorsque les Coopératives d'Epargne et de Crédit sont constituées en réseau, les mêmes normes s'appliquent sur une base consolidée",
+        "Instr. BCC 0011, art. 29 : fonds de sécurité, cotisation annuelle de 1 % de l'encours de crédit net à la fin de l'exercice, reçue au plus tard six mois après la clôture ; art. 31 : dotation plafonnée à 10 % de l'actif total du réseau ; art. 37 : cotisation générale, 6 % de l'actif productif, moyennes mensuelles des 12 mois de l'année précédente",
+        "PCCI, compte 17 : le compte 172 reçoit le montant des participations aux fonds de garantie mutuels (registre T237)",
         "PCCI § 10.3 « Appartenance au réseau » : opérations faites avec les affiliées du même réseau et avec les fonds de garantie du réseau ; l'attribut se coche sur le compte (Plan des comptes)",
         "Registre T235 : les balances s'additionnent compte du PCCI par compte du PCCI, puis les comptes marqués « Réseau » sont retirés ; aucun texte lu ne fixe d'autre retraitement ; le hors bilan n'est pas consolidé",
         PCCI_14]} />

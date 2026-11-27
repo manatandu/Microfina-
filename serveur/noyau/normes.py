@@ -49,8 +49,9 @@ def ligne(code, libelle, reference, num, den, norme, sens, applicable=True) -> d
 
 
 def calculer(profil: str, s: dict, resultat: int, connexes_n: int, produits_n1: int, positions: dict, encours: dict, apparentes: int,
-             usd: float, tresorerie_assuree: bool, decote: int = 0, correspondant: int = 0) -> dict:
-    """Le calcul, sans base de données : les deux côtés (serveur et navigateur) le font de la même façon"""
+             usd: float, tresorerie_assuree: bool, decote: int = 0, correspondant: int = 0, caisse_couverte: int = 0) -> dict:
+    """Le calcul, sans base de données : les deux côtés (serveur et navigateur) le font de la même façon. caisse_couverte : sur une base consolidée,
+    l'encaisse des institutions qui déclarent une police en cours (art. 15 : 0 % au lieu de 20 %)."""
     coopec = profil in ("coopec", "faitiere")
     emc = profil == "entreprise_microcredit"
     fp = fonds_propres(s, resultat, decote)
@@ -64,7 +65,7 @@ def calculer(profil: str, s: dict, resultat: int, connexes_n: int, produits_n1: 
     deduits = ("20", "252", "2510", "255")
     actif = {k: v for k, v in s.items() if k[0] in "2345" and not k.startswith(deduits) and (v > 0 or k.startswith(("28", "29", "38", "48", "58")))}
     pondere = round(sum(v * (0 if k.startswith("57") and tresorerie_assuree else 20 if k.startswith("57") else 25 if k.startswith(("53", "56")) else 100) / 100
-                        for k, v in actif.items())) + d(s, "00")
+                        for k, v in actif.items())) + d(s, "00") - (0 if tresorerie_assuree else caisse_couverte * 20 // 100)
     out.append(ligne("solvabilite", "Solvabilité : fonds propres prudentiels / actifs pondérés", "Instr. BCC 002, art. 12 à 15", fpp, pondere, 10, "min", not emc))
     out.append(ligne("liquidite", "Liquidité immédiate : disponibilités / dépôts à vue", "Instr. BCC 002, art. 16 à 18", d(s, "56", "57"), c(s, "330", "331", "332"), 20, "min", not emc))
     if coopec:
@@ -98,24 +99,17 @@ def calculer(profil: str, s: dict, resultat: int, connexes_n: int, produits_n1: 
     return {"fondsPropres": fp, "depots": depots, "normes": out}
 
 
-def etat(u, p) -> dict:
-    """Critère : Date de l'arrêté. La trésorerie est couverte (art. 15 : 0 % au lieu de 20 %) quand la fiche de l'institution déclare une police en cours
-    à la date de l'arrêté (plan d'allègement, point 0.18 ; registre SN01-4)"""
-    exiger(u)
-    p = p if isinstance(p, dict) else {}
-    try:
-        au = date.fromisoformat(str(p.get("date") or ""))
-    except ValueError:
-        raise ErreurMetier("À remplir : Date de l'arrêté.")
+def assurance(u, au: date) -> tuple[bool, dict]:
+    """La police d'assurance de la trésorerie déclarée dans la fiche de l'institution, et si elle court à la date (registre SN01-4)"""
+    pol = une("select assurance_tresorerie_assureur as assureur, assurance_tresorerie_police as police, assurance_tresorerie_echeance as echeance from institution where id = %s",
+              (u["institution_id"],))
+    return bool(pol and pol["police"] and pol["echeance"] >= au.isoformat()), pol or {}
+
+
+def elements(u, au: date, s: dict) -> dict:
+    """Ce que les normes demandent en plus de la balance : positions de change, risques par signature, apparentés, décote des dettes subordonnées,
+    plus gros avoir chez un correspondant. L'écran SN01 et la balance remise à la faîtière (consolidation) les lisent ici."""
     i = u["institution_id"]
-    profil = valeur("select profil from institution where id = %s", (i,)) or ""
-    pol = une("select assurance_tresorerie_assureur as assureur, assurance_tresorerie_police as police, assurance_tresorerie_echeance as echeance from institution where id = %s", (i,))
-    assuree = bool(pol and pol["police"] and pol["echeance"] >= au.isoformat())
-    s, resultat, anterieurs = soldes(u, au, au.year, vidage=True)
-    mv = mouvements_gestion(u, date(au.year, 1, 1), au, vidage=False)
-    mv1 = mouvements_gestion(u, date(au.year - 1, 1, 1), date(au.year - 1, 12, 31), vidage=False)
-    connexes = -sum(v for k, v in mv.items() if k.startswith(CONNEXES))
-    produits_n1 = -sum(v for k, v in mv1.items() if k.startswith("7"))
     # Positions de change (art. 42) : avoirs moins engagements en devises, hors immobilisations et comptes de gestion, au cours du jour de l'arrêté
     positions = {}
     for r in lignes("""select l.devise, sum(case l.sens when 'D' then l.montant_devise else -l.montant_devise end) as net, sum(l.montant_devise) as volume
@@ -153,7 +147,28 @@ def etat(u, p) -> dict:
             decote += round((int(e["montant"]) - int(e["amorti"])) * cours(e["devise"].strip(), au) * (5 - annees) * 20 / 100)
     # B15 : le plafond par signature vaut aussi pour les avoirs chez un correspondant (art. 28, al. 4 ; art. 29, al. 2) : comptes 53 et 56
     correspondant = max((v for k, v in s.items() if k.startswith(("53", "56")) and v > 0), default=0)
-    x = calculer(profil, s, resultat + anterieurs, connexes, produits_n1, positions, dict(groupes), sum(v for k, v in encours.items() if k in apparentes),
-                 cours("USD", au), assuree, decote, correspondant)
+    return {"positions": positions, "groupes": dict(groupes), "apparentes": sum(v for k, v in encours.items() if k in apparentes), "decote": decote,
+            "correspondant": correspondant}
+
+
+def etat(u, p) -> dict:
+    """Critère : Date de l'arrêté. La trésorerie est couverte (art. 15 : 0 % au lieu de 20 %) quand la fiche de l'institution déclare une police en cours
+    à la date de l'arrêté (plan d'allègement, point 0.18 ; registre SN01-4)"""
+    exiger(u)
+    p = p if isinstance(p, dict) else {}
+    try:
+        au = date.fromisoformat(str(p.get("date") or ""))
+    except ValueError:
+        raise ErreurMetier("À remplir : Date de l'arrêté.")
+    i = u["institution_id"]
+    profil = valeur("select profil from institution where id = %s", (i,)) or ""
+    assuree, pol = assurance(u, au)
+    s, resultat, anterieurs = soldes(u, au, au.year, vidage=True)
+    mv = mouvements_gestion(u, date(au.year, 1, 1), au, vidage=False)
+    mv1 = mouvements_gestion(u, date(au.year - 1, 1, 1), date(au.year - 1, 12, 31), vidage=False)
+    connexes = -sum(v for k, v in mv.items() if k.startswith(CONNEXES))
+    produits_n1 = -sum(v for k, v in mv1.items() if k.startswith("7"))
+    e = elements(u, au, s)
+    x = calculer(profil, s, resultat + anterieurs, connexes, produits_n1, e["positions"], e["groupes"], e["apparentes"], cours("USD", au), assuree, e["decote"], e["correspondant"])
     return {"date": au.isoformat(), "profil": profil, **x, "assuranceTresorerie": {"couverte": assuree, "assureur": (pol or {}).get("assureur") or "",
                                                                                 "police": (pol or {}).get("police") or "", "echeance": (pol or {}).get("echeance") or ""}}

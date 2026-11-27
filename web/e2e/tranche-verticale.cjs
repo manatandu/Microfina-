@@ -1580,7 +1580,7 @@ const OUT = process.argv[2];
   await p.getByLabel("Date d'arrêté :").fill('05112026'); await p.getByLabel("Date d'arrêté :").press('Tab'); await etape('33b-reseau-affiliee');
   const [tele] = await Promise.all([p.waitForEvent('download'), p.getByRole('button', { name: 'Exporter la balance' }).click()]);
   const propre = require('fs').readFileSync(await tele.path(), 'utf8').split('\r\n');
-  if (!/^balance-consolidation-.+-2026-11-05\.csv$/.test(tele.suggestedFilename()) || propre[0] !== 'Exofina;balance pour consolidation;1' || !propre.at(-2).startsWith('Total;;;'))
+  if (!/^balance-consolidation-.+-2026-11-05\.csv$/.test(tele.suggestedFilename()) || propre[0] !== 'Exofina;balance pour consolidation;2' || propre[9] !== 'Actif productif moyen;0.00' || !propre.at(-2).startsWith('Total;;;'))
     throw new Error('T235 : fichier de balance inattendu : ' + tele.suggestedFilename());
   // 3. La faîtière : elle importe la balance d'une affiliée ; les comptes réciproques s'accordent, le bilan et le compte de résultat consolidés s'établissent
   await login('J.-P. Mukendi'); await aller('/parametrage/s32'); await p.getByLabel('Type base : *').selectOption('faitiere');
@@ -1589,13 +1589,43 @@ const OUT = process.argv[2];
   await p.getByLabel("Date d'arrêté :").fill('05112026'); await p.getByLabel("Date d'arrêté :").press('Tab');
   await p.getByRole('button', { name: 'Rechercher', exact: true }).click();
   const reunies = p.getByRole('table', { name: /^Balances réunies au 05\/11\/2026/ }); await reunies.getByRole('row').nth(1).waitFor();
-  const balance = (sigle, nom, resultat, lignes, totaux) => Buffer.from(['Exofina;balance pour consolidation;1', `Institution;${sigle};${nom};A-${sigle}`, 'Arrêté;2026-11-05', `Résultat en formation;${resultat}`,
-    'Résultats antérieurs non clôturés;0.00', 'Compte;PCCI;Libellé;Débit;Crédit;Réseau', ...lignes, `Total;;;${totaux};${lignes.length}`, ''].join('\r\n'), 'utf8');
-  const importer = async (sigle, tampon) => { await p.locator('input[type=file]').setInputFiles({ name: `balance-consolidation-${sigle}-2026-11-05.csv`, mimeType: 'text/csv', buffer: tampon });
-    await p.getByRole('button', { name: 'Importer' }).click(); await oui(); await reunies.getByRole('cell', { name: sigle, exact: true }).waitFor(); };
-  await importer('BOL', balance('BOL', 'COOPEC Bolingo', '50000.00', ['57000001;570;Caisse;350000.00;0.00;N', '33000001;330;Épargne des membres;0.00;300000.00;N', '71000001;7100;Intérêts sur crédits;0.00;50000.00;N'], '350000.00;350000.00'));
+  // le fichier porte aussi le hors bilan (classe 0) et ce que la balance ne dit pas : apparentés, plus gros risque, encaisse assurée, actif productif moyen, positions de change (registre T237)
+  const balance = (sigle, nom, resultat, lignes, totaux, arrete = '2026-11-05', productif = '0.00') => Buffer.from(['Exofina;balance pour consolidation;2', `Institution;${sigle};${nom};A-${sigle}`, `Arrêté;${arrete}`,
+    `Résultat en formation;${resultat}`, 'Résultats antérieurs non clôturés;0.00', 'Crédits et engagements aux apparentés;4000.00', 'Plus gros risque sur un seul membre;9000.00', 'Décote des dettes subordonnées;0.00',
+    'Encaisse couverte par une assurance;0.00', `Actif productif moyen;${productif}`, 'Position de change;USD;-1500.00;9000.00', 'Compte;PCCI;Libellé;Débit;Crédit;Réseau', ...lignes, `Total;;;${totaux};${lignes.length}`, ''].join('\r\n'), 'utf8');
+  const importer = async (sigle, tampon, table = reunies) => { await p.locator('input[type=file]').setInputFiles({ name: `balance-consolidation-${sigle}.csv`, mimeType: 'text/csv', buffer: tampon });
+    await p.getByRole('button', { name: 'Importer' }).click(); await oui(); await table.getByRole('cell', { name: sigle, exact: true }).waitFor(); };
+  await importer('BOL', balance('BOL', 'COOPEC Bolingo', '50000.00', ['57000001;570;Caisse;350000.00;0.00;N', '33000001;330;Épargne des membres;0.00;300000.00;N', '71000001;7100;Intérêts sur crédits;0.00;50000.00;N',
+    '00120001;0012;Cautions données;20000.00;0.00;N', '09000001;090;Compte général des engagements donnés;0.00;20000.00;N'], '370000.00;370000.00'));
   await p.getByText(/^BILAN CONSOLIDÉ au/).waitFor(); await p.getByRole('table', { name: 'ACTIF' }).getByRole('rowheader', { name: 'TOTAL ACTIF' }).waitFor();
   await p.getByRole('table', { name: /^COMPTE DE RESULTAT CONSOLIDÉ/ }).getByRole('rowheader', { name: "Résultat net de l'exercice" }).waitFor(); await etape('33c-etats-consolides');
+  // 3 bis. Ce que les textes demandent encore à une faîtière (registre T237) : le champ « État » choisit ce qui se lit sous les balances réunies
+  const etatReseau = (libelle) => p.getByLabel('État :', { exact: true }).selectOption({ label: libelle });
+  await etatReseau('Hors bilan consolidé');                                        // les engagements de la faîtière et ceux de l'affiliée, au modèle du PCCI
+  await p.getByRole('table', { name: /^HORS-BILAN CONSOLIDÉ au 05\/11\/2026/ }).getByRole('rowheader', { name: 'Engagements donnés' }).waitFor(); await etape('33c2-hors-bilan-consolide');
+  await etatReseau('Normes prudentielles consolidées');                            // Instr. BCC 002, art. 2 : les mêmes normes, sur une base consolidée
+  const normesReseau = p.getByRole('table', { name: /^Normes prudentielles au 05\/11\/2026/ });
+  await normesReseau.getByRole('cell', { name: /^Solvabilité/ }).waitFor(); await normesReseau.getByRole('cell', { name: /^Position de change en USD/ }).waitFor();
+  if (await normesReseau.getByRole('cell', { name: /capital minimum/ }).count()) throw new Error('T237 : capital minimum demandé à un réseau de COOPEC');
+  await etape('33c3-normes-consolidees');
+  await etatReseau('Dépôts des assujettis');                                       // Instr. BCC 0011, art. 47 : par catégories, avec le taux de rendement moyen
+  await p.getByRole('table', { name: /^Sommes déposées par les assujettis, du 01\/01\/2026 au 05\/11\/2026/ }).getByRole('rowheader', { name: 'Dépôts à terme' }).waitFor(); await etape('33c4-depots-assujettis');
+  await etatReseau('Crédits et placements');
+  await p.getByRole('table', { name: /^Crédits consentis, du/ }).getByRole('rowheader', { name: 'Crédits à court terme' }).waitFor();
+  await p.getByRole('table', { name: /^Placements, du/ }).getByRole('rowheader', { name: 'Titres de participation' }).waitFor(); await etape('33c5-credits-placements');
+  await etatReseau('Cotisations des assujettis');                                  // Instr. BCC 0011, art. 29, 31 et 37 : à la fin de l'exercice seulement
+  await p.getByText(/^Les cotisations se calculent à la fin de l'exercice/).waitFor();
+  await p.getByLabel("Date d'arrêté :").fill('31122026'); await p.getByLabel("Date d'arrêté :").press('Tab'); await p.getByRole('button', { name: 'Rechercher', exact: true }).click();
+  const fin = p.getByRole('table', { name: /^Balances réunies au 31\/12\/2026/ }); await fin.getByRole('row').nth(1).waitFor();
+  await importer('BOL', balance('BOL', 'COOPEC Bolingo', '0.00', ['57000001;570;Caisse;60000.00;0.00;N', '32000001;320;Crédits de trésorerie;200000.00;0.00;N', '38000001;380;Provisions sur créances en retard;0.00;10000.00;N',
+    '33000001;330;Épargne des membres;0.00;250000.00;N'], '260000.00;260000.00', '2026-12-31', '120000.00'), fin);
+  const cotis = p.getByRole('table', { name: /^Cotisations des assujettis, exercice 2026/ });       // 1 % de 190 000,00 ; 6 % de 120 000,00
+  await cotis.getByRole('cell', { name: '1 900,00', exact: true }).first().waitFor(); await cotis.getByRole('cell', { name: '7 200,00', exact: true }).first().waitFor();
+  const fonds = p.getByRole('table', { name: /^Fonds de sécurité/ });
+  await fonds.getByRole('cell', { name: '30/06/2027' }).waitFor(); await fonds.getByRole('row', { name: /^Cotisation obligatoire Oui$/ }).waitFor(); await etape('33c6-cotisations');
+  await etatReseau('Bilan et résultat consolidés');
+  await p.getByLabel("Date d'arrêté :").fill('05112026'); await p.getByLabel("Date d'arrêté :").press('Tab'); await p.getByRole('button', { name: 'Rechercher', exact: true }).click();
+  await reunies.getByRole('cell', { name: 'BOL', exact: true }).waitFor(); await p.getByText(/^BILAN CONSOLIDÉ au/).waitFor();
   // 4. Une affiliée dont le compte chez la faîtière n'a pas son pendant : l'écart est montré, les états consolidés ne s'établissent plus ; la balance se retire
   await importer('KIN', balance('KIN', 'COOPEC Kintambo', '0.00', ['57000001;570;Caisse;40000.00;0.00;N', '56000001;5600;COOCEC, compte à vue;40000.00;0.00;O', '33000001;330;Épargne des membres;0.00;80000.00;N'], '80000.00;80000.00'));
   await p.getByText(/^Les comptes réciproques ne s'accordent pas/).waitFor(); await p.getByRole('rowheader', { name: 'Écart au bilan' }).waitFor();

@@ -3725,21 +3725,32 @@ describe("journée de guichet", () => {
     // 3. Le fichier de balance : en-tête, une ligne par compte, la colonne Réseau, les totaux
     await expect(co.exporter({})).rejects.toThrow("Date d'arrêté");
     const x = await co.exporter(jour), lg = x.contenu.split("\r\n");
-    expect([x.nom, lg.slice(0, 3)]).toEqual(["balance-consolidation-CTJ-2026-11-05.csv", ["Exofina;balance pour consolidation;1", "Institution;CTJ;COOPEC Tujenge;", "Arrêté;2026-11-05"]]);
-    expect([lg[5], lg.at(-2)!.startsWith("Total;;;"), lg.at(-1)]).toEqual(["Compte;PCCI;Libellé;Débit;Crédit;Réseau", true, ""]);
+    expect([x.nom, lg.slice(0, 3)]).toEqual(["balance-consolidation-CTJ-2026-11-05.csv", ["Exofina;balance pour consolidation;2", "Institution;CTJ;COOPEC Tujenge;", "Arrêté;2026-11-05"]]);
+    // ce que la balance ne dit pas (normes sur une base consolidée, Instr. BCC 002, art. 2 ; cotisation sur l'actif productif, Instr. BCC 0011, art. 37)
+    expect(lg.slice(5, 10).map((l) => l.split(";")[0])).toEqual(["Crédits et engagements aux apparentés", "Plus gros risque sur un seul membre", "Décote des dettes subordonnées",
+      "Encaisse couverte par une assurance", "Actif productif moyen"]);
+    expect(lg[9]).toBe("Actif productif moyen;0.00");                                // il ne se calcule qu'à la fin de l'exercice
+    const tete = lg.indexOf("Compte;PCCI;Libellé;Débit;Crédit;Réseau");
+    expect([lg.slice(10, tete).every((l) => l.startsWith("Position de change;")), lg.slice(10, tete).some((l) => l.startsWith("Position de change;USD;"))]).toEqual([true, true]);
+    expect([lg.at(-2)!.startsWith("Total;;;"), lg.at(-1)]).toEqual([true, ""]);
     expect(lg).toContain("56220001;5622;COOPEC Bolingo, compte à vue;0.00;100000.00;O");
     expect(lg).toContain("70400001;7040;Intérêts reçus de la COOPEC Bolingo;0.00;30000.00;O");
-    expect(lg.slice(6, -2).filter((l) => !l.startsWith("56220001") && !l.startsWith("70400001")).every((l) => l.endsWith(";N"))).toBe(true);
+    expect(lg.slice(tete + 1, -2).filter((l) => !l.startsWith("56220001") && !l.startsWith("70400001")).every((l) => l.endsWith(";N"))).toBe(true);
     // 4. La faîtière : sa balance se lit dans ses livres ; elle importe celle de chaque affiliée
     _etat().institution.profil = "faitiere";
     const dec = (v: number) => `${Math.floor(v / 100)}.${String(v % 100).padStart(2, "0")}`;
     type L = [string, string, string, number, number, string];
-    const fichier = (sigle: string, nom: string, lignes: L[], resultat = 0, arrete = "2026-11-05") => ["Exofina;balance pour consolidation;1", `Institution;${sigle};${nom};A-${sigle}`, `Arrêté;${arrete}`,
-      `Résultat en formation;${dec(resultat)}`, "Résultats antérieurs non clôturés;0.00", "Compte;PCCI;Libellé;Débit;Crédit;Réseau", ...lignes.map(([c, p, l, d, k, r]) => `${c};${p};${l};${dec(d)};${dec(k)};${r}`),
+    type Plus = { version?: string; apparentes?: number; plusGros?: number; couverte?: number; productif?: number; change?: [string, string, string][] };
+    const fichier = (sigle: string, nom: string, lignes: L[], resultat = 0, arrete = "2026-11-05", o: Plus = {}) => [`Exofina;balance pour consolidation;${o.version ?? "2"}`, `Institution;${sigle};${nom};A-${sigle}`, `Arrêté;${arrete}`,
+      `Résultat en formation;${dec(resultat)}`, "Résultats antérieurs non clôturés;0.00", `Crédits et engagements aux apparentés;${dec(o.apparentes ?? 0)}`, `Plus gros risque sur un seul membre;${dec(o.plusGros ?? 0)}`,
+      "Décote des dettes subordonnées;0.00", `Encaisse couverte par une assurance;${dec(o.couverte ?? 0)}`, `Actif productif moyen;${dec(o.productif ?? 0)}`, ...(o.change ?? []).map(([dv, pos, vol]) => `Position de change;${dv};${pos};${vol}`),
+      "Compte;PCCI;Libellé;Débit;Crédit;Réseau", ...lignes.map(([c, p, l, d, k, r]) => `${c};${p};${l};${dec(d)};${dec(k)};${r}`),
       `Total;;;${dec(lignes.reduce((t, z) => t + z[3], 0))};${dec(lignes.reduce((t, z) => t + z[4], 0))};${lignes.length}`, ""].join("\r\n");
     const bolingo: L[] = [["57000001", "570", "Caisse", 25_000_000, 0, "N"], ["56000001", "5600", "COOCEC, compte à vue", 10_000_000, 0, "O"], ["33000001", "330", "Épargne des membres", 0, 30_000_000, "N"],
-      ["71000001", "710", "Intérêts sur crédits", 0, 8_000_000, "N"], ["60410001", "6041", "Intérêts payés à la COOCEC", 3_000_000, 0, "O"]];
-    const bol = fichier("BOL", "COOPEC Bolingo", bolingo, 5_000_000), imp = (contenu: string, q = jour) => co.importer({ ...q, contenu });
+      ["71000001", "710", "Intérêts sur crédits", 0, 8_000_000, "N"], ["60410001", "6041", "Intérêts payés à la COOCEC", 3_000_000, 0, "O"],
+      ["00120001", "0012", "Cautions données", 2_000_000, 0, "N"], ["09000001", "090", "Compte général des engagements donnés", 0, 2_000_000, "N"]];
+    const plus: Plus = { apparentes: 400_000, plusGros: 900_000_000, change: [["USD", "-1500.00", "9000.00"], ["EUR", "250.00", "250.00"]] };
+    const bol = fichier("BOL", "COOPEC Bolingo", bolingo, 5_000_000, "2026-11-05", plus), imp = (contenu: string, q = jour) => co.importer({ ...q, contenu });
     await expect(imp(x.contenu)).rejects.toThrow("faîtière elle-même");
     await expect(imp("Compte;Débit;Crédit\r\n570;1;1\r\n".repeat(4))).rejects.toThrow("pas une balance pour consolidation");
     await expect(imp(bol.split("\r\n").slice(0, -2).join("\r\n"))).rejects.toThrow("ligne des totaux manque");                     // fichier coupé
@@ -3749,11 +3760,15 @@ describe("journée de guichet", () => {
     await expect(imp(fichier("BOL", "COOPEC Bolingo", [["49000001", "4900", "x", 1, 0, "N"], ["57000001", "570", "Caisse", 0, 1, "N"]]))).rejects.toThrow("aucun compte du PCCI");
     await expect(imp(fichier("BOL", "COOPEC Bolingo", [["57000001", "570", "Caisse", 1, 0, "N"], ["57000001", "570", "Caisse", 0, 1, "N"]]))).rejects.toThrow("en double");
     await expect(imp(bol.replace("250000.00", "=1+1"))).rejects.toThrow("montant illisible");
+    await expect(imp(fichier("BOL", "COOPEC Bolingo", bolingo, 5_000_000, "2026-11-05", { version: "1" }))).rejects.toThrow("autre version du logiciel");
+    await expect(imp(bol.replace("Actif productif moyen", "Actif moyen"))).rejects.toThrow("pas une balance pour consolidation");
+    await expect(imp(bol.replace("Position de change;EUR", "Position de change;USD"))).rejects.toThrow("position de change illisible");       // devise en double
+    await expect(imp(bol.replace("Position de change;EUR", "Position de change;CDF"))).rejects.toThrow("position de change illisible");
     let r = await imp(bol);
     expect(r.balances!.map((b) => [b.sigle, b.propre, b.reseauDebit, b.reseauCredit])).toEqual([["CTJ", true, 0, 13_000_000], ["BOL", false, 13_000_000, 0]]);
-    expect([r.balances![1]!.debit, r.balances![1]!.credit, r.balances![1]!.agrement, r.balances![1]!.importePar]).toEqual([38_000_000, 38_000_000, "A-BOL", "Patrick Lumbala"]);
+    expect([r.balances![1]!.debit, r.balances![1]!.credit, r.balances![1]!.agrement, r.balances![1]!.importePar]).toEqual([40_000_000, 40_000_000, "A-BOL", "Patrick Lumbala"]);
     expect(r.retire!.map((z) => [z.compte, z.debit, z.credit])).toEqual([["5600", 10_000_000, 0], ["5622", 0, 10_000_000], ["6041", 3_000_000, 0], ["7040", 0, 3_000_000]]);
-    expect([r.ecart, r.accord]).toEqual([{ bilan: 0, gestion: 0 }, true]);
+    expect([r.ecart, r.accord]).toEqual([{ bilan: 0, gestion: 0, horsBilan: 0 }, true]);
     // 5. Les états consolidés : la somme des deux institutions, moins ce qu'elles se doivent et se facturent
     const q = { du: "2026-01-01", au: "2026-11-05", exercice: 2026 };
     const seul = await api.etatsFinanciers.bilan(q), res = await api.etatsFinanciers.resultat({ ...q, sansVidage: true }), b = r.etats!.bilan, cr = r.etats!.resultat;
@@ -3770,12 +3785,55 @@ describe("journée de guichet", () => {
     expect((await imp(bol)).balances!.length).toBe(2);                                                                        // la même affiliée : remplacée
     // 6. Des comptes réciproques qui ne s'accordent pas : l'écart est montré, les états consolidés ne s'établissent pas
     r = await imp(fichier("KIN", "COOPEC Kintambo", [["57000001", "570", "Caisse", 4_000_000, 0, "N"], ["56000001", "5600", "COOCEC, compte à vue", 4_000_000, 0, "O"], ["33000001", "330", "Épargne des membres", 0, 8_000_000, "N"]]));
-    expect([r.balances!.length, r.ecart, r.accord, r.etats]).toEqual([3, { bilan: 4_000_000, gestion: 0 }, false, null]);
+    expect([r.balances!.length, r.ecart, r.accord, r.etats, r.normes]).toEqual([3, { bilan: 4_000_000, gestion: 0, horsBilan: 0 }, false, null, null]);
     await expect(co.retirer(0, jour)).rejects.toThrow("introuvable");
     r = await co.retirer(r.balances!.find((z) => z.sigle === "KIN")!.id!, jour);
     expect([r.balances!.length, r.accord, r.etats !== null]).toEqual([2, true, true]);
     r = await co.etat({ au: "2026-10-31" });
     expect([r.balances!.length, r.etats]).toEqual([1, null]);
+    // 6 bis. Hors bilan consolidé, normes sur une base consolidée (Instr. BCC 002, art. 2), états du rapport annuel (Instr. BCC 0011, art. 47) ; registre T237
+    r = await co.etat(jour);
+    const donnes = (e: { postes: { code: string; n: number }[] }) => e.postes.find((z) => z.code === "00")!.n;
+    expect(donnes(r.etats!.horsBilan!)).toBe(donnes(await api.etatsFinanciers.horsBilan(q)) + 2_000_000);
+    const seules = await api.normes.etat({ date: "2026-11-05" });
+    const nc = Object.fromEntries(r.normes!.normes.map((z) => [z.code, z])), ns = Object.fromEntries(seules.normes.map((z) => [z.code, z]));
+    expect(["capital" in nc, r.normes!.depots]).toEqual([false, seules.depots + 30_000_000]);
+    // liquidité : la caisse de l'affiliée s'ajoute ; les comptes que les deux institutions tiennent l'une chez l'autre sont retirés
+    expect([nc.liquidite!.numerateur, nc.liquidite!.denominateur]).toEqual([ns.liquidite!.numerateur + 10_000_000 + 25_000_000, ns.liquidite!.denominateur + 30_000_000]);
+    // ce que la balance ne dit pas vient des fichiers : les apparentés s'additionnent, le plus gros risque est le plus gros de ceux déclarés, les positions de change s'additionnent
+    expect([nc.apparentes!.numerateur, nc.division!.numerateur]).toEqual([ns.apparentes!.numerateur + 400_000, 900_000_000]);
+    expect([nc.change_USD!.numerateur, nc.change_EUR!.numerateur]).toEqual([ns.change_USD!.numerateur - 150_000, 25_000]);
+    expect([nc.correspondants!.numerateur, nc.connexes!.ratio]).toEqual([ns.correspondants!.numerateur, null]);
+    // l'encaisse d'une affiliée assurée pèse 0 % au lieu de 20 % (art. 15)
+    const avant = nc.solvabilite!.denominateur;
+    r = await imp(fichier("BOL", "COOPEC Bolingo", bolingo, 5_000_000, "2026-11-05", { couverte: 25_000_000 }));
+    expect(r.normes!.normes.find((z) => z.code === "solvabilite")!.denominateur).toBe(avant - 5_000_000);
+    const ra = r.rapport!;
+    expect(ra.depots.map((z) => z.libelle)).toEqual(["Epargnes et comptes ordinaires", "Comptes sur livrets", "Dépôts à terme", "Dépôts à régime spécial", "Autres comptes de la clientèle ou des membres", "TOTAL"]);
+    expect(ra.credits.map((z) => z.libelle)).toEqual(["Crédits à long terme", "Crédits à moyen terme", "Crédits à court terme", "Créances litigieuses ou en retard", "TOTAL"]);
+    expect(ra.placements.map((z) => z.libelle)).toEqual(["Comptes NOSTRI et prêts à terme", "Titres à court terme", "Titres de participation", "TOTAL"]);
+    for (const etat of [ra.depots, ra.credits, ra.placements]) {
+      for (const k of ["debut", "fin", "interets"] as const) expect(etat.at(-1)![k]).toBe(etat.slice(0, -1).reduce((t, z) => t + z[k], 0));
+      for (const z of etat) { const den = z.debut + z.fin; expect([z.moyen, z.taux]).toEqual([Math.floor(den / 2), den > 0 ? Math.floor(z.interets / den * 20000 + 0.5) / 100 : null]); }
+    }
+    expect([ra.depots.at(-1)!.fin, ra.placements[0]!.interets]).toEqual([seules.depots, 3_000_000]);     // les dépôts des membres ; les intérêts reçus de l'affiliée (compte 704)
+    // 6 ter. Cotisations des assujettis (Instr. BCC 0011, art. 29, 31 et 37) : à la fin de l'exercice seulement
+    expect(r.cotisations).toBeNull();
+    const fin = { au: "2026-12-31" };
+    const bol31 = fichier("BOL", "COOPEC Bolingo", [["57000001", "570", "Caisse", 6_000_000, 0, "N"], ["32000001", "320", "Crédits de trésorerie", 20_000_000, 0, "N"],
+      ["38000001", "380", "Provisions sur créances en retard", 0, 1_000_000, "N"], ["56000001", "5600", "COOCEC, compte à vue", 10_000_000, 0, "O"], ["33000001", "330", "Épargne des membres", 0, 38_000_000, "N"],
+      ["60410001", "6041", "Intérêts payés à la COOCEC", 3_000_000, 0, "O"]], -3_000_000, "2026-12-31", { productif: 12_000_000 });
+    r = await imp(bol31, fin);
+    const cot = r.cotisations!, actif = r.etats!.bilan.totalActif.n;
+    expect([cot.exercice, cot.echeance, cot.securite, cot.generale]).toEqual([2026, "2027-06-30", 190_000, 720_000]);
+    // 1 % de l'encours de crédit net (20 000 000 moins 1 000 000 de provisions) ; 6 % de l'actif productif moyen
+    expect(cot.lignes).toEqual([{ sigle: "BOL", denomination: "COOPEC Bolingo", encoursNet: 19_000_000, securite: 190_000, actifProductif: 12_000_000, generale: 720_000 }]);
+    expect(cot.fonds).toEqual({ dotation: 0, actifReseau: actif, plafond: Math.floor((actif + 5) / 10), obligatoire: true });
+    // l'actif productif moyen de l'institution : moyenne des douze fins de mois de l'exercice (art. 37) ; ici, deux fins de mois portent les soldes de novembre
+    const lg31 = (await co.exporter(fin)).contenu.split("\r\n"), t31 = lg31.indexOf("Compte;PCCI;Libellé;Débit;Crédit;Réseau");
+    const productif = lg31.slice(t31 + 1, -2).map((l) => l.split(";")).filter((c) => ["30", "31", "32", "530", "560"].some((x) => c[0]!.startsWith(x)))
+      .reduce((t, c) => t + Math.max(Math.round(Number(c[3]) * 100) - Math.round(Number(c[4]) * 100), 0), 0);
+    expect(lg31[9]).toBe(`Actif productif moyen;${dec(Math.floor((2 * productif + 6) / 12))}`);
     // Sans le droit des États financiers, ni lecture ni import
     await connecter("engalula");
     await expect(co.importer({ ...jour, contenu: bol })).rejects.toThrow("Droit manquant");

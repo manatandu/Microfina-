@@ -177,4 +177,5 @@ id,lot,titre,ecrans,statut,question,reste
 11.7,11,Refonte visuelle,Tous les écrans,fait,,
 12.1,12,"Fonds entre agences, et entre le siège et une agence","S81, S32",fait,,
 12.2,12,Type de guichet ajouté depuis Guichets,S08,fait,,
-12.3,12,Consolidation d'un réseau,"S122, S102",fait,,"Fait : attribut « Appartenance au réseau », export de la balance, import par la faîtière, écarts de réciprocité, bilan et compte de résultat consolidés (registre T235). Non construits : hors bilan consolidé, normes prudentielles sur base consolidée (Instr. BCC 002, art. 2), états du rapport annuel de la faîtière sur les dépôts, crédits et placements (Instr. BCC 0011, art. 47), cotisations (art. 29, 31 et 37)."
+12.3,12,Consolidation d'un réseau,"S122, S102",fait,,"Fait : attribut « Appartenance au réseau », export de la balance, import par la faîtière, écarts de réciprocité, bilan et compte de résultat consolidés (registre T235). La suite est au point 12.4."
+12.4,12,"Faîtière : hors bilan consolidé, normes consolidées, cotisations, états du rapport annuel",S122,fait,,
