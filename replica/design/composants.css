@@ -1,9 +1,9 @@
 @layer interface {
 /* Composants d'Exofina. Uniquement des jetons de tokens.css : aucun code couleur ici.
-   Règles : docs/design/DESIGN.md, version 2.0 du 21/11/2026 (demande du porteur : un vrai logiciel, pas une page blanche).
-   Quatre plans : le bureau (--bureau), la fenêtre de l'écran (--cadre), les bandeaux de titre (--bandeau), la case où l'on tape (--feuille).
-   Cadres à bandeau et onglets pleins comme sur les captures de Microfina++ (manuel p. 13 et 87) ; libellé à gauche (Fiori 4:8) ;
-   tableaux à en-tête plein et filets verticaux ; cases de 30 px. Mouvement : fiche « animate » d'emil-kowalski, rien après une touche au guichet. */
+   Règles : docs/design/DESIGN.md, version 4.0 du 27/11/2026 (demande du porteur : pas l'allure d'un site généré, les modèles sont les vrais logiciels ; registre T238).
+   Le vocabulaire est celui des écrans de Microfina++ (manuel p. 86, 87, 112 et 129) : le bureau (--bureau), le cadre teinté (--cadre) sous son bandeau de titre
+   (--titre-cadre), les cases blanches où l'on tape (--feuille), les boîtes à étiquette, les onglets pleins, la bande d'actions, les tableaux quadrillés.
+   Cases et boutons de 28 px, texte de 13 px. Mouvement : fiche « animate » d'emil-kowalski, rien après une touche au guichet. */
 
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -64,43 +64,46 @@ h1, h2, h3 { letter-spacing: -0.01em; }
 .puce[data-tranche="2"]::before { background: var(--r2); }
 .puce[data-tranche="3"]::before { background: var(--r3); }
 
-/* ---------- Cadre : une boîte bordée, son titre dans un bandeau (les cadres « Info client », « Info crédit » de Microfina++, p. 87) ---------- */
-/* Plan d'allègement, point 11.7 : une carte blanche posée sur le bureau, filet fin et ombre à peine marquée ; le titre sur la carte, souligné d'un filet */
-.bloc { background: var(--cadre); border: 1px solid var(--trait); border-radius: var(--rayon-bloc); box-shadow: var(--ombre-surface); padding: var(--espace-4); min-width: 0; }
+/* ---------- Cadre : une boîte bordée et teintée, son titre dans un bandeau plein (les barres « Saisie d'écriture comptable », « Rapprochement
+   Bancaire » de Microfina++, p. 129). Les cases blanches ressortent sur le cadre : on voit d'un coup d'œil où l'on tape. ---------- */
+.bloc { background: var(--cadre); border: 1px solid var(--trait); border-radius: var(--rayon-bloc); padding: var(--espace-3); min-width: 0; }
 .bloc > h2, .bloc > h3 {
-  margin: 0 0 var(--espace-3); font-size: var(--taille-titre); line-height: var(--interligne-titre);
+  margin: 0 0 var(--espace-2); font-size: var(--taille-titre); line-height: var(--interligne-titre);
   font-weight: var(--graisse-titre); color: var(--encre);
   display: flex; align-items: center; gap: var(--espace-2); flex-wrap: wrap;
 }
-.bloc > h2:first-child, .bloc > h3:first-child {
-  margin: calc(-1 * var(--espace-4)) calc(-1 * var(--espace-4)) var(--espace-4); padding: var(--espace-3) var(--espace-4);
-  background: var(--bandeau); border-bottom: 1px solid var(--ligne); border-radius: calc(var(--rayon-bloc) - 1px) calc(var(--rayon-bloc) - 1px) 0 0;
+.bloc > h2:first-child, .bloc > h3:first-child, .bloc > form:first-child > h2:first-child {   /* le titre garde son bandeau quand le cadre s'ouvre par son formulaire */
+  margin: calc(-1 * var(--espace-3)) calc(-1 * var(--espace-3)) var(--espace-3); padding: 5px var(--espace-3);
+  background: var(--titre-cadre); color: var(--sur-titre-cadre); letter-spacing: 0;
+  border-bottom: 1px solid transparent;                      /* le bandeau garde un bord en couleurs forcées */
+  border-radius: calc(var(--rayon-bloc) - 1px) calc(var(--rayon-bloc) - 1px) 0 0;
 }
-/* Un cadre dans un cadre : même fond, le filet suffit */
-.bloc .bloc { background: none; box-shadow: none; }
+/* Un cadre dans un cadre : même fond, le filet suffit ; son titre sur un bandeau clair, pour ne pas empiler les barres pleines */
+.bloc .bloc { background: none; }
+.bloc .bloc > h2:first-child, .bloc .bloc > h3:first-child { background: var(--bandeau-fort); color: var(--encre); border-bottom-color: var(--trait); }
 
-/* ---------- Onglets : pleins, l'onglet choisi tient à son panneau (Microfina++, p. 87) ---------- */
+/* ---------- Onglets : pleins, sur un trait qui porte le panneau ; l'onglet choisi est en bleu d'action (Microfina++, p. 86 et 112) ---------- */
 .onglets {
-  display: flex; flex-wrap: wrap; gap: 0 2px; padding: 0 var(--espace-1);
-  background: none; border: 0; border-bottom: 1px solid var(--trait); border-radius: 0;
+  display: flex; flex-wrap: wrap; gap: 2px; padding: 0;
+  background: none; border: 0; border-bottom: 2px solid var(--tampon); border-radius: 0;
   max-width: 100%;
 }
 .onglets [role="tab"], .onglets > a, .onglets > span {
   font: inherit; font-size: var(--taille-courant); font-weight: 600; color: var(--encre-2); text-decoration: none; white-space: nowrap;
-  background: none; border: 0; border-radius: var(--rayon-petit) var(--rayon-petit) 0 0;
-  padding: var(--espace-2) var(--espace-3); margin-bottom: -1px; cursor: pointer; position: relative;
+  background: var(--feuille); border: 1px solid var(--trait); border-bottom: 0; border-radius: var(--rayon-champ) var(--rayon-champ) 0 0;
+  padding: 4px var(--espace-3); cursor: pointer; position: relative;
 }
 .onglets [role="tab"][aria-selected="true"], .onglets > [aria-current="page"] {
-  background: none; color: var(--tampon);
+  background: var(--tampon); border-color: var(--tampon); color: var(--sur-tampon);
 }
-/* Le trait de l'onglet choisi : une bordure sur un pseudo-élément, qui reste en couleurs forcées (guide tabs : « DO NOT use box-shadow or a background ») */
+/* En couleurs forcées le fond disparaît : un trait sous l'onglet choisi le garde lisible (guide tabs : pas de fond seul) */
 .onglets [role="tab"][aria-selected="true"]::after, .onglets > [aria-current="page"]::after {
-  content: ""; position: absolute; inset: auto 0 0; border-bottom: 2px solid var(--tampon); pointer-events: none;
+  content: ""; position: absolute; inset: auto 0 0; border-bottom: 2px solid transparent; pointer-events: none;
 }
 .onglets [role="tab"] .touche { margin-left: var(--espace-1); }
-@media (hover: hover) and (pointer: fine) { .onglets [role="tab"]:not([aria-selected="true"]):hover, .onglets > a:not([aria-current="page"]):hover { color: var(--encre); background: var(--papier); } }
+@media (hover: hover) and (pointer: fine) { .onglets [role="tab"]:not([aria-selected="true"]):hover, .onglets > a:not([aria-current="page"]):hover { color: var(--encre); background: var(--bandeau); } }
 /* Le panneau d'un onglet : collé sous la rangée, sans coin en haut */
-.onglets + .bloc, .onglets + [role="tabpanel"] > .bloc:first-child { margin-top: 0; }
+.onglets + .bloc, .onglets + [role="tabpanel"] > .bloc:first-child { margin-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
 
 .assistant { display: flex; flex-wrap: wrap; gap: var(--espace-2) var(--espace-4); list-style: none; margin: 0; padding: 0; counter-reset: etape; }
 .assistant li {
@@ -135,7 +138,7 @@ h1, h2, h3 { letter-spacing: -0.01em; }
 .saisie {
   font: inherit; color: var(--encre); background: var(--feuille);
   border: 1px solid var(--trait-saisie); border-radius: var(--rayon-champ);
-  padding: 4px var(--espace-2); min-height: var(--mise-bouton-h); width: 100%; min-width: 0;
+  padding: 2px var(--espace-2); min-height: var(--mise-bouton-h); width: 100%; min-width: 0;
   box-shadow: var(--ombre-creux);
 }
 .saisie::placeholder { color: var(--encre-2); opacity: 1; }   /* texte indicatif lisible (4,5:1) */
@@ -146,7 +149,7 @@ h1, h2, h3 { letter-spacing: -0.01em; }
 /* Valeur en lecture : une case grisée, à plat, de la taille des autres ; on voit d'un coup d'œil ce qui se tape et ce qui se lit
    (les cases grises de Microfina++, p. 87 : Répartition, Détail crédit) */
 .saisie[readonly], .saisie:disabled {
-  background: var(--lecture); border-color: var(--ligne); box-shadow: none; color: var(--encre);
+  background: var(--lecture); border-color: var(--trait); box-shadow: none; color: var(--encre);
 }
 .saisie:disabled { color: var(--encre-2); cursor: not-allowed; }
 select.saisie:disabled { background-image: none; padding-right: var(--espace-2); opacity: 1; }
@@ -245,24 +248,25 @@ select.saisie { appearance: none; padding-right: 26px; background-image: linear-
 .etapes li.ko { border-color: transparent; color: var(--alerte); background: var(--alerte-pale); }
 .etapes li.ko::before { content: "✗ "; }
 
-/* ---------- Boutons : un léger relief, comme une touche ; le principal en bleu d'action, les autres sur fond acier ---------- */
+/* ---------- Boutons : le principal plein, en bleu d'action ; les autres blancs, liseré et texte du même bleu (une seule famille, comme la bande
+   de boutons de Microfina++, p. 86) ---------- */
 .bouton {
   font: inherit; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: var(--espace-2);
-  min-height: var(--mise-bouton-h); padding: 4px var(--espace-3); border-radius: var(--rayon-champ);
+  min-height: var(--mise-bouton-h); padding: 2px var(--espace-3); border-radius: var(--rayon-champ);
   border: 1px solid var(--tampon-fort); background: var(--tampon); color: var(--sur-tampon); cursor: pointer; white-space: nowrap;
   box-shadow: var(--ombre-relief); text-decoration: none;
 }
 @media (hover: hover) and (pointer: fine) {
   .bouton:not(:disabled):not(.secondaire):not(.discret):hover { background: var(--tampon-fort); }
-  .bouton.secondaire:not(:disabled):hover { background: var(--lecture); border-color: var(--encre-2); }
+  .bouton.secondaire:not(:disabled):hover { background: var(--tampon-pale); border-color: var(--tampon-fort); }
   .bouton.discret:not(:disabled):hover { background: var(--tampon-pale); }
 }
-.bouton.secondaire { background: var(--feuille); color: var(--encre); border-color: var(--trait-saisie); box-shadow: var(--ombre-relief-clair); }
+.bouton.secondaire { background: var(--feuille); color: var(--tampon); border-color: var(--tampon); box-shadow: var(--ombre-relief-clair); }
 .bouton.discret { background: none; border-color: transparent; color: var(--tampon); padding-inline: var(--espace-2); box-shadow: none; }
-.bouton:disabled, .bouton[aria-disabled="true"] { background: var(--inactif); border-color: var(--ligne); color: var(--sur-inactif); cursor: not-allowed; box-shadow: none; }
+.bouton:disabled, .bouton[aria-disabled="true"] { background: var(--inactif); border-color: var(--trait); color: var(--sur-inactif); cursor: not-allowed; box-shadow: none; }
 .bouton.discret:disabled { background: none; border-color: transparent; color: var(--encre-2); }
 .bouton[aria-busy="true"] { cursor: progress; }
-.bouton.petit { min-height: 24px; padding: 1px var(--espace-2); font-size: var(--taille-dense); }   /* action dans une ligne de tableau */
+.bouton.petit { min-height: 22px; padding: 0 var(--espace-2); font-size: var(--taille-dense); }   /* action dans une ligne de tableau */
 .bouton.grand { min-height: var(--mise-bouton-h-grand); font-size: var(--taille-titre); padding-inline: var(--espace-5); }
 .bouton .touche { background: transparent; color: inherit; border-color: currentColor; opacity: .8; }
 
@@ -289,21 +293,23 @@ details.textes ul { margin: var(--espace-1) 0 0; padding-left: var(--espace-4); 
 .grille-cadre { overflow-x: auto; border: 1px solid var(--trait); border-radius: var(--rayon-bloc); background: var(--feuille); }
 .grille { width: 100%; border-collapse: collapse; border: 1px solid var(--trait); background: var(--feuille); font-size: var(--taille-courant); line-height: var(--interligne-courant); }
 .grille-cadre > .grille { border: 0; }
-.grille caption { caption-side: top; text-align: left; font-weight: 600; padding: var(--espace-2) var(--espace-3); background: var(--bandeau); border: 1px solid var(--trait); border-bottom: 0; color: var(--encre); }
+.grille caption { caption-side: top; text-align: left; font-weight: 700; padding: 5px var(--espace-2); background: var(--bandeau-fort); border: 1px solid var(--trait); border-bottom: 0; color: var(--encre); }
 .grille caption.sr-only { padding: 0; border: 0; }
 .grille th {
   position: sticky; top: 0; background: var(--bandeau); text-align: left; font-weight: 600; color: var(--encre); font-size: var(--taille-courant);
-  padding: var(--espace-2) var(--espace-3); border-bottom: 1px solid var(--trait); white-space: nowrap;
+  padding: 4px var(--espace-2); border-bottom: 1px solid var(--trait); white-space: nowrap;
 }
 .grille th.num { text-align: right; font-family: var(--police-texte); }
-/* Plan d'allègement, point 11.7 : en-tête discret, sans filets verticaux ; les lignes se lisent par leurs filets horizontaux */
-.grille thead th { background: var(--tete-grille); color: var(--sur-tete-grille); border-bottom: 1px solid var(--trait); font-size: var(--taille-dense); font-weight: 600; letter-spacing: .01em; }
+/* Version 4.0 : en-tête plein et gras, colonnes séparées d'un filet, comme la grille d'un logiciel comptable (Microfina++, p. 112 et 129) */
+.grille thead th { background: var(--tete-grille); color: var(--sur-tete-grille); border-bottom: 1px solid var(--trait); font-size: var(--taille-dense); font-weight: 700; }
+.grille thead th:not(:last-child) { border-right: 1px solid var(--trait); }
+.grille tbody :is(td, th):not(:last-child), .grille tfoot :is(td, th):not(:last-child) { border-right: 1px solid var(--ligne); }
 .grille thead th button:focus-visible { outline: 2px solid var(--sur-tete-grille); outline-offset: 2px; }
 .grille tbody th { position: static; background: inherit; color: var(--encre); border-bottom: 1px solid var(--ligne); }
 .grille th button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 .grille th[aria-sort="ascending"] button::after { content: " ↑"; }
 .grille th[aria-sort="descending"] button::after { content: " ↓"; }
-.grille td { padding: var(--espace-1) var(--espace-3); border-bottom: 1px solid var(--ligne); vertical-align: middle; height: 34px; }
+.grille td { padding: 2px var(--espace-2); border-bottom: 1px solid var(--ligne); vertical-align: middle; height: 28px; }
 .grille td.code, .grille td.chiffres, .grille td.num { white-space: nowrap; }   /* un numéro, une date, un montant ne se coupent pas */
 .grille tbody tr:last-child td, .grille tbody tr:last-child th { border-bottom: 0; }
 .grille tbody tr:nth-child(even) td, .grille tbody tr:nth-child(even) th { background: var(--zebre); }   /* lignes alternées : l'œil suit la ligne d'un bord à l'autre */
@@ -313,12 +319,12 @@ details.textes ul { margin: var(--espace-1) 0 0; padding-left: var(--espace-4); 
 .grille tbody tr[aria-selected="true"], .grille tbody tr[aria-selected="true"] td { background: var(--tampon-pale); box-shadow: inset 0 0 0 0 transparent; }
 .grille tbody tr[aria-selected="true"] td:first-child { box-shadow: inset 3px 0 0 var(--tampon); }
 /* Ligne de total : un trait au-dessus, deux au-dessous, comme un total arrêté au registre */
-.grille tfoot th, .grille tfoot td { background: var(--tete-grille); font-weight: 700; border-top: 1px solid var(--encre); border-bottom: 3px double var(--encre); padding: 5px var(--espace-3); }   /* même retrait que les lignes : le total tombe sous sa colonne */
+.grille tfoot th, .grille tfoot td { background: var(--tete-grille); font-weight: 700; border-top: 1px solid var(--encre); border-bottom: 3px double var(--encre); padding: 4px var(--espace-2); }   /* même retrait que les lignes : le total tombe sous sa colonne */
 /* État comptable à ruptures (grand livre, balance, bilan) : le compte ou le poste en bandeau, son total arrêté d'un trait (DESIGN § 3.6 ; registre T236) */
 .grille tbody tr.rupture :is(th, td) { background: var(--bandeau-fort); font-weight: 600; border-bottom: 1px solid var(--trait); }
 .grille tbody tr.sous-total :is(th, td) { background: var(--feuille); font-weight: 600; border-top: 1px solid var(--encre-2); }
 /* Tableau serré : un tableau trop large pour la page à 1 366 px (balance à huit colonnes, liste à douze colonnes) tient sans défiler (DESIGN § 2.9 et § 3.6) */
-.grille.serree :is(th, td) { padding-inline: var(--espace-2); }
+.grille.serree :is(th, td) { padding-inline: 6px; }
 .grille.serree tbody :is(th, td), .grille.serree tfoot :is(th, td) { font-size: var(--taille-dense); }
 .grille.serree thead th:not([scope="colgroup"]) { white-space: normal; vertical-align: bottom; }   /* un titre de deux mots passe sur deux lignes : la colonne prend la largeur de ses valeurs */
 /* Colonnes groupées par paires (Débit, Crédit) : le titre du groupe au milieu de sa paire, un filet dessous */
@@ -376,8 +382,8 @@ details.textes ul { margin: var(--espace-1) 0 0; padding-left: var(--espace-4); 
 .boite { border: 1px solid var(--trait-saisie); border-radius: var(--rayon-bloc); padding: 0 var(--espace-4) var(--espace-4); width: min(var(--mise-carte-etroite), calc(100vw - 2 * var(--espace-4)));
   background: var(--cadre); color: var(--encre); box-shadow: var(--ombre-flottant); overflow: hidden; }
 .boite::backdrop { background: color-mix(in srgb, var(--nuit) 50%, transparent); }
-.boite > h1 { margin: 0 calc(-1 * var(--espace-4)) var(--espace-4); padding: 8px var(--espace-4); font-size: var(--taille-titre); line-height: var(--interligne-titre);
-  background: var(--bandeau-fort); border-bottom: 1px solid var(--trait); }
+.boite > h1 { margin: 0 calc(-1 * var(--espace-4)) var(--espace-4); padding: 6px var(--espace-4); font-size: var(--taille-titre); line-height: var(--interligne-titre);
+  background: var(--titre-cadre); color: var(--sur-titre-cadre); border-bottom: 1px solid transparent; letter-spacing: 0; }
 .boite[data-type="succes"] > h1 { box-shadow: inset 4px 0 0 var(--sain); }
 .boite[data-type="erreur"] > h1 { box-shadow: inset 4px 0 0 var(--alerte); }
 .boite > p { margin: 0; }
@@ -395,6 +401,6 @@ details.textes ul { margin: var(--espace-1) 0 0; padding-left: var(--espace-4); 
 /* La page ne défile pas sous une fenêtre ouverte (guide dialog, « MANDATORY (both rules) » ; amélioration progressive, jamais overflow: hidden sur body) */
 dialog:modal { overscroll-behavior: contain; }
 dialog::backdrop { overflow: hidden; overscroll-behavior: contain; }
-.fiche > h1 { position: sticky; top: 0; z-index: 2; margin: 0 calc(-1 * var(--espace-4)) var(--espace-4); padding: 8px var(--espace-4); font-size: var(--taille-titre); line-height: var(--interligne-titre);
-  background: var(--bandeau-fort); border-bottom: 1px solid var(--trait); }
+.fiche > h1 { position: sticky; top: 0; z-index: 2; margin: 0 calc(-1 * var(--espace-4)) var(--espace-4); padding: 6px var(--espace-4); font-size: var(--taille-titre); line-height: var(--interligne-titre);
+  background: var(--titre-cadre); color: var(--sur-titre-cadre); border-bottom: 1px solid transparent; letter-spacing: 0; }
 }

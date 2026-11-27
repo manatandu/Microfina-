@@ -142,8 +142,9 @@ function EditionBalance({ ctx, jour }: { ctx: Ctx; jour: string }) {
   const [glCompte, setGlCompte] = useState<{ compte: string; intitule: string; r: GL } | null>(null);
   const ouvrirGl = async (compte: string, intitule: string) => { try { setGlCompte({ compte, intitule, r: await api.etatsCompta.grandLivre(criteresGl(compte)) }); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } };
   return (
-    <section className="bloc pile" aria-label={titre}><Recherche className="pile" label="Critères" envoyer={rechercher}>
+    <section className="bloc pile" aria-label={titre}>
       <h2>{titre}</h2>
+      <Recherche className="pile" label="Critères" envoyer={rechercher}>
       <fieldset className="cadre-champs formulaire"><legend className="sr-only">Critères</legend>
         <Plan ctx={ctx} valeur={f.plan} changer={(v) => setF({ ...f, plan: v })} />
         <Champ libelle="Type de balance :">{(p) => <select {...p} className="saisie" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>

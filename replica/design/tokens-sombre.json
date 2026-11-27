@@ -1,5 +1,5 @@
 {
-  "_about": "Jetons de Likelemba, thème sombre. Mêmes noms et mêmes paires que tokens.json ; seules les couleurs changent.",
+  "_about": "Jetons d'Exofina, thème sombre, version 4.0 du 27/11/2026 (DESIGN.md § 3 ; registre T238) : les mêmes plans que le thème clair, retournés.",
   "_roles": {
     "bg": "papier",
     "surface": "feuille",
@@ -13,23 +13,25 @@
     "success": "sain"
   },
   "color": {
-    "papier": "oklch(16.5% 0.014 255)",
-    "feuille": "oklch(21% 0.017 255)",
-    "bureau": "oklch(16.5% 0.014 255)",
-    "cadre": "oklch(21% 0.017 255)",
+    "papier": "oklch(15% 0.014 255)",
+    "feuille": "oklch(24.5% 0.019 255)",
+    "bureau": "oklch(15% 0.014 255)",
+    "cadre": "oklch(20% 0.017 255)",
     "encre": "oklch(93.5% 0.005 255)",
     "encre-2": "oklch(76% 0.012 255)",
-    "trait": "oklch(32% 0.02 255)",
+    "trait": "oklch(36% 0.022 255)",
     "trait-saisie": "oklch(62% 0.016 255)",
-    "ligne": "oklch(28.5% 0.02 255)",
-    "bandeau": "oklch(21% 0.017 255)",
-    "bandeau-fort": "oklch(24.5% 0.019 255)",
-    "zebre": "oklch(21% 0.017 255)",
-    "tete-grille": "oklch(24.5% 0.019 255)",
-    "sur-tete-grille": "oklch(82% 0.01 255)",
+    "ligne": "oklch(30% 0.02 255)",
+    "bandeau": "oklch(24.5% 0.019 255)",
+    "bandeau-fort": "oklch(27.5% 0.022 255)",
+    "titre-cadre": "oklch(36% 0.06 255)",
+    "sur-titre-cadre": "#FFFFFF",
+    "zebre": "oklch(22.5% 0.018 255)",
+    "tete-grille": "oklch(27.5% 0.022 255)",
+    "sur-tete-grille": "oklch(88% 0.01 255)",
     "tampon": "#8DB8F2",
     "tampon-fort": "#A9CAF6",
-    "tampon-pale": "oklch(30% 0.05 255)",
+    "tampon-pale": "oklch(32% 0.06 255)",
     "sur-tampon": "#0E1724",
     "alerte": "#E8707B",
     "alerte-pale": "#3F2031",
@@ -52,7 +54,7 @@
     "r5-texte": "#D9A0AE",
     "r5-pale": "#33202A",
     "inactif": "oklch(24.5% 0.019 255)",
-    "lecture": "oklch(24.5% 0.019 255)",
+    "lecture": "oklch(20% 0.017 255)",
     "sur-inactif": "#98A0AC",
     "specimen": "#141C29",
     "photo-fond": "#2F3846",
@@ -321,10 +323,26 @@
     [
       "encre",
       "zebre"
+    ],
+    [
+      "sur-titre-cadre",
+      "titre-cadre"
+    ],
+    [
+      "encre",
+      "tete-grille"
+    ],
+    [
+      "tampon",
+      "bandeau"
+    ],
+    [
+      "encre-2",
+      "bandeau-fort"
     ]
   ],
   "shadow": {
-    "surface": "0 1px 2px rgba(0, 0, 0, .5)",
+    "surface": "none",
     "relief": "none",
     "relief-clair": "none",
     "creux": "none",

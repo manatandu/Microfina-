@@ -1,5 +1,8 @@
 @layer base {
 a { color: var(--tampon); text-underline-offset: 3px; }
+/* Un titre de section garde la taille des titres de cadre, où qu'il soit : jamais la taille par défaut du navigateur */
+h2 { font-size: var(--taille-titre); line-height: var(--interligne-titre); }
+h3 { font-size: var(--taille-courant); line-height: var(--interligne-courant); }
 }
 @layer interface {
 /* Mise en page de l'application. Jetons seulement (tokens.css). */
@@ -75,6 +78,7 @@ html { scroll-padding-block: calc(var(--mise-barre) + 2px + var(--espace-2)) cal
 /* Le volet défile dans sa colonne et reste en place : la hauteur de la page est celle de l'écran de travail */
 @media (min-width: 861px) { .acces-rapide { position: sticky; top: calc(var(--mise-barre) + 2px); align-self: start; height: calc(100vh - var(--mise-barre) - 2px - var(--hauteur-pied, 26px)); height: calc(100dvh - var(--mise-barre) - 2px - var(--hauteur-pied, 26px)); overflow-y: auto; overscroll-behavior: contain; } }
 .acces-rapide details { border: 1px solid var(--trait); border-radius: var(--rayon-bloc); background: var(--cadre); overflow: hidden; }
+.acces-rapide summary { background: var(--tete-grille); }
 .acces-rapide summary { cursor: pointer; padding: 5px var(--espace-2); font-size: var(--taille-courant); font-weight: 700; color: var(--encre); list-style: none; display: flex; justify-content: space-between; align-items: center; background: var(--bandeau); }
 .acces-rapide summary::-webkit-details-marker { display: none; }
 .acces-rapide summary::after { content: ""; width: 6px; height: 6px; border-right: 1.5px solid var(--encre-2); border-bottom: 1.5px solid var(--encre-2); rotate: -45deg; margin-right: 3px; transition: rotate var(--mouvement-rapide) var(--mouvement-courbe-sortie); }
@@ -184,6 +188,10 @@ a.module:active { transform: scale(.97); }
 .page > h1 + .entete-ecran { border-left: 0; padding-left: 0; }
 /* Le titre de fenêtre de Microfina++, sous le titre du menu : une étiquette, pas un second titre */
 .page > h2 { margin: 0; font-size: var(--taille-courant); font-weight: 600; color: var(--encre-2); }   /* un cadre garde son bandeau où qu'il soit (point 11.2) */
+/* Version 4.0 : suivi d'un cadre, ce titre de fenêtre devient sa barre de titre (les barres bleues de Microfina++, p. 112 et 129) */
+.page > h2:has(+ .bloc) { margin-bottom: calc(-1 * var(--espace-3)); padding: 5px var(--espace-3); font-size: var(--taille-titre); font-weight: 700;
+  background: var(--titre-cadre); color: var(--sur-titre-cadre); border: 1px solid transparent; border-bottom: 0; border-radius: var(--rayon-bloc) var(--rayon-bloc) 0 0; }
+.page > h2 + .bloc { border-top-left-radius: 0; border-top-right-radius: 0; }
 .page > .chapeau { margin: calc(-1 * var(--espace-4)) 0 0; color: var(--encre-2); max-width: 70ch; }
 .rangee { display: flex; flex-wrap: wrap; gap: var(--espace-2); align-items: center; }
 .pile { display: grid; gap: var(--espace-3); align-content: start; min-width: 0; }
@@ -325,7 +333,8 @@ button, summary, [role="tab"] { -webkit-user-select: none; user-select: none; }
 .entete-ecran { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--espace-2) var(--espace-4); }
 .entete-ecran p { margin: 0; color: var(--encre-2); }
 .libelle-vide { display: block; }
-.actions-onglets { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--espace-2); }
+/* La bande d'actions : les boutons d'un écran sur une bande, à droite (Microfina++, p. 86 et 129 ; DESIGN § 3.4) */
+.actions-onglets { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: flex-end; gap: var(--espace-2); padding: 5px var(--espace-2); background: var(--bandeau-fort); border: 1px solid var(--trait); border-radius: var(--rayon-champ); }
 .apercu { margin: 0; display: grid; gap: var(--espace-1); }
 .apercu figcaption { font-size: var(--taille-dense); color: var(--encre-2); }
 .apercu img { max-width: 100%; max-height: 140px; object-fit: contain; border: 1px solid var(--trait); border-radius: var(--rayon-petit); background: var(--feuille); }
@@ -348,9 +357,11 @@ button, summary, [role="tab"] { -webkit-user-select: none; user-select: none; }
 /* Cadre de champs : la boîte à légende des logiciels de bureau, le titre posé sur le filet (« Info crédit », « Répartition » : Microfina++, p. 87) */
 .cadre-champs { border: 1px solid var(--trait); border-radius: var(--rayon-bloc); padding: var(--espace-1) var(--espace-3) var(--espace-3); margin: 0; min-width: 0; }
 .cadre-champs.pile, .cadre-champs > .pile { gap: var(--espace-2); }
+/* L'étiquette de la boîte : une petite case blanche posée sur le filet (« Info client », « Ecriture », « Budget » de Microfina++, p. 86 et 129) */
 .cadre-champs > legend {
-  padding: 0 var(--espace-2); margin: 0 0 0 calc(-1 * var(--espace-1));
-  font-weight: 700; font-size: var(--taille-dense); line-height: var(--interligne-dense); color: var(--tampon-fort);
+  padding: 1px var(--espace-2); margin: 0 0 0 calc(-1 * var(--espace-1));
+  font-weight: 700; font-size: var(--taille-dense); line-height: var(--interligne-dense); color: var(--encre);
+  background: var(--feuille); border: 1px solid var(--trait); border-radius: var(--rayon-champ);
 }
 /* Sans légende visible, ou dans une barre de filtres : pas de boîte */
 .cadre-champs:has(> legend.sr-only), .cadre-champs:not(:has(> legend)) { border: 0; padding: 0; }
@@ -431,6 +442,9 @@ fieldset.sans-cadre { border: 0; padding: 0; margin: 0; min-width: 0; }
 .pagination button[aria-current="page"] { border-color: var(--tampon); color: var(--tampon); font-weight: 600; }
 .pagination button:disabled { color: var(--encre-2); opacity: 0.5; cursor: default; }
 .actions-ligne { display: inline-flex; flex-wrap: wrap; gap: var(--espace-1); }
+/* Dans une ligne de tableau, la case des boutons reste une case : ses filets tiennent, ses boutons restent sur une ligne */
+.grille td.actions-ligne { display: table-cell; white-space: nowrap; }
+.grille td.actions-ligne > * + * { margin-left: var(--espace-1); }
 @media print {
   .a-imprimer, .a-imprimer * { visibility: visible; }
   .a-imprimer { position: absolute; inset: 0; }
