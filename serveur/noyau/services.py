@@ -295,6 +295,10 @@ def valeur_part_ou_rien(institution_id: int) -> int | None:
 def contexte(u: dict) -> dict:
     i = institution_de(u)
     a = une("select id, code, nom, fuseau from agence where id = %s", (u["agence_id"],))
+    if not a:
+        # Utilisateur laissé sans agence (« Toutes les agences » : audit interne, conformité, vérification) : le fuseau du siège, sinon de la première agence
+        f = valeur("select fuseau from agence where institution_id = %s and not supprime order by siege desc, id limit 1", (u["institution_id"],))
+        a = {"id": None, "code": "", "nom": "", "fuseau": f or "Africa/Kinshasa"}
     # Toutes les listes de référence en une requête, au lieu d'une par liste : le référentiel est lu par chaque écran (mesure du 21/11/2026)
     listes: dict[str, list[dict]] = {}
     for r in lignes("select liste, libelle, id from liste_reference where institution_id = %s and actif order by code, id", (u["institution_id"],)):

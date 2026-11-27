@@ -1,6 +1,7 @@
 // Administration > Sécurité > Utilisateurs (plan d'allègement, point 8.3) : S05 (création, p. 16 et 17), S06 (profils, p. 17), S07 (connexions, p. 18) et S10
 // (affectation d'un guichet, p. 20, 96 et 110) sur un écran. La liste et, sur la ligne : Modifier, Changer de profil, Affecter un guichet, Déconnecter, Désactiver ;
 // chaque action garde son droit (Instr. BCC 008, art. 16 ; registre T29). La fiche sépare Nom et Prénoms (registre S05-2) ; adresse, BP et téléphone fixe disparaissent.
+import { Secret } from "../composants/Secret";
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -142,8 +143,9 @@ function FicheUtilisateur({ f, agences, fermer, fait }: { f: Fichier | null; age
     motDePasse: "", confirmation: "", portable: f?.portable ?? "", email: f?.email ?? "" }));
   const [boite, setBoite] = useState<Boite | null>(null);
   const texte = (k: "nom" | "prenoms" | "login" | "motDePasse" | "confirmation" | "portable" | "email", libelle: string, type = "text") => (
-    <Champ libelle={libelle}>{(p) => <input {...p} type={type} className="saisie" autoComplete={type === "password" ? "new-password" : "off"} value={v[k]}
-      onChange={(e) => setV({ ...v, [k]: e.target.value })} />}</Champ>);
+    <Champ libelle={libelle}>{(p) => type === "password"
+      ? <Secret {...p} className="saisie" autoComplete="new-password" value={v[k]} onChange={(e) => setV({ ...v, [k]: e.target.value })} />
+      : <input {...p} type={type} className="saisie" autoComplete="off" value={v[k]} onChange={(e) => setV({ ...v, [k]: e.target.value })} />}</Champ>);
   const enregistrer = () => setBoite({ type: "confirmation", message: f ? "Voulez-vous vraiment modifier ?" : "Voulez-vous vraiment enregistrer ?", oui: async () => {
     try {
       await api.comptesUtilisateurs.enregistrer({ nom: [v.nom.trim(), v.prenoms.trim()].filter(Boolean).join(" "), agenceId: v.agenceId === "toutes" ? "toutes" : v.agenceId ? Number(v.agenceId) : null,

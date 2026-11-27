@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Secret } from "../composants/Secret";
 import { api } from "../donnees/api";
 import { message, useDonnees } from "../lib/useDonnees";
 import { Bloquant } from "../composants";
@@ -40,7 +41,7 @@ export function Verrou({ login, fait, autre }: { login: string; fait: () => void
           </div>
           <div className="champ">
             <label htmlFor="verrou-mdp">Mot de passe :</label>
-            <input id="verrou-mdp" className="saisie" type="password" autoComplete="current-password" value={mdp} onChange={(e) => setMdp(e.target.value)} />
+            <Secret id="verrou-mdp" className="saisie" autoComplete="current-password" value={mdp} onChange={(e) => setMdp(e.target.value)} />
           </div>
           {codeDemande && <div className="champ">
             <label htmlFor="verrou-code">Code à 6 chiffres :</label>

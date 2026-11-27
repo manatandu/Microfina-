@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Secret } from "../composants/Secret";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api, LIBELLES_ROLES } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
@@ -50,7 +51,7 @@ export default function Connexion() {
           </div>
           <div className="champ">
             <label htmlFor="mdp">Mot de passe :</label>
-            <input id="mdp" className="saisie" type="password" autoComplete="current-password" value={mdp} onChange={(e) => setMdp(e.target.value)} />
+            <Secret id="mdp" className="saisie" autoComplete="current-password" value={mdp} onChange={(e) => setMdp(e.target.value)} />
           </div>
           {codeDemande && <div className="champ">
             <label htmlFor="code-2f">Code à 6 chiffres :</label>

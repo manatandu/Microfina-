@@ -1,5 +1,6 @@
 // Audit du 21/11/2026, point bloquant B9 : chacun change son mot de passe ; celui que l'administrateur a donné se remplace à la première connexion,
 // avant toute autre action (Instr. BCC 008, art. 16 ; Instr. BCC 05, annexe : le préposé gère son mot de passe ; registre T207).
+import { Secret } from "../composants/Secret";
 import { useState } from "react";
 import { api } from "../donnees/api";
 import { message } from "../lib/useDonnees";
@@ -13,7 +14,7 @@ export default function ChangerMotDePasse({ force, expire, fait, annuler }: { fo
     catch (x) { setErreur(message(x)); }
   };
   const zone = (cle: keyof typeof f, libelle: string, auto: string) => (
-    <Champ libelle={libelle}>{(p) => <input {...p} className="saisie" type="password" autoComplete={auto} value={f[cle]} onChange={(e) => setF({ ...f, [cle]: e.target.value })} />}</Champ>);
+    <Champ libelle={libelle}>{(p) => <Secret {...p} className="saisie" autoComplete={auto} value={f[cle]} onChange={(e) => setF({ ...f, [cle]: e.target.value })} />}</Champ>);
   return (
     <Formulaire className="pile champs-a-gauche" label="Changer mon mot de passe" envoyer={() => void envoyer()}>
       {force && <Attention>{expire ? "Votre mot de passe a expiré : il se remplace avant toute autre action."   // registre T218

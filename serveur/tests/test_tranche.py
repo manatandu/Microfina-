@@ -6158,6 +6158,8 @@ def test_cloisonnement_agences(clients, journee):
     connecter(audit, "audit1")
     assert [x["id"] for x in audit.get("/api/tiers?q=0412-000318", **H).json()] == [k]
     assert audit.get(f"/api/tiers/{k}", **H).status_code == 200
+    c = audit.get("/api/referentiel", **H).json()["agence"]                 # registre T257 : sans agence, le fuseau du siège (l'écran s'arrêtait)
+    assert c["id"] is None and c["fuseau"].startswith("Africa/")
 
 
 def test_mots_de_passe_expiration_historique_second_facteur(clients, settings):

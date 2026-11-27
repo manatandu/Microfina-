@@ -51,7 +51,7 @@ export function Coquille() {
     if (!u) return { u: null, ctx: null, j: null };
     const c = ctx ?? await api.referentiel.contexte();   // session valide mais contexte refusé : sa vraie erreur s'affiche
     definirMonnaies(c.devises, c.monnaies);              // devises et monnaies de S35 pour les guichets (registre S79-5)
-    definirFuseau(c.agence.fuseau);                      // jour et heure de l'agence (plan d'allègement, point 11.4 ; registre T153)
+    definirFuseau(c.agence?.fuseau);                      // jour et heure de l'agence (plan d'allègement, point 11.4 ; registre T153)
     definirJourOuvert(j?.date);                          // les dates proposées partent de la journée ouverte (registre T120)
     return { u, ctx: c, j };
   });
@@ -169,7 +169,7 @@ export function Coquille() {
         <span>Base de données : <strong>{SUR_SERVEUR ? "PostgreSQL" : "locale"}</strong></span>
         <span>Journée ouverte : <strong className="chiffres">{j && j.statut === "ouverte" ? fr(j.date) : "aucune"}</strong></span>
         <span>Utilisateur : <strong>{u.nom}</strong></span>
-        <span className="muet">{ctx.institution.nom} · agence de {ctx.agence.nom}</span>
+        <span className="muet">{ctx.institution.nom} · {ctx.agence.id ? `agence de ${ctx.agence.nom}` : "toutes les agences"}</span>
       </footer>
       <Fiche titre="Changer mon mot de passe" ouverte={mdp} fermer={() => setMdp(false)}>
         <ChangerMotDePasse fait={() => { setMdp(false); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }} annuler={() => setMdp(false)} />
