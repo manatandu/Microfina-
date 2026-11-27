@@ -128,7 +128,7 @@ function Multicritere({ ctx, cx, clients }: { ctx: Ctx; cx: ContexteRapport; cli
           <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={lignes.length === 0} onClick={exporter}>Exporter</button></div>
           {resultat === "detaille" ? (
             <div className="grille-cadre">
-              <table className="grille">
+              <table className={entetes.length > 8 ? "grille serree" : "grille"}>
                 <thead><tr>{entetes.map((e) => <th key={e} scope="col">{e}</th>)}</tr></thead>
                 <tbody>
                   {lignes.length === 0 && <tr><td colSpan={entetes.length}>Aucune ligne.</td></tr>}
