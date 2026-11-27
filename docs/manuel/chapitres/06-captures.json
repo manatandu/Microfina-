@@ -1,0 +1,152 @@
+[
+  {
+    "fichier": "S74.png",
+    "figure": "Figure 6.1 : l'écran Guichet, onglet Dépôt",
+    "login": "engalula",
+    "url": "/caisse/s74?op=depot",
+    "onglet": null,
+    "attendre": "Dépôt espèce",
+    "remplir": [["Montant *", "150 000"], ["Motif:", "ECOLAGE"], ["Nombre de coupures de 10 000 CDF", "15"]],
+    "notes": "Journée ouverte et Caisse 2 ouverte par engalula. Avant de remplir : taper « Kal » dans « N° client » et choisir 0412-000318 Kalala Mbuyi Josée, puis « N° compte » 0412-000318-02. Capturer quand « Le compte est bon. » s'affiche sous le billetage ; le bandeau de la caisse doit être visible."
+  },
+  {
+    "fichier": "S74-b.png",
+    "figure": "Figure 6.2 : la confirmation récapitule le dépôt avant de l'enregistrer",
+    "login": "engalula",
+    "url": "/caisse/s74?op=depot",
+    "onglet": null,
+    "attendre": "Dépôt espèce",
+    "remplir": [["Montant *", "150 000"], ["Motif:", "ECOLAGE"], ["Nombre de coupures de 10 000 CDF", "15"]],
+    "notes": "Même préparation que S74.png (Kalala, compte 0412-000318-02). Cliquer sur [Enregistrer] et capturer la boîte « Confirmation » (texte « Voulez-vous vraiment enregistrer ? ») sans cliquer sur Oui."
+  },
+  {
+    "fichier": "S74-c.png",
+    "figure": "Figure 6.3 : le reçu d'un dépôt",
+    "login": "engalula",
+    "url": "/caisse/s74?op=depot",
+    "onglet": null,
+    "attendre": "Dépôt espèce",
+    "remplir": [["Montant *", "150 000"], ["Motif:", "ECOLAGE"], ["Nombre de coupures de 10 000 CDF", "15"]],
+    "notes": "Même préparation que S74.png. Cliquer sur [Enregistrer] puis [Oui] ; si une boîte « Succès » parle du maximum autorisé, cliquer sur [Ok]. Capturer la fenêtre « Reçu » quand « Dépôt enregistré » s'affiche, avant d'imprimer."
+  },
+  {
+    "fichier": "S74-d.png",
+    "figure": "Figure 6.4 : l'onglet Retrait",
+    "login": "engalula",
+    "url": "/caisse/s74?op=retrait",
+    "onglet": null,
+    "attendre": "Retrait en espèces",
+    "remplir": [["Montant *", "300"], ["Motif:", "Loyer"], ["Nombre de coupures de 100 USD", "3"]],
+    "notes": "Caisse 2 ouverte. Choisir le membre Kalala (0412-000318) dans « N° client », puis « N° compte » 0412-000318-01 (USD). La colonne « En caisse » du billetage doit être visible."
+  },
+  {
+    "fichier": "S76.png",
+    "figure": "Figure 6.5 : l'onglet Remboursement",
+    "login": "engalula",
+    "url": "/caisse/s76",
+    "onglet": null,
+    "attendre": "Infos crédit",
+    "remplir": [["Montant à payer: *", "100 000"], ["Nombre de coupures de 20 000 CDF", "5"]],
+    "notes": "Il faut un crédit débloqué pour Kalala (crédit 0412/L001/00001 du parcours d'essai). Choisir Kalala dans « N° du client : » avant de remplir. Attendre que « Ordre Répartition » s'affiche dans le cadre Répartition."
+  },
+  {
+    "fichier": "S73.png",
+    "figure": "Figure 6.6 : l'onglet Adhésion",
+    "login": "engalula",
+    "url": "/caisse/s73",
+    "onglet": null,
+    "attendre": "Liste des Frais",
+    "remplir": [["Nombre de parts sociales", "2"], ["Premier dépôt : * (CDF)", "20 000"], ["Nombre de coupures de 20 000 CDF", "1"], ["Nombre de coupures de 5 000 CDF", "2"], ["Nombre de coupures de 500 CDF", "1"]],
+    "notes": "Il faut un membre visé qui n'a pas encore adhéré : Tshala Muana Marie-Thérèse du parcours d'essai (enrôlée par bkasongo, visée par jpmukendi), et un droit d'adhésion de 2 500 CDF paramétré. Choisir le membre par [Rechercher] (fenêtre « Recherche d'un client », Nom: Tshala) avant de remplir. Le total doit montrer 30 500,00 CDF."
+  },
+  {
+    "fichier": "S75.png",
+    "figure": "Figure 6.7 : l'onglet Déblocage",
+    "login": "engalula",
+    "url": "/caisse/s75",
+    "onglet": null,
+    "attendre": "Info crédit",
+    "remplir": [["Nombre de coupures de 20 000 CDF", "50"]],
+    "notes": "Il faut un crédit qui a ses trois visas et n'est pas débloqué (0412/L001/00001 du parcours d'essai, avant son déblocage). Cliquer sur [Rechercher] du cadre Info crédit, choisir la ligne 0412/L001/00001 dans « Crédits à débloquer », puis remplir le billetage. Le cadre « Retenues » avec « Montant remis » doit être visible."
+  },
+  {
+    "fichier": "S77.png",
+    "figure": "Figure 6.8 : l'onglet Parts sociales",
+    "login": "engalula",
+    "url": "/caisse/s77",
+    "onglet": null,
+    "attendre": "Part social et Montant",
+    "remplir": [["Part social à achèter *", "1"], ["Nombre de coupures de 1 000 CDF", "4"]],
+    "notes": "Choisir Kalala dans « Numéro client » (ou par [Rechercher]) avant de remplir. L'onglet intérieur « Achat Part sociale » reste sélectionné ; « Montant à payer » affiche 4 000,00 CDF."
+  },
+  {
+    "fichier": "S78.png",
+    "figure": "Figure 6.9 : l'onglet Autres encaissements et décaissements",
+    "login": "engalula",
+    "url": "/caisse/s78",
+    "onglet": null,
+    "attendre": "Opérations diverses",
+    "remplir": [["Type operation", "Encaissement"], ["Opérations", "Vente de livret d'épargne"], ["Montant (CDF) *", "2 000"], ["Nombre de coupures de 1 000 CDF", "2"]],
+    "notes": "L'opération « Vente de livret d'épargne » doit exister, active, dans Paramétrage > Comptabilité > Encaissements et décaissements divers : référentiel (parcours d'essai). Attendre que le Compte s'affiche avant de capturer."
+  },
+  {
+    "fichier": "S82.png",
+    "figure": "Figure 6.10 : l'onglet Paiements préparés",
+    "login": "engalula",
+    "url": "/caisse/s82",
+    "onglet": null,
+    "attendre": "Paiements préparés",
+    "remplir": [],
+    "notes": "Il faut au moins une opération préparée : opération diverse « Prime d'assurance » de 10 000 CDF saisie par plumbala (Comptabilité > Saisie > Autres opérations, onglet Encaissements et décaissements divers, choix Caisse, compte 61000000) puis visée par jpmukendi (Comptabilité > Contrôle > Opérations en attente)."
+  },
+  {
+    "fichier": "S82-b.png",
+    "figure": "Figure 6.11 : la fenêtre de paiement d'une opération préparée",
+    "login": "engalula",
+    "url": "/caisse/s82",
+    "onglet": null,
+    "attendre": "Paiements préparés",
+    "remplir": [],
+    "notes": "Même préparation que S82.png. Cliquer sur la ligne « Prime d'assurance » ; dans la fenêtre « Opération diverse », taper 1 dans « Nombre de coupures de 10 000 CDF » et capturer la fenêtre quand « Le compte est bon. » s'affiche, sans cliquer sur Payer."
+  },
+  {
+    "fichier": "S81.png",
+    "figure": "Figure 6.12 : Virements internes de trésorerie, de la caisse vers la banque",
+    "login": "engalula",
+    "url": "/caisse/s81",
+    "onglet": null,
+    "attendre": "Fonds à recevoir",
+    "remplir": [["De *", "Caisse 2"], ["Vers *", "RAW R-CDF-1 (CDF)"], ["Montant (CDF) *", "1 000"], ["N° du bordereau de versement *", "0001234"], ["Nombre de coupures de 1 000 CDF", "1"]],
+    "notes": "Caisse 2 ouverte ; la banque Rawbank et son compte en CDF R-CDF-1 doivent exister (Banque > Banques, parcours d'essai). Capturer avant [Enregistrer], avec le montant en lettres visible."
+  },
+  {
+    "fichier": "S83.png",
+    "figure": "Figure 6.13 : le journal de caisse",
+    "login": "engalula",
+    "url": "/caisse/s83",
+    "onglet": null,
+    "attendre": "Element de Recherche",
+    "remplir": [],
+    "notes": "Cliquer sur [Rechercher] et attendre la grille et le tableau « Soldes et totaux par devise ». Il faut quelques opérations du jour dans la Caisse 2 (dépôt, retrait, versement en banque)."
+  },
+  {
+    "fichier": "S79.png",
+    "figure": "Figure 6.14 : l'arrêté de caisse, comptage",
+    "login": "engalula",
+    "url": "/caisse/s79",
+    "onglet": null,
+    "attendre": "Arrêté de caisse : Caisse 2",
+    "remplir": [],
+    "notes": "Caisse 2 ouverte, sans retrait en attente de visa ni fonds à recevoir. Taper dans la colonne Nombre les coupures que la caisse contient (on les lit dans la colonne « En caisse » du billetage d'un retrait), pour que « Total Caisse (CDF) » égale « Solde Caisse (CDF) : ». Capturer avant [Enregistrer], cadres CDF et USD visibles si possible."
+  },
+  {
+    "fichier": "S80.png",
+    "figure": "Figure 6.15 : l'arrêté de caisse, validation",
+    "login": "jpmukendi",
+    "url": "/caisse/s80",
+    "onglet": null,
+    "attendre": "Validation de l'arrêté temporaire",
+    "remplir": [["Guichet", "Caisse 2"]],
+    "notes": "La caissière engalula doit avoir enregistré le comptage de la Caisse 2 (S79). Après le choix du guichet, attendre que la grille montre une ligne « Billet de 20000 CDF » et que la case « Écart (CDF) » soit remplie. Ne pas cliquer sur Valider."
+  }
+]

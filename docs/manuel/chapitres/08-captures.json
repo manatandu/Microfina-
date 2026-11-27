@@ -1,0 +1,600 @@
+[
+  {
+    "fichier": "S84.png",
+    "figure": "Figure 8.1 : l'écran Simulation d'échéancier, récapitulatif calculé",
+    "login": "bkasongo",
+    "url": "/credit/s84",
+    "onglet": null,
+    "attendre": "Simulation d'échéancier",
+    "remplir": [
+      [
+        "Montant du prêt *",
+        "1 000 000"
+      ],
+      [
+        "Durée (mois) *",
+        "12"
+      ]
+    ],
+    "notes": "Choisir « Crédit commerce » dans Produit *, remplir montant et durée, puis cliquer sur [Calculer] : le cadre Récapitulatif doit être visible (TEG annuel)."
+  },
+  {
+    "fichier": "S84-b.png",
+    "figure": "Figure 8.2 : la fenêtre Echéancier de la simulation",
+    "login": "bkasongo",
+    "url": "/credit/s84",
+    "onglet": null,
+    "attendre": "Simulation d'échéancier",
+    "remplir": [
+      [
+        "Montant du prêt *",
+        "1 000 000"
+      ],
+      [
+        "Durée (mois) *",
+        "12"
+      ]
+    ],
+    "notes": "Même saisie que S84.png (produit Crédit commerce), puis cliquer sur [Echéancier] : capturer la fenêtre « Echéancier » ouverte."
+  },
+  {
+    "fichier": "S85.png",
+    "figure": "Figure 8.3 : l'analyse financière, partie Client et crédit sollicité",
+    "login": "bkasongo",
+    "url": "/credit/s85",
+    "onglet": null,
+    "attendre": "Client et crédit sollicité",
+    "remplir": [
+      [
+        "Montant sollicité *",
+        "1 000 000"
+      ],
+      [
+        "Durée (mois) *",
+        "12"
+      ]
+    ],
+    "notes": "Cliquer sur [Rechercher], taper Kalala dans « Nom: », cliquer sur sa ligne ; choisir « Crédit commerce » dans Produit crédit :."
+  },
+  {
+    "fichier": "S85-b.png",
+    "figure": "Figure 8.4 : l'analyse financière, partie Compte d'exploitation mensuel",
+    "login": "bkasongo",
+    "url": "/credit/s85",
+    "onglet": null,
+    "attendre": "Compte d'exploitation mensuel",
+    "remplir": [
+      [
+        "Revenus mensuels (chiffre d'affaires)",
+        "3 000 000"
+      ],
+      [
+        "Achats et coût des ventes",
+        "1 500 000"
+      ],
+      [
+        "Charges d'exploitation",
+        "500 000"
+      ],
+      [
+        "Charges familiales",
+        "300 000"
+      ]
+    ],
+    "notes": "Faire d'abord la partie 1 comme S85.png, puis [Suivant] ; remplir les quatre montants avant la capture."
+  },
+  {
+    "fichier": "S85-c.png",
+    "figure": "Figure 8.5 : l'analyse financière, partie Bilan et garanties proposées",
+    "login": "bkasongo",
+    "url": "/credit/s85",
+    "onglet": null,
+    "attendre": "Bilan et garanties proposées (facultatif)",
+    "remplir": [],
+    "notes": "Parties 1 et 2 remplies comme S85.png et S85-b.png, puis [Suivant] ; cliquer sur [Ajouter une garantie] et remplir Type 1 « Caution », Description 1 « Caution de Mwamba », Valeur 1 « 200 000 »."
+  },
+  {
+    "fichier": "S85-d.png",
+    "figure": "Figure 8.6 : l'analyse financière, partie Résultats et avis",
+    "login": "bkasongo",
+    "url": "/credit/s85",
+    "onglet": null,
+    "attendre": "Résultats et avis",
+    "remplir": [],
+    "notes": "Parties précédentes remplies (bilan laissé vide), [Suivant] jusqu'à Résultats et avis ; choisir « Favorable » dans Avis *. La capacité affiche 13,93 %."
+  },
+  {
+    "fichier": "S86.png",
+    "figure": "Figure 8.7 : l'écran Demande de crédit rempli pour Kalala",
+    "login": "bkasongo",
+    "url": "/credit/s86",
+    "onglet": null,
+    "attendre": "Demande de crédit",
+    "remplir": [
+      [
+        "Montant demandé *",
+        "1 000 000"
+      ],
+      [
+        "Durée (mois) *",
+        "12"
+      ],
+      [
+        "Signé le *",
+        "01/11/2026"
+      ],
+      [
+        "Référence de la pièce signée *",
+        "CR-1"
+      ]
+    ],
+    "notes": "Choisir « Crédit commerce » dans Produit crédit * ; [Rechercher] et choisir Kalala ; Région (province) * et Préfecture * : Kinshasa ; Objet de crédit * : Prêt commercial ; Compte d'épargne obligatoire : 0412-000318-02. Ne pas enregistrer avant la capture."
+  },
+  {
+    "fichier": "S93.png",
+    "figure": "Figure 8.8 : le Portefeuille de crédits, avec les boutons d'action sur les lignes",
+    "login": "jpmukendi",
+    "url": "/credit/s93",
+    "onglet": null,
+    "attendre": "Portefeuille de crédits",
+    "remplir": [],
+    "notes": "Cliquer sur [Exécuter]. Pour montrer les boutons d'action, avoir au moins une demande à l'état Vérifié (bouton Décider) ; Prérequis : la demande DC000001 de Kalala existe (saisie en S86 par bkasongo : Crédit commerce, 1 000 000, 12 mois, consentement signé)."
+  },
+  {
+    "fichier": "S87.png",
+    "figure": "Figure 8.9 : la fenêtre Vérification de la demande",
+    "login": "stshibanda",
+    "url": "/credit/s93",
+    "onglet": null,
+    "attendre": "Portefeuille de crédits",
+    "remplir": [
+      [
+        "Montant (ressaisi) *",
+        "1 000 000"
+      ],
+      [
+        "Référence du rapport de la Centrale *",
+        "CR-2026-0001"
+      ]
+    ],
+    "notes": "Prérequis : la demande DC000001 de Kalala existe (saisie en S86 par bkasongo : Crédit commerce, 1 000 000, 12 mois, consentement signé). Cliquer sur [Exécuter], puis sur [Vérifier] de la ligne DC000001 ; remplir la fenêtre « Vérification de la demande DC000001 » et cocher Accepté ; capturer la fenêtre sans enregistrer."
+  },
+  {
+    "fichier": "S88.png",
+    "figure": "Figure 8.10 : la fenêtre Décision sur la demande, avec la commission de crédit",
+    "login": "jpmukendi",
+    "url": "/credit/s93",
+    "onglet": null,
+    "attendre": "Portefeuille de crédits",
+    "remplir": [
+      [
+        "Montant approuvé *",
+        "1 000 000"
+      ],
+      [
+        "Membre 1 *",
+        "Mbala"
+      ],
+      [
+        "Membre 2 *",
+        "Ilunga"
+      ],
+      [
+        "Membre 3 *",
+        "Kabeya"
+      ],
+      [
+        "N° du procès-verbal",
+        "PV-2026-12"
+      ]
+    ],
+    "notes": "Prérequis : DC000001 vérifiée par stshibanda ; fonds propres prudentiels saisis par plumbala (Comptabilité > Indicateurs et normes > Normes prudentielles). Etat « Vérifié », [Exécuter], [Décider] sur la ligne ; choisir Accepté pour les trois avis ; capturer la fenêtre « Décision sur la demande DC000001 » sans enregistrer."
+  },
+  {
+    "fichier": "S88-b.png",
+    "figure": "Figure 8.11 : la fenêtre Appel devant le Conseil d'administration",
+    "login": "jpmukendi",
+    "url": "/credit/s93",
+    "onglet": null,
+    "attendre": "Portefeuille de crédits",
+    "remplir": [
+      [
+        "Référence : *",
+        "CA-2026-07"
+      ]
+    ],
+    "notes": "Prérequis : une demande refusée par la commission (à la décision, un membre « Refusé »). Etat « Refusé », [Exécuter], puis [Appel au Conseil] sur la ligne ; choisir « Accordé » dans Décision du Conseil : * ; capturer la fenêtre sans enregistrer."
+  },
+  {
+    "fichier": "S90.png",
+    "figure": "Figure 8.12 : la fenêtre Visa du service financier",
+    "login": "plumbala",
+    "url": "/credit/s93",
+    "onglet": null,
+    "attendre": "Portefeuille de crédits",
+    "remplir": [],
+    "notes": "Prérequis : crédit 0412/L001/00001 décidé par jpmukendi. Etat « Décidé », [Exécuter], [Viser] sur la ligne ; choisir Accepté dans Avis * ; capturer la fenêtre « Visa du service financier 0412/L001/00001 » sans viser."
+  },
+  {
+    "fichier": "S105.png",
+    "figure": "Figure 8.13 : l'écran Déblocage, crédit choisi et retenues affichées",
+    "login": "plumbala",
+    "url": "/credit/s105",
+    "onglet": null,
+    "attendre": "Déblocage",
+    "remplir": [],
+    "notes": "Prérequis : crédit visé par jpmukendi (pas par plumbala, sinon le déblocage est refusé). Cocher « Compte d'épargne du client », cliquer sur [Rechercher] sous N° crédit et choisir 0412/L001/00001 ; capturer avec le cadre Frais (montant remis 990 000 CDF) visible, sans débloquer."
+  },
+  {
+    "fichier": "S105-b.png",
+    "figure": "Figure 8.14 : le contrat de prêt, prêt à imprimer",
+    "login": "plumbala",
+    "url": "/credit/s105",
+    "onglet": null,
+    "attendre": "Déblocage",
+    "remplir": [],
+    "notes": "Même préparation que S105.png, puis cliquer sur [Contrat de prêt] : capturer la fenêtre « Contrat de prêt » (document A4)."
+  },
+  {
+    "fichier": "S106.png",
+    "figure": "Figure 8.15 : l'écran Remboursement par prélèvement sur le compte d'épargne",
+    "login": "plumbala",
+    "url": "/credit/s106",
+    "onglet": null,
+    "attendre": "Remboursement",
+    "remplir": [
+      [
+        "Montant à payer: *",
+        "97 487,13"
+      ],
+      [
+        "Ordre du client : *",
+        "Ordre écrit du client, 05/11/2026"
+      ]
+    ],
+    "notes": "Prérequis : le crédit 0412/L001/00001 de Kalala existe et est débloqué : demande S86 par bkasongo ; fonds propres prudentiels (100 000 000 CDF) saisis par plumbala dans Comptabilité > Indicateurs et normes > Normes prudentielles ; [Vérifier] par stshibanda ; [Décider] par jpmukendi ; [Viser] par jpmukendi ; épargne obligatoire de 100 000 CDF disponible sur 0412-000318-02 ; déblocage au guichet (Caisse > Guichet, onglet Déblocage) par engalula, caisse ouverte. Mode « Prélèvement sur le compte d'épargne » ; [Rechercher] et choisir Kalala ; Compte Client: 0412-000318-02 ; capturer avec la Répartition affichée, sans enregistrer."
+  },
+  {
+    "fichier": "S106-b.png",
+    "figure": "Figure 8.16 : la fenêtre Brouillard des remboursements (bouton Situation)",
+    "login": "plumbala",
+    "url": "/credit/s106",
+    "onglet": null,
+    "attendre": "Remboursement",
+    "remplir": [],
+    "notes": "Prérequis : le crédit 0412/L001/00001 de Kalala existe et est débloqué : demande S86 par bkasongo ; fonds propres prudentiels (100 000 000 CDF) saisis par plumbala dans Comptabilité > Indicateurs et normes > Normes prudentielles ; [Vérifier] par stshibanda ; [Décider] par jpmukendi ; [Viser] par jpmukendi ; épargne obligatoire de 100 000 CDF disponible sur 0412-000318-02 ; déblocage au guichet (Caisse > Guichet, onglet Déblocage) par engalula, caisse ouverte. Choisir Kalala par [Rechercher], puis cliquer sur [Situation] : capturer la fenêtre « Brouillard des remboursements »."
+  },
+  {
+    "fichier": "S142.png",
+    "figure": "Figure 8.17 : l'écran Annulation de règlement de crédit",
+    "login": "jpmukendi",
+    "url": "/credit/s142",
+    "onglet": null,
+    "attendre": "Annulation de règlement de crédit",
+    "remplir": [],
+    "notes": "Prérequis : un remboursement par prélèvement du crédit de Kalala saisi par plumbala (S106) puis visé et validé dans Comptabilité > Opérations en attente. Cliquer sur [Rechercher] à côté de N° de pièce et choisir la ligne de Kalala ; capturer sans annuler."
+  },
+  {
+    "fichier": "S94.png",
+    "figure": "Figure 8.18 : l'onglet Garanties, tableau des garanties du crédit de Kalala",
+    "login": "bkasongo",
+    "url": "/credit/s94",
+    "onglet": "Garanties",
+    "attendre": "Garanties du crédit",
+    "remplir": [],
+    "notes": "Prérequis : le crédit 0412/L001/00001 de Kalala existe et est débloqué : demande S86 par bkasongo ; fonds propres prudentiels (100 000 000 CDF) saisis par plumbala dans Comptabilité > Indicateurs et normes > Normes prudentielles ; [Vérifier] par stshibanda ; [Décider] par jpmukendi ; [Viser] par jpmukendi ; épargne obligatoire de 100 000 CDF disponible sur 0412-000318-02 ; déblocage au guichet (Caisse > Guichet, onglet Déblocage) par engalula, caisse ouverte. Cliquer sur [Rechercher] à côté de N° Client : et choisir Kalala. Idéalement après l'ajout d'une caution de Mwamba (10 000 CDF), pour que le tableau montre épargne obligatoire et caution."
+  },
+  {
+    "fichier": "S94-b.png",
+    "figure": "Figure 8.19 : la fenêtre Ajouter une caution",
+    "login": "bkasongo",
+    "url": "/credit/s94",
+    "onglet": "Garanties",
+    "attendre": "Garanties du crédit",
+    "remplir": [
+      [
+        "Montant caution *",
+        "10 000"
+      ]
+    ],
+    "notes": "Prérequis : le crédit 0412/L001/00001 de Kalala existe et est débloqué : demande S86 par bkasongo ; fonds propres prudentiels (100 000 000 CDF) saisis par plumbala dans Comptabilité > Indicateurs et normes > Normes prudentielles ; [Vérifier] par stshibanda ; [Décider] par jpmukendi ; [Viser] par jpmukendi ; épargne obligatoire de 100 000 CDF disponible sur 0412-000318-02 ; déblocage au guichet (Caisse > Guichet, onglet Déblocage) par engalula, caisse ouverte. Choisir Kalala, cliquer sur [Ajouter une caution], puis [Rechercher] la caution Mwamba et choisir Compte: 0412-000319-02 ; capturer la fenêtre sans enregistrer."
+  },
+  {
+    "fichier": "S94-c.png",
+    "figure": "Figure 8.20 : la fenêtre Ajouter un nantissement, nature Matériel professionnel",
+    "login": "bkasongo",
+    "url": "/credit/s94",
+    "onglet": "Garanties",
+    "attendre": "Garanties du crédit",
+    "remplir": [
+      [
+        "Description du matériel: *",
+        "Machine à coudre, n° SC-118"
+      ],
+      [
+        "Emplacement: *",
+        "Atelier, Matete"
+      ],
+      [
+        "Montant de la créance garantie: *",
+        "500 000"
+      ],
+      [
+        "Conditions d'exigibilité: *",
+        "Échéances du contrat de prêt"
+      ],
+      [
+        "Registre d'inscription: *",
+        "Registre du commerce, Kinshasa"
+      ],
+      [
+        "N° d'inscription: *",
+        "NM-0001"
+      ]
+    ],
+    "notes": "Prérequis : le crédit 0412/L001/00001 de Kalala existe et est débloqué : demande S86 par bkasongo ; fonds propres prudentiels (100 000 000 CDF) saisis par plumbala dans Comptabilité > Indicateurs et normes > Normes prudentielles ; [Vérifier] par stshibanda ; [Décider] par jpmukendi ; [Viser] par jpmukendi ; épargne obligatoire de 100 000 CDF disponible sur 0412-000318-02 ; déblocage au guichet (Caisse > Guichet, onglet Déblocage) par engalula, caisse ouverte. Choisir Kalala, cliquer sur [Ajouter un nantissement], cocher « Matériel professionnel », Acte: * « Acte sous seing privé », cocher « Matériel non grevé * » ; capturer sans enregistrer."
+  },
+  {
+    "fichier": "S94-d.png",
+    "figure": "Figure 8.21 : l'onglet Rapport caution et nantissement",
+    "login": "bkasongo",
+    "url": "/credit/s94?page=rapport",
+    "onglet": "Caution",
+    "attendre": "Rapport caution et nantissement",
+    "remplir": [],
+    "notes": "Cliquer sur l'onglet intérieur « Caution », puis sur [Exécuter]. Une caution enregistrée sur le crédit de Kalala remplit la grille."
+  },
+  {
+    "fichier": "SL01.png",
+    "figure": "Figure 8.22 : l'écran Prorogation et contentieux",
+    "login": "bkasongo",
+    "url": "/credit/sl01",
+    "onglet": null,
+    "attendre": "Crédits en retard",
+    "remplir": [
+      [
+        "Report (mois): *",
+        "1"
+      ],
+      [
+        "Motif: *",
+        "Stock détruit par un incendie"
+      ]
+    ],
+    "notes": "Prérequis : le crédit 0412/L001/00001 de Kalala existe et est débloqué : demande S86 par bkasongo ; fonds propres prudentiels (100 000 000 CDF) saisis par plumbala dans Comptabilité > Indicateurs et normes > Normes prudentielles ; [Vérifier] par stshibanda ; [Décider] par jpmukendi ; [Viser] par jpmukendi ; épargne obligatoire de 100 000 CDF disponible sur 0412-000318-02 ; déblocage au guichet (Caisse > Guichet, onglet Déblocage) par engalula, caisse ouverte. Cliquer sur [Rechercher] à côté de N° Client: et choisir Kalala ; remplir « Demande du client le: * » (date de la journée). Capturer sans proroger. Le cadre Contentieux n'apparaît que pour un crédit en retard."
+  },
+  {
+    "fichier": "S97.png",
+    "figure": "Figure 8.23 : l'écran Gestion de la liste rouge",
+    "login": "bkasongo",
+    "url": "/credit/s97",
+    "onglet": null,
+    "attendre": "Gestion de la liste rouge",
+    "remplir": [
+      [
+        "Motif: *",
+        "Chèque sans provision"
+      ]
+    ],
+    "notes": "Cliquer sur [Rechercher] et choisir Mwamba ; idéalement après un premier ajout pour que la grille montre une ligne."
+  },
+  {
+    "fichier": "S96.png",
+    "figure": "Figure 8.24 : l'écran Affectation de crédit",
+    "login": "bkasongo",
+    "url": "/credit/s96",
+    "onglet": null,
+    "attendre": "Affectation de crédit",
+    "remplir": [],
+    "notes": "Prérequis : le crédit 0412/L001/00001 de Kalala existe et est débloqué : demande S86 par bkasongo ; fonds propres prudentiels (100 000 000 CDF) saisis par plumbala dans Comptabilité > Indicateurs et normes > Normes prudentielles ; [Vérifier] par stshibanda ; [Décider] par jpmukendi ; [Viser] par jpmukendi ; épargne obligatoire de 100 000 CDF disponible sur 0412-000318-02 ; déblocage au guichet (Caisse > Guichet, onglet Déblocage) par engalula, caisse ouverte. Choisir « Bijou Kasongo » dans la liste de gauche (Agent qui cède), cocher 0412/L001/00001, choisir « J.-P. Mukendi » à droite ; capturer sans affecter."
+  },
+  {
+    "fichier": "S99.png",
+    "figure": "Figure 8.25 : l'écran Balance âgée et provisions, après Calculer",
+    "login": "bkasongo",
+    "url": "/credit/s99",
+    "onglet": null,
+    "attendre": "Calculer la balance âgée au",
+    "remplir": [],
+    "notes": "Prérequis : le crédit 0412/L001/00001 de Kalala existe et est débloqué : demande S86 par bkasongo ; fonds propres prudentiels (100 000 000 CDF) saisis par plumbala dans Comptabilité > Indicateurs et normes > Normes prudentielles ; [Vérifier] par stshibanda ; [Décider] par jpmukendi ; [Viser] par jpmukendi ; épargne obligatoire de 100 000 CDF disponible sur 0412-000318-02 ; déblocage au guichet (Caisse > Guichet, onglet Déblocage) par engalula, caisse ouverte. Cliquer sur [Calculer] : la grille des crédits et l'État des provisions doivent être visibles."
+  },
+  {
+    "fichier": "S128.png",
+    "figure": "Figure 8.26 : l'écran Intérêts courus sur crédits, après Calculer",
+    "login": "plumbala",
+    "url": "/credit/s128",
+    "onglet": null,
+    "attendre": "Intérêts courus sur crédits",
+    "remplir": [],
+    "notes": "Prérequis : le crédit 0412/L001/00001 de Kalala existe et est débloqué : demande S86 par bkasongo ; fonds propres prudentiels (100 000 000 CDF) saisis par plumbala dans Comptabilité > Indicateurs et normes > Normes prudentielles ; [Vérifier] par stshibanda ; [Décider] par jpmukendi ; [Viser] par jpmukendi ; épargne obligatoire de 100 000 CDF disponible sur 0412-000318-02 ; déblocage au guichet (Caisse > Guichet, onglet Déblocage) par engalula, caisse ouverte. Mettre une date quelques jours après le déblocage (pas après la journée ouverte), puis cliquer sur [Calculer]."
+  },
+  {
+    "fichier": "S100.png",
+    "figure": "Figure 8.27 : l'écran Création engagement par signature",
+    "login": "bkasongo",
+    "url": "/credit/s100",
+    "onglet": null,
+    "attendre": "Création engagement par signature",
+    "remplir": [
+      [
+        "Référence *",
+        "ES-2026-001"
+      ],
+      [
+        "Description *",
+        "Caution de soumission"
+      ],
+      [
+        "Montant *",
+        "500 000"
+      ],
+      [
+        "Durée(mois) *",
+        "6"
+      ],
+      [
+        "Pourcentage %",
+        "1"
+      ],
+      [
+        "Forfait",
+        "5 000"
+      ],
+      [
+        "Garantie",
+        "50 000"
+      ]
+    ],
+    "notes": "Cliquer sur [Rechercher] et choisir Mwamba ; Type engagement * : Caution ; Compte Epargne * et Compte Garanti * : 0412-000319-02 (CDF). Frais à payer : 10 000,00 CDF. Capturer sans enregistrer."
+  },
+  {
+    "fichier": "S100-b.png",
+    "figure": "Figure 8.28 : l'acte d'engagement par signature",
+    "login": "bkasongo",
+    "url": "/credit/s100",
+    "onglet": null,
+    "attendre": "Création engagement par signature",
+    "remplir": [],
+    "notes": "Prérequis : l'engagement ES-2026-001 de Mwamba enregistré. Cliquer sur sa ligne dans la grille, puis sur [Imprimer] : capturer la fenêtre « Engagement par signature » (acte A4)."
+  },
+  {
+    "fichier": "S101.png",
+    "figure": "Figure 8.29 : l'onglet Journal",
+    "login": "bkasongo",
+    "url": "/credit/s101?page=journal",
+    "onglet": "Journal",
+    "attendre": "Journal",
+    "remplir": [],
+    "notes": "Prérequis : le crédit 0412/L001/00001 de Kalala existe et est débloqué : demande S86 par bkasongo ; fonds propres prudentiels (100 000 000 CDF) saisis par plumbala dans Comptabilité > Indicateurs et normes > Normes prudentielles ; [Vérifier] par stshibanda ; [Décider] par jpmukendi ; [Viser] par jpmukendi ; épargne obligatoire de 100 000 CDF disponible sur 0412-000318-02 ; déblocage au guichet (Caisse > Guichet, onglet Déblocage) par engalula, caisse ouverte. Cliquer sur [Afficher]."
+  },
+  {
+    "fichier": "S101-b.png",
+    "figure": "Figure 8.30 : l'onglet Rapports de base",
+    "login": "bkasongo",
+    "url": "/credit/s101?page=base",
+    "onglet": "Rapports de base",
+    "attendre": "Rapports de base",
+    "remplir": [],
+    "notes": "Prérequis : le crédit 0412/L001/00001 de Kalala existe et est débloqué : demande S86 par bkasongo ; fonds propres prudentiels (100 000 000 CDF) saisis par plumbala dans Comptabilité > Indicateurs et normes > Normes prudentielles ; [Vérifier] par stshibanda ; [Décider] par jpmukendi ; [Viser] par jpmukendi ; épargne obligatoire de 100 000 CDF disponible sur 0412-000318-02 ; déblocage au guichet (Caisse > Guichet, onglet Déblocage) par engalula, caisse ouverte. Cliquer sur [Afficher]."
+  },
+  {
+    "fichier": "S101-c.png",
+    "figure": "Figure 8.31 : l'onglet Rapport multicritère",
+    "login": "bkasongo",
+    "url": "/credit/s101?page=multicritere",
+    "onglet": "Rapport multicritère",
+    "attendre": "Rapport multicritère",
+    "remplir": [],
+    "notes": "Prérequis : le crédit 0412/L001/00001 de Kalala existe et est débloqué : demande S86 par bkasongo ; fonds propres prudentiels (100 000 000 CDF) saisis par plumbala dans Comptabilité > Indicateurs et normes > Normes prudentielles ; [Vérifier] par stshibanda ; [Décider] par jpmukendi ; [Viser] par jpmukendi ; épargne obligatoire de 100 000 CDF disponible sur 0412-000318-02 ; déblocage au guichet (Caisse > Guichet, onglet Déblocage) par engalula, caisse ouverte. Cliquer sur [Afficher] (résultat Détaillé)."
+  },
+  {
+    "fichier": "S101-d.png",
+    "figure": "Figure 8.32 : l'onglet Synthèse de la balance Agée",
+    "login": "bkasongo",
+    "url": "/credit/s101?page=synthese",
+    "onglet": "Synthèse de la balance Agée",
+    "attendre": "Synthèse de la balance Agée",
+    "remplir": [],
+    "notes": "Prérequis : le crédit 0412/L001/00001 de Kalala existe et est débloqué : demande S86 par bkasongo ; fonds propres prudentiels (100 000 000 CDF) saisis par plumbala dans Comptabilité > Indicateurs et normes > Normes prudentielles ; [Vérifier] par stshibanda ; [Décider] par jpmukendi ; [Viser] par jpmukendi ; épargne obligatoire de 100 000 CDF disponible sur 0412-000318-02 ; déblocage au guichet (Caisse > Guichet, onglet Déblocage) par engalula, caisse ouverte. Calculer d'abord la balance âgée du jour dans Crédit > Balance âgée et provisions, puis revenir, garder la date du jour et cliquer sur [Afficher]."
+  },
+  {
+    "fichier": "S101-e.png",
+    "figure": "Figure 8.33 : l'onglet Taux de remboursements",
+    "login": "bkasongo",
+    "url": "/credit/s101?page=taux",
+    "onglet": "Taux de remboursements",
+    "attendre": "Taux de remboursements",
+    "remplir": [],
+    "notes": "Prérequis : le crédit 0412/L001/00001 de Kalala existe et est débloqué : demande S86 par bkasongo ; fonds propres prudentiels (100 000 000 CDF) saisis par plumbala dans Comptabilité > Indicateurs et normes > Normes prudentielles ; [Vérifier] par stshibanda ; [Décider] par jpmukendi ; [Viser] par jpmukendi ; épargne obligatoire de 100 000 CDF disponible sur 0412-000318-02 ; déblocage au guichet (Caisse > Guichet, onglet Déblocage) par engalula, caisse ouverte. Cliquer sur [Afficher]."
+  },
+  {
+    "fichier": "S101-f.png",
+    "figure": "Figure 8.34 : l'onglet Encours Prévisionnel",
+    "login": "bkasongo",
+    "url": "/credit/s101?page=previsionnel",
+    "onglet": "Encours Prévisionnel",
+    "attendre": "Encours Prévisionnel",
+    "remplir": [],
+    "notes": "Prérequis : le crédit 0412/L001/00001 de Kalala existe et est débloqué : demande S86 par bkasongo ; fonds propres prudentiels (100 000 000 CDF) saisis par plumbala dans Comptabilité > Indicateurs et normes > Normes prudentielles ; [Vérifier] par stshibanda ; [Décider] par jpmukendi ; [Viser] par jpmukendi ; épargne obligatoire de 100 000 CDF disponible sur 0412-000318-02 ; déblocage au guichet (Caisse > Guichet, onglet Déblocage) par engalula, caisse ouverte. Cliquer sur [Afficher]."
+  },
+  {
+    "fichier": "S101-g.png",
+    "figure": "Figure 8.35 : l'onglet Rapport des exigibles",
+    "login": "bkasongo",
+    "url": "/credit/s101?page=exigibles",
+    "onglet": "Rapport des exigibles",
+    "attendre": "Rapport des exigibles",
+    "remplir": [],
+    "notes": "Cliquer sur [Afficher]. Sans échéance due et impayée, la grille affiche « Aucune ligne. »."
+  },
+  {
+    "fichier": "S101-h.png",
+    "figure": "Figure 8.36 : l'onglet Indicateur de Gestion",
+    "login": "bkasongo",
+    "url": "/credit/s101?page=indicateurs",
+    "onglet": "Indicateur de Gestion",
+    "attendre": "Indicateur de Gestion",
+    "remplir": [],
+    "notes": "Prérequis : le crédit 0412/L001/00001 de Kalala existe et est débloqué : demande S86 par bkasongo ; fonds propres prudentiels (100 000 000 CDF) saisis par plumbala dans Comptabilité > Indicateurs et normes > Normes prudentielles ; [Vérifier] par stshibanda ; [Décider] par jpmukendi ; [Viser] par jpmukendi ; épargne obligatoire de 100 000 CDF disponible sur 0412-000318-02 ; déblocage au guichet (Caisse > Guichet, onglet Déblocage) par engalula, caisse ouverte. Cliquer sur [Afficher]."
+  },
+  {
+    "fichier": "S101-i.png",
+    "figure": "Figure 8.37 : l'onglet Rapport des garanties",
+    "login": "bkasongo",
+    "url": "/credit/s101?page=garanties",
+    "onglet": "Rapport des garanties",
+    "attendre": "Rapport des garanties",
+    "remplir": [],
+    "notes": "Prérequis : le crédit 0412/L001/00001 de Kalala existe et est débloqué : demande S86 par bkasongo ; fonds propres prudentiels (100 000 000 CDF) saisis par plumbala dans Comptabilité > Indicateurs et normes > Normes prudentielles ; [Vérifier] par stshibanda ; [Décider] par jpmukendi ; [Viser] par jpmukendi ; épargne obligatoire de 100 000 CDF disponible sur 0412-000318-02 ; déblocage au guichet (Caisse > Guichet, onglet Déblocage) par engalula, caisse ouverte. Cliquer sur [Afficher]."
+  },
+  {
+    "fichier": "S101-j.png",
+    "figure": "Figure 8.38 : l'onglet Dix plus importants débiteurs",
+    "login": "bkasongo",
+    "url": "/credit/s101?page=debiteurs",
+    "onglet": "Dix plus importants débiteurs",
+    "attendre": "Dix plus importants débiteurs",
+    "remplir": [],
+    "notes": "Prérequis : le crédit 0412/L001/00001 de Kalala existe et est débloqué : demande S86 par bkasongo ; fonds propres prudentiels (100 000 000 CDF) saisis par plumbala dans Comptabilité > Indicateurs et normes > Normes prudentielles ; [Vérifier] par stshibanda ; [Décider] par jpmukendi ; [Viser] par jpmukendi ; épargne obligatoire de 100 000 CDF disponible sur 0412-000318-02 ; déblocage au guichet (Caisse > Guichet, onglet Déblocage) par engalula, caisse ouverte. Cliquer sur [Afficher]."
+  },
+  {
+    "fichier": "S101-k.png",
+    "figure": "Figure 8.39 : l'onglet Prêts aux personnes apparentées",
+    "login": "bkasongo",
+    "url": "/credit/s101?page=apparentes",
+    "onglet": "Prêts aux personnes apparentées",
+    "attendre": "Prêts aux personnes apparentées",
+    "remplir": [],
+    "notes": "Cliquer sur [Afficher]. Sans personne apparentée qui a un crédit, la grille affiche « Aucune ligne. »."
+  },
+  {
+    "fichier": "S95.png",
+    "figure": "Figure 8.40 : l'écran Consultation de prêts",
+    "login": "bkasongo",
+    "url": "/credit/s95",
+    "onglet": null,
+    "attendre": "Consultation de prêts",
+    "remplir": [],
+    "notes": "Prérequis : le crédit 0412/L001/00001 de Kalala existe et est débloqué : demande S86 par bkasongo ; fonds propres prudentiels (100 000 000 CDF) saisis par plumbala dans Comptabilité > Indicateurs et normes > Normes prudentielles ; [Vérifier] par stshibanda ; [Décider] par jpmukendi ; [Viser] par jpmukendi ; épargne obligatoire de 100 000 CDF disponible sur 0412-000318-02 ; déblocage au guichet (Caisse > Guichet, onglet Déblocage) par engalula, caisse ouverte. Cliquer sur [Rechercher] à côté de N° du Client : et choisir Kalala (ou ouvrir depuis le portefeuille en cliquant sur 0412/L001/00001)."
+  },
+  {
+    "fichier": "S95-b.png",
+    "figure": "Figure 8.41 : la fenêtre Historique du crédit",
+    "login": "bkasongo",
+    "url": "/credit/s95",
+    "onglet": null,
+    "attendre": "Consultation de prêts",
+    "remplir": [],
+    "notes": "Prérequis : le crédit 0412/L001/00001 de Kalala existe et est débloqué : demande S86 par bkasongo ; fonds propres prudentiels (100 000 000 CDF) saisis par plumbala dans Comptabilité > Indicateurs et normes > Normes prudentielles ; [Vérifier] par stshibanda ; [Décider] par jpmukendi ; [Viser] par jpmukendi ; épargne obligatoire de 100 000 CDF disponible sur 0412-000318-02 ; déblocage au guichet (Caisse > Guichet, onglet Déblocage) par engalula, caisse ouverte. Choisir Kalala, puis cliquer sur [Historique] : capturer la fenêtre « Historique du crédit 0412/L001/00001 »."
+  },
+  {
+    "fichier": "S91.png",
+    "figure": "Figure 8.42 : l'écran Historique des visas",
+    "login": "jpmukendi",
+    "url": "/credit/s91",
+    "onglet": null,
+    "attendre": "Historique",
+    "remplir": [],
+    "notes": "Prérequis : au moins un visa du service financier donné. Garder Niveau hiérarchique « Service financier » et Avis « Accepté », cliquer sur [Rechercher]."
+  }
+]

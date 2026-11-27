@@ -1,0 +1,132 @@
+[
+  {
+    "fichier": "S52.png",
+    "figure": "Figure 7.1 : Virements internes de trésorerie, de la banque vers une caisse",
+    "login": "plumbala",
+    "url": "/banque/s52",
+    "onglet": null,
+    "attendre": "Virement interne",
+    "remplir": [["De *", "RAW 05100-01234567-89 (USD)"], ["Vers *", "Caisse 2"], ["Montant (USD) *", "100"]],
+    "notes": "Journée ouverte. La banque Rawbank et son compte en USD 05100-01234567-89 (compte comptable 56010001) doivent exister (Banque > Banques, parcours d'essai). Capturer avant [Enregistrer], avec la case « Date opération » et le montant en lettres visibles."
+  },
+  {
+    "fichier": "S53.png",
+    "figure": "Figure 7.2 : l'écran Virement et prélèvement",
+    "login": "plumbala",
+    "url": "/banque/s53",
+    "onglet": null,
+    "attendre": "Contrepartie",
+    "remplir": [["Banque *", "Rawbank"], ["Compte Banque *", "05100-01234567-89 (USD)"], ["Libellé opération *", "Salaire novembre"], ["Montant *", "100"], ["Nom complet : *", "Entreprise Lukaku SARL"], ["Numéro de compte : *", "RAW-0001-USD"], ["Adresse, n° d'identification ou date et lieu de naissance : *", "Gombe, avenue du Port 4"], ["Institution financière : *", "Rawbank"]],
+    "notes": "Avant de remplir : cliquer sur [Rechercher] du cadre « Identifiant Client », choisir Kalala ; cocher « Virement » ; choisir « N° Compte * » 0412-000318-01 ; laisser la contrepartie « Compte bancaire de l'institution ». Le cadre « Donneur d'ordre » apparaît après le choix de Virement. Capturer avant [Enregistrer]."
+  },
+  {
+    "fichier": "S58.png",
+    "figure": "Figure 7.3 : l'onglet Banques",
+    "login": "plumbala",
+    "url": "/banque/s58",
+    "onglet": null,
+    "attendre": "Liste des banques",
+    "remplir": [],
+    "notes": "La banque Rawbank (code RAW, compte de liaison 56010000) doit exister. Cliquer sur sa ligne dans la liste pour que le cadre « Info banque » se remplisse."
+  },
+  {
+    "fichier": "S58-b.png",
+    "figure": "Figure 7.4 : l'onglet Comptes bancaires de l'institution",
+    "login": "plumbala",
+    "url": "/banque/s58",
+    "onglet": "Comptes bancaires de l'institution",
+    "attendre": "Infos Contact",
+    "remplir": [],
+    "notes": "Les comptes 56010001 (USD, 05100-01234567-89) et 56010002 (CDF, R-CDF-1) de la Rawbank doivent exister. Cliquer sur la ligne 56010001 pour remplir le formulaire (Libellé « Rawbank USD », Intitulé « Banque et autres intermédiaires financiers »)."
+  },
+  {
+    "fichier": "S59.png",
+    "figure": "Figure 7.5 : l'onglet Dépôt chèque",
+    "login": "plumbala",
+    "url": "/banque/s59",
+    "onglet": null,
+    "attendre": "Enregistrement Dépôt de Chèque",
+    "remplir": [["N° Chèque *", "0001234"], ["Nom et prénoms Tireur *", "Kabeya Jean"], ["Montant *", "400"], ["Banque", "Rawbank"], ["Compte Banque *", "05100-01234567-89 (USD)"]],
+    "notes": "Avant de remplir : [Rechercher] du cadre Infos Client, choisir Kalala, puis « Compte * » 0412-000318-01. Laisser cochée « Déposé par le titulaire du compte ». Capturer avant [Enregistrer]."
+  },
+  {
+    "fichier": "S59-b.png",
+    "figure": "Figure 7.6 : l'onglet Liste des chèques",
+    "login": "jpmukendi",
+    "url": "/banque/s59",
+    "onglet": "Liste des chèques",
+    "attendre": "Liste des chèques",
+    "remplir": [["Banque *", "Rawbank"], ["Compte Bancaire *", "05100-01234567-89 (USD)"]],
+    "notes": "Il faut un chèque déposé par plumbala (0001234, Kabeya Jean, 400 USD). Laisser le Statut « Déposé » pour que les boutons Encaisser et Retourner soient visibles ; cliquer sur la ligne du chèque pour la choisir."
+  },
+  {
+    "fichier": "S60.png",
+    "figure": "Figure 7.7 : l'écran Chèques de l'institution, « Numéro Chequier »",
+    "login": "plumbala",
+    "url": "/banque/s60",
+    "onglet": null,
+    "attendre": "Numéro Chequier",
+    "remplir": [["Banque *", "Rawbank"], ["Compte *", "05100-01234567-89 (USD)"], ["Nb.Feuillet *", "25"], ["Début *", "0001001"], ["Type de chèque", "Certifié"]],
+    "notes": "Cocher « Oui » dans le groupe « Barré * ». « Fin » doit afficher 0001025. Capturer avant [Generer]."
+  },
+  {
+    "fichier": "S61.png",
+    "figure": "Figure 7.8 : la mise en place d'un emprunt",
+    "login": "plumbala",
+    "url": "/banque/s61",
+    "onglet": null,
+    "attendre": "Mise en place d'emprunt",
+    "remplir": [["Banque", "Rawbank 05100-01234567-89 (USD)"], ["Réf.Emprunt", "RAW-2026-01"], ["Montant", "10 000"], ["Durée", "24"], ["Date Emprunt", "05/11/2026"], ["Taux annuel", "12,5"], ["Total Intérêt", "1 250"], ["Décision du Conseil d'administration *", "CA du 30/10/2026, résolution 3"]],
+    "notes": "Laisser « Compte Emprunt » à 53300000. La phrase d'aide sous le formulaire doit dire « Intérêts au compte 6020 (emprunt à plus d'un an) ». Capturer avant [Enregistrer]."
+  },
+  {
+    "fichier": "S61-b.png",
+    "figure": "Figure 7.9 : le remboursement d'un emprunt",
+    "login": "plumbala",
+    "url": "/banque/s61",
+    "onglet": "Remboursement",
+    "attendre": "Remboursement emprunt",
+    "remplir": [["Amortissement", "4 000"], ["Intérêt", "100"]],
+    "notes": "L'emprunt n° 1 (RAW-2026-01, 10 000 USD) doit exister. Dans « Emprunt », choisir « N° 1 · RAW-2026-01 · … » avant de remplir ; « Banque » et « Capital Restant » s'affichent."
+  },
+  {
+    "fichier": "S62.png",
+    "figure": "Figure 7.10 : le relevé d'un compte bancaire",
+    "login": "plumbala",
+    "url": "/banque/s62",
+    "onglet": null,
+    "attendre": "Relevé d'un compte bancaire",
+    "remplir": [["Banque *", "Rawbank"], ["N° Compte *", "05100-01234567-89 (USD)"]],
+    "notes": "Cliquer sur [Afficher] et attendre « Solde au début » et le tableau « Opérations de banque pas encore comptabilisées ». Il faut quelques opérations de banque saisies sur ce compte (virement vers la Caisse 2, virement de Kalala)."
+  },
+  {
+    "fichier": "S57.png",
+    "figure": "Figure 7.11 : la file des opérations en attente, origine Banque",
+    "login": "jpmukendi",
+    "url": "/comptabilite/s113",
+    "onglet": null,
+    "attendre": "Opérations en attente",
+    "remplir": [["Origine", "Banque"]],
+    "notes": "Il faut des opérations de banque saisies par plumbala et pas encore visées : virement de la Rawbank vers la Caisse 2 (7.1), virement reçu pour Kalala (7.2). Les boutons Viser et Refuser doivent être visibles sur les lignes."
+  },
+  {
+    "fichier": "S54.png",
+    "figure": "Figure 7.12 : le déblocage d'un crédit par chèque bancaire",
+    "login": "plumbala",
+    "url": "/credit/s105",
+    "onglet": null,
+    "attendre": "Infos crédit",
+    "remplir": [],
+    "notes": "Cocher « Chèque bancaire » dans le cadre « Mode * » ; choisir « Banque * » Rawbank et « Compte * » 56010002 (CDF) ; taper un numéro de chèque libre d'un chéquier de ce compte dans « N°chèque * » (générer d'abord un chéquier sur le compte CDF si besoin). Puis [Rechercher] (Rechercher un crédit) et choisir un crédit visé, pas encore débloqué, en CDF. Capturer avant [Débloquer]."
+  },
+  {
+    "fichier": "S55.png",
+    "figure": "Figure 7.13 : le remboursement d'un crédit reçu en banque",
+    "login": "plumbala",
+    "url": "/credit/s106",
+    "onglet": null,
+    "attendre": "Infos crédit",
+    "remplir": [["Montant à payer: *", "1 000"]],
+    "notes": "Cocher « Chèque ou virement bancaire » dans le cadre « Mode * » ; [Rechercher] et choisir Kalala (crédit 0412/L001/00001 débloqué) ; dans « Info banque », choisir « Banque: * » Rawbank et « Compte: * » 56010002 (CDF). Attendre la Répartition proposée. Capturer avant [Enregistrer]."
+  }
+]
