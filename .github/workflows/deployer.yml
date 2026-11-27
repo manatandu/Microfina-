@@ -138,10 +138,12 @@ jobs:
           VITE_DONNEES: serveur
         run: |
           cd web && npm ci && npx vite build --outDir dist --emptyOutDir && cd ..
-          # Adresse du logiciel : SITE.web.app (demande du porteur, 27/11/2026) ; l'adresse du projet renvoie vers elle (firebase.json)
+          # Adresse du logiciel : SITE.web.app (demande du porteur, 27/11/2026 ; registre T255)
           npx --yes firebase-tools@14 hosting:sites:get "$SITE" --project "$PROJET" --non-interactive > /dev/null 2>&1 \
             || npx --yes firebase-tools@14 hosting:sites:create "$SITE" --project "$PROJET" --non-interactive
           npx --yes firebase-tools@14 deploy --only hosting --project "$PROJET" --non-interactive
+          # L'ancienne adresse (site par défaut du projet, qui ne se supprime pas) ne sert plus rien (demande du porteur, 27/11/2026)
+          if [ "$SITE" != "$PROJET" ]; then npx --yes firebase-tools@14 hosting:disable --site "$PROJET" --project "$PROJET" --force --non-interactive; fi
       - name: Contrôle du site publié
         if: steps.cfg.outputs.pret == 'oui'
         env:
@@ -150,7 +152,7 @@ jobs:
         run: |
           sleep 10
           curl -fsS "https://$SITE.web.app/api/session/mode" | tee /dev/stderr | grep -q '"motDePasseRequis": true'
-          if [ "$SITE" != "$PROJET" ]; then curl -sS -o /dev/null -w '%{http_code} %{redirect_url}\n' "https://$PROJET.web.app/" | tee /dev/stderr | grep -q "^301 https://$SITE.web.app"; fi
+          if [ "$SITE" != "$PROJET" ]; then curl -sS -o /dev/null -w '%{http_code}\n' "https://$PROJET.web.app/" | tee /dev/stderr | grep -q "^404"; fi
 
   verification:
     needs: deploiement

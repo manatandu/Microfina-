@@ -240,7 +240,7 @@ export function TraitementsBiens() {
             value={f.contrepartie ?? ""} onChange={(e) => maj("contrepartie", e.target.value)} />}</Champ></>}
         {bien && <dl className="definitions"><dt>Prix d'acquisition</dt><dd>{n(bien.prixAcquisition)}</dd><dt>Amortissements cumulés</dt><dd>{n(bien.cumulAmortissements)}</dd>
           <dt>Valeur nette comptable</dt><dd>{n(bien.prixAcquisition - bien.cumulAmortissements)}</dd>
-          {f.type === "Cession" && lireMontant(f.prix ?? "") !== null && (() => { const r = (lireMontant(f.prix ?? "") ?? 0) - (bien.prixAcquisition - bien.cumulAmortissements);
+          {f.type === "Cession" && lireMontant(f.prix ?? "") !== null && (() => { const r = (lireMontant(f.prix ?? "") ?? 0) / 100 - (bien.prixAcquisition - bien.cumulAmortissements);   // prix saisi en centimes, bien en francs
             return r ? <><dt>{r > 0 ? "Plus-value (774)" : "Moins-value (674)"}</dt><dd>{n(Math.abs(r))}</dd></> : null; })()}
           {f.type === "Mise au rebut" && <><dt>Mise au rebut (673)</dt><dd>{n(bien.prixAcquisition - bien.cumulAmortissements)}</dd></>}</dl>}
       </fieldset>

@@ -33,6 +33,9 @@ def opts(u, table, champ="libelle") -> list[dict]:
             for r in lignes(f"select * from {table} where institution_id = %s and actif order by id", (u["institution_id"],))]
 
 
+CENTIMES = 100       # les montants du module sont en francs entiers (fiche du bien, plan d'amortissement) ; le grand livre et les saisies en centimes
+
+
 def seuil_autorisation(u) -> int:
     """10 % des fonds propres de base, au-delà duquel l'acquisition ou la cession d'un actif patrimonial demande l'autorisation préalable de la BCC
     (Instr. BCC 41, art. 33) ; fonds propres nuls ou négatifs : toute opération"""
@@ -56,7 +59,7 @@ def contexte(u) -> dict:
             "fournisseurs": [{"id": r["id"], "libelle": f"{r['compte']} {r['intitule']}"} for r in lignes(
                 "select id, compte, intitule from tiers_comptable where institution_id = %s and actif and type_tiers = 'FOURNISSEUR' order by intitule", (i,))],
             # point 9.6 : la facture se choisit d'abord ; son fournisseur, son montant et sa date remplissent le bien
-            "factures": lignes("""select f.id, f.fournisseur_id as "fournisseurId", f.numero, f.ttc as "montant", f.date_facture::text as "date", t.intitule as fournisseur
+            "factures": lignes("""select f.id, f.fournisseur_id as "fournisseurId", f.numero, round(f.ttc / 100.0)::bigint as "montant", f.date_facture::text as "date", t.intitule as fournisseur
                                   from facture_fournisseur f join tiers_comptable t on t.id = f.fournisseur_id where f.institution_id = %s order by f.id""", (i,)),
             "seuilAutorisationBcc": seuil_autorisation(u),
             "employes": [{"id": r["id"], "matricule": r["matricule"], "nom": f"{r['nom']} {r['prenoms']}", "departement": r["fonction"]}
@@ -177,7 +180,7 @@ def valider(u, d: dict, bid: int | None) -> dict:
     # Acquisition d'un actif patrimonial au-delà de 10 % des fonds propres de base : autorisation préalable de la BCC (Instr. BCC 41, art. 33), comme la cession
     v["autorisation_bcc"] = t("autorisationBcc")
     if not v["autorisation_bcc"]:
-        if v["prix_acquisition"] * 10 > seuil_autorisation(u) * 10:
+        if v["prix_acquisition"] * CENTIMES > seuil_autorisation(u):
             raise ErreurMetier("Acquisition au-delà de 10 % des fonds propres de base : à remplir, Autorisation BCC (Instr. BCC 41, art. 33).")
     return v
 
@@ -359,15 +362,16 @@ def amortir_un(u, b: dict, exercice: int, j: dict) -> bool:
         raise ErreurMetier(f"Bien {b['codification']} : amortir d'abord l'exercice {avant[0]['exercice']}.")
     eid = None
     if x["dotation"]:
-        lg = [{"compte": v["comptes"]["dotation"], "sens": "D", "devise": "CDF", "montant": x["dotation"]},
-              {"compte": v["comptes"]["amortissement"], "sens": "C", "devise": "CDF", "montant": x["dotation"]}]
+        # Le module compte en francs entiers ; le grand livre en centimes (CENTIMES), comme toute écriture
+        lg = [{"compte": v["comptes"]["dotation"], "sens": "D", "devise": "CDF", "montant": x["dotation"] * CENTIMES},
+              {"compte": v["comptes"]["amortissement"], "sens": "C", "devise": "CDF", "montant": x["dotation"] * CENTIMES}]
         if b["subventionne"]:
             # B26 : la subvention d'équipement est rapportée au résultat d'un montant égal à la dotation du bien qu'elle a financé, dans la limite de
             # ce qui en reste au compte 15 (PCCI, fiche du compte 15 : débit du 15 par le crédit du 77 ; comptes 158 et 771)
             reste = -int(valeur("""select coalesce(sum(case l.sens when 'D' then l.montant_cdf else -l.montant_cdf end), 0) from ligne_ecriture l
                                    join ecriture e on e.id = l.ecriture_id join compte c on c.id = l.compte_id
                                    where e.institution_id = %s and c.numero like '15%%'""", (u["institution_id"],)))
-            reprise = min(x["dotation"], max(reste, 0))
+            reprise = min(x["dotation"] * CENTIMES, max(reste, 0))      # en centimes, comme le solde du 15
             if reprise:
                 lg += [{"compte": "158", "sens": "D", "devise": "CDF", "montant": reprise}, {"compte": "771", "sens": "C", "devise": "CDF", "montant": reprise}]
         eid = poster(u, journal="OD", journee_id=j["id"], libelle=f"Dotation aux amortissements {exercice}, bien {b['codification']}",
@@ -446,30 +450,30 @@ def sortir(u, d) -> dict:
         jd = date.fromisoformat(j["date"])
         s, res, ant = soldes(u, jd, jd.year, vidage=True)
         base = fonds_propres(s, res + ant)["base"]
-        if b["prix_acquisition"] * 10 > max(base, 0):
+        if b["prix_acquisition"] * CENTIMES * 10 > max(base, 0):
             raise ErreurMetier("Cession au-delà de 10 % des fonds propres de base : à remplir, Autorisation BCC (Instr. BCC 41, art. 33).")
-    prix, contrepartie = 0, ""
+    prix, contrepartie = 0, ""         # prix de cession en centimes, comme tout montant saisi à l'écran
     if d["type"] == "Cession":
         prix = d.get("prixCession")
         if isinstance(prix, bool) or not isinstance(prix, (int, float)) or prix < 0:
             raise ErreurMetier("À remplir : Prix de cession (0 si le bien est cédé sans prix).")
-        prix = round(prix, 2)
+        prix = int(round(prix))
         contrepartie = d.get("compteContrepartie").strip() if isinstance(d.get("compteContrepartie"), str) else ""
         if prix and (not contrepartie.isdigit() or contrepartie[0] not in "45"):
             raise ErreurMetier("Compte qui reçoit le prix : un compte de trésorerie (classe 5) ou de tiers (classe 4) du plan de comptes.")
         if prix:
             from .services import compte_institution
             compte_institution(u, contrepartie, "Compte qui reçoit le prix")   # lot 10 : un compte de l'institution (registre T172)
-    lg = [{"compte": v["comptes"]["acquisition"], "sens": "C", "devise": "CDF", "montant": b["prix_acquisition"]}]
+    lg = [{"compte": v["comptes"]["acquisition"], "sens": "C", "devise": "CDF", "montant": b["prix_acquisition"] * CENTIMES}]
     if cumul:
-        lg.append({"compte": v["comptes"]["amortissement"], "sens": "D", "devise": "CDF", "montant": cumul})
+        lg.append({"compte": v["comptes"]["amortissement"], "sens": "D", "devise": "CDF", "montant": cumul * CENTIMES})
+    ecart = prix - vnc * CENTIMES
     if d["type"] == "Mise au rebut":
         if vnc:
-            lg.append({"compte": compte_gestion(v["comptes"]["chargeVcn"], "673"), "sens": "D", "devise": "CDF", "montant": vnc})
+            lg.append({"compte": compte_gestion(v["comptes"]["chargeVcn"], "673"), "sens": "D", "devise": "CDF", "montant": vnc * CENTIMES})
     else:
         if prix:
             lg.append({"compte": contrepartie, "sens": "D", "devise": "CDF", "montant": prix})
-        ecart = round(prix - vnc, 2)
         if ecart < 0:
             lg.append({"compte": compte_gestion(v["comptes"]["chargeVcn"], "674"), "sens": "D", "devise": "CDF", "montant": -ecart})
         elif ecart > 0:
@@ -480,9 +484,9 @@ def sortir(u, d) -> dict:
     if autorisation:
         obs = (obs + " " if obs else "") + f"Autorisation BCC : {autorisation}"
     executer("insert into immo_sortie (bien_id, type, date_sortie, observation, vnc, cumul, ecriture_id, par, prix_cession, compte_contrepartie)"
-             " values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (b["id"], d["type"], q, obs, vnc, cumul, eid, u["id"], prix, contrepartie))
+             " values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (b["id"], d["type"], q, obs, vnc, cumul, eid, u["id"], prix / CENTIMES, contrepartie))
     executer("update immo_bien set statut = 'SORTI' where id = %s", (b["id"],))
-    return {**vue(u, bien(u, b["id"])), "vnc": vnc, "prixCession": prix, "resultatCession": round(prix - vnc, 2) if d["type"] == "Cession" else 0}
+    return {**vue(u, bien(u, b["id"])), "vnc": vnc, "prixCession": prix / CENTIMES, "resultatCession": ecart / CENTIMES if d["type"] == "Cession" else 0}
 
 
 # ---------- S140 : rapports ----------

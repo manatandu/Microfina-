@@ -96,22 +96,6 @@
           ]
         }
       ]
-    },
-    {
-      "site": "dwacfina",
-      "public": "web/dist",
-      "ignore": [
-        "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
-      ],
-      "redirects": [
-        {
-          "source": "**",
-          "destination": "https://exofina.web.app",
-          "type": 301
-        }
-      ]
     }
   ]
 }

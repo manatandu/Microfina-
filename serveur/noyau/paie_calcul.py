@@ -179,7 +179,8 @@ def lignes_paie(c: dict) -> list[dict]:
         ajouter(IMPOTS_RETENUS, "C", f"IRPP retenu {s}", b["irpp"])
         for r in b["retenues"]:
             ajouter(r["compte"], "C", f"{r['libelle']} {s}", r["montant"])
-    out = [{"compte": k, "sens": sens, "libelle": v[0], "montant": v[1]} for (k, sens), v in cumul.items()]
+    # La paie compte en francs entiers (registre S131-5) ; le grand livre en centimes, comme toute écriture
+    out = [{"compte": k, "sens": sens, "libelle": v[0], "montant": v[1] * 100} for (k, sens), v in cumul.items()]
     out.sort(key=lambda x: (x["sens"] != "D", x["compte"]))
     return [{"rang": n + 1, "intitule": valeur("select libelle from compte where numero = %s and institution_id is null", (x["compte"],)) or "", **x,
              "auxiliaireId": None, "typeBudgetId": None, "ligneBudgetId": None} for n, x in enumerate(out)]

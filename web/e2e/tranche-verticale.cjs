@@ -1593,9 +1593,9 @@ const OUT = process.argv[2];
   // Sortie par cession (PCCI, classe 2 ; plan d'allègement 0.1, registre S139-5) : prix, compte qui le reçoit, plus-value au 774
   await p.getByRole('tab', { name: 'Sortie de biens' }).click(); await p.getByLabel('Type de sortie *').selectOption('Cession');
   await p.getByRole('button', { name: 'Rechercher un bien' }).click(); await p.getByRole('dialog', { name: 'Liste des biens' }).getByRole('cell', { name: 'MAB-001' }).click();
-  await p.getByLabel('Date de sortie *').fill('05112026'); await p.getByLabel('Prix de cession *').fill('800000'); await p.getByLabel('Compte qui reçoit le prix *').fill('57000000');
+  await p.getByLabel('Date de sortie *').fill('05112026'); await p.getByLabel('Prix de cession *').fill('900000'); await p.getByLabel('Compte qui reçoit le prix *').fill('57000000');
   await p.getByLabel('Autorisation BCC (au-delà de 10 % des fonds propres de base)').fill('BCC/DSIF/2026/051');
-  await p.getByText('Plus-value (774)').waitFor(); await etape('32f-cession'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByText('Plus-value (774)').waitFor(); await etape('32f-cession');   // 900 000 contre une valeur nette sous 862 069 (prix saisi en centimes, bien en francs) await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
   // Consolidation d'un réseau par sa faîtière (loi 002/2002, art. 65 ; Instr. BCC 0011, art. 47 ; PCCI § 10.3 ; registre T235)
   // 1. Plan des comptes : un compte de l'institution porte « Appartenance au réseau »
   await login('Patrick Lumbala'); await aller('/comptabilite/s102');

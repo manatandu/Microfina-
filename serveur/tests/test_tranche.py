@@ -5579,10 +5579,11 @@ def test_calcul_paie(clients, journee):
     from noyau.bd import une
     l = une("select lignes, montant, statut, periode from operation_comptable where id = %s", (o["enregistree"]["operationId"],))
     from noyau.services import json_lu
-    assert sorted((x["compte"], x["sens"], x["montant"]) for x in json_lu(l["lignes"])) == sorted([
+    # francs de la paie, centimes au grand livre (registre S131-5)
+    assert sorted((x["compte"], x["sens"], x["montant"] // 100) for x in json_lu(l["lignes"])) == sorted([
         ("6502", "D", 2150000), ("6522", "D", 900000), ("6512", "D", 279500 + 75250 + 10750),
         ("421", "C", 2487600), ("461", "C", 107500 + 279500 + 75250 + 10750), ("433", "C", 354900), ("42000000", "C", 100000)])
-    assert (l["montant"], l["statut"], l["periode"]) == (3415500, "saisie", "11/2026")
+    assert (l["montant"], l["statut"], l["periode"]) == (341550000, "saisie", "11/2026")
     # Le salaire de la maquette change : la paie enregistrée ne bouge pas ; supprimée avant le visa, elle se recalcule
     ok(compta, "/api/paie/maquette", {"employeId": e["id"], "rubriqueId": rub["HS"], "montant": 10000, "active": True, "session": "2026-10"})
     assert lire("2026-11").json()["bulletins"][0]["net"] == 2487600
@@ -5591,7 +5592,7 @@ def test_calcul_paie(clients, journee):
     viser_valider(clients, o["enregistree"]["operationId"])
     assert "déjà visée" in msg(compta, "/api/paie/calcul/2026-11/suppression", {})
     comptabiliser_journee(clients, journee)                            # l'écriture passe au grand livre comme toute écriture (S111)
-    assert (solde_compte("6502"), solde_compte("6512"), solde_compte("6522"), solde_compte("421"), solde_compte("4200")) == (2150000, 365500, 900000, -2487600, -100000)
+    assert (solde_compte("6502"), solde_compte("6512"), solde_compte("6522"), solde_compte("421"), solde_compte("4200")) == (215000000, 36550000, 90000000, -248760000, -10000000)
     assert lire("2026-11").json()["enregistree"]["statut"] == "comptabilisee" and balance_equilibree(compta)
 
 
@@ -5645,7 +5646,7 @@ def test_immobilisations(clients, journee):
     # S139
     avant = solde_compte("2810")
     assert ok("/api/immobilisations/amortissement", {"par": "materiel", "bienId": b["id"], "exercice": 2026})["amortis"] == 1
-    assert avant - solde_compte("2810") == 166667
+    assert avant - solde_compte("2810") == 166667 * 100                           # francs du module, centimes au grand livre
     assert "Rien à amortir" in msg("/api/immobilisations/amortissement", {"par": "lot", "exercice": 2026})
     assert "ne se modifie plus" in msg(f"/api/immobilisations/biens/{b['id']}", B)
     assert "État du bien" in msg("/api/immobilisations/inventaire", {"bienId": b["id"], "date": "2026-11-05"})
@@ -5657,19 +5658,19 @@ def test_immobilisations(clients, journee):
     _ex("update immo_bien set prix_acquisition = %s where id = %s", (prix, b["id"]))
     s = ok("/api/immobilisations/sortie", {"type": "Mise au rebut", "bienId": b["id"], "date": "2026-11-05", "observation": "Hors service"})
     assert (s["statut"], s["vnc"]) == ("SORTI", 833333)
-    assert solde_compte("2810") == avant and solde_compte("673") == 833333
+    assert solde_compte("2810") == avant and solde_compte("673") == 833333 * 100
     assert "déjà sorti" in msg("/api/immobilisations/sortie", {"type": "Cession", "bienId": b["id"], "date": "2026-11-05"})
     # Cession (PCCI, classe 2 ; registre S139-5) : prix au compte qui le reçoit, plus-value au 774, moins-value au 674 ; le compte de la famille (673) n'en est pas un sous-compte
     b2 = ok("/api/immobilisations/biens", {**B, "codification": "MAB-002"})
     b3 = ok("/api/immobilisations/biens", {**B, "codification": "MAB-003"})
     assert "Prix de cession" in msg("/api/immobilisations/sortie", {"type": "Cession", "bienId": b2["id"], "date": "2026-11-05", "autorisationBcc": "BCC/DSIF/2026/051"})
-    assert "classe 5" in msg("/api/immobilisations/sortie", {"type": "Cession", "bienId": b2["id"], "date": "2026-11-05", "autorisationBcc": "BCC/DSIF/2026/051", "prixCession": 1200000, "compteContrepartie": "67300000"})
+    assert "classe 5" in msg("/api/immobilisations/sortie", {"type": "Cession", "bienId": b2["id"], "date": "2026-11-05", "autorisationBcc": "BCC/DSIF/2026/051", "prixCession": 120000000, "compteContrepartie": "67300000"})
     c570, c774, c674 = solde_compte("570"), solde_compte("774"), solde_compte("674")
-    s2 = ok("/api/immobilisations/sortie", {"type": "Cession", "bienId": b2["id"], "date": "2026-11-05", "autorisationBcc": "BCC/DSIF/2026/051", "prixCession": 1200000, "compteContrepartie": "57000000"})
+    s2 = ok("/api/immobilisations/sortie", {"type": "Cession", "bienId": b2["id"], "date": "2026-11-05", "autorisationBcc": "BCC/DSIF/2026/051", "prixCession": 120000000, "compteContrepartie": "57000000"})   # 1 200 000 CDF saisis, en centimes
     assert (s2["prixCession"], s2["resultatCession"]) == (1200000, 200000)
-    assert (solde_compte("570") - c570, c774 - solde_compte("774")) == (1200000, 200000)
+    assert (solde_compte("570") - c570, c774 - solde_compte("774")) == (120000000, 20000000)
     s3 = ok("/api/immobilisations/sortie", {"type": "Cession", "bienId": b3["id"], "date": "2026-11-05", "autorisationBcc": "BCC/DSIF/2026/051", "prixCession": 0})
-    assert s3["resultatCession"] == -1000000 and solde_compte("674") - c674 == 1000000
+    assert s3["resultatCession"] == -1000000 and solde_compte("674") - c674 == 100000000
     # S140
     q = {"rechercher": "periode", "du": "2026-01-01", "au": "2026-12-31"}
     assert [x["codification"] for x in compta.get("/api/immobilisations/rapports/biens", q, **H).json()] == ["MAB-001", "MAB-002", "MAB-003"]

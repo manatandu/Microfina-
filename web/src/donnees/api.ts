@@ -10142,6 +10142,8 @@ function lignesPaie(c: CalculPaie): LigneOc[] {
     for (const r of b.retenues) ajouter(r.compte, "C", `${r.libelle} ${s}`, r.montant);
   }
   const intitules = intitulesComptes();
+  // La paie compte en francs entiers (registre S131-5) ; le grand livre en centimes, comme toute écriture
+  for (const x of cumul.values()) x.montant *= 100;
   return [...cumul.values()].sort((a, b) => (a.sens === b.sens ? (a.compte < b.compte ? -1 : a.compte > b.compte ? 1 : 0) : a.sens === "D" ? -1 : 1))
     .map((x, n) => ({ rang: n + 1, intitule: intitules.get(x.compte) ?? "", ...x, auxiliaireId: null, typeBudgetId: null, ligneBudgetId: null }));
 }
@@ -10253,6 +10255,8 @@ const jourImmo = () => { const j = journees.courante(); if (!j || j.statut !== "
 type SaisieBien = { [K in keyof Omit<ImmoBien, "id">]?: ImmoBien[K] | null };
 /** 10 % des fonds propres de base, au-delà duquel l'acquisition ou la cession d'un actif patrimonial demande l'autorisation préalable de la BCC
  *  (Instr. BCC 41, art. 33) ; fonds propres nuls ou négatifs : toute opération (comme le serveur) */
+/** Le module des immobilisations compte en francs entiers ; le grand livre et les saisies en centimes. Comme immobilisations.CENTIMES */
+const CENTIMES_IMMO = 100;
 function seuilAutorisationImmo() {
   const j = journees.courante(), jd = j?.date ?? aujourdhui(), { s, resultat, anterieurs } = soldesEf(jd, Number(jd.slice(0, 4)), true);
   return Math.floor(Math.max(fondsPropresNormes(s, resultat + anterieurs).base, 0) / 10);
@@ -10270,7 +10274,7 @@ const immobilisations = {
       utilisationsTva: Object.fromEntries(valeursRef("immobilisations", "utilisations").map((u) => [u.id, u.tvaApplicable ? String(u.tva ?? "") : ""])),
       fournisseurs: stockRef("tiers", "tiers").filter((t) => t.actif && t.typeTiers === "FOURNISSEUR").map((t) => ({ id: t.id, libelle: `${t.compte} ${t.intitule}` })),
       // point 9.6 : la facture se choisit d'abord ; son fournisseur, son montant et sa date remplissent le bien
-      factures: E.facturesFournisseurs.map((f) => ({ id: f.id, fournisseurId: f.fournisseurId, numero: f.numero, montant: f.ttc, date: f.date,
+      factures: E.facturesFournisseurs.map((f) => ({ id: f.id, fournisseurId: f.fournisseurId, numero: f.numero, montant: Math.round(f.ttc / CENTIMES_IMMO), date: f.date,
         fournisseur: String(stockRef("tiers", "tiers").find((t) => t.id === f.fournisseurId)?.intitule ?? "") })),
       seuilAutorisationBcc: seuilAutorisationImmo(),
       employes: [...E.paieEmployes].sort((a, b) => a.matricule.localeCompare(b.matricule)).map((e) => ({ id: e.id, matricule: e.matricule, nom: `${e.nom} ${e.prenoms}`, departement: e.fonction })),
@@ -10311,7 +10315,7 @@ const immobilisations = {
     // Acquisition d'un actif patrimonial au-delà de 10 % des fonds propres de base : autorisation préalable de la BCC (Instr. BCC 41, art. 33), comme la cession
     const autorisationBcc = t("autorisationBcc");
     if (!autorisationBcc) { const { s, resultat, anterieurs } = soldesEf(j.date, Number(j.date.slice(0, 4)), true);
-      if ((ttc - tva) * 10 > Math.max(fondsPropresNormes(s, resultat + anterieurs).base, 0)) throw new ErreurMetier("Acquisition au-delà de 10 % des fonds propres de base : à remplir, Autorisation BCC (Instr. BCC 41, art. 33)."); }
+      if ((ttc - tva) * CENTIMES_IMMO * 10 > Math.max(fondsPropresNormes(s, resultat + anterieurs).base, 0)) throw new ErreurMetier("Acquisition au-delà de 10 % des fonds propres de base : à remplir, Autorisation BCC (Instr. BCC 41, art. 33)."); }
     const b: ImmoBien = { id: ancien?.id ?? prochain(E.immoBiens), actif: true, numeroPiece: ancien?.numeroPiece ?? "",   // aucune pièce sans écriture (PCCI § 3.4 ; registre S137-2)
       dateOperation: ancien?.dateOperation ?? j.date,
       codification: t("codification"), refConstructeur: t("refConstructeur"), categorieId: Number(f.categorieId), familleId: f.id, libelle: t("libelle"), dateAcquisition: t("dateAcquisition"),
@@ -10384,10 +10388,11 @@ const immobilisations = {
     const avant = plan.find((l) => l.exercice < exercice && !l.passe);
     if (avant) throw new ErreurMetier(`Bien ${b.codification} : amortir d'abord l'exercice ${avant.exercice}.`);
     const v = vueBien(b);
-    const lg: Ligne[] = [{ compte: v.comptes.dotation, sens: "D", devise: "CDF", montant: x.dotation, montantCdf: x.dotation }, { compte: v.comptes.amortissement, sens: "C", devise: "CDF", montant: x.dotation, montantCdf: x.dotation }];
+    const dc = x.dotation * CENTIMES_IMMO;
+    const lg: Ligne[] = [{ compte: v.comptes.dotation, sens: "D", devise: "CDF", montant: dc, montantCdf: dc }, { compte: v.comptes.amortissement, sens: "C", devise: "CDF", montant: dc, montantCdf: dc }];
     if (x.dotation && b.subventionne) {   // B26 : subvention d'équipement rapportée au résultat à hauteur de la dotation, dans la limite du solde du compte 15 (PCCI, fiche du compte 15 ; 158 et 771)
       const reste = -E.ecritures.reduce((s, e2) => s + e2.lignes.filter((l) => l.compte.startsWith("15")).reduce((t, l) => t + (l.sens === "D" ? l.montantCdf : -l.montantCdf), 0), 0);
-      const reprise = Math.min(x.dotation, Math.max(reste, 0));
+      const reprise = Math.min(dc, Math.max(reste, 0));   // en centimes, comme le solde du 15
       if (reprise) lg.push({ compte: "158", sens: "D", devise: "CDF", montant: reprise, montantCdf: reprise }, { compte: "771", sens: "C", devise: "CDF", montant: reprise, montantCdf: reprise });
     }
     const e = x.dotation ? poster({ evenement: "immo_dotation", journal: "OD", journeeId: j.id, libelle: `Dotation aux amortissements ${exercice}, bien ${b.codification}`, piece: piece("OD"), saisiPar: u, validePar: u, lignes: lg }) : null;
@@ -10426,30 +10431,30 @@ const immobilisations = {
     const autorisation = (d.autorisationBcc ?? "").trim();
     if (d.type === "Cession" && !autorisation) {   // B28 : cession au-delà de 10 % des fonds propres de base : autorisation préalable de la BCC (Instr. BCC 41, art. 33)
       const { s, resultat, anterieurs } = soldesEf(j.date, Number(j.date.slice(0, 4)), true);
-      if (b.prixAcquisition * 10 > Math.max(fondsPropresNormes(s, resultat + anterieurs).base, 0)) throw new ErreurMetier("Cession au-delà de 10 % des fonds propres de base : à remplir, Autorisation BCC (Instr. BCC 41, art. 33).");
+      if (b.prixAcquisition * CENTIMES_IMMO * 10 > Math.max(fondsPropresNormes(s, resultat + anterieurs).base, 0)) throw new ErreurMetier("Cession au-delà de 10 % des fonds propres de base : à remplir, Autorisation BCC (Instr. BCC 41, art. 33).");
     }
     let prix = 0, contrepartie = "";
     if (d.type === "Cession") {
       if (typeof d.prixCession !== "number" || !Number.isFinite(d.prixCession) || d.prixCession < 0) throw new ErreurMetier("À remplir : Prix de cession (0 si le bien est cédé sans prix).");
-      prix = arrondi2(d.prixCession); contrepartie = (d.compteContrepartie ?? "").trim();
+      prix = Math.round(d.prixCession); contrepartie = (d.compteContrepartie ?? "").trim();   // en centimes, comme tout montant saisi à l'écran
       if (prix && !/^[45]\d*$/.test(contrepartie))
         throw new ErreurMetier("Compte qui reçoit le prix : un compte de trésorerie (classe 5) ou de tiers (classe 4) du plan de comptes.");
       if (prix) compteInstitution(contrepartie, "Compte qui reçoit le prix");   // lot 10 : un compte de l'institution (registre T172)
     }
     const l = (compte: string, sens: "D" | "C", m: number) => ({ compte, sens, devise: "CDF" as Devise, montant: m, montantCdf: m });
     const gestion = (famille: string, racine: string) => (famille && famille.startsWith(racine) ? famille : racine);
-    const lg = [l(v.comptes.acquisition, "C", b.prixAcquisition)];
-    if (cumul) lg.push(l(v.comptes.amortissement, "D", cumul));
-    if (d.type === "Mise au rebut") { if (vnc) lg.push(l(gestion(v.comptes.chargeVcn, "673"), "D", vnc)); }
+    const C = CENTIMES_IMMO, ecart = prix - vnc * C;
+    const lg = [l(v.comptes.acquisition, "C", b.prixAcquisition * C)];
+    if (cumul) lg.push(l(v.comptes.amortissement, "D", cumul * C));
+    if (d.type === "Mise au rebut") { if (vnc) lg.push(l(gestion(v.comptes.chargeVcn, "673"), "D", vnc * C)); }
     else {
       if (prix) lg.push(l(contrepartie, "D", prix));
-      const ecart = arrondi2(prix - vnc);
       if (ecart < 0) lg.push(l(gestion(v.comptes.chargeVcn, "674"), "D", -ecart));
       else if (ecart > 0) lg.push(l(gestion(v.comptes.produit, "774"), "C", ecart));
     }
     const e = poster({ evenement: "immo_sortie", journal: "OD", journeeId: j.id, libelle: `Sortie du patrimoine (${d.type}), bien ${b.codification}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: lg });
-    E.immoSorties.push({ id: prochain(E.immoSorties), bienId: b.id, type: d.type, date: d.date!, observation: [(d.observation ?? "").trim(), autorisation ? `Autorisation BCC : ${autorisation}` : ""].filter(Boolean).join(" "), vnc, cumul, ecritureId: e.id, par: u.id, prixCession: prix, compteContrepartie: contrepartie });
-    b.statut = "SORTI"; enregistrer(); return { ...vueBien(b), vnc, prixCession: prix, resultatCession: d.type === "Cession" ? arrondi2(prix - vnc) : 0 };
+    E.immoSorties.push({ id: prochain(E.immoSorties), bienId: b.id, type: d.type, date: d.date!, observation: [(d.observation ?? "").trim(), autorisation ? `Autorisation BCC : ${autorisation}` : ""].filter(Boolean).join(" "), vnc, cumul, ecritureId: e.id, par: u.id, prixCession: prix / C, compteContrepartie: contrepartie });
+    b.statut = "SORTI"; enregistrer(); return { ...vueBien(b), vnc, prixCession: prix / C, resultatCession: d.type === "Cession" ? ecart / C : 0 };
   },
   periode(p: { rechercher?: string; du?: string; au?: string }) {
     const du = DATE_ISO.test(p.du ?? "") ? p.du! : null, au = DATE_ISO.test(p.au ?? "") ? p.au! : null;
