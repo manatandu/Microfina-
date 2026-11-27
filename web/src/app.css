@@ -755,6 +755,10 @@ select.saisie { max-width: 100%; }
 /* Champ suivi de son unité (mois, %, jours) et liste de lignes d'information (plan d'allègement, point 11.2) */
 .avec-unite { display: flex; align-items: center; gap: var(--espace-2); }
 .avec-unite > .saisie { flex: 1 1 auto; }
+.champ-secret { position: relative; display: block; flex: 1 1 8rem; min-width: 0; }
+.champ-secret > input { inline-size: 100%; padding-inline-end: 2.5rem; }
+.champ-secret > .oeil { position: absolute; inset-block: 0; inset-inline-end: 0; inline-size: 2.5rem; display: grid; place-items: center; padding: 0; border: 0; background: none; color: var(--encre-2); cursor: pointer; }
+.champ-secret > .oeil:focus-visible { outline: 2px solid var(--tampon); outline-offset: -4px; }
 .info-ligne-liste { margin: 0; display: grid; }
 
 /* Lien « Aller au contenu » : caché jusqu'à ce que le clavier l'atteigne (guide accessibility, « Provide skip links » ; point 11.3) */
