@@ -17,8 +17,8 @@ export default function Connexion() {
   const [login, setLogin] = useState("");
   const [mdp, setMdp] = useState("");
   // Plan d'allègement, point 11.6 : le navigateur n'a pas effacé les données du site à la déconnexion (Clear-Site-Data)
-  const [erreur, setErreur] = useState(state?.nettoyage === false ? "Le navigateur n'a pas effacé les données de ce poste : fermez-le avant de quitter le poste."
-    : state?.inactivite ? `Session fermée après ${state.inactivite} minutes sans activité : reconnectez-vous.` : "");   // registre T211
+  // Après une session fermée faute d'activité, la page s'ouvre sans phrase (demande du porteur du 27/11/2026 ; registre T211)
+  const [erreur, setErreur] = useState(state?.nettoyage === false ? "Le navigateur n'a pas effacé les données de ce poste : fermez-le avant de quitter le poste." : "");
   const jourReel = aujourdhui();
 
   const enLigne = !!donnees?.mode.motDePasseRequis;

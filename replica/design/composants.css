@@ -183,7 +183,7 @@ select.saisie { appearance: none; padding-right: 26px; background-image: linear-
 .lettres::first-letter { text-transform: uppercase; }
 .lettres {
   margin: var(--espace-2) 0 0; min-height: calc(var(--interligne-courant) * var(--taille-courant));
-  color: var(--encre-2); padding: 0 var(--espace-1);
+  color: var(--tampon); font-style: italic; padding: 0 var(--espace-1);
   overflow-wrap: anywhere;
 }
 

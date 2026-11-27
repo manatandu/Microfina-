@@ -360,7 +360,7 @@ button, summary, [role="tab"] { -webkit-user-select: none; user-select: none; }
 /* L'étiquette de la boîte : une petite case blanche posée sur le filet (« Info client », « Ecriture », « Budget » de Microfina++, p. 86 et 129) */
 .cadre-champs > legend {
   padding: 1px var(--espace-2); margin: 0 0 0 calc(-1 * var(--espace-1));
-  font-weight: 700; font-size: var(--taille-dense); line-height: var(--interligne-dense); color: var(--encre);
+  font-weight: 700; font-size: var(--taille-dense); line-height: var(--interligne-dense); color: var(--encre-2);
   background: var(--feuille); border: 1px solid var(--trait); border-radius: var(--rayon-champ);
 }
 /* Sans légende visible, ou dans une barre de filtres : pas de boîte */
@@ -464,7 +464,9 @@ dl.infos { display: grid; gap: 0; margin: 0; }
 .info-ligne { display: grid; grid-template-columns: var(--col-libelle, 10.5rem) minmax(0, 1fr); gap: var(--espace-3); align-items: baseline; padding: 4px 0; border-bottom: 1px solid var(--ligne); }
 .info-ligne dd { overflow-wrap: break-word; }
 .info-ligne dt { color: var(--encre-2); font-size: var(--taille-dense); }
-.info-ligne dd { margin: 0; }
+.info-ligne dd { margin: 0; color: var(--tampon); }   /* une valeur lue s'écrit en bleu, comme dans les cadres « Info compte » de Microfina++ (p. 86 ; registre T240) */
+/* Les repères d'une opération (numéro de pièce, date d'opération) en Rouge Écarlate, comme l'orange de Microfina++ (p. 86 et 87 ; registre T240) */
+.bloc .entete-ecran p, .bloc .entete-ecran p strong { color: var(--alerte); }
 .info-ligne dd.chiffres { white-space: nowrap; }
 
 /* Rapports clients (S51, manuel Microfina++ p. 58 et 59) */

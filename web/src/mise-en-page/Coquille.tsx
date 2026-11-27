@@ -43,12 +43,16 @@ export function Coquille() {
     if (premier.current) { premier.current = false; return; }
     requestAnimationFrame(() => { if (!document.getElementById("contenu")?.contains(document.activeElement)) document.getElementById("titre-ecran")?.focus(); });
   }, [lieu.pathname]);
-  const { donnees } = useDonnees(async () => {
-    const [u, ctx, j] = await Promise.all([api.session.courante(), api.referentiel.contexte(), api.journees.courante()]);
-    if (u) definirMonnaies(ctx.devises, ctx.monnaies);   // devises et monnaies de S35 pour les guichets (registre S79-5)
-    definirFuseau(ctx.agence.fuseau);                    // jour et heure de l'agence (plan d'allègement, point 11.4 ; registre T153)
+  // Registre T239 : une session fermée par le serveur (durée de connexion, inactivité, déconnexion par l'administrateur, poste laissé ouvert la nuit)
+  // ramène à la connexion. Le contexte et la journée exigent une session : quand ils sont refusés, c'est la réponse de la session qui décide.
+  const { donnees, erreur } = useDonnees(async () => {
+    const [u, ctx, j] = await Promise.all([api.session.courante(), api.referentiel.contexte().catch(() => null), api.journees.courante().catch(() => null)]);
+    if (!u) return { u: null, ctx: null, j: null };
+    const c = ctx ?? await api.referentiel.contexte();   // session valide mais contexte refusé : sa vraie erreur s'affiche
+    definirMonnaies(c.devises, c.monnaies);              // devises et monnaies de S35 pour les guichets (registre S79-5)
+    definirFuseau(c.agence.fuseau);                      // jour et heure de l'agence (plan d'allègement, point 11.4 ; registre T153)
     definirJourOuvert(j?.date);                          // les dates proposées partent de la journée ouverte (registre T120)
-    return { u, ctx, j };
+    return { u, ctx: c, j };
   });
   const connecte = !!donnees?.u;
   useEffect(() => { if (connecte) prechargerEcrans(); }, [connecte]);   // les autres écrans se chargent en fond : le clic suivant ne les attend pas
@@ -78,9 +82,11 @@ export function Coquille() {
   const peutAttente = ((donnees?.u as { droits?: string[] } | null | undefined)?.droits ?? []).some((d) => ["S57", "S113", "S114"].includes(d));
   const { donnees: attente } = useDonnees(async () => (peutAttente ? (await api.attente.nombre()).nombre : 0), [peutAttente, lieu.pathname]);
   // En attendant la session : le cadre vide plutôt qu'une page blanche
-  if (!donnees) return <div className="cadre" aria-busy="true"><header className="barre-menus"><span className="logo"><Marque sombre taille={26} /></span></header><div className="corps" /><footer className="pied" /></div>;
+  if (!donnees) return <div className="cadre" aria-busy={!erreur}><header className="barre-menus"><span className="logo"><Marque sombre taille={26} /></span></header>
+    <div className="corps">{erreur && <main className="page"><p className="erreur-champ" role="alert">{erreur}</p>
+      <div className="actions-onglets"><button className="bouton" type="button" onClick={() => location.reload()}>Réessayer</button></div></main>}</div><footer className="pied" /></div>;
+  if (!donnees.u || !donnees.ctx) return <Navigate to="/connexion" replace state={{ apres: lieu.pathname }} />;
   const { u, ctx, j } = donnees;
-  if (!u) return <Navigate to="/connexion" replace state={{ apres: lieu.pathname }} />;
   const application = applicationDe(lieu.pathname);
   // Registre T207 : le mot de passe donné par l'administrateur se remplace avant toute autre action ; les menus attendent
   // Registre T218 : même attente pour un mot de passe expiré, puis pour le second facteur qu'un profil exige

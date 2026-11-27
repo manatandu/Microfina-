@@ -53,6 +53,7 @@ L'interface est sobre. La couleur ne sert qu'à trois choses :
 2. **L'état de la journée et de la caisse** : ouverte, en clôture, fermée.
 3. **Les erreurs** qui bloquent une action.
 4. **L'action et le choix** (version 2.0) : le bleu d'action désigne le bouton principal, l'onglet, la ligne et l'écran choisis.
+5. **La lecture** (version 4.1, comme Microfina++, p. 86 et 87 ; registre T240) : une valeur lue dans un cadre d'information (solde, caisse, caissier) et le montant en lettres s'écrivent en bleu ; les repères d'une opération (numéro de pièce, date d'opération) en Rouge Écarlate.
 
 Pas de dégradé, pas d'icône colorée décorative, pas de carte KPI pastel.
 
@@ -154,7 +155,7 @@ Un cadre dans un cadre garde le fond du premier ; son titre passe sur un bandeau
 
 Les valeurs font foi dans `replica/design/tokens.json` (clair) et `tokens-sombre.json` (sombre) ; `generer.py` écrit `tokens.css`, `contraste.py` vérifie le contraste de chaque paire (`contraste.txt`). Aucune couleur, taille ou rayon ne s'écrit ailleurs.
 
-- **Couleurs** : tout est teinté du Bleu Nuit (teinte 255, oklch). En clair : bureau à 92,5 %, cadre à 96,8 %, case blanche, filets à 82 % (cadres, colonnes d'en-tête) et 89,5 % (lignes), bandeau de titre à 44 %, encre à 24 %. En sombre, les mêmes plans retournés. Bleu d'action `tampon` (#1D4F91) inchangé ; rouge de la marque pour le logo, le filet sous la barre du haut, la marque du titre d'écran et les erreurs ; rampe des statuts de crédit (§ 2.4) inchangée. Contraste : aucun échec en clair ni en sombre le 27/11/2026.
+- **Couleurs** : tout est teinté du Bleu Nuit (teinte 255, oklch). En clair : bureau à 92,5 %, cadre à 96,8 %, case blanche, filets à 82 % (cadres, colonnes d'en-tête) et 89,5 % (lignes), bandeau de titre à 44 %. Les textes sont en Bleu Nuit de la charte (#182232), jamais en noir ; les étiquettes des boîtes et les libellés secondaires en gris bleuté (registre T240). En sombre, les mêmes plans retournés. Bleu d'action `tampon` (#1D4F91) inchangé ; rouge de la marque pour le logo, le filet sous la barre du haut, la marque du titre d'écran et les erreurs ; rampe des statuts de crédit (§ 2.4) inchangée. Contraste : aucun échec en clair ni en sombre le 27/11/2026.
 - **Typographie** : police de l'appareil, chiffres de même largeur. Échelle en rem : 0,75 rem (libellés secondaires, en-têtes de tableau), 0,8125 rem soit 13 px (texte, cases, tableaux), 0,875 rem en gras (titre de cadre), 1,125 rem (titre d'écran), 2 rem (montant du guichet). Le texte suit le réglage de l'utilisateur.
 - **Densité** : cases et boutons de 28 px, lignes de tableau de 28 px, grille de 4 px. Sous le doigt (`pointer: coarse`) : 44 px et texte de 16 px dans les cases.
 - **Formes** : rayon de 2 px (petits éléments), 3 px (cases, boutons, onglets), 4 px (cadres) ; aucun relief ni creux ; ombre portée seulement sur ce qui flotte (fenêtres, menus).

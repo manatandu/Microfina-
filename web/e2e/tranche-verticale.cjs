@@ -7,7 +7,7 @@ const OUT = process.argv[2];
   const b = await chromium.launch();
   const L = Number(process.argv[3] || 1366); const ctx = await b.newContext({ viewport: { width: L, height: 768 } });
   const p = await ctx.newPage(); if (process.argv[4]) await p.emulateMedia({ colorScheme: process.argv[4] }); p.setDefaultTimeout(5000); globalThis.__p = p;
-  const errs = []; p.on('pageerror', e => errs.push('page: ' + e.message)); p.on('console', m => { if (m.type() === 'error' && !/status of 422/.test(m.text())) errs.push('console: ' + m.text()); }); // 422 : refus métier attendu
+  const errs = []; p.on('pageerror', e => errs.push('page: ' + e.message)); p.on('console', m => { if (m.type() === 'error' && !/status of 422/.test(m.text()) && !(globalThis.__sessionFermee && /status of 401/.test(m.text()))) errs.push('console: ' + m.text()); }); // 422 : refus métier attendu
   const etape = async (nom) => { await p.waitForTimeout(50); const d = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth); await p.screenshot({ path: `${OUT}/${nom}.png`, fullPage: true }); console.log(d > 0 ? '⚠ débord ' + d : '✓', nom); };
   const IDS = { 'J.-P. Mukendi': 'jpmukendi', 'Esther Ngalula': 'engalula', 'Bijou Kasongo': 'bkasongo', 'Patrick Lumbala': 'plumbala', 'Grâce Mbuyi': 'gmbuyi', 'Sarah Tshibanda': 'stshibanda', 'Lucie Kabeya': 'lkabeya' };
   const login = async (nom) => { await p.goto(B + '/connexion'); await p.getByLabel("Identifiant de connexion").fill(IDS[nom]); await p.getByRole('button', { name: 'Connexion' }).click(); await p.waitForURL(B + '/'); };
@@ -1645,6 +1645,19 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Close Help' }).click();
   await p.locator('button[aria-controls="menu-langue"]').click(); await p.locator('#menu-langue').getByRole('button', { name: 'Français' }).click();   // le menu des langues ne se traduit pas
   await p.getByRole('heading', { name: 'Journal comptables' }).waitFor();
+  // Registre T239 : une session fermée par le serveur (poste laissé ouvert la nuit, durée dépassée) ramène à la connexion, jamais à un cadre vide.
+  // La session ne vit que sur le serveur : l'essai se fait sur la version reliée au serveur. Les refus 401 de ce moment sont attendus.
+  if (B.endsWith(':5173')) {
+    globalThis.__sessionFermee = true;
+    await aller('/comptabilite/s121'); await p.getByRole('heading', { level: 1, name: 'Balance', exact: true }).waitFor();
+    await ctx.clearCookies(); await p.getByRole('link', { name: 'Grand livre' }).click();                 // écran resté ouvert, session fermée
+    await p.waitForURL(B + '/connexion'); await p.getByLabel('Identifiant de connexion').waitFor(); await etape('41-session-fermee');
+    await p.getByLabel('Identifiant de connexion').fill('plumbala'); await p.getByRole('button', { name: 'Connexion' }).click();
+    await p.waitForURL(B + '/comptabilite/s120'); await p.getByRole('heading', { level: 1, name: 'Grand livre', exact: true }).waitFor();   // retour à l'écran demandé
+    await ctx.clearCookies(); await p.reload();                                                                                    // le lendemain : page rechargée
+    await p.waitForURL(B + '/connexion'); await p.getByLabel('Identifiant de connexion').waitFor();
+    globalThis.__sessionFermee = false;
+  }
   console.log(errs.length ? 'ERREURS\n' + errs.join('\n') : 'aucune erreur console');
   await b.close();
 })().catch(async e => { await globalThis.__p.screenshot({ path: OUT + '/zz-echec.png', fullPage: true }); throw e; }).catch(async e => { console.error('ÉCHEC', e.message.split('\n').slice(0,3).join(' / ')); process.exit(1); });

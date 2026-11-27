@@ -6538,3 +6538,91 @@ def test_consolidation_du_reseau(clients, journee):
     assert r.status_code == 200 and r.json()["accord"] is True and r.json()["etats"] is not None
     assert audit.get(f"{CO}/export", jour, **H).status_code == 200
     assert (audit.post(f"{CO}/import", {**jour, "contenu": bol}, **H).status_code, audit.post(f"{CO}/{kid}/retrait", jour, **H).status_code) == (403, 403)
+
+
+def test_porte_entree(clients, settings):
+    """Demande du porteur du 27/11/2026 (registre T241) : la page de connexion, porte d'entrée, face aux cinq façons de l'ouvrir.
+    1. Essayer encore et encore : blocage après cinq refus pour un identifiant (vingt pour une adresse), et 300 requêtes par minute au plus.
+    2. Écouter ce que la page répond : une seule phrase pour toutes les erreurs, même blocage pour un identifiant qui n'existe pas.
+    3. Contourner le contrôle : le serveur vérifie la session à chaque demande ; sans elle, aucune adresse de l'API ne rend de donnée.
+    4. Voler la base : les mots de passe n'y sont que des empreintes salées, jamais le mot de passe.
+    5. Garder la porte ouverte : la connexion expire (8 heures, inactivité, déconnexion), et un compte désactivé perd sa session à l'instant."""
+    import re
+    from noyau.api import api
+    from noyau.bd import executer, valeur
+    chef = clients["chef"]; connecter(chef, "gmbuyi")
+    ag = chef.get("/api/gestion-utilisateurs", **H).json()["agences"][0]["id"]
+    for login, port in (("pessai", "777"), ("pdouble", "778")):
+        r = chef.post("/api/gestion-utilisateurs", {"nom": f"Essai {login}", "agenceId": ag, "login": login, "motDePasse": "secret-1", "confirmation": "secret-1",
+                                                    "portable": f"+243 810 000 {port}"}, **H)
+        assert r.status_code == 200, r.content
+    settings.SANS_MOT_DE_PASSE = False
+    poste = lambda ip: Client(REMOTE_ADDR=ip)
+    ouvrir = lambda c, login, mdp=None: c.post("/api/session", {"login": login, **({"motDePasse": mdp} if mdp is not None else {})}, **H)
+    MESSAGE = "Nom d'utilisateur ou mot de passe incorrect."
+
+    # 4. Empreintes : ni le mot de passe, ni deux fois la même empreinte pour le même mot de passe (sel)
+    h1, h2 = valeur("select mot_de_passe_hash from utilisateur where login = 'pessai'"), valeur("select mot_de_passe_hash from utilisateur where login = 'pdouble'")
+    assert h1.startswith(("pbkdf2_sha256$", "argon2")) and "secret-1" not in h1 and h1 != h2
+    assert int(h1.split("$")[1]) >= 600_000 if h1.startswith("pbkdf2") else True          # coût du calcul : des centaines de milliers de tours
+
+    # 2. Une seule phrase : identifiant inconnu, mauvais mot de passe, mot de passe vide, compte désactivé
+    executer("update utilisateur set actif = false where login = 'pdouble'")
+    c = poste("10.1.0.1")
+    rs = [ouvrir(c, "personne", "secret-1"), ouvrir(c, "pessai", "mauvais-9"), ouvrir(c, "pessai"), ouvrir(c, "pdouble", "secret-1")]
+    assert {(r.status_code, r.json()["message"]) for r in rs} == {(422, MESSAGE)}
+    assert poste("10.1.0.2").get("/api/utilisateurs").json() == []                             # aucune liste d'identifiants avant connexion
+
+    # 1. Blocage : cinq refus, puis plus rien pendant quinze minutes, même avec le bon mot de passe ; un identifiant inexistant est bloqué pareil
+    vider_journal_securite()                                                                     # les refus du point 2 ne comptent pas ici
+    for login, ip in (("pessai", "10.1.1.1"), ("fantome", "10.1.1.2")):
+        c = poste(ip)
+        for _ in range(5):
+            assert ouvrir(c, login, "faux-mot-1").status_code == 422
+        r = ouvrir(c, login, "secret-1")
+        assert r.status_code == 429 and r.json()["message"].startswith("Trop d'essais de connexion")
+    vider_journal_securite()
+    assert ouvrir(poste("10.1.1.3"), "pessai", "secret-1").status_code == 200                  # le blocage levé, le bon mot de passe ouvre
+
+    # 3. Le serveur vérifie chaque demande : sans session, seules les adresses publiques répondent, et elles ne rendent rien de l'institution
+    PUBLIQUES = {("POST", "/api/session"), ("GET", "/api/session"), ("DELETE", "/api/session"), ("GET", "/api/session/mode"), ("GET", "/api/utilisateurs"),
+                 ("GET", "/api/journees/courante"), ("POST", "/api/rapports-csp")}
+    chemins = api.get_openapi_schema(path_prefix="/api")["paths"]
+    n = 0
+    for chemin, ops in chemins.items():
+        url = re.sub(r"\{[^}]+\}", "1", chemin)
+        for m in [x for x in ops if x in ("get", "post", "put", "patch", "delete")]:
+            n += 1
+            c = poste(f"10.2.{n // 200}.{n % 200 + 1}")                                          # une adresse par lot : la limite de requêtes ne fausse pas l'essai
+            r = c.get(url, **H) if m == "get" else getattr(c, m)(url, {}, **H)
+            if (m.upper(), chemin) in PUBLIQUES:
+                assert r.status_code < 500 and (not r.content or r.json() in (None, [], {"motDePasseRequis": True}) or "message" in r.json()), (m, chemin, r.content[:200])
+                continue
+            assert r.status_code in (401, 404, 422), (m, chemin, r.status_code)
+            assert r.status_code == 401 or set(r.json()) <= {"message", "detail"}, (m, chemin, r.content[:200])   # refus de forme : aucune donnée
+    assert n > 500
+    anonyme = poste("10.3.0.1")                                                                  # les refus de forme, avec des valeurs justes : session exigée
+    assert anonyme.get("/api/comptabilite/etats-financiers/bilan", **H).status_code == 401
+    assert anonyme.post("/api/banque/cheques/1/encaisser", {}, **H).status_code == 401
+
+    # 5. Expiration : inactivité, huit heures, déconnexion (le témoin rejoué ne vaut plus), compte désactivé
+    def session(login, ip):
+        c = poste(ip); assert ouvrir(c, login, "secret-1").status_code == 200; return c
+    c = session("pessai", "10.4.0.1")
+    executer("update utilisateur set derniere_activite = now() - interval '20 minutes' where login = 'pessai'")      # 15 minutes par défaut
+    assert c.get("/api/session").json() is None and c.get("/api/referentiel").status_code == 401
+    executer("update utilisateur set jeton_session = null where login = 'pessai'")
+    c = session("pessai", "10.4.0.2")
+    executer("update utilisateur set connecte_le = now() - interval '9 hours', derniere_activite = now() where login = 'pessai'")
+    assert c.get("/api/referentiel").status_code == 401
+    executer("update utilisateur set jeton_session = null where login = 'pessai'")
+    c = session("pessai", "10.4.0.3")
+    temoin = c.cookies.get(settings.SESSION_COOKIE_NAME).value
+    assert c.delete("/api/session", **H).status_code == 200
+    rejoue = poste("10.4.0.4"); rejoue.cookies[settings.SESSION_COOKIE_NAME] = temoin
+    assert rejoue.get("/api/referentiel").status_code == 401
+    c = session("pessai", "10.4.0.5")
+    assert c.get("/api/referentiel").status_code == 200
+    uid = valeur("select id from utilisateur where login = 'pessai'")
+    assert chef.post(f"/api/gestion-utilisateurs/{uid}/activation", {"actif": False, "motif": "Départ"}, **H).status_code == 200
+    assert c.get("/api/referentiel").status_code == 401 and c.get("/api/session").json() is None
