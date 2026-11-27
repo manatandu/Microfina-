@@ -313,7 +313,19 @@ details.textes ul { margin: var(--espace-1) 0 0; padding-left: var(--espace-4); 
 .grille tbody tr[aria-selected="true"], .grille tbody tr[aria-selected="true"] td { background: var(--tampon-pale); box-shadow: inset 0 0 0 0 transparent; }
 .grille tbody tr[aria-selected="true"] td:first-child { box-shadow: inset 3px 0 0 var(--tampon); }
 /* Ligne de total : un trait au-dessus, deux au-dessous, comme un total arrêté au registre */
-.grille tfoot th, .grille tfoot td { background: var(--tete-grille); font-weight: 700; border-top: 1px solid var(--encre); border-bottom: 3px double var(--encre); padding: 5px var(--espace-2); }
+.grille tfoot th, .grille tfoot td { background: var(--tete-grille); font-weight: 700; border-top: 1px solid var(--encre); border-bottom: 3px double var(--encre); padding: 5px var(--espace-3); }   /* même retrait que les lignes : le total tombe sous sa colonne */
+/* État comptable à ruptures (grand livre, balance, bilan) : le compte ou le poste en bandeau, son total arrêté d'un trait (DESIGN § 3.6 ; registre T236) */
+.grille tbody tr.rupture :is(th, td) { background: var(--bandeau-fort); font-weight: 600; border-bottom: 1px solid var(--trait); }
+.grille tbody tr.sous-total :is(th, td) { background: var(--feuille); font-weight: 600; border-top: 1px solid var(--encre-2); }
+/* Tableau serré : un tableau trop large pour la page à 1 366 px (balance à huit colonnes, liste à douze colonnes) tient sans défiler (DESIGN § 2.9 et § 3.6) */
+.grille.serree :is(th, td) { padding-inline: var(--espace-2); }
+.grille.serree tbody :is(th, td), .grille.serree tfoot :is(th, td) { font-size: var(--taille-dense); }
+.grille.serree thead th:not([scope="colgroup"]) { white-space: normal; vertical-align: bottom; }   /* un titre de deux mots passe sur deux lignes : la colonne prend la largeur de ses valeurs */
+/* Colonnes groupées par paires (Débit, Crédit) : le titre du groupe au milieu de sa paire, un filet dessous */
+.grille thead th[scope="colgroup"] { text-align: center; border-bottom: 1px solid var(--trait); }
+.grille td.intitule { white-space: normal; min-width: 9rem; }
+/* Sens d'un solde (D ou C) : une lettre discrète, de largeur fixe, pour que les montants restent alignés */
+.grille .sens { display: inline-block; inline-size: 1.25em; text-align: right; color: var(--encre-2); font-size: var(--taille-dense); }
 .grille .vide td { text-align: center; color: var(--encre-2); padding: var(--espace-6); height: auto; }
 .grille tr.muet td { color: var(--encre-2); }
 .pagination { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--espace-2); padding: var(--espace-2) var(--espace-3); font-size: var(--taille-dense); color: var(--encre-2); border-top: 1px solid var(--ligne); }

@@ -170,12 +170,17 @@ Les valeurs font foi dans `replica/design/tokens.json` (clair) et `tokens-sombre
 ### 3.5 Montants et nombres
 
 - La devise est toujours écrite (`1 000 000,00 CDF`), deux décimales, espace fine, virgule (§ 2.2).
+- Exception (remarque du porteur du 27/11/2026, registre T236) : un état comptable tenu dans une seule monnaie (balance, grand livre, bilan, compte de résultat) dit sa monnaie une fois, dans son titre (« en CDF »). Ses colonnes ne portent que des nombres.
+- Dans un état, un poste ou un compte sans montant laisse sa case vide. Seuls les totaux et les soldes écrivent `0,00`.
+- Le sens d'un solde (D ou C) suit le montant, en lettre discrète de largeur fixe : les montants restent alignés.
 - En saisie et dans les tableaux : à droite. En lecture dans un cadre : à gauche, juste après le libellé ; à droite dans un cadre étroit.
 - Les identifiants (numéros de compte, de crédit, de pièce) restent à gauche et ne se coupent jamais.
 
 ### 3.6 Tableaux
 
 En-tête discret (`tete-grille`, texte de 0,75 rem), filets horizontaux seulement, lignes de 34 px, ligne survolée ou choisie en bleu pâle, total arrêté (un trait au-dessus, double trait dessous, fond de bandeau). Le titre d'un tableau est un bandeau collé à son en-tête. Une action dans une ligne est un petit bouton (24 px).
+
+État à ruptures (grand livre) : le compte s'écrit sur un bandeau, son total est arrêté d'un trait. Le total général tombe sous sa colonne, au même retrait que les lignes. Colonnes groupées par paires (Débit, Crédit) : le titre du groupe au milieu de sa paire. Un tableau trop large pour la page à 1 366 px (balance à huit colonnes de montants, liste à douze colonnes) passe en tableau serré (texte de 0,75 rem, retrait de 8 px) pour tenir sans défiler (registre T236).
 
 ### 3.7 Fenêtres de dialogue
 

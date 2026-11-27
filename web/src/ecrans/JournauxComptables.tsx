@@ -7,11 +7,12 @@ import { texteEdition } from "../lib/dates";
 import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { exporterExcel } from "../lib/excel";
-import { lireMontant, montant } from "@design/montant.js";
+import { decimal, lireMontant } from "@design/montant.js";
 import { Champ, Chargement, Dialogue, Fiche, Textes, type Boite, Paginee, Recherche } from "../composants";
 
 type Resultat = Awaited<ReturnType<typeof api.etatsCompta.journaux>>;
 type Schemas = Awaited<ReturnType<typeof api.etatsCompta.schemas>>;
+const nb = (v: number) => decimal.format(v / 100);
 const comptes = (l: { compte: string; intitule: string }[]) => l.map((x) => `${x.compte} ${x.intitule}`.trim());
 const MODES: [string, string][] = [["debut", "Commencant par"], ["contient", "Contenant"], ["fin", "Terminant par"]];
 
@@ -66,13 +67,13 @@ function Journal({ achats }: { achats: boolean }) {
           </div>
         </fieldset>
         <div className="actions-onglets"><button className="bouton" type="submit">Afficher</button></div></Recherche>
-        {r?.edition && <p className="aide">Journaux{texteEdition(r.edition)}</p>}
         <Paginee lignes={r?.lignes ?? []}>{(visibles) => (<table className="grille">
+          {r && <caption>Journaux{", en CDF"}{texteEdition(r.edition)}</caption>}
           <thead><tr><th scope="col">Journal</th><th scope="col">N° Compte</th><th scope="col">Intitulé compte</th><th scope="col" className="num">Débit</th><th scope="col" className="num">Crédit</th></tr></thead>
           <tbody>{(r?.lignes ?? []).length === 0 && <tr><td colSpan={5}>Aucune ligne.</td></tr>}
             {visibles.map((x, i) => <tr key={i}><td>{x.journal}</td><td className="code">{x.compte}</td><td>{x.intitule}</td>
-              <td className="num chiffres">{x.debit ? montant(x.debit, "CDF") : ""}</td><td className="num chiffres">{x.credit ? montant(x.credit, "CDF") : ""}</td></tr>)}</tbody>
-          <tfoot><tr><th scope="row">Total</th><td></td><td></td><td className="num chiffres">{r ? montant(r.totalDebit, "CDF") : ""}</td><td className="num chiffres">{r ? montant(r.totalCredit, "CDF") : ""}</td></tr></tfoot>
+              <td className="num chiffres">{x.debit ? nb(x.debit) : ""}</td><td className="num chiffres">{x.credit ? nb(x.credit) : ""}</td></tr>)}</tbody>
+          <tfoot><tr><th scope="row">Total</th><td></td><td></td><td className="num chiffres">{r ? nb(r.totalDebit) : ""}</td><td className="num chiffres">{r ? nb(r.totalCredit) : ""}</td></tr></tfoot>
         </table>)}</Paginee>
         <div className="actions-onglets"><button className="bouton secondaire" type="button" disabled={!r || r.lignes.length === 0}
           onClick={() => r && exporterExcel("journal-comptable", ["Journal", "N° Compte", "Intitulé compte", "Débit", "Crédit"], r.lignes.map((x) => [x.journal, x.compte, x.intitule, x.debit / 100, x.credit / 100]))}>Exporter</button></div>

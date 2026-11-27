@@ -288,7 +288,7 @@ function RapportAnnulations() {
     <div className="actions-onglets"><button className="bouton" type="submit">Rechercher</button>
       <button className="bouton secondaire" type="button" disabled={!r || r.length === 0} onClick={() => r && exporterExcel("annulations", ["N° Pièce ancien", "N° Pièce nouveau", "N° Client", "Nom Prénom", "Montant", "Date", "Type d'opération", "Utilisateur"],
         r.map((x) => [x.ancienne, x.nouvelle, x.numeroClient, x.nom, x.montant / 100, fr(x.date), x.type, x.utilisateur]))}>Exporter</button></div></Recherche>
-    <Paginee lignes={r ?? []}>{(visibles) => (<div className="defile-x"><table className="grille">
+    <Paginee lignes={r ?? []}>{(visibles) => (<div className="defile-x"><table className="grille serree">
       <thead><tr><th scope="col">N° Pièce ancien</th><th scope="col">N° Pièce nouveau</th><th scope="col">N° Client</th><th scope="col">Nom Prénom</th><th scope="col" className="num">Montant</th>
         <th scope="col">Date</th><th scope="col">Type d'opération</th><th scope="col">Utilisateur</th></tr></thead>
       <tbody>{(r ?? []).length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}

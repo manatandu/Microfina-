@@ -4575,6 +4575,11 @@ def test_comptabilisation_banque(clients, journee):
     b = compta.get(f"/api/comptabilite/balance?{q}&type=8&balance=groupee&niveau=2", **H).json()
     l72 = next(x for x in b["lignes"] if x["compte"] == "72")
     assert (l72["intitule"], l72["mouvementCredit"], l72["soldeCredit"], b["equilibree"]) == ("Produits financiers divers", cdf, cdf, True)
+    # Une balance groupée nomme chaque ligne (registre T236) : la classe au niveau 1 ; plus bas, le compte du plan le plus proche au-dessus
+    b1 = {x["compte"]: x["intitule"] for x in compta.get(f"/api/comptabilite/balance?{q}&type=8&balance=groupee&niveau=1", **H).json()["lignes"]}
+    assert b1["7"] == "COMPTES DE PRODUITS" and all(b1.values())
+    b5 = {x["compte"]: x["intitule"] for x in compta.get(f"/api/comptabilite/balance?{q}&type=8&balance=groupee&niveau=5", **H).json()["lignes"]}
+    assert b5["72700"] == "Autres Commissions" and all(b5.values())
     assert [x["compte"] for x in compta.get(f"/api/comptabilite/balance?{q}&compteDe=7&compteA=79999999", **H).json()["lignes"]] == ["72700000"]
     an = compta.get(f"/api/comptabilite/balance?{q}&analytique=true&compteDe=33&compteA=37", **H).json()["lignes"]
     assert all(x["auxiliaire"].startswith("depot:") for x in an) and an

@@ -178,7 +178,7 @@ export default function DepotsATerme() {
         </div>
         {piece ? <p>Numéro de pièce : <strong className="chiffres">{piece}</strong></p> : null}
         <Paginee lignes={lignes} colonnes={(x) => [num(x), fr(x.dateDepot), x.membre, x.client, x.compteDat, montant(x.montant, x.devise as Devise), `${x.duree} mois`, `${x.tauxInteret} %`,
-          montant(x.montantInteret, x.devise as Devise), fr(x.dateEcheance), STATUTS[x.statut] ?? "", null]}>{(visibles) => (<div className="defile-x"><table className="grille">
+          montant(x.montantInteret, x.devise as Devise), fr(x.dateEcheance), STATUTS[x.statut] ?? "", null]}>{(visibles) => (<div className="defile-x"><table className="grille serree">
           <thead><tr><th scope="col">Certificat</th><th scope="col">Date dépôt</th><th scope="col">N° membre</th><th scope="col">Client</th><th scope="col">N° compte DAT</th>
             <th scope="col" className="montant">Montant dépôt</th><th scope="col">Durée</th><th scope="col">Taux intérêt</th><th scope="col" className="montant">Montant intérêt</th>
             <th scope="col">Date échéance</th><th scope="col">Statut</th><th scope="col"><span className="sr-only">Actions</span></th></tr>

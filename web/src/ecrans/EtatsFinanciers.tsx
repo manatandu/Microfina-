@@ -15,6 +15,8 @@ import { decimal } from "@design/montant.js";
 import { Attention, Champ, ChampDate, Chargement, Dialogue, Lecture, Textes, type Boite, Recherche, Paginee } from "../composants";
 
 const n = (v: number | null) => (v === null ? "" : decimal.format(v / 100));
+/** Dans un état, un poste ou un compte sans montant laisse sa case vide : seuls les totaux et les soldes écrivent 0,00 (registre T236) */
+const z = (v: number | null) => (v ? n(v) : "");
 type Ctx = Awaited<ReturnType<typeof api.etatsFinanciers.contexte>>;
 type Bilan = Awaited<ReturnType<typeof api.etatsFinanciers.bilan>>;
 type HorsBilan = Awaited<ReturnType<typeof api.etatsFinanciers.horsBilan>>;
@@ -78,7 +80,7 @@ function Actions({ vider, exporter }: { vider: () => void; exporter: (() => void
 }
 type Detail = { compte: string; intitule: string; n: number; n1: number };
 const lignesDetail = (comptes: Detail[], cle: string) => comptes.map((c, i) => <tr key={`${cle}-${i}`} className="muet"><td></td><td><span className="code">{c.compte}</span> {c.intitule}</td>
-  <td className="num chiffres">{n(c.n)}</td><td className="num chiffres">{n(c.n1)}</td></tr>);
+  <td className="num chiffres">{z(c.n)}</td><td className="num chiffres">{z(c.n1)}</td></tr>);
 
 function EditionBilan({ ctx, jour }: { ctx: Ctx; jour: string }) {
   const vide: Criteres = { du: `${jour.slice(0, 4)}-01-01`, au: jour, type: "developpe", agence: "", sansVidage: true };
@@ -89,9 +91,9 @@ function EditionBilan({ ctx, jour }: { ctx: Ctx; jour: string }) {
   const detail = r?.type === "developpe" || r?.type === "masses";
   const table = (titre: string, postes: Bilan["actif"], total: { n: number; n1: number }) => <table className="grille"><caption>{titre}</caption>
     <thead><tr><th scope="col">N°</th><th scope="col">{titre}</th><th scope="col" className="num">N</th><th scope="col" className="num">N - 1</th></tr></thead>
-    <tbody>{postes.flatMap((x) => [<tr key={x.code || x.libelle}><td className="chiffres">{x.code ? `${x.code}.` : ""}</td><th scope="row">{x.libelle}</th><td className="num chiffres">{n(x.n)}</td><td className="num chiffres">{n(x.n1)}</td></tr>,
+    <tbody>{postes.flatMap((x) => [<tr key={x.code || x.libelle}><td className="chiffres">{x.code ? `${x.code}.` : ""}</td><th scope="row">{x.libelle}</th><td className="num chiffres">{z(x.n)}</td><td className="num chiffres">{z(x.n1)}</td></tr>,
       ...(r?.type === "masses" ? x.comptes.map((c, i) => <tr key={`${x.libelle}-${i}`} className="muet"><td className="chiffres">{c.compte}</td><td>{c.intitule}</td>
-        <td className="num chiffres">{n(c.n)}</td><td className="num chiffres">{n(c.n1)}</td></tr>) : detail ? lignesDetail(x.comptes, x.code) : [])])}</tbody>
+        <td className="num chiffres">{z(c.n)}</td><td className="num chiffres">{z(c.n1)}</td></tr>) : detail ? lignesDetail(x.comptes, x.code) : [])])}</tbody>
     <tfoot><tr><td></td><th scope="row">TOTAL {titre}</th><td className="num chiffres"><strong>{n(total.n)}</strong></td><td className="num chiffres"><strong>{n(total.n1)}</strong></td></tr></tfoot></table>;
   const exporter = () => r && exporterExcel("Bilan", ["Côté", "N°", "Poste", "Compte", "N", "N - 1"], (["actif", "passif"] as const).flatMap((c) => r[c].flatMap((x) => [
     [c === "actif" ? "ACTIF" : "PASSIF", x.code, x.libelle, "", x.n / 100, x.n1 / 100], ...(detail ? x.comptes.map((k) => ["", "", k.intitule, k.compte, k.n / 100, k.n1 / 100]) : [])])));
@@ -132,8 +134,8 @@ function EditionHorsBilan({ ctx, jour }: { ctx: Ctx; jour: string }) {
       {r && <EnteteEtat date={r.au} />}
       {r && <div className="defile-x"><table className="grille"><caption>HORS-BILAN au {fr(r.au)} (N), comparé au {fr(r.precedent)} (N - 1), en CDF{texteEdition(r.edition)}</caption>
         <thead><tr><th scope="col">Code Poste</th><th scope="col">HORS-BILAN</th><th scope="col" className="num">N</th><th scope="col" className="num">N - 1</th></tr></thead>
-        <tbody>{r.postes.flatMap((x) => [<tr key={x.code}><td className="code">{x.code}</td><th scope="row">{x.libelle}</th><td className="num chiffres">{n(x.n)}</td><td className="num chiffres">{n(x.n1)}</td></tr>,
-          ...x.lignes.filter((l) => l.libelle !== x.libelle).map((l) => <tr key={`${x.code}-${l.libelle}`}><td></td><td>{l.libelle}</td><td className="num chiffres">{n(l.n)}</td><td className="num chiffres">{n(l.n1)}</td></tr>),
+        <tbody>{r.postes.flatMap((x) => [<tr key={x.code}><td className="code">{x.code}</td><th scope="row">{x.libelle}</th><td className="num chiffres">{z(x.n)}</td><td className="num chiffres">{z(x.n1)}</td></tr>,
+          ...x.lignes.filter((l) => l.libelle !== x.libelle).map((l) => <tr key={`${x.code}-${l.libelle}`}><td></td><td>{l.libelle}</td><td className="num chiffres">{z(l.n)}</td><td className="num chiffres">{z(l.n1)}</td></tr>),
           ...(detail ? x.lignes.flatMap((l) => lignesDetail(l.comptes, `${x.code}-${l.libelle}`)) : [])])}</tbody>
       </table></div>}
       <Textes sources={["Manuel Microfina++, p. 141 : « Sélectionner l'Etat, Hors bilan, Agence, Période, Exercice et cocher Bilan sans vidange puis cliquer sur [Rechercher] ensuite [Exporter] ou [Rein les champs] » ; capture « Edition de l'état hors bilan »",
@@ -161,7 +163,7 @@ function EditionResultat({ ctx, jour }: { ctx: Ctx; jour: string }) {
         <caption>COMPTE DE RESULTAT du {fr(r.du)} au {fr(r.au)} (Exercice), comparé à la période du {fr(r.precedentDu)} au {fr(r.precedentAu)} (Ex. préc.), en CDF{texteEdition(r.edition)}</caption>
         <thead><tr><th scope="col"><span className="sr-only">Signe</span></th><th scope="col">RUBRIQUES</th><th scope="col" className="num">Exercice</th><th scope="col" className="num">Ex. préc.</th></tr></thead>
         <tbody>{r.lignes.flatMap((x, i) => [<tr key={i}><td className="chiffres">{x.signe}</td>{x.solde ? <th scope="row">{x.libelle}</th> : <td>{x.libelle}</td>}
-          <td className="num chiffres">{x.solde ? <strong>{n(x.n)}</strong> : n(x.n)}</td><td className="num chiffres">{x.solde ? <strong>{n(x.n1)}</strong> : n(x.n1)}</td></tr>,
+          <td className="num chiffres">{x.solde ? <strong>{n(x.n)}</strong> : z(x.n)}</td><td className="num chiffres">{x.solde ? <strong>{n(x.n1)}</strong> : z(x.n1)}</td></tr>,
           ...(detail ? lignesDetail(x.comptes, String(i)) : [])])}</tbody>
       </table></div>
         {r.nonRattaches.length > 0 && <p>Comptes de gestion que le modèle ne nomme pas : {r.nonRattaches.map((x) => `${x.compte} ${x.intitule}`).join(" ; ")}</p>}
@@ -227,12 +229,12 @@ function EditionAnnexes({ ctx, jour }: { ctx: Ctx; jour: string }) {
         <div className="defile-x"><table className="grille"><caption>{r.titre}, du {fr(r.du)} au {fr(r.au)}, en CDF{texteEdition(r.edition)}</caption>
           <thead><tr><th scope="col">TABLEAU DE FLUX DE TRESORERIE</th><th scope="col" className="num">Année N</th><th scope="col" className="num">Année N - 1</th></tr></thead>
           <tbody>{r.lignes.map((x, i) => <tr key={i}>{x.titre || x.total ? <th scope="row" colSpan={x.titre ? 3 : 1}>{x.libelle}</th> : <td>{x.libelle}</td>}
-            {!x.titre && <><td className="num chiffres">{x.total ? <strong>{n(x.n)}</strong> : n(x.n)}</td><td className="num chiffres">{x.total ? <strong>{n(x.n1)}</strong> : n(x.n1)}</td></>}</tr>)}</tbody>
+            {!x.titre && <><td className="num chiffres">{x.total ? <strong>{n(x.n)}</strong> : z(x.n)}</td><td className="num chiffres">{x.total ? <strong>{n(x.n1)}</strong> : z(x.n1)}</td></>}</tr>)}</tbody>
         </table></div></div>}
       {r?.forme === "emplois" && <div className="defile-x"><table className="grille"><caption>{r.titre}, du {fr(r.du)} au {fr(r.au)}, en CDF{texteEdition(r?.edition)}</caption>
         <thead><tr><th scope="col">Côté</th><th scope="col">N°</th><th scope="col">Poste</th><th scope="col" className="num">Début</th><th scope="col" className="num">Fin</th><th scope="col" className="num">Emplois</th><th scope="col" className="num">Ressources</th></tr></thead>
-        <tbody>{r.lignes.map((x) => <tr key={`${x.cote}-${x.code}`}><td>{x.cote === "actif" ? "ACTIF" : "PASSIF"}</td><td className="chiffres">{x.code}.</td><td>{x.libelle}</td><td className="num chiffres">{n(x.debut)}</td>
-          <td className="num chiffres">{n(x.fin)}</td><td className="num chiffres">{x.emploi ? n(x.emploi) : ""}</td><td className="num chiffres">{x.ressource ? n(x.ressource) : ""}</td></tr>)}</tbody>
+        <tbody>{r.lignes.map((x) => <tr key={`${x.cote}-${x.code}`}><td>{x.cote === "actif" ? "ACTIF" : "PASSIF"}</td><td className="chiffres">{x.code}.</td><td>{x.libelle}</td><td className="num chiffres">{z(x.debut)}</td>
+          <td className="num chiffres">{z(x.fin)}</td><td className="num chiffres">{x.emploi ? n(x.emploi) : ""}</td><td className="num chiffres">{x.ressource ? n(x.ressource) : ""}</td></tr>)}</tbody>
         <tfoot><tr><th scope="row" colSpan={5}>TOTAL</th><td className="num chiffres"><strong>{n(r.emplois)}</strong></td><td className="num chiffres"><strong>{n(r.ressources)}</strong></td></tr></tfoot>
       </table></div>}
       {r?.forme === "monnaies" && <div className="defile-x"><table className="grille"><caption>{r.titre}, au {fr(r.au)}{texteEdition(r?.edition)}</caption>
@@ -245,7 +247,7 @@ function EditionAnnexes({ ctx, jour }: { ctx: Ctx; jour: string }) {
       {r?.forme === "ventilation" && <div className="defile-x"><table className="grille"><caption>{r.titre}, au {fr(r.au)} (N), comparé au {fr(r.precedent)} (N - 1), en CDF{texteEdition(r?.edition)}</caption>
         <thead><tr><th scope="col">Compte</th><th scope="col">Intitulé</th><th scope="col" className="num">N</th><th scope="col" className="num">N - 1</th></tr></thead>
         <tbody>{r.sections.flatMap((s) => [<tr key={s.libelle}><td></td><th scope="row">{s.libelle}</th><td className="num chiffres"><strong>{n(s.n)}</strong></td><td className="num chiffres"><strong>{n(s.n1)}</strong></td></tr>,
-          ...s.lignes.map((l) => <tr key={`${s.libelle}-${l.compte}`}><td className="code">{l.compte}</td><td>{l.intitule}</td><td className="num chiffres">{n(l.n)}</td><td className="num chiffres">{n(l.n1)}</td></tr>)])}</tbody>
+          ...s.lignes.map((l) => <tr key={`${s.libelle}-${l.compte}`}><td className="code">{l.compte}</td><td>{l.intitule}</td><td className="num chiffres">{z(l.n)}</td><td className="num chiffres">{z(l.n1)}</td></tr>)])}</tbody>
         <tfoot><tr><td></td><th scope="row">TOTAL</th><td className="num chiffres"><strong>{n(r.n)}</strong></td><td className="num chiffres"><strong>{n(r.n1)}</strong></td></tr></tfoot>
       </table></div>}
       {r?.forme === "rapport" && <div className="pile">
@@ -264,7 +266,7 @@ function EditionAnnexes({ ctx, jour }: { ctx: Ctx; jour: string }) {
       {r?.forme === "tableau" && <div className="defile-x"><table className="grille"><caption>{r.titre}, au {fr(r.au)}, en CDF{r.balanceDu ? `, balance âgée du ${fr(r.balanceDu)}` : ""}{texteEdition(r?.edition)}</caption>
         <thead><tr><th scope="col"></th>{r.colonnes.map((c) => <th key={c.titre} scope="col" className="num">{c.titre}</th>)}</tr></thead>
         <tbody>{r.lignes.length === 0 && <tr><td colSpan={r.colonnes.length + 1}>Aucune ligne.</td></tr>}
-          {r.lignes.map((l) => <tr key={l.libelle}><th scope="row">{l.libelle}</th>{l.valeurs.map((v, i) => <td key={i} className="num chiffres">{r.colonnes[i]!.type === "montant" ? n(v) : v}</td>)}</tr>)}</tbody>
+          {r.lignes.map((l) => <tr key={l.libelle}><th scope="row">{l.libelle}</th>{l.valeurs.map((v, i) => <td key={i} className="num chiffres">{r.colonnes[i]!.type === "montant" ? z(v) : v}</td>)}</tr>)}</tbody>
         {r.totaux.length > 0 && <tfoot><tr><th scope="row">TOTAL</th>{r.totaux.map((v, i) => <td key={i} className="num chiffres"><strong>{r.colonnes[i]!.type === "montant" ? n(v) : v}</strong></td>)}</tr></tfoot>}
       </table></div>}
       <Textes sources={["Manuel Microfina++, p. 141 : « Sélectionner : Agence, Exercice, Annexe puis cliquer sur [Rechercher] ensuite [Exporter] ou [Rein les champs] » ; capture « Edition des états annexes » (Annexe 1 : TABLEAU DES EMPLOIS ET RESSOURCES)",
@@ -307,7 +309,7 @@ function Reseau({ jour }: { jour: string }) {
   const e = r?.etats;
   const table = (titre: string, postes: NonNullable<Conso["etats"]>["bilan"]["actif"], total: { n: number; n1: number }) => <table className="grille"><caption>{titre}</caption>
     <thead><tr><th scope="col">N°</th><th scope="col">{titre}</th><th scope="col" className="num">N</th><th scope="col" className="num">N - 1</th></tr></thead>
-    <tbody>{postes.flatMap((x) => [<tr key={x.code}><td className="chiffres">{x.code}.</td><th scope="row">{x.libelle}</th><td className="num chiffres">{n(x.n)}</td><td className="num chiffres">{n(x.n1)}</td></tr>,
+    <tbody>{postes.flatMap((x) => [<tr key={x.code}><td className="chiffres">{x.code}.</td><th scope="row">{x.libelle}</th><td className="num chiffres">{z(x.n)}</td><td className="num chiffres">{z(x.n1)}</td></tr>,
       ...lignesDetail(x.comptes, x.code)])}</tbody>
     <tfoot><tr><td></td><th scope="row">TOTAL {titre}</th><td className="num chiffres"><strong>{n(total.n)}</strong></td><td className="num chiffres"><strong>{n(total.n1)}</strong></td></tr></tfoot></table>;
   const exporter = () => e && exporterExcel("États consolidés", ["État", "N°", "Poste", "Compte", "N", "N - 1"], [
@@ -341,13 +343,13 @@ function Reseau({ jour }: { jour: string }) {
             <th scope="col" className="num">Réseau, débit</th><th scope="col" className="num">Réseau, crédit</th><th scope="col">Importée le</th><th scope="col">Importée par</th>
             <th scope="col"><span className="sr-only">Retirer</span></th></tr></thead>
           <tbody>{r.balances.map((b) => <tr key={b.sigle}><td>{b.sigle}</td><td>{b.denomination}</td><td>{b.agrement}</td><td className="num chiffres">{n(b.debit)}</td><td className="num chiffres">{n(b.credit)}</td>
-            <td className="num chiffres">{n(b.reseauDebit)}</td><td className="num chiffres">{n(b.reseauCredit)}</td><td className="chiffres">{b.importeLe ? frInstant(b.importeLe) : ""}</td><td>{b.importePar}</td>
+            <td className="num chiffres">{z(b.reseauDebit)}</td><td className="num chiffres">{z(b.reseauCredit)}</td><td className="chiffres">{b.importeLe ? frInstant(b.importeLe) : ""}</td><td>{b.importePar}</td>
             <td>{b.id !== null && moi.ecrit && <button className="bouton secondaire petit" type="button" aria-label={`Retirer la balance de ${b.sigle}`} onClick={() => retirer(b.id!)}>Retirer</button>}</td></tr>)}</tbody>
         </table></div>
         <div className="defile-x"><table className="grille"><caption>Comptes du réseau retirés, en CDF</caption>
           <thead><tr><th scope="col">Compte</th><th scope="col">Intitulé</th><th scope="col" className="num">Débit</th><th scope="col" className="num">Crédit</th></tr></thead>
           <tbody>{r.retire.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
-            {r.retire.map((x) => <tr key={x.compte}><td className="code">{x.compte}</td><td>{x.intitule}</td><td className="num chiffres">{n(x.debit)}</td><td className="num chiffres">{n(x.credit)}</td></tr>)}</tbody>
+            {r.retire.map((x) => <tr key={x.compte}><td className="code">{x.compte}</td><td>{x.intitule}</td><td className="num chiffres">{z(x.debit)}</td><td className="num chiffres">{z(x.credit)}</td></tr>)}</tbody>
           <tfoot><tr><th scope="row" colSpan={2}>Écart au bilan</th><td className="num chiffres" colSpan={2}><strong>{n(r.ecart.bilan)}</strong></td></tr>
             <tr><th scope="row" colSpan={2}>Écart en gestion</th><td className="num chiffres" colSpan={2}><strong>{n(r.ecart.gestion)}</strong></td></tr></tfoot>
         </table></div>
@@ -360,7 +362,7 @@ function Reseau({ jour }: { jour: string }) {
             <caption>COMPTE DE RESULTAT CONSOLIDÉ du {fr(e.resultat.du)} au {fr(e.resultat.au)}, en CDF</caption>
             <thead><tr><th scope="col"><span className="sr-only">Signe</span></th><th scope="col">RUBRIQUES</th><th scope="col" className="num">N</th><th scope="col" className="num">N - 1</th></tr></thead>
             <tbody>{e.resultat.lignes.flatMap((x, i) => [<tr key={i}><td className="chiffres">{x.signe}</td>{x.solde ? <th scope="row">{x.libelle}</th> : <td>{x.libelle}</td>}
-              <td className="num chiffres">{x.solde ? <strong>{n(x.n)}</strong> : n(x.n)}</td><td className="num chiffres">{x.solde ? <strong>{n(x.n1)}</strong> : n(x.n1)}</td></tr>,
+              <td className="num chiffres">{x.solde ? <strong>{n(x.n)}</strong> : z(x.n)}</td><td className="num chiffres">{x.solde ? <strong>{n(x.n1)}</strong> : z(x.n1)}</td></tr>,
               ...lignesDetail(x.comptes, `r${i}`)])}</tbody>
           </table></div>
         </>}

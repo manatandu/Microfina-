@@ -9604,6 +9604,8 @@ const etatsCompta = {
     if ((de && !/^\d+$/.test(de)) || (a && !/^\d+$/.test(a))) throw new ErreurMetier("Compte : chiffres seulement.");
     const niveau = /^\d+$/.test(String(p.niveau ?? "")) && Number(p.niveau) > 0 ? Number(p.niveau) : null;
     const noms = intitulesComptes(), g = new Map<string, [string, string, number, number, number]>();
+    // Intitulé d'une ligne : le compte, la classe, sinon le compte du plan le plus proche au-dessus (une balance groupée coupe où elle veut). Comme le serveur.
+    const nom = (cle: string) => { for (let n = cle.length; n > 0; n--) { const x = noms.get(cle.slice(0, n)); if (x) return x; } return ""; };
     for (const m of mouvementsDefinitifs(au, !p.sansVidage)) {
       const n = m.compte;
       if ("67".includes(n[0]!) && Number(m.date.slice(0, 4)) !== ex) continue;
@@ -9614,7 +9616,7 @@ const etatsCompta = {
       else if (m.date >= du) x[m.sens === "D" ? 3 : 4] += m.montantCdf;
     }
     const lignes = [...g.values()].sort((x, y) => x[0].localeCompare(y[0]) || x[1].localeCompare(y[1])).map(([cle, aux, ouv, md, mc]) => { const fin = ouv + md - mc;
-      return { compte: cle, intitule: noms.get(cle) ?? "", auxiliaire: aux, ouvertureDebit: Math.max(ouv, 0), ouvertureCredit: Math.max(-ouv, 0), mouvementDebit: md, mouvementCredit: mc,
+      return { compte: cle, intitule: nom(cle), auxiliaire: aux, ouvertureDebit: Math.max(ouv, 0), ouvertureCredit: Math.max(-ouv, 0), mouvementDebit: md, mouvementCredit: mc,
         cumulDebit: Math.max(ouv, 0) + md, cumulCredit: Math.max(-ouv, 0) + mc, soldeDebit: Math.max(fin, 0), soldeCredit: Math.max(-fin, 0) }; });
     const CLES = ["ouvertureDebit", "ouvertureCredit", "mouvementDebit", "mouvementCredit", "cumulDebit", "cumulCredit", "soldeDebit", "soldeCredit"] as const;
     const totaux = Object.fromEntries(CLES.map((k) => [k, lignes.reduce((s, x) => s + x[k], 0)])) as Record<(typeof CLES)[number], number>;

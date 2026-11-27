@@ -136,6 +136,14 @@ def balance(u, p, analytique: bool = False) -> dict:
     agence = int(p["agenceId"]) if str(p.get("agenceId") or "").isdigit() else None
     sans_vidage = str(p.get("sansVidage")) in ("True", "true", "1")
     noms = {r["numero"]: r["libelle"] for r in lignes("select numero, libelle from compte where institution_id is null or institution_id = %s", (u["institution_id"],))}
+    from .comptes import CLASSES                                       # les classes du PCCI (§ 13) nomment une balance groupée au niveau 1
+
+    def nom(cle: str) -> str:
+        """Intitulé d'une ligne : le compte, la classe, sinon le compte du plan le plus proche au-dessus (une balance groupée coupe où elle veut)"""
+        for n in range(len(cle), 0, -1):
+            if cle[:n] in noms or cle[:n] in CLASSES:
+                return noms.get(cle[:n]) or CLASSES[cle[:n]]
+        return ""
     g = defaultdict(lambda: [0, 0, 0, 0])                              # ouverture D-C, mouvements D, mouvements C, (réserve)
     base, q = base_definitive(u, au, ex, vidage=not sans_vidage, agence_id=agence)
     aux = "coalesce(l.contrat_ref, '')" if analytique else "''"
@@ -154,7 +162,7 @@ def balance(u, p, analytique: bool = False) -> dict:
     out = []
     for (cle, aux_), (ouv, md, mc, _) in sorted(g.items()):
         fin = ouv + md - mc
-        out.append({"compte": cle, "intitule": noms.get(cle, ""), "auxiliaire": aux_, "ouvertureDebit": max(ouv, 0), "ouvertureCredit": max(-ouv, 0),
+        out.append({"compte": cle, "intitule": nom(cle), "auxiliaire": aux_, "ouvertureDebit": max(ouv, 0), "ouvertureCredit": max(-ouv, 0),
                     "mouvementDebit": md, "mouvementCredit": mc, "cumulDebit": max(ouv, 0) + md, "cumulCredit": max(-ouv, 0) + mc,
                     "soldeDebit": max(fin, 0), "soldeCredit": max(-fin, 0)})
     tot = {k: sum(x[k] for x in out) for k in ("ouvertureDebit", "ouvertureCredit", "mouvementDebit", "mouvementCredit", "cumulDebit", "cumulCredit", "soldeDebit", "soldeCredit")}
