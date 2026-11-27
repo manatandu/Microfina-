@@ -9,7 +9,7 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { fr, frInstant, texteEdition, aujourdhui } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
-import { liasseXml, telecharger } from "../lib/liasse";
+import { liasseXml, livreInventaireXml, telecharger } from "../lib/liasse";
 import NormesPrudentielles, { TableauxNormes, lignesNormes, TITRES_NORMES } from "./NormesPrudentielles";
 import { decimal } from "@design/montant.js";
 import { Attention, Champ, ChampDate, Chargement, Dialogue, Lecture, Textes, type Boite, Recherche, Paginee } from "../composants";
@@ -449,6 +449,7 @@ export function EtatsFinanciers() {
   const jour = cadre.j?.date ?? aujourdhui();
   return <>
     <ExportLiasse jour={jour} />
+    <ExportLivre exercices={cadre.ctx.exercices} />
     <div className="onglets" role="tablist" aria-label="Etats financiers">{pages.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={page === k} onClick={() => setParams(k === "bilan" ? {} : { page: k })}>{l}</button>)}</div>
     {page === "bilan" && <EditionBilan ctx={cadre.ctx} jour={jour} />}{page === "hors-bilan" && <EditionHorsBilan ctx={cadre.ctx} jour={jour} />}
     {page === "resultat" && <EditionResultat ctx={cadre.ctx} jour={jour} />}{page === "annexe" && <EditionAnnexes ctx={cadre.ctx} jour={jour} />}
@@ -486,6 +487,27 @@ function ExportLiasse({ jour }: { jour: string }) {
   return <div className="actions-onglets">
     <ChampDate libelle="Liasse au :" valeur={au} onChange={setAu} />
     <button className="bouton secondaire" type="button" onClick={exporter}>Exporter la liasse</button>
+    <Dialogue boite={boite} fermer={() => setBoite(null)} />
+  </div>;
+}
+
+/** Livre d'inventaire d'un exercice (PCCI § 3.3 : le bilan et le compte de résultat de chaque exercice, et le résumé de l'opération d'inventaire), en Excel,
+ *  numéroté et daté à son établissement (PCCI chap. 3, § 8). Registre T244. */
+function ExportLivre({ exercices }: { exercices: number[] }) {
+  const [ex, setEx] = useState(String(exercices[0] ?? ""));
+  const [boite, setBoite] = useState<Boite | null>(null);
+  async function exporter() {
+    try {
+      const [ctx, r] = await Promise.all([api.referentiel.contexte(), api.etatsFinanciers.livreInventaire({ exercice: ex })]);
+      const i = ctx.institution, t = texteEdition(r.edition).slice(2);
+      telecharger(`livre-d-inventaire-${r.exercice}`, livreInventaireXml({ institution: i.nom, sigle: i.sigle ?? "", agrement: i.numeroAgrement ?? "", nrc: i.nrc ?? "",
+        adresse: [i.rue, i.quartier, i.commune, i.ville].filter(Boolean).join(", "), du: r.du, au: r.au, exercice: r.exercice }, t.charAt(0).toUpperCase() + t.slice(1), r));
+    } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
+  }
+  return <div className="actions-onglets">
+    <Champ libelle="Livre d'inventaire, exercice :">{(p) => <select {...p} className="saisie court" value={ex} onChange={(e) => setEx(e.target.value)}>
+      {exercices.map((a) => <option key={a} value={a}>{a}</option>)}</select>}</Champ>
+    <button className="bouton secondaire" type="button" disabled={!ex} onClick={exporter}>Exporter le livre d'inventaire</button>
     <Dialogue boite={boite} fermer={() => setBoite(null)} />
   </div>;
 }

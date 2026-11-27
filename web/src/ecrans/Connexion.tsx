@@ -7,7 +7,7 @@ import { Bloquant } from "../composants";
 import { Marque } from "../mise-en-page/Marque";
 
 // S01, comme la page de connexion de Microfina++ (manuel, p. 5) : bandeau vertical au nom du logiciel,
-// nom d'utilisateur, mot de passe, journée ouverte et date système en lecture seule, serveur, Connexion.
+// nom d'utilisateur, mot de passe, journée ouverte et date système en lecture seule, Connexion. Sans la ligne du serveur (demande du porteur, 27/11/2026 ; registre S01-4).
 // Démonstration : aucun mot de passe (décision du porteur, 05/11/2026). Site en ligne : mot de passe vérifié par le serveur, ni liste d'identifiants
 // ni comptes de démonstration (registre S01-2 ; Instr. BCC 008, art. 16 : authentification maîtrisée).
 export default function Connexion() {
@@ -64,7 +64,6 @@ export default function Connexion() {
             <label htmlFor="date-systeme">Date système :</label>
             <input id="date-systeme" className="saisie" readOnly value={fr(jourReel)} />
           </div>
-          <p className="serveur">Serveur : {location.host || "local"}</p>
           <Bloquant titre="">{erreur}</Bloquant>
           <div className="a-droite"><button className="bouton" type="submit" disabled={!login.trim() || (enLigne && !mdp) || (codeDemande && code.trim().length !== 6)}>Connexion</button></div>
         </div>

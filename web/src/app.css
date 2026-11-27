@@ -226,7 +226,7 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
 /* ---------- Connexion (manuel Microfina++, p. 5) ----------
    Disposition du 14/11/2026, remise à la demande du porteur le 21/11/2026 (capture jointe ; « la disposition de la page, pas la couleur
    sombre ni le logo ») : une seule carte au milieu de la page, le logo en haut à gauche, les champs l'un sous l'autre sur toute la largeur,
-   le serveur, puis le bouton Connexion à droite. Couleurs et logo : ceux du logiciel (DESIGN § 3). */
+   puis le bouton Connexion à droite ; la ligne du serveur retirée (demande du porteur, 27/11/2026). Couleurs et logo : ceux du logiciel (DESIGN § 3). */
 .connexion { min-height: 100vh; min-height: 100svh; display: grid; place-items: center; gap: var(--espace-5); align-content: center; padding: var(--espace-6) var(--mise-gouttiere-mobile); background: var(--bureau); }
 .carte-connexion {
   width: 100%; max-width: 520px; display: grid; grid-template-columns: minmax(0, 1fr);
@@ -238,7 +238,11 @@ fieldset.formulaire { padding-bottom: var(--espace-2); }
 .connexion .champ > label { font-size: var(--taille-courant); color: var(--encre); }
 .connexion .saisie { min-height: 40px; padding: var(--espace-2) var(--espace-3); font-size: var(--taille-titre); border-radius: var(--rayon-bloc); }
 .connexion .bouton { min-height: 40px; padding: var(--espace-2) var(--espace-5); font-size: var(--taille-titre); border-radius: var(--rayon-bloc); }
-.serveur { margin: 0; font-size: var(--taille-courant); color: var(--encre-2); }
+/* Verrou (registre T243) : la page de connexion par-dessus l'écran laissé, qui reste derrière, caché, avec ses saisies */
+dialog.verrou { width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; border: 0; inset: 0; }
+dialog.verrou[open] { display: grid; }
+dialog.verrou::backdrop { background: var(--bureau); }
+.actions-verrou { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--espace-3); }
 .comptes-demo { gap: var(--espace-2); padding: var(--espace-5); box-shadow: var(--ombre-surface); }
 .comptes-demo h2 { margin: 0; font-size: var(--taille-titre); }
 .comptes-demo ul { list-style: none; margin: 0; padding: 0; display: grid; }

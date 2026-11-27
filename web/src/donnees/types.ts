@@ -267,7 +267,8 @@ export interface DepotTerme {   // S65, S66
   reconduitDe?: number;   // S65 : DAT dont celui-ci est la reconduction
 }
 /** S71 : blocage d'un compte (montant null : tout le compte) ou d'un montant (registre S71) */
-export interface Blocage { id: number; compteId: number; montant: number | null; motif: string; debut: string; posePar: number; fin: string; levePar: number | null; motifLevee: string; garantieDe?: number | null }
+export interface Blocage { id: number; compteId: number; montant: number | null; motif: string; debut: string; posePar: number; fin: string; levePar: number | null; motifLevee: string; garantieDe?: number | null;
+  saisieReference?: string; ecritureId?: number | null; ecritureLeveeId?: number | null }   // saisie-arrêt : somme passée au compte 361 (registre T245)
 /** S70 : clôture d'un compte (registre S70-1 à S70-6) */
 export interface ClotureCompte { id: number; compteId: number; motif: "demande" | "inactivite"; observation: string; dateCloture: string; solde: number; devise: Devise;
   ecritureId: number | null; cloturePar: number; verseeBccLe: string; referenceBcc: string; compteBancaireId: number | null; ecritureVersementId: number | null }
@@ -521,6 +522,10 @@ export interface Etat {
 
 export class ErreurMetier extends Error {
   constructor(message: string, public source?: string) { super(message); this.name = "ErreurMetier"; }
+}
+/** Session fermée (inactivité, durée dépassée, déconnexion par l'administrateur) : pendant le verrou, les écrans gardent ce qu'ils montrent (registre T243) */
+export class SessionFermee extends ErreurMetier {
+  constructor(message = "Session fermée. Reconnectez-vous.") { super(message); this.name = "SessionFermee"; }
 }
 
 /** S15 (manuel p. 23, capture p. 24) : Paramétrages liés aux clients */

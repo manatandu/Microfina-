@@ -1603,7 +1603,7 @@ describe("journée de guichet", () => {
     const solde = e.solde;
     expect([e.montantBloque, e.compteBloque, e.historique]).toEqual([0, false, []]);
     await expect(api.blocages.bloquer({ compteId: usd.id, bloquerMontant: true, montant: 1000 })).rejects.toThrow("Motif");
-    await expect(api.blocages.bloquer({ compteId: usd.id, motif: "x" })).rejects.toThrow("Cocher");
+    await expect(api.blocages.bloquer({ compteId: usd.id, motif: "x" })).rejects.toThrow("Choisir");
     await expect(api.blocages.bloquer({ compteId: usd.id, bloquerMontant: true, montant: solde + 1, motif: "Saisie" })).rejects.toThrow("épargne libre");
     e = await api.blocages.bloquer({ compteId: usd.id, bloquerMontant: true, montant: 100000, motif: "Litige" });
     expect([e.montantBloque, e.epargneLibre]).toEqual([100000, solde - 100000]);
@@ -1619,6 +1619,21 @@ describe("journée de guichet", () => {
     expect([e.compteBloque, e.montantBloque]).toEqual([false, 100000]);
     e = await api.blocages.debloquer(e.historique.find((b) => b.action === "Bloqué Montant")!.id, { motif: "Litige réglé" });
     expect([e.montantBloque, e.montantDebloque, e.epargneLibre]).toEqual([0, 100000, solde]);
+  });
+
+  it("saisie-arrêt (PCCI, compte 36 ; 361 Comptes bloqués (Saisie arrêt) ; registre T245) : la somme passe au 361 avec la référence ; la mainlevée la rend", async () => {
+    await journeeOuverte();
+    await connecter("jpmukendi");
+    const usd = _etat().comptes.find((c) => c.numero === "0412-000318-01")!;
+    const au361 = () => _etat().ecritures.flatMap((x) => x.lignes).filter((l) => l.compte.startsWith("361")).reduce((t, l) => t + (l.sens === "C" ? l.montant : -l.montant), 0);
+    const solde = (await api.blocages.etat(usd.id)).solde;
+    await expect(api.blocages.bloquer({ compteId: usd.id, saisieArret: true, montant: 50000, motif: "Créance civile" })).rejects.toThrow("Référence de la décision");
+    let e = await api.blocages.bloquer({ compteId: usd.id, saisieArret: true, reference: "RC 1234", montant: 50000, motif: "Créance civile" });
+    expect([e.solde, e.montantBloque, e.epargneLibre, au361()]).toEqual([solde - 50000, 0, solde - 50000, 50000]);
+    const s = e.historique.find((b) => b.action === "Saisie-arrêt")!;
+    expect([s.reference, s.saisie, s.enCours]).toEqual(["RC 1234", true, true]);
+    e = await api.blocages.debloquer(s.id, { motif: "Mainlevée du tribunal" });
+    expect([e.solde, e.epargneLibre, au361()]).toEqual([solde, solde, 0]);
   });
 
   it("clôture d'un compte (S70) : à la demande, solde nul ; inactif depuis dix ans, lettre notée, solde au 369 puis versé à la BCC (loi 22/069, titre III, chap. Ier)", async () => {
@@ -3838,6 +3853,29 @@ describe("journée de guichet", () => {
     // Sans le droit des États financiers, ni lecture ni import
     await connecter("engalula");
     await expect(co.importer({ ...jour, contenu: bol })).rejects.toThrow("Droit manquant");
+  });
+
+  it("livre d'inventaire (PCCI § 3.3 ; registre T244) : bilan, résultat, comptes de bilan au 31 décembre, immobilisations ; numéroté à chaque établissement", async () => {
+    const { j, s } = await journeeOuverte();
+    await connecter("jpmukendi");
+    const profils = Object.fromEntries((await adm.droits.lire()).profils.map((p) => [p.nom, p.id]));
+    await adm.droits.enregistrer(profils["AGENT DE CRÉDIT"]!, { droits: [...new Set([...(await adm.droits.lire(profils["AGENT DE CRÉDIT"]!)).octroyes, "S114"])] });
+    await connecter("plumbala");
+    const od = (await api.operationsCompta.lire()).journaux.find((x) => x.code === "OD")!.id, base = { journalId: od, periode: "11/2026", jour: 5, libelle: "Loyer du siège" };
+    let e = null;
+    for (const [compte, sens, m] of [["64000000", "debit", 300000], ["46100000", "credit", 300000]] as const) e = await api.operationsCompta.ecritureAjouter({ ...base, compte, [sens]: m });
+    await viserValider(e!.id!);
+    await comptabiliserJournee(j.id, s.id);
+    await connecter("plumbala");
+    await expect(api.etatsFinanciers.livreInventaire({ exercice: 1990 })).rejects.toThrow("Exercice inconnu");
+    const li = await api.etatsFinanciers.livreInventaire({ exercice: 2026 });
+    expect([li.exercice, li.du, li.au, li.cloture, li.bilan.equilibre]).toEqual([2026, "2026-01-01", "2026-12-31", false, true]);
+    expect((await api.etatsFinanciers.livreInventaire({ exercice: 2026 })).edition.numero).toBe(li.edition.numero + 1);
+    expect(li.comptes).toContainEqual({ compte: "46100000", intitule: "Créditeurs divers", debit: 0, credit: 300000 });
+    const net = li.resultat.lignes.at(-1)!.n;
+    expect(li.comptes.reduce((t, c) => t + c.debit - c.credit, 0)).toBe(net);   // le résultat de l'exercice ferme l'inventaire des comptes
+    await connecter("engalula");
+    await expect(api.etatsFinanciers.livreInventaire({ exercice: 2026 })).rejects.toThrow("Droit manquant");
   });
 
   it("états financiers (S122, p. 140 et 141 ; PCCI chap. 14) et indicateurs financiers (S123 ; Instr. BCC 004)", async () => {

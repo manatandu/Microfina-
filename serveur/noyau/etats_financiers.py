@@ -15,7 +15,7 @@ from datetime import date, timedelta
 
 from django.conf import settings
 
-from .bd import ErreurMetier, lignes, valeur
+from .bd import ErreurMetier, lignes, une, valeur
 from .etats_compta import d_, periode
 from .services import exiger
 
@@ -61,6 +61,42 @@ def contexte(u) -> dict:
 
 def intitules(u) -> dict:
     return {r["numero"]: r["libelle"] for r in lignes("select numero, libelle from compte where institution_id is null or institution_id = %s", (u["institution_id"],))}
+
+
+# ---------- Livre d'inventaire (PCCI § 3.3 ; chap. 3, § 8 ; registre T244) ----------
+def livre_inventaire(u, p) -> dict:
+    """Le livre d'inventaire d'un exercice (PCCI § 3.3) : le bilan et le compte de résultat de l'exercice, et le résumé de l'opération d'inventaire, soit
+    les soldes des comptes de bilan au 31 décembre (PCCI chap. 3, § 8 : l'inventaire justifie chaque élément du bilan) et l'inventaire des immobilisations
+    (PCCI, classe 2 : fichier ou registre de l'inventaire). Écritures définitives, sans les écritures de clôture. Numéroté et daté à son établissement
+    (PCCI chap. 3, § 8), par la route. Mêmes règles que web/src/donnees/api.ts (etatsFinanciers.livreInventaire)."""
+    exiger(u)
+    p = p if isinstance(p, dict) else {}
+    ex = str(p.get("exercice") or "")
+    if not ex.isdigit():
+        raise ErreurMetier("À remplir : Exercice.")
+    an, i = int(ex), u["institution_id"]
+    e = une("select statut from exercice where institution_id = %s and annee = %s", (i, an))
+    if not e:
+        raise ErreurMetier("Exercice inconnu.")
+    du, au = date(an, 1, 1), date(an, 12, 31)
+    base = {"du": du.isoformat(), "au": au.isoformat(), "exercice": ex, "type": "developpe", "sansVidage": "true"}
+    s, _, _ = soldes(u, au, an, vidage=False)
+    noms = intitules(u)
+    comptes = [{"compte": c, "intitule": noms.get(c, ""), "debit": max(v, 0), "credit": max(-v, 0)} for c, v in sorted(s.items()) if c[:1] in "12345"]
+    immos = [{"compte": r["compte"], "famille": r["famille"], "codification": r["codification"], "libelle": r["libelle"], "dateAcquisition": r["date_acquisition"].isoformat(),
+              "valeur": r["prix_acquisition"], "amortissements": r["cumul"] or 0, "vnc": r["prix_acquisition"] - (r["cumul"] or 0),
+              "inventorieLe": r["inventorie_le"].isoformat() if r["inventorie_le"] else "", "etat": r["etat"] or ""}
+             for r in lignes("""select b.codification, b.libelle, b.date_acquisition, b.prix_acquisition, f.libelle as famille, f.compte_acquisition as compte,
+                                       (select a.cumul from immo_amortissement a where a.bien_id = b.id and a.exercice <= %s order by a.exercice desc, a.id desc limit 1) as cumul,
+                                       v.date_inventaire as inventorie_le, v.etat
+                                from immo_bien b join immo_famille f on f.id = b.famille_id
+                                left join lateral (select date_inventaire, etat from immo_inventaire x where x.bien_id = b.id and x.date_inventaire <= %s
+                                                   order by x.date_inventaire desc, x.id desc limit 1) v on true
+                                where b.institution_id = %s and b.actif and b.date_acquisition <= %s
+                                  and not exists (select 1 from immo_sortie o where o.bien_id = b.id and o.date_sortie <= %s)
+                                order by f.compte_acquisition, b.codification""", (an, au, i, au, au))]
+    return {"exercice": an, "du": du.isoformat(), "au": au.isoformat(), "cloture": e["statut"] == "cloture", "bilan": bilan(u, base), "resultat": resultat(u, base),
+            "comptes": comptes, "immobilisations": immos}
 
 
 def soldes(u, au: date, exercice: int, *, vidage: bool, agence=None) -> tuple[dict, int, int]:

@@ -1,8 +1,15 @@
 """S71 : Épargne > Blocage compte et montant (manuel Microfina++, p. 81 : « Blocage et déblocage de compte »). Mêmes règles que web/src/donnees/api.ts (blocages).
 Bloquer le compte (montant vide : tout le compte, aucun débit possible ; les dépôts restent acceptés) ou un montant, avec motif. Le déblocage, que le manuel
-ne montre pas, se fait depuis l'historique des actions, sur le modèle de la libération des garanties (S94). Registre S71-1 à S71-5."""
+ne montre pas, se fait depuis l'historique des actions, sur le modèle de la libération des garanties (S94). Registre S71-1 à S71-5.
+Saisie-arrêt (registre T245) : la somme saisie par décision de justice quitte le compte pour le compte 361 « Comptes bloqués (Saisie arrêt) » (PCCI, compte 36 :
+comptes frappés par une décision légale, judiciaire ou administrative ; il est crédité des saisies arrêts) ; la mainlevée la rend au compte."""
+import uuid
+from datetime import date
+
 from .bd import ErreurMetier, executer, lignes, une, valeur
-from .services import exiger, montant_bloque, solde_contrat, titulaire
+from .services import compte_du_produit, exiger, journee_courante, montant_bloque, nouvelle_piece, poster, solde_contrat, titulaire
+
+COMPTE_SAISIE = "361"     # PCCI, liste des comptes : 361 Comptes bloqués (Saisie arrêt)
 
 
 def texte(d, k):
@@ -11,7 +18,7 @@ def texte(d, k):
 
 
 def compte_de(u, cid) -> dict:
-    c = une("""select c.*, trim(c.devise) as dv, p.libelle as produit from compte_depot c join produit_epargne p on p.id = c.produit_id
+    c = une("""select c.*, trim(c.devise) as dv, p.libelle as produit, p.famille, p.compte_lie from compte_depot c join produit_epargne p on p.id = c.produit_id
                where c.id = %s and c.institution_id = %s""", (cid, u["institution_id"])) if isinstance(cid, int) and not isinstance(cid, bool) else None
     if not c:
         raise ErreurMetier("À remplir : compte.")
@@ -33,32 +40,49 @@ def etat(u, cid: int) -> dict:
     return {"compteId": c["id"], "compte": c["numero"], "produit": c["produit"], "devise": c["dv"], "client": titulaire(c["tiers_id"]),
             "solde": solde, "montantBloque": bloque, "montantDebloque": sum(b["montant"] or 0 for b in hist if not en_cours(b)), "epargneLibre": solde - bloque,
             "compteBloque": any(en_cours(b) and b["montant"] is None for b in hist),
-            "historique": [{"id": b["id"], "action": "Bloquer compte" if b["montant"] is None else "Bloqué Montant", "montant": b["montant"], "motif": b["motif"],
+            "historique": [{"id": b["id"], "action": "Saisie-arrêt" if b["ecriture_id"] else "Bloquer compte" if b["montant"] is None else "Bloqué Montant", "montant": b["montant"],
+                            "motif": b["motif"], "reference": b["saisie_reference"] or "", "saisie": b["ecriture_id"] is not None,
                             "debut": b["debut"].date().isoformat(), "posePar": nom(b["pose_par"]), "fin": b["fin"].date().isoformat() if b["fin"] else "",
                             "levePar": nom(b["leve_par"]), "motifLevee": b["motif_levee"] or "", "garantie": b["garantie_de"] is not None, "enCours": en_cours(b)} for b in hist]}
 
 
 def bloquer(u, d) -> dict:
-    """Enregistrer (p. 81) : cocher Bloquer compte ou Bloqué Montant, le montant et le motif (registre S71-1, S71-3)"""
+    """Enregistrer (p. 81) : cocher Bloquer compte ou Bloqué Montant, le montant et le motif (registre S71-1, S71-3) ; ou Saisie-arrêt, avec la référence
+    de la décision : écriture du compte du membre au compte 361 (registre T245)"""
     exiger(u)
     c = compte_de(u, (d or {}).get("compteId"))
     if c["statut"] != "ouvert":
         raise ErreurMetier("Ce compte n'est pas ouvert.")
     motif = texte(d, "motif")
-    tout, montant = bool((d or {}).get("bloquerCompte")), bool((d or {}).get("bloquerMontant"))
-    if tout == montant:
-        raise ErreurMetier("Cocher Bloquer compte ou Bloqué Montant.")
+    tout, montant, saisie = bool((d or {}).get("bloquerCompte")), bool((d or {}).get("bloquerMontant")), bool((d or {}).get("saisieArret"))
+    if tout + montant + saisie != 1:
+        raise ErreurMetier("Choisir Tout le compte, Un montant ou Saisie-arrêt.")
+    reference = texte(d, "reference")
+    if saisie and not reference:
+        raise ErreurMetier("À remplir : Référence de la décision.")
     if not motif:
         raise ErreurMetier("À remplir : Motif.")
     e = etat(u, c["id"])
     if e["compteBloque"]:
         raise ErreurMetier("Ce compte est déjà bloqué.")
-    if montant:
+    if montant or saisie:
         m = (d or {}).get("montant")
         if not isinstance(m, int) or isinstance(m, bool) or m <= 0:
-            raise ErreurMetier("Montant à bloquer : un montant supérieur à zéro.")
+            raise ErreurMetier(f"Montant {'saisi' if saisie else 'à bloquer'} : un montant supérieur à zéro.")
         if m > e["epargneLibre"]:
-            raise ErreurMetier("Le montant à bloquer dépasse l'épargne libre du compte.")
+            raise ErreurMetier(f"Le montant {'saisi' if saisie else 'à bloquer'} dépasse l'épargne libre du compte.")
+    if saisie:
+        j = journee_courante(u)
+        if not j or j["statut"] != "ouverte":
+            raise ErreurMetier("Aucune journée ouverte (Administration > Journée).")
+        bid = valeur("insert into blocage (compte_id, montant, motif, pose_par, saisie_reference) values (%s, %s, %s, %s, %s) returning id",
+                     (c["id"], m, motif, u["id"], reference))
+        eid = poster(u, journal="OD", journee_id=j["id"], libelle=f"Saisie-arrêt {reference}, compte {c['numero']}", piece=nouvelle_piece(u, "OD", date.fromisoformat(j["date"])),
+                     evenement="saisie_arret", cle=str(uuid.uuid5(uuid.NAMESPACE_URL, f"saisie-arret:{bid}")), valide_par=u["id"],
+                     lignes_ecr=[{"compte": compte_du_produit(c), "contrat": f"depot:{c['id']}", "sens": "D", "devise": c["dv"], "montant": m},
+                                 {"compte": COMPTE_SAISIE, "contrat": f"saisie:{bid}", "sens": "C", "devise": c["dv"], "montant": m}])
+        executer("update blocage set ecriture_id = %s where id = %s", (eid, bid))
+    elif montant:
         executer("insert into blocage (compte_id, montant, motif, pose_par) values (%s, %s, %s, %s)", (c["id"], m, motif, u["id"]))
     else:
         executer("insert into blocage (compte_id, montant, motif, pose_par) values (%s, null, %s, %s)", (c["id"], motif, u["id"]))
@@ -76,5 +100,18 @@ def debloquer(u, bid: int, d) -> dict:
     motif = texte(d, "motif")
     if not motif:
         raise ErreurMetier("À remplir : Motif.")
-    executer("update blocage set fin = now(), leve_par = %s, motif_levee = %s where id = %s", (u["id"], motif, bid))
+    eid = None
+    if b["ecriture_id"]:     # mainlevée de la saisie-arrêt : la somme revient du compte 361 au compte du membre (registre T245)
+        c = compte_de(u, b["compte_id"])
+        if c["statut"] != "ouvert":
+            raise ErreurMetier("Ce compte n'est pas ouvert.")
+        j = journee_courante(u)
+        if not j or j["statut"] != "ouverte":
+            raise ErreurMetier("Aucune journée ouverte (Administration > Journée).")
+        eid = poster(u, journal="OD", journee_id=j["id"], libelle=f"Mainlevée de la saisie-arrêt {b['saisie_reference']}, compte {c['numero']}",
+                     piece=nouvelle_piece(u, "OD", date.fromisoformat(j["date"])), evenement="mainlevee_saisie",
+                     cle=str(uuid.uuid5(uuid.NAMESPACE_URL, f"mainlevee-saisie:{bid}")), valide_par=u["id"],
+                     lignes_ecr=[{"compte": COMPTE_SAISIE, "contrat": f"saisie:{bid}", "sens": "D", "devise": c["dv"], "montant": b["montant"]},
+                                 {"compte": compte_du_produit(c), "contrat": f"depot:{c['id']}", "sens": "C", "devise": c["dv"], "montant": b["montant"]}])
+    executer("update blocage set fin = now(), leve_par = %s, motif_levee = %s, ecriture_levee_id = %s where id = %s", (u["id"], motif, eid, bid))
     return etat(u, b["compte_id"])

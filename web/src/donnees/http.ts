@@ -1,7 +1,7 @@
 // Client du serveur Django : mêmes fonctions que la couche locale (api.ts), donc aucun écran ne change.
 // Les écritures portent l'en-tête X-Likelemba (protection contre les requêtes forgées) ; la session est un cookie http-only.
 import type { ApiDonnees } from "./api";
-import { ErreurMetier } from "./types";
+import { ErreurMetier, SessionFermee } from "./types";
 
 type Methode = "GET" | "POST" | "DELETE";
 
@@ -64,6 +64,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
           const connecte = memoire.get("/session")?.texte;
           memoire.clear();
           if (connecte && connecte !== "null") notifier();
+          throw new SessionFermee(message);
         }
         throw new ErreurMetier(message);
       }
@@ -301,6 +302,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       horsBilan: (p: Record<string, unknown>) => get(`/comptabilite/etats-financiers/hors-bilan?${requete(p)}`),
       resultat: (p: Record<string, unknown>) => get(`/comptabilite/etats-financiers/resultat?${requete(p)}`),
       annexe: (p: Record<string, unknown>) => get(`/comptabilite/etats-financiers/annexe?${requete(p)}`),
+      livreInventaire: (p: Record<string, unknown>) => get(`/comptabilite/etats-financiers/livre-inventaire?${requete(p)}`),
       indicateurs: (p: Record<string, unknown>) => get(`/comptabilite/indicateurs-financiers?${requete(p)}`),
     },
     consolidation: {

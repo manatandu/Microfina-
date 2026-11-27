@@ -179,3 +179,5 @@ id,lot,titre,ecrans,statut,question,reste
 12.2,12,Type de guichet ajouté depuis Guichets,S08,fait,,
 12.3,12,Consolidation d'un réseau,"S122, S102",fait,,"Fait : attribut « Appartenance au réseau », export de la balance, import par la faîtière, écarts de réciprocité, bilan et compte de résultat consolidés (registre T235). La suite est au point 12.4."
 12.4,12,"Faîtière : hors bilan consolidé, normes consolidées, cotisations, états du rapport annuel",S122,fait,,
+13.1,13,Reprendre l'écran laissé après une session fermée,"Coquille, S01",fait,,
+13.2,13,"Balance et grand livre en Excel seulement, avec les filtres","S120, S121",fait,,

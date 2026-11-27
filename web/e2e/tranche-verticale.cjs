@@ -1095,6 +1095,13 @@ const OUT = process.argv[2];
   await p.getByLabel('Motif du déblocage : *').fill('Litige réglé'); await p.getByRole('button', { name: 'Débloquer', exact: true }).click(); await oui();
   await p.getByRole('button', { name: 'Voir historique des actions' }).click(); const hist = p.getByRole('dialog', { name: 'Historique des actions' });
   await hist.getByRole('cell', { name: 'Litige réglé' }).waitFor(); await etape('06c33-deblocage'); await hist.getByRole('button', { name: 'Fermer' }).click();
+  // Saisie-arrêt (PCCI, compte 36 ; 361 Comptes bloqués (Saisie arrêt) ; registre T245) : la somme passe au 361 avec la référence ; la mainlevée la rend
+  await p.getByLabel('Saisie-arrêt').check(); await p.getByLabel('Montant saisi : *').fill('50'); await p.getByLabel('Référence de la décision : *').fill('RC 1234');
+  await p.getByLabel('Motif : *').fill('Créance civile'); await p.getByRole('button', { name: 'Enregistrer' }).click(); await oui();
+  await p.getByRole('cell', { name: 'Saisie-arrêt RC 1234 : Créance civile' }).waitFor(); await etape('06c34-saisie-arret');
+  await p.getByRole('button', { name: 'Débloquer : Créance civile' }).click();
+  await p.getByLabel('Motif du déblocage : *').fill('Mainlevée du tribunal'); await p.getByRole('button', { name: 'Débloquer', exact: true }).click(); await oui();
+  await p.getByRole('cell', { name: 'Aucun blocage.' }).waitFor();
   // Rapports épargne (S72, p. 82 à 84 ; registre S72-1 à S72-8) : recherche multicritère, indicateurs, comptes inactifs
   await aller('/epargne/s72?page=multicritere'); await p.getByRole('heading', { name: 'Recherche multicritères épargne' }).waitFor();
   await p.getByLabel('Nom', { exact: true }).fill('Kalala'); await p.getByRole('button', { name: 'Rechercher', exact: true }).click();
@@ -1268,7 +1275,13 @@ const OUT = process.argv[2];
   await aller('/comptabilite/s111');
   await p.getByRole('button', { name: 'Clôturer la journée' }).click(); await ok(); await p.getByText('Aucune journée à comptabiliser.').waitFor();
   await etape('17-journee-fermee');
-  await login('Patrick Lumbala'); await p.goto(B + '/comptabilite/s121'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByText(/Équilibrée/).waitFor(); await etape('18-balance');
+  // Registre T246 (demande du porteur, 27/11/2026) : la balance ne s'affiche plus ; Exporter sort le classeur Excel, filtres sur la ligne des en-têtes
+  const exporterXls = async (nom) => { const [t] = await Promise.all([p.waitForEvent('download'), p.getByRole('button', { name: 'Exporter', exact: true }).click()]);
+    const x = require('fs').readFileSync(await t.path(), 'utf8'); if (!nom.test(t.suggestedFilename())) throw new Error('Export : nom ' + t.suggestedFilename());
+    if (!/<AutoFilter x:Range="R\d+C1:R\d+C\d+"/.test(x)) throw new Error('Export ' + t.suggestedFilename() + ' : pas de filtre'); return x; };
+  await login('Patrick Lumbala'); await p.goto(B + '/comptabilite/s121'); await p.getByRole('heading', { name: 'Edition de la balance des comptes' }).waitFor(); await etape('18-balance');
+  if (await p.locator('table.grille').count()) throw new Error('T246 : la balance ne s\'affiche plus à l\'écran');
+  if (!(await exporterXls(/^balance-2026-\d\d-\d\d\.xls$/)).includes('Totaux de la balance')) throw new Error('Balance exportée sans totaux');
   // Journaux comptables (S115, p. 133) : lignes définitives, journal centralisé
   await aller('/comptabilite/s115'); await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByRole('cell', { name: /^CA / }).first().waitFor(); await etape('18e-journaux-comptables');
   // Schémas comptables appliqués (B22 ; Instr. BCC 008, art. 9 ; PCCI § 3.1) : par évènement, journaux et comptes débités et crédités
@@ -1285,9 +1298,10 @@ const OUT = process.argv[2];
   if (await aide.getByText(/Manuel Microfina|Registre S115/).count()) throw new Error('Aide : note interne montrée');
   await etape('18e3-aide-en-ligne'); await aide.getByRole('button', { name: "Fermer l'aide" }).click();
   // Grand livre (S120, p. 138) : écritures définitives de la journée comptabilisée ; taxes (S104, p. 124) et plan des tiers (S103, p. 123)
-  await aller('/comptabilite/s120'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: 'Total général' }).waitFor(); await etape('18b-grand-livre');
+  await aller('/comptabilite/s120'); await p.getByRole('heading', { name: 'Edition du grand livre' }).waitFor(); await etape('18b-grand-livre');
+  if (!(await exporterXls(/^grand-livre-2026-\d\d-\d\d\.xls$/)).includes('Solde progressif')) throw new Error('Grand livre exporté sans solde progressif');
   if (await p.getByRole('tab').count()) throw new Error('S120 : onglets Général et Analytique restés');   // allègement 7.12 : un formulaire, « Plan » si l'analytique est tenue
-  await p.getByLabel('Plan :').selectOption('analytique'); await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByText(/^Grand livre analytique du/).waitFor(); await etape('18b2-grand-livre-analytique');
+  await p.getByLabel('Plan :').selectOption('analytique'); await exporterXls(/^grand-livre-des-tiers-2026-\d\d-\d\d\.xls$/); await etape('18b2-grand-livre-analytique');
   // La TVA à 16 % est dans la graine ; l'essai ajoute le taux réduit de 5 % (O.-L. 10/001, art. 35, modifié par la LF 25/060, art. 46)
   await aller('/comptabilite/s104'); await p.getByRole('cell', { name: '16,00' }).waitFor(); await p.getByLabel('Code *').fill('TVA5'); await p.getByLabel('Désignation *').fill('TVA AU TAUX REDUIT'); await p.getByLabel('Taux *').fill('5'); await p.getByLabel('Compte *').fill('43200000');
   await p.getByRole('button', { name: 'Enregistrer' }).click(); await ok(); await p.getByRole('cell', { name: '5,00' }).waitFor(); await etape('18c-taxes');
@@ -1427,6 +1441,11 @@ const OUT = process.argv[2];
   await aller('/comptabilite/s143'); await p.getByRole('button', { name: 'Afficher' }).click(); await p.getByText(/^Solde des caisses au/).waitFor(); await p.getByText(/^Solde des banques au/).waitFor(); await etape('26e-tresorerie');
   // Etats financiers (S122, p. 140 et 141 ; PCCI, chap. 14) et indicateurs financiers (S123, p. 142 ; Instr. BCC 004)
   await aller('/comptabilite/s122'); await p.getByRole('heading', { name: 'Edition du bilan' }).waitFor(); await etape('27a-bilan-criteres');
+  // Livre d'inventaire (PCCI § 3.3 ; registre T244) : classeur Excel numéroté et daté (PCCI chap. 3, § 8)
+  const [tli] = await Promise.all([p.waitForEvent('download'), p.getByRole('button', { name: "Exporter le livre d'inventaire" }).click()]);
+  const xli = require('fs').readFileSync(await tli.path(), 'utf8');
+  if (!/^livre-d-inventaire-20\d\d\.xls$/.test(tli.suggestedFilename()) || !xli.includes("LIVRE D'INVENTAIRE") || !/Édition n° \d+ du \d\d\/\d\d\/20\d\d à/.test(xli)
+    || !xli.includes('SOLDES DES COMPTES DE BILAN')) throw new Error("Livre d'inventaire : fichier inattendu " + tli.suggestedFilename());
   for (const l of ['État :', 'Période :', 'Exercice :', 'Compte :']) if (await p.getByLabel(l, { exact: true }).count()) throw new Error(`S122 : champ ${l} resté`);   // allègement 7.12
   await p.getByLabel("Date d'arrêté :").waitFor();
   await p.getByRole('button', { name: 'Rechercher' }).click(); await p.getByRole('rowheader', { name: 'TOTAL ACTIF' }).waitFor();
@@ -1647,17 +1666,30 @@ const OUT = process.argv[2];
   await p.getByRole('button', { name: 'Close Help' }).click();
   await p.locator('button[aria-controls="menu-langue"]').click(); await p.locator('#menu-langue').getByRole('button', { name: 'Français' }).click();   // le menu des langues ne se traduit pas
   await p.getByRole('heading', { name: 'Journal comptables' }).waitFor();
-  // Registre T239 : une session fermée par le serveur (poste laissé ouvert la nuit, durée dépassée) ramène à la connexion, jamais à un cadre vide.
-  // La session ne vit que sur le serveur : l'essai se fait sur la version reliée au serveur. Les refus 401 de ce moment sont attendus.
+  // Registre T243 (demande du porteur, 27/11/2026) : une session fermée sans demande (inactivité, poste resté ouvert, durée dépassée) laisse l'écran
+  // en place, caché par le verrou, avec ses saisies ; le même utilisateur rouvre la session et reprend où il en était. Page rechargée : connexion,
+  // puis retour au même écran (registre T239). La session ne vit que sur le serveur : l'essai se fait sur la version reliée au serveur.
   if (B.endsWith(':5173')) {
     globalThis.__sessionFermee = true;
+    await p.clock.install(); await p.reload();                                                                   // horloge réglable : 16 minutes sans geste
     await aller('/comptabilite/s121'); await p.getByRole('heading', { level: 1, name: 'Balance', exact: true }).waitFor();
-    await ctx.clearCookies(); await p.getByRole('link', { name: 'Grand livre' }).click();                 // écran resté ouvert, session fermée
+    await p.getByLabel('Du compte :').fill('57');
+    await p.clock.fastForward('16:00');
+    const verrou = p.getByRole('dialog', { name: 'Exofina, connexion' }); await verrou.waitFor();
+    if (await p.getByLabel('Identifiant de connexion').inputValue() !== 'plumbala') throw new Error('Verrou : identifiant attendu plumbala');
+    if ((await (await p.request.get(B + '/api/session')).text()).trim() !== 'null') throw new Error('Verrou : la session devait être fermée sur le serveur');
+    await etape('41-verrou');
+    await verrou.getByRole('button', { name: 'Connexion' }).click(); await verrou.waitFor({ state: 'detached' });
+    if (await p.getByLabel('Du compte :').inputValue() !== '57') throw new Error('Verrou : la saisie de l\'écran a été perdue');
+    if (!p.url().endsWith('/comptabilite/s121')) throw new Error('Verrou : écran changé ' + p.url());
+    await ctx.clearCookies(); await p.getByRole('link', { name: 'Grand livre' }).click();                 // écran resté ouvert, session fermée par le serveur
+    await verrou.waitFor(); await verrou.getByRole('button', { name: 'Changer d\'utilisateur' }).click();
     await p.waitForURL(B + '/connexion'); await p.getByLabel('Identifiant de connexion').waitFor(); await etape('41-session-fermee');
-    await p.getByLabel('Identifiant de connexion').fill('plumbala'); await p.getByRole('button', { name: 'Connexion' }).click();
-    await p.waitForURL(B + '/comptabilite/s120'); await p.getByRole('heading', { level: 1, name: 'Grand livre', exact: true }).waitFor();   // retour à l'écran demandé
+    await p.getByLabel('Identifiant de connexion').fill('plumbala'); await p.getByRole('button', { name: 'Connexion' }).click(); await p.waitForURL(B + '/');
+    await aller('/comptabilite/s120'); await p.getByRole('heading', { level: 1, name: 'Grand livre', exact: true }).waitFor();
     await ctx.clearCookies(); await p.reload();                                                                                    // le lendemain : page rechargée
-    await p.waitForURL(B + '/connexion'); await p.getByLabel('Identifiant de connexion').waitFor();
+    await p.waitForURL(B + '/connexion'); await p.getByLabel('Identifiant de connexion').fill('plumbala'); await p.getByRole('button', { name: 'Connexion' }).click();
+    await p.waitForURL(B + '/comptabilite/s120'); await p.getByRole('heading', { level: 1, name: 'Grand livre', exact: true }).waitFor();   // retour à l'écran laissé
     globalThis.__sessionFermee = false;
   }
   console.log(errs.length ? 'ERREURS\n' + errs.join('\n') : 'aucune erreur console');

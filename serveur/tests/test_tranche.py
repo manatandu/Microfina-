@@ -3813,7 +3813,7 @@ def test_blocage_compte_et_montant(clients, journee):
     def refus(corps):
         r = chef.post("/api/epargne/blocages", {"compteId": usd, **corps}, **H); assert r.status_code == 422, r.content; return r.json()["message"]
     assert "Motif" in refus({"bloquerMontant": True, "montant": 1000})
-    assert "Cocher" in refus({"motif": "x"})
+    assert "Choisir" in refus({"motif": "x"})
     assert "épargne libre" in refus({"bloquerMontant": True, "montant": solde + 1, "motif": "Saisie"})
     assert agent.post("/api/epargne/blocages", {"compteId": usd, "bloquerMontant": True, "montant": 1000, "motif": "x"}, **H).status_code == 403
     e = chef.post("/api/epargne/blocages", {"compteId": usd, "bloquerMontant": True, "montant": 100000, "motif": "Litige"}, **H).json()
@@ -3832,6 +3832,29 @@ def test_blocage_compte_et_montant(clients, journee):
     e = chef.post(f"/api/epargne/blocages/{m['id']}/deblocage", {"motif": "Litige réglé"}, **H).json()
     assert (e["montantBloque"], e["montantDebloque"], e["epargneLibre"]) == (0, 100000, solde)
     assert [b["enCours"] for b in e["historique"]] == [False, False]
+
+
+def test_saisie_arret(clients, journee):
+    """Saisie-arrêt (PCCI, compte 36 : comptes frappés par une décision judiciaire ; 361 Comptes bloqués (Saisie arrêt) ; registre T245) : la somme saisie
+    passe du compte du membre au 361, avec la référence de la décision ; la mainlevée la rend"""
+    from noyau.bd import valeur
+    chef, caisse = clients["chef"], clients["caisse"]
+    usd = C("0412-000318-01")
+    au_361 = lambda: valeur("""select coalesce(sum(case l.sens when 'C' then l.montant_devise else -l.montant_devise end), 0) from ligne_ecriture l join compte c on c.id = l.compte_id
+                                where c.numero like '361%%'""")
+    solde = chef.get(f"/api/epargne/blocages?compteId={usd}", **H).json()["solde"]
+    r = chef.post("/api/epargne/blocages", {"compteId": usd, "saisieArret": True, "montant": 50000, "motif": "Créance civile"}, **H)
+    assert r.status_code == 422 and "Référence de la décision" in r.json()["message"]
+    r = chef.post("/api/epargne/blocages", {"compteId": usd, "saisieArret": True, "reference": "RC 1234", "montant": solde + 1, "motif": "Créance civile"}, **H)
+    assert r.status_code == 422 and "épargne libre" in r.json()["message"]
+    e = chef.post("/api/epargne/blocages", {"compteId": usd, "saisieArret": True, "reference": "RC 1234", "montant": 50000, "motif": "Créance civile"}, **H).json()
+    assert (e["solde"], e["montantBloque"], e["epargneLibre"], au_361()) == (solde - 50000, 0, solde - 50000, 50000)
+    s = next(b for b in e["historique"] if b["action"] == "Saisie-arrêt")
+    assert (s["reference"], s["saisie"], s["enCours"], s["montant"]) == ("RC 1234", True, True, 50000)
+    assert next(c for c in caisse.get(f"/api/tiers/{T('0412-000318')}/comptes").json() if c["id"] == usd)["disponible"] == solde - 50000
+    e = chef.post(f"/api/epargne/blocages/{s['id']}/deblocage", {"motif": "Mainlevée du tribunal"}, **H).json()
+    assert (e["solde"], e["epargneLibre"], au_361()) == (solde, solde, 0)
+    assert balance_equilibree(clients["compta"])
 
 
 def test_rapports_epargne(clients, journee):
@@ -5141,6 +5164,33 @@ def test_annulation_reglement_credit(clients, journee):
 
 
 # ---------- Comptabilité : états financiers (S122) et indicateurs financiers (S123) ----------
+def test_livre_inventaire(clients, journee):
+    """Livre d'inventaire (PCCI § 3.3 ; registre T244) : bilan et compte de résultat de l'exercice, soldes des comptes de bilan au 31 décembre et
+    inventaire des immobilisations ; numéroté et daté à son établissement (PCCI chap. 3, § 8) ; droit des états financiers (S122)"""
+    compta, caisse = clients["compta"], clients["caisse"]
+    od = next(j["id"] for j in compta.get(f"{OC}/contexte", **H).json()["journaux"] if j["code"] == "OD")
+    base = {"journalId": od, "periode": "11/2026", "jour": 5, "libelle": "Loyer du siège"}
+    e = None
+    for compte, sens, m in (("64000000", "debit", 300000), ("46100000", "credit", 300000)):
+        e = compta.post("/api/comptabilite/ecritures/lignes", {**base, "compte": compte, sens: m}, **H).json()
+    viser_valider(clients, e["id"])
+    comptabiliser_journee(clients, journee)
+    LI = "/api/comptabilite/etats-financiers/livre-inventaire"
+    assert caisse.get(LI, {"exercice": 2026}, **H).status_code == 403
+    r = compta.get(LI, {"exercice": 1990}, **H); assert r.status_code == 422 and "Exercice inconnu" in r.json()["message"]
+    r = compta.get(LI, {}, **H); assert r.status_code == 422 and "Exercice" in r.json()["message"]
+    li = compta.get(LI, {"exercice": 2026}, **H).json()
+    assert (li["exercice"], li["du"], li["au"], li["cloture"]) == (2026, "2026-01-01", "2026-12-31", False)
+    assert li["edition"]["numero"] >= 1 and li["edition"]["le"]
+    assert compta.get(LI, {"exercice": 2026}, **H).json()["edition"]["numero"] == li["edition"]["numero"] + 1      # chaque établissement prend le numéro suivant
+    assert li["bilan"]["equilibre"] and li["bilan"]["au"] == "2026-12-31" and li["resultat"]["lignes"][-1]["libelle"] == "Résultat net de l'exercice"
+    assert {"compte": "46100000", "intitule": "Créditeurs divers", "debit": 0, "credit": 300000} in li["comptes"]
+    assert all(c["compte"][0] in "12345" and (c["debit"] == 0 or c["credit"] == 0) for c in li["comptes"])
+    net = li["resultat"]["lignes"][-1]["n"]
+    assert sum(c["debit"] for c in li["comptes"]) - sum(c["credit"] for c in li["comptes"]) == net      # le résultat de l'exercice ferme l'inventaire des comptes
+    assert li["immobilisations"] == []
+
+
 def test_etats_financiers(clients, journee):
     """S122 (p. 140 et 141) : bilan, hors bilan, compte de résultat et états annexes selon les modèles du PCCI (chap. 14) ; S123 (p. 142) : les onze
     indicateurs de l'Instr. BCC 004. Écritures définitives seulement ; le bilan est équilibré ; le tableau de flux retombe sur les liquidités."""

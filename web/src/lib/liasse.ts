@@ -33,7 +33,8 @@ function bordures() {
 }
 export type Cellule = string | number | null | { texte: string; lien: string };   // lien : feuille du même classeur (« #'feuille'!A1 »)
 export interface Ligne { style: Style; cellules: Cellule[] }
-export interface Feuille { nom: string; largeurs: number[]; lignes: Ligne[] }
+/** filtre : ligne des en-têtes et dernière ligne filtrée (numéros de ligne Excel, à partir de 1), nombre de colonnes (demande du porteur, 27/11/2026 ; registre T246) */
+export interface Feuille { nom: string; largeurs: number[]; lignes: Ligne[]; filtre?: { entete: number; derniere: number; colonnes: number } }
 
 const cellule = (v: Cellule, style: Style) => v === null || v === ""
   ? `<Cell ss:StyleID="${style}"/>` : typeof v === "object"
@@ -43,12 +44,16 @@ const cellule = (v: Cellule, style: Style) => v === null || v === ""
 export function classeur(feuilles: Feuille[]) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:x="urn:schemas-microsoft-com:office:excel">
 ${STYLES}
-${feuilles.map((f) => `<Worksheet ss:Name="${echapper(f.nom.slice(0, 31))}"><Table>${f.largeurs.map((w) => `<Column ss:Width="${w}"/>`).join("")}${f.lignes.map((l) =>
+${feuilles.map((f) => `<Worksheet ss:Name="${echapper(f.nom.slice(0, 31))}">${plage(f) ? `<Names><NamedRange ss:Name="_FilterDatabase" ss:RefersTo="='${echapper(f.nom.slice(0, 31))}'!${plage(f)}" ss:Hidden="1"/></Names>` : ""}<Table>${f.largeurs.map((w) => `<Column ss:Width="${w}"/>`).join("")}${f.lignes.map((l) =>
   `<Row>${l.cellules.map((c) => cellule(c, l.style)).join("")}</Row>`).join("")}</Table>
-<WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel"><PageSetup><Layout x:Orientation="Portrait" xmlns:x="urn:schemas-microsoft-com:office:excel"/></PageSetup><FitToPage/><Print><FitWidth>1</FitWidth><FitHeight>0</FitHeight></Print></WorksheetOptions></Worksheet>`).join("\n")}
+<WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel"><PageSetup><Layout x:Orientation="Portrait" xmlns:x="urn:schemas-microsoft-com:office:excel"/></PageSetup><FitToPage/><Print><FitWidth>1</FitWidth><FitHeight>0</FitHeight></Print></WorksheetOptions>${plage(f) ? `<AutoFilter x:Range="${plage(f)}" xmlns="urn:schemas-microsoft-com:office:excel"></AutoFilter>` : ""}</Worksheet>`).join("\n")}
 </Workbook>`;
+}
+/** Plage des filtres automatiques d'une feuille, en notation R1C1 (registre T246) */
+function plage(f: Feuille) {
+  return f.filtre && f.filtre.derniere > f.filtre.entete ? `R${f.filtre.entete}C1:R${f.filtre.derniere}C${f.filtre.colonnes}` : "";
 }
 
 export function telecharger(nom: string, xml: string) {
@@ -188,6 +193,34 @@ function feuilleGarde(e: Entete): Feuille {
     { style: "texte", cellules: ["Bilan, hors bilan, compte de résultat, tableau de flux de trésorerie, notes (PCCI, chapitre 14)"] }] };
 }
 
+/** Livre d'inventaire (PCCI § 3.3 ; registre T244) : page de garde numérotée et datée (PCCI chap. 3, § 8), bilan, compte de résultat, puis le résumé de
+ *  l'inventaire : soldes des comptes de bilan au 31 décembre et inventaire des immobilisations (PCCI, classe 2), avec les filtres (registre T246) */
+export interface DonneesLivre {
+  bilan: DonneesLiasse["bilan"]; resultat: DonneesLiasse["resultat"]; cloture: boolean;
+  comptes: { compte: string; intitule: string; debit: number; credit: number }[];
+  immobilisations: { compte: string; famille: string; codification: string; libelle: string; dateAcquisition: string; valeur: number; amortissements: number; vnc: number; inventorieLe: string; etat: string }[];
+}
+export function livreInventaireXml(e: Entete, edition: string, d: DonneesLivre) {
+  const b = bilanRapport(d.bilan), somme = <T,>(l: T[], f: (x: T) => number) => l.reduce((t, x) => t + f(x), 0) / 100;
+  const garde: Feuille = { nom: "Garde", largeurs: [500], lignes: [{ style: "titre", cellules: [e.institution] }, { style: "sousTitre", cellules: [`Sigle : ${e.sigle}`] },
+    { style: "sousTitre", cellules: [`N° Agrément : ${e.agrement}`] }, { style: "texte", cellules: [e.adresse] }, { style: "texte", cellules: [null] },
+    { style: "titre", cellules: ["LIVRE D'INVENTAIRE"] }, { style: "sousTitre", cellules: [`Exercice ${e.exercice} : du ${fr(e.du)} au ${fr(e.au)}${d.cloture ? "" : " (exercice non clôturé)"}`] },
+    { style: "sousTitre", cellules: [edition] }, { style: "texte", cellules: ["Bilan, compte de résultat et résumé de l'inventaire (PCCI § 3.3)"] }] };
+  const entete = cartouche(e, "", 1).length + 1;       // ligne des en-têtes, sous le cartouche
+  const comptes: Feuille = { nom: "Comptes de bilan", largeurs: [80, 300, 110, 110], filtre: { entete, derniere: entete + d.comptes.length, colonnes: 4 }, lignes: [
+    ...cartouche(e, `SOLDES DES COMPTES DE BILAN AU ${fr(e.au)}`, 4), { style: "neutreEntete", cellules: ["Compte", "Intitulé", "Solde débiteur", "Solde créditeur"] },
+    ...d.comptes.map((c): Ligne => ({ style: "neutre", cellules: [c.compte, c.intitule, c.debit / 100, c.credit / 100] })),
+    { style: "neutreTotal", cellules: ["Total", null, somme(d.comptes, (c) => c.debit), somme(d.comptes, (c) => c.credit)] }] };
+  const im = d.immobilisations;
+  const immos: Feuille = { nom: "Immobilisations", largeurs: [70, 150, 90, 220, 80, 100, 100, 100, 80, 90], filtre: { entete, derniere: entete + im.length, colonnes: 10 }, lignes: [
+    ...cartouche(e, `INVENTAIRE DES IMMOBILISATIONS AU ${fr(e.au)}`, 10),
+    { style: "neutreEntete", cellules: ["Compte", "Famille", "Codification", "Désignation", "Acquis le", "Valeur d'origine", "Amortissements", "Valeur nette", "Inventorié le", "État"] },
+    ...im.map((x): Ligne => ({ style: "neutre", cellules: [x.compte, x.famille, x.codification, x.libelle, fr(x.dateAcquisition), x.valeur / 100, x.amortissements / 100, x.vnc / 100,
+      x.inventorieLe ? fr(x.inventorieLe) : "", x.etat] })),
+    { style: "neutreTotal", cellules: ["Total", null, null, null, null, somme(im, (x) => x.valeur), somme(im, (x) => x.amortissements), somme(im, (x) => x.vnc), null, null] }] };
+  return classeur([garde, feuilleBilan(e, "ACTIF", b.actif), feuilleBilan(e, "PASSIF", b.passif), feuilleResultat(e, resultatRapport(d.resultat)), comptes, immos]);
+}
+
 export function liasseXml(e: Entete, d: DonneesLiasse) {
   const b = bilanRapport(d.bilan);
   return classeur([feuilleGarde(e), feuilleBilan(e, "ACTIF", b.actif), feuilleBilan(e, "PASSIF", b.passif),
@@ -214,7 +247,7 @@ export function balanceXml(e: { institution: string; du: string; au: string; tir
       l.anterieurD / 100, l.anterieurC / 100, l.mouvementD / 100, l.mouvementC / 100, l.soldeD / 100, l.soldeC / 100] })),
     ...(tiers ? [t(() => true, "Total général")] : [t((l) => "12345".includes(l.compte[0]!), "Totaux comptes de bilan"), t((l) => "678".includes(l.compte[0]!), "Totaux comptes de gestion"),
       t(() => true, "Totaux de la balance")])];
-  const feuilles: Feuille[] = [{ nom: "Balance", largeurs: [80, 260, 85, 85, 85, 85, 85, 85], lignes: rows }];
+  const feuilles: Feuille[] = [{ nom: "Balance", largeurs: [80, 260, 85, 85, 85, 85, 85, 85], lignes: rows, filtre: { entete: 5, derniere: 5 + lignes.length, colonnes: 8 } }];
   for (const l of lignes) if (avecFeuille.has(l.compte))
     feuilles.push(feuilleGrandLivre(e, `${l.compte} ${l.intitule}`, grandLivre.filter((c) => c.compte.startsWith(l.compte)), nomFeuille(l.compte), true));
   return classeur(feuilles);
@@ -234,7 +267,7 @@ function feuilleGrandLivre(e: { institution: string; du: string; au: string; tir
     for (const l of c.lignes) { solde += l.debit - l.credit; rows.push({ style: "neutre", cellules: [fr(l.date), l.journal, l.piece, l.libelle, l.debit / 100, l.credit / 100, solde / 100] }); }
     rows.push({ style: "neutreTotal", cellules: [tiers ? `Total du tiers ${c.intitule}` : `Total du compte ${c.compte}`, null, null, null, c.lignes.reduce((a, l) => a + l.debit, 0) / 100, c.lignes.reduce((a, l) => a + l.credit, 0) / 100, solde / 100] });
   }
-  return { nom, largeurs: [70, 40, 90, 260, 90, 90, 90], lignes: rows };
+  return { nom, largeurs: [70, 40, 90, 260, 90, 90, 90], lignes: rows, filtre: { entete: 4, derniere: rows.length, colonnes: 7 } };
 }
 export function grandLivreXml(e: { institution: string; du: string; au: string; tirage: string }, comptes: CompteGrandLivre[], tiers = false) {
   return classeur([feuilleGrandLivre(e, tiers ? "tous les tiers" : "tous les comptes", comptes, tiers ? "Grand-livre des tiers" : "Grand livre", false, tiers)]);

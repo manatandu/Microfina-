@@ -6,7 +6,7 @@
 import { feriesLegaux, graine } from "./graine";
 import { creerApiHttp } from "./http";
 import {
-  ErreurMetier, type Billetage, type CompteDepot, type Ecriture, type Etat, type OperationDifferee, type Journee, type Ligne,
+  ErreurMetier, SessionFermee, type Billetage, type Blocage, type CompteDepot, type Ecriture, type Etat, type OperationDifferee, type Journee, type Ligne,
   type ChequeClient, type ChequeInstitution, type Chequier, type DepotTerme, type ImmoBien, type PaieEmploye, type PlanEpargne, type ClotureCompte, type RuptureDat, type Examen, type Plainte, type Emprunt, type Operation, type OperationBanque, type OperationCompta, type LigneOc, type ChargeFacture, type CommandeFournisseur, type FactureFournisseur, type ReglementFournisseur, type TypeOperationBanque, type Role, type SessionCaisse, type Tiers, type Utilisateur,
   type Representant, type Frais, type ParamFrais, type ParamAdhesion, type CompteInstitution, type OptionsCompte,
   type RegleNumerotation, type RegleNumeroCompte, type Produit, type AgentAgence, type ProduitEpargne, type LigneLieu, type NiveauLieu, type LigneBudget, type CriteresAtypiques, type GelAvoirs,
@@ -57,7 +57,7 @@ export function _remplacer(e: Etat) { E = miseEnService(e); }   // lot 10 : comm
 const heure = () => heureDe().slice(0, 5);   // heure de l'agence (point 11.4)
 /** Montant bloqué d'un compte (S71) : tout le solde quand le compte entier est bloqué, sinon la somme des montants bloqués en cours. Comme services.montant_bloque. */
 function bloqueDe(c: CompteDepot, solde = soldeContrat(`depot:${c.id}`, c.devise, "C")) {
-  const actifs = E.blocages.filter((b) => b.compteId === c.id && !b.fin);
+  const actifs = E.blocages.filter((b) => b.compteId === c.id && !b.fin && !b.ecritureId);   // une saisie-arrêt a déjà sorti la somme du compte (registre T245)
   return actifs.some((b) => b.montant === null) ? Math.max(solde, 0) : actifs.reduce((s, b) => s + (b.montant ?? 0), 0);
 }
 /** Sorties saisies sur le compte et pas encore passées au grand livre : prélèvement par banque (S53), DAT saisi (S65), opérations de la comptabilité
@@ -87,7 +87,7 @@ const prochainSans = (table: string, l: { id: number }[]) =>
 function utilisateur(): Utilisateur | null { return E.utilisateurs.find((u) => u.id === E.session) ?? null; }
 function exiger(role?: Role): Utilisateur {
   const u = utilisateur();
-  if (!u) throw new ErreurMetier("Session fermée. Reconnectez-vous.");
+  if (!u) throw new SessionFermee();
   if (role && !u.roles.includes(role) && !droitVerifie) throw new ErreurMetier(`Réservé au profil « ${LIBELLES_ROLES[role]} ».`);   // droit de la tâche déjà vérifié (registre S04-3)
   return u;
 }
@@ -101,7 +101,7 @@ function verifierDroit(cle: string) {
   const e = DROITS_METHODES[cle] ?? DROITS_LECTURES[cle];
   if (!e) return false;
   const u = utilisateur();
-  if (!u) throw new ErreurMetier("Session fermée. Reconnectez-vous.");
+  if (!u) throw new SessionFermee();
   const d = droitsDe(u);
   if (!e.some((x) => d.includes(x))) { noterSecurite("acces_refuse", u.login, u.id, `${cle} : droit manquant`); throw new ErreurMetier(`Droit manquant : ${NOMS_ECRANS[e[0]!] ?? e[0]} (Administration > Profil > Assigner droit).`); }
   return cle in DROITS_METHODES;
@@ -899,7 +899,7 @@ const tiers = {
   },
   creer(d: NouveauTiers, images: Images = {}, prospectId?: number) {
     const u = utilisateur();
-    if (!u) throw new ErreurMetier("Session fermée.");
+    if (!u) throw new SessionFermee("Session fermée.");
     controlerEnrolement(d, images, ctxControle());
     controlerUnivocite(d.pieceType, d.pieceNumero, prospectId);   // A9
     controlerRelation(d, false);   // A8
@@ -921,7 +921,7 @@ const tiers = {
   },
   creerEntreprise(d: NouveauTiers, dirigeant: RepresentantSaisi | null, signataires: RepresentantSaisi[]) {
     const u = utilisateur();
-    if (!u) throw new ErreurMetier("Session fermée.");
+    if (!u) throw new SessionFermee("Session fermée.");
     controlerEntreprise(d, dirigeant, signataires, ctxControle());
     controlerRelation(d, true);   // A8 : provenance des fonds (Instr. BCC 15, art. 17 b)
     const sig = signataires.map(versRepresentant);
@@ -932,7 +932,7 @@ const tiers = {
   },
   creerGroupe(d: NouveauTiers, membres: RepresentantSaisi[], images: Images = {}) {
     const u = utilisateur();
-    if (!u) throw new ErreurMetier("Session fermée.");
+    if (!u) throw new SessionFermee("Session fermée.");
     controlerGroupe(d, membres, images, ctxControle());
     controlerRelation(d, false);   // A8
     const { membresSolidaires, ...dd } = d;
@@ -1170,7 +1170,7 @@ const tiers = {
     const masque = soldesMasques();   // registre S10-1
     return E.comptes.filter((c) => c.tiersId === tiersId && !c.closLe).map((c) => {   // comptes ouverts, comme le serveur (comptes_du_tiers)
       const solde = soldeContrat(`depot:${c.id}`, c.devise, "C");
-      const bloque = bloqueDe(c, solde), motifBlocage = E.blocages.filter((b) => b.compteId === c.id && !b.fin).map((b) => b.motif).join(" ; ");
+      const bloque = bloqueDe(c, solde), motifBlocage = E.blocages.filter((b) => b.compteId === c.id && !b.fin && !b.ecritureId).map((b) => b.motif).join(" ; ");
       return masque ? { ...c, solde: 0, bloque: 0, disponible: 0, masque: true } : { ...c, solde, bloque, motifBlocage, disponible: solde - bloque - sortiesEnAttente(c), masque: false };
     });
   },
@@ -2732,6 +2732,7 @@ const clotures = {
 
 // ---------- S71 : Épargne > Blocage compte et montant (manuel p. 81). Mêmes règles que serveur/noyau/blocages.py (registre S71). ----------
 const nomBloqueur = (id: number | null) => E.utilisateurs.find((x) => x.id === id)?.nom ?? "";
+const COMPTE_SAISIE = "361";     // PCCI, liste des comptes : 361 Comptes bloqués (Saisie arrêt) ; comme blocages.py
 const blocages = {
   etat(compteId: number) {
     exiger();
@@ -2742,26 +2743,40 @@ const blocages = {
     const t = E.tiers.find((x) => x.id === c.tiersId);
     return { compteId: c.id, compte: c.numero, produit: c.intitule, devise: c.devise, client: t ? titulaire(t) : "", solde, montantBloque: bloque,
       montantDebloque: hist.filter((b) => b.fin).reduce((s, b) => s + (b.montant ?? 0), 0), epargneLibre: solde - bloque, compteBloque: hist.some((b) => !b.fin && b.montant === null),
-      historique: hist.map((b) => ({ id: b.id, action: b.montant === null ? "Bloquer compte" : "Bloqué Montant", montant: b.montant, motif: b.motif, debut: b.debut,
+      historique: hist.map((b) => ({ id: b.id, action: b.ecritureId ? "Saisie-arrêt" : b.montant === null ? "Bloquer compte" : "Bloqué Montant", montant: b.montant, motif: b.motif,
+        reference: b.saisieReference ?? "", saisie: !!b.ecritureId, debut: b.debut,
         posePar: nomBloqueur(b.posePar), fin: b.fin, levePar: nomBloqueur(b.levePar), motifLevee: b.motifLevee, garantie: b.garantieDe != null, enCours: !b.fin })) };
   },
-  /** Enregistrer (p. 81) : Bloquer compte ou Bloqué Montant, montant et motif (registre S71-1, S71-3) */
-  bloquer(d: { compteId?: number; bloquerCompte?: boolean; bloquerMontant?: boolean; montant?: number; motif?: string }) {
+  /** Enregistrer (p. 81) : Bloquer compte ou Bloqué Montant, montant et motif (registre S71-1, S71-3) ; ou Saisie-arrêt, avec la référence de la décision :
+   *  écriture du compte du membre au compte 361 « Comptes bloqués (Saisie arrêt) » (PCCI, compte 36 ; registre T245). Comme serveur/noyau/blocages.py */
+  bloquer(d: { compteId?: number; bloquerCompte?: boolean; bloquerMontant?: boolean; saisieArret?: boolean; reference?: string; montant?: number; motif?: string }) {
     const u = exiger();
     const c = E.comptes.find((x) => x.id === d.compteId);
     if (!c) throw new ErreurMetier("À remplir : compte.");
     if (c.closLe) throw new ErreurMetier("Ce compte n'est pas ouvert.");
-    const motif = (d.motif ?? "").trim(), tout = !!d.bloquerCompte, montant = !!d.bloquerMontant;
-    if (tout === montant) throw new ErreurMetier("Cocher Bloquer compte ou Bloqué Montant.");
+    const motif = (d.motif ?? "").trim(), tout = !!d.bloquerCompte, montant = !!d.bloquerMontant, saisie = !!d.saisieArret, reference = (d.reference ?? "").trim();
+    if (Number(tout) + Number(montant) + Number(saisie) !== 1) throw new ErreurMetier("Choisir Tout le compte, Un montant ou Saisie-arrêt.");
+    if (saisie && !reference) throw new ErreurMetier("À remplir : Référence de la décision.");
     if (!motif) throw new ErreurMetier("À remplir : Motif.");
     const e = blocages.etat(c.id);
     if (e.compteBloque) throw new ErreurMetier("Ce compte est déjà bloqué.");
-    if (montant) {
-      if (!d.montant || d.montant <= 0 || !Number.isInteger(d.montant)) throw new ErreurMetier("Montant à bloquer : un montant supérieur à zéro.");
-      if (d.montant > e.epargneLibre) throw new ErreurMetier("Le montant à bloquer dépasse l'épargne libre du compte.");
+    if (montant || saisie) {
+      const quoi = saisie ? "saisi" : "à bloquer";
+      if (!d.montant || d.montant <= 0 || !Number.isInteger(d.montant)) throw new ErreurMetier(`Montant ${quoi} : un montant supérieur à zéro.`);
+      if (d.montant > e.epargneLibre) throw new ErreurMetier(`Le montant ${quoi} dépasse l'épargne libre du compte.`);
     }
-    E.blocages.push({ id: prochain(E.blocages), compteId: c.id, montant: montant ? d.montant! : null, motif, debut: journees.courante()?.date ?? aujourdhui(),
-      posePar: u.id, fin: "", levePar: null, motifLevee: "" });
+    const j = journees.courante();
+    if (saisie && (!j || j.statut !== "ouverte")) throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+    const b: Blocage = { id: prochain(E.blocages), compteId: c.id, montant: tout ? null : d.montant!, motif, debut: j?.date ?? aujourdhui(),
+      posePar: u.id, fin: "", levePar: null, motifLevee: "" };
+    if (saisie) {
+      const m = d.montant!;
+      const x = poster({ evenement: "saisie_arret", journal: "OD", journeeId: j!.id, libelle: `Saisie-arrêt ${reference}, compte ${c.numero}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: [
+        { compte: c.pcci, contrat: `depot:${c.id}`, sens: "D", devise: c.devise, montant: m, montantCdf: cdf(m, c.devise) },
+        { compte: COMPTE_SAISIE, contrat: `saisie:${b.id}`, sens: "C", devise: c.devise, montant: m, montantCdf: cdf(m, c.devise) }] });
+      Object.assign(b, { saisieReference: reference, ecritureId: x.id });
+    }
+    E.blocages.push(b);
     enregistrer(); return blocages.etat(c.id);
   },
   /** Déblocage (complété, modèle S94) : avec le motif de la levée ; une garantie de crédit se libère par Caution et nantissement (registre S71-5) */
@@ -2772,7 +2787,18 @@ const blocages = {
     if (b.garantieDe != null) throw new ErreurMetier("Ce montant garantit un crédit : il se libère par Crédit > Caution et nantissement.");
     const motif = (d.motif ?? "").trim();
     if (!motif) throw new ErreurMetier("À remplir : Motif.");
-    Object.assign(b, { fin: journees.courante()?.date ?? aujourdhui(), levePar: u.id, motifLevee: motif });
+    let levee: number | null = null;
+    if (b.ecritureId) {     // mainlevée de la saisie-arrêt : la somme revient du compte 361 au compte du membre (registre T245)
+      const c = E.comptes.find((x) => x.id === b.compteId)!;
+      if (c.closLe) throw new ErreurMetier("Ce compte n'est pas ouvert.");
+      const j = journees.courante();
+      if (!j || j.statut !== "ouverte") throw new ErreurMetier("Aucune journée ouverte (Administration > Journée).");
+      const m = b.montant ?? 0;
+      levee = poster({ evenement: "mainlevee_saisie", journal: "OD", journeeId: j.id, libelle: `Mainlevée de la saisie-arrêt ${b.saisieReference ?? ""}, compte ${c.numero}`, piece: piece("OD"), saisiPar: u.id, validePar: u.id, lignes: [
+        { compte: COMPTE_SAISIE, contrat: `saisie:${b.id}`, sens: "D", devise: c.devise, montant: m, montantCdf: cdf(m, c.devise) },
+        { compte: c.pcci, contrat: `depot:${c.id}`, sens: "C", devise: c.devise, montant: m, montantCdf: cdf(m, c.devise) }] }).id;
+    }
+    Object.assign(b, { fin: journees.courante()?.date ?? aujourdhui(), levePar: u.id, motifLevee: motif, ecritureLeveeId: levee });
     enregistrer(); return blocages.etat(b.compteId);
   },
 };
@@ -9272,6 +9298,26 @@ const etatsFinanciers = {
       // Onglet « Réseau » : pour la faîtière, et pour l'institution qui a déclaré sa faîtière (Info société ; registre T235)
       reseau: estFaitiere() || !!(E.institution.faitiereAffiliation ?? "") };
   },
+  /** Livre d'inventaire d'un exercice (PCCI § 3.3) : bilan, compte de résultat, soldes des comptes de bilan au 31 décembre et inventaire des immobilisations
+   *  (PCCI, classe 2) ; écritures définitives sans les écritures de clôture ; numéroté et daté (PCCI chap. 3, § 8). Comme etats_financiers.livre_inventaire (registre T244) */
+  livreInventaire(p: { exercice?: number | string }) {
+    lectureAdmin(["S122"]);
+    const ex = String(p.exercice ?? "");
+    if (!/^\d+$/.test(ex)) throw new ErreurMetier("À remplir : Exercice.");
+    const an = Number(ex), e = E.exercices.find((x) => x.annee === an);
+    if (!e) throw new ErreurMetier("Exercice inconnu.");
+    const du = `${an}-01-01`, au = `${an}-12-31`, base = { du, au, exercice: an, type: "developpe", sansVidage: true }, noms = intitulesComptes();
+    const comptes = [...soldesEf(au, an, false).s].filter(([c]) => "12345".includes(c[0]!)).sort(([a], [b]) => a.localeCompare(b))
+      .map(([c, v]) => ({ compte: c, intitule: noms.get(c) ?? "", debit: Math.max(v, 0), credit: Math.max(-v, 0) }));
+    const immobilisations = (E.immoBiens ?? []).filter((b) => b.actif && b.dateAcquisition <= au && !(E.immoSorties ?? []).some((o) => o.bienId === b.id && o.date <= au))
+      .map((b) => {
+        const f = familleImmo(b.familleId), cumul = (E.immoAmortissements ?? []).filter((a) => a.bienId === b.id && a.exercice <= an).sort((x, y) => x.exercice - y.exercice || x.id - y.id).at(-1)?.cumul ?? 0;
+        const inv = (E.immoInventaires ?? []).filter((v) => v.bienId === b.id && v.date <= au).sort((x, y) => x.date.localeCompare(y.date) || x.id - y.id).at(-1);
+        return { compte: String(f?.compteAcquisition ?? ""), famille: String(f?.libelle ?? ""), codification: b.codification, libelle: b.libelle, dateAcquisition: b.dateAcquisition,
+          valeur: b.prixAcquisition, amortissements: cumul, vnc: b.prixAcquisition - cumul, inventorieLe: inv?.date ?? "", etat: inv?.etat ?? "" };
+      }).sort((x, y) => x.compte.localeCompare(y.compte) || x.codification.localeCompare(y.codification));
+    return { exercice: an, du, au, cloture: !!e.clotureLe, bilan: etatsFinanciers.bilan(base), resultat: etatsFinanciers.resultat(base), comptes, immobilisations };
+  },
   /** Bilan (PCCI 14.1) : actif, 8 postes ; passif, 14 postes ; N à la date de fin, N-1 à la fin de l'exercice précédent */
   bilan(p: CriteresEf) {
     lectureAdmin(["S122"]);
@@ -9585,7 +9631,7 @@ const EVENEMENTS_COMPTA: Record<string, string> = {
   interet_credit_couru: "Intérêts courus des crédits", reevaluation: "Réévaluation des comptes en devises", cloture_exercice: "Clôture de l'exercice",
   affectation_resultat: "Affectation du résultat", immo_dotation: "Dotation aux amortissements", immo_sortie: "Sortie d'un bien du patrimoine",
   plan_cotisation: "Cotisation d'un plan d'épargne", plan_fin: "Fin d'un plan d'épargne", cloture_inactif: "Clôture d'un compte inactif",
-  versement_bcc: "Versement à la BCC des avoirs en cours de prescription", ed_encaissement: "Encaissement divers", ed_decaissement: "Décaissement divers",
+  versement_bcc: "Versement à la BCC des avoirs en cours de prescription", saisie_arret: "Saisie-arrêt", mainlevee_saisie: "Mainlevée d'une saisie-arrêt", ed_encaissement: "Encaissement divers", ed_decaissement: "Décaissement divers",
   ecart_caisse: "Écart de caisse", transfert_caisse: "Alimentation de guichet", transfert_banque: "Versement en banque", transfert_agence: "Fonds entre agences", deblocage_credit: "Déblocage de crédit",
   remboursement_credit: "Remboursement de crédit", garantie_caution: "Caution reçue ou libérée", provision_credit: "Déclassement et provision des crédits",
   radiation_credit: "Passage en perte d'un crédit", engagement_signature: "Engagement par signature", fin_engagement: "Fin d'un engagement par signature",
@@ -11738,7 +11784,7 @@ const construireLocale = () => ({
   centraleRisques: asynchrone(centraleRisques, "centraleRisques"),
   comptabilisation: asynchrone(comptabilisation, "comptabilisation"),
   etatsCompta: asynchrone(numerote(etatsCompta, { journaux: "journaux", grandLivre: "grand-livre", balance: "balance", schemas: "schemas-comptables" }), "etatsCompta"),
-  etatsFinanciers: asynchrone(numerote(etatsFinanciers, { bilan: "bilan", horsBilan: "hors-bilan", resultat: "resultat", annexe: "annexe", indicateurs: "indicateurs" }), "etatsFinanciers"),
+  etatsFinanciers: asynchrone(numerote(etatsFinanciers, { bilan: "bilan", horsBilan: "hors-bilan", resultat: "resultat", annexe: "annexe", indicateurs: "indicateurs", livreInventaire: "livre-inventaire" }), "etatsFinanciers"),
   consolidation: asynchrone(consolidation, "consolidation"),
   normes: asynchrone(numerote(normes, { etat: "normes" }), "normes"),
   decouverts: asynchrone(decouverts, "decouverts"),

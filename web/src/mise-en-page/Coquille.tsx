@@ -15,6 +15,7 @@ import { Marque } from "./Marque";
 import { Dialogue, Fiche, MessageSucces, useSourcesEcran, type Boite } from "../composants";
 import ChangerMotDePasse from "./MotDePasse";
 import SecondFacteur from "./SecondFacteur";
+import { Verrou } from "./Verrou";
 import { choisirLangue, langue } from "../lib/langue";
 import { reglesAide } from "../lib/aide";
 
@@ -54,13 +55,20 @@ export function Coquille() {
     definirJourOuvert(j?.date);                          // les dates proposées partent de la journée ouverte (registre T120)
     return { u, ctx: c, j };
   });
+  // Registre T243 (demande du porteur, 27/11/2026) : une session fermée sans que l'utilisateur l'ait demandé ne renvoie plus à la connexion.
+  // L'écran reste en place, caché par le verrou, avec ses saisies ; le même utilisateur rouvre la session et reprend où il en était.
+  const derniere = useRef<{ u: NonNullable<NonNullable<typeof donnees>["u"]>; ctx: NonNullable<NonNullable<typeof donnees>["ctx"]>; j: NonNullable<typeof donnees>["j"] } | null>(null);
+  const sortie = useRef(false);   // déconnexion demandée : pas de verrou
+  if (donnees?.u && donnees.ctx) derniere.current = { u: donnees.u, ctx: donnees.ctx, j: donnees.j };
+  const [verrou, setVerrou] = useState(false);
+  const verrouille = !sortie.current && !!derniere.current && (verrou || (!!donnees && (!donnees.u || !donnees.ctx)));
   const connecte = !!donnees?.u;
   useEffect(() => { if (connecte) prechargerEcrans(); }, [connecte]);   // les autres écrans se chargent en fond : le clic suivant ne les attend pas
   // Registre T211 : sans geste pendant la durée fixée par l'institution (15 minutes par défaut), la session se ferme ; une minute avant, un avertissement.
   // Tant que l'utilisateur travaille, le serveur est prévenu toutes les deux minutes : une longue saisie ne perd rien.
   const minutes = (donnees?.u as { inactiviteMinutes?: number } | null | undefined)?.inactiviteMinutes ?? 15;
   useEffect(() => {
-    if (!connecte) return;
+    if (!connecte || verrou) return;     // pendant le verrou, la minuterie s'arrête ; elle repart à la réouverture (registre T243)
     let dernier = Date.now(), prevenu = Date.now(), fini = false, averti = false;
     const geste = () => { dernier = Date.now(); averti = false; };
     const evenements = ["pointerdown", "keydown", "wheel"] as const;
@@ -68,8 +76,8 @@ export function Coquille() {
     const t = setInterval(() => {
       const ecoule = Date.now() - dernier;
       if (ecoule >= minutes * 60_000 && !fini) {
-        fini = true; setBoite(null);
-        void api.session.fermer().catch(() => undefined).finally(() => nav("/connexion", { state: { inactivite: minutes } }));
+        fini = true; setBoite(null); setVerrou(true);
+        void api.session.fermer().catch(() => undefined);
       } else if (ecoule >= (minutes - 1) * 60_000 && !averti) {
         averti = true;
         setBoite({ type: "confirmation", message: "Faute d'activité, la session se ferme dans une minute. Rester connecté ?", oui: () => { void api.session.courante().catch(() => undefined); } });
@@ -77,7 +85,7 @@ export function Coquille() {
       else if (dernier > prevenu && Date.now() - prevenu >= 2 * 60_000) { prevenu = Date.now(); void api.session.courante().catch(() => undefined); }
     }, 10_000);
     return () => { clearInterval(t); evenements.forEach((e) => window.removeEventListener(e, geste)); };
-  }, [connecte, minutes]);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [connecte, minutes, verrou]);   // eslint-disable-line react-hooks/exhaustive-deps
   // Plan d'allègement 7.1 : l'entrée « Opérations en attente » porte le nombre d'opérations que l'utilisateur peut viser ou valider ; relu à chaque écran
   const peutAttente = ((donnees?.u as { droits?: string[] } | null | undefined)?.droits ?? []).some((d) => ["S57", "S113", "S114"].includes(d));
   const { donnees: attente } = useDonnees(async () => (peutAttente ? (await api.attente.nombre()).nombre : 0), [peutAttente, lieu.pathname]);
@@ -85,8 +93,8 @@ export function Coquille() {
   if (!donnees) return <div className="cadre" aria-busy={!erreur}><header className="barre-menus"><span className="logo"><Marque sombre taille={26} /></span></header>
     <div className="corps">{erreur && <main className="page"><p className="erreur-champ" role="alert">{erreur}</p>
       <div className="actions-onglets"><button className="bouton" type="button" onClick={() => location.reload()}>Réessayer</button></div></main>}</div><footer className="pied" /></div>;
-  if (!donnees.u || !donnees.ctx) return <Navigate to="/connexion" replace state={{ apres: lieu.pathname }} />;
-  const { u, ctx, j } = donnees;
+  if ((!donnees.u || !donnees.ctx) && !verrouille) return <Navigate to="/connexion" replace state={{ apres: lieu.pathname }} />;
+  const { u, ctx, j } = donnees.u && donnees.ctx ? { u: donnees.u, ctx: donnees.ctx, j: donnees.j } : derniere.current!;
   const application = applicationDe(lieu.pathname);
   // Registre T207 : le mot de passe donné par l'administrateur se remplace avant toute autre action ; les menus attendent
   // Registre T218 : même attente pour un mot de passe expiré, puis pour le second facteur qu'un profil exige
@@ -123,6 +131,7 @@ export function Coquille() {
           {!force && <button type="button" className="sortir" title="Changer mon mot de passe" aria-label="Changer mon mot de passe" onClick={() => setMdp(true)}>{ICONES.cle}</button>}
           <button type="button" className="sortir" title="Se déconnecter" aria-label="Se déconnecter"
             onClick={() => setBoite({ type: "confirmation", message: "Voulez-vous vraiment vous déconnecter ?", oui: async () => {   // demande du porteur du 26/11/2026
+              sortie.current = true;
               const r = await api.session.fermer() as { nettoye?: boolean } | undefined;   // plan 11.6 : l'écran de connexion dit si le navigateur n'a pas nettoyé le poste
               nav("/connexion", r?.nettoye === false ? { state: { nettoyage: false } } : undefined); } })}>{ICONES.sortie}</button>
         </div>
@@ -166,6 +175,8 @@ export function Coquille() {
         <ChangerMotDePasse fait={() => { setMdp(false); setBoite({ type: "succes", message: "Enregistré avec succès !" }); }} annuler={() => setMdp(false)} />
       </Fiche>
       <Dialogue boite={boite} fermer={() => setBoite(null)} />
+      {verrouille && <Verrou login={u.login} fait={() => setVerrou(false)}
+        autre={() => { sortie.current = true; derniere.current = null; nav("/connexion"); }} />}
     </div>
     </NombreAttente.Provider>
   );

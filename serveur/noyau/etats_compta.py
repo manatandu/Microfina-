@@ -184,7 +184,7 @@ EVENEMENTS_COMPTA = {
     "interet_credit_couru": "Intérêts courus des crédits", "reevaluation": "Réévaluation des comptes en devises", "cloture_exercice": "Clôture de l'exercice",
     "affectation_resultat": "Affectation du résultat", "immo_dotation": "Dotation aux amortissements", "immo_sortie": "Sortie d'un bien du patrimoine",
     "plan_cotisation": "Cotisation d'un plan d'épargne", "plan_fin": "Fin d'un plan d'épargne", "cloture_inactif": "Clôture d'un compte inactif",
-    "versement_bcc": "Versement à la BCC des avoirs en cours de prescription", "ed_encaissement": "Encaissement divers", "ed_decaissement": "Décaissement divers",
+    "versement_bcc": "Versement à la BCC des avoirs en cours de prescription", "saisie_arret": "Saisie-arrêt", "mainlevee_saisie": "Mainlevée d'une saisie-arrêt", "ed_encaissement": "Encaissement divers", "ed_decaissement": "Décaissement divers",
     "ecart_caisse": "Écart de caisse", "transfert_caisse": "Alimentation de guichet", "transfert_banque": "Versement en banque",
     "transfert_agence": "Fonds entre agences",
     "deblocage_credit": "Déblocage de crédit", "remboursement_credit": "Remboursement de crédit", "garantie_caution": "Caution reçue ou libérée",

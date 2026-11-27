@@ -1278,7 +1278,7 @@ def etats_financiers_contexte(request):
 def etats_financiers_etat(request, etat: str):
     from . import etats_financiers as ef
     from .editions import numeroter
-    f = {"bilan": ef.bilan, "hors-bilan": ef.hors_bilan, "resultat": ef.resultat, "annexe": ef.annexe}.get(etat)
+    f = {"bilan": ef.bilan, "hors-bilan": ef.hors_bilan, "resultat": ef.resultat, "annexe": ef.annexe, "livre-inventaire": ef.livre_inventaire}.get(etat)   # livre : registre T244
     if not f:
         raise ErreurMetier("État inconnu.")
     r = f(u(request), request.GET.dict())

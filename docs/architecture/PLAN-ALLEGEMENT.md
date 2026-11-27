@@ -488,6 +488,14 @@ Demande du porteur, 26/11/2026, après la question « le logiciel sort-il les do
 
 **12.4 Faîtière : hors bilan consolidé, normes consolidées, cotisations, états du rapport annuel.** L'onglet « Réseau » reçoit un champ « État ». Le fichier de balance porte en plus le hors bilan et ce que la balance ne dit pas (apparentés, plus gros risque, décote, encaisse assurée, actif productif moyen, positions de change). Sortent alors : le hors bilan consolidé ; les normes prudentielles sur une base consolidée (Instr. BCC 002, art. 2) ; à la fin de l'exercice, les cotisations des assujettis, 1 % de l'encours de crédit net pour le fonds de sécurité et 6 % de l'actif productif moyen (Instr. BCC 0011, art. 29, 31 et 37) ; les deux états du rapport annuel, dépôts des assujettis et crédits et placements, avec leur taux moyen (art. 47). Registre T237.
 
+## Lot 13. Demandes du 27/11/2026
+
+Demandes du porteur, 27/11/2026.
+
+**13.1 Reprendre l'écran laissé après une session fermée.** La session fermée faute d'activité (ou par la durée, l'administrateur, un poste resté ouvert) ne renvoie plus à la page de connexion : l'écran reste en place, caché derrière elle, avec ses saisies ; le même utilisateur rouvre sa session et reprend où il en était. « Changer d'utilisateur » ferme l'écran laissé. Registre T243.
+
+**13.2 Balance et grand livre en Excel seulement, avec les filtres.** Les écrans Balance et Grand livre gardent leurs critères ; Exporter sort directement le classeur, sans grille à l'écran ; chaque feuille porte les filtres automatiques d'Excel sur la ligne des en-têtes. Registre T246.
+
 ## La barre des menus après allègement
 
 Membre, Conformité, Épargne, Caisse, Crédit, Banque, Comptabilité, Budget, Personnel, Immobilisations, Administration, Paramétrage. Disparaissent : Part sociale (dans le Guichet), Autres (réparti), la page des modules (si 9.3 est retenu).

@@ -1,5 +1,6 @@
 // S71 : Épargne > Blocage compte et montant (manuel Microfina++, p. 81 : capture « Blocage et déblocage de compte »).
 // Bloquer le compte ou un montant, avec motif ; les blocages en cours sur l'écran, chacun avec Débloquer (plan d'allègement, point 5.9). Registre S71-1 à S71-5.
+// Saisie-arrêt : la somme saisie passe au compte 361, la mainlevée la rend (PCCI, compte 36 ; registre T245).
 import { useState } from "react";
 import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
@@ -13,7 +14,7 @@ const nomComplet = (t: Tiers) => t.intitule || [t.nom, t.postnom, t.prenom].filt
 type Etat = Awaited<ReturnType<typeof api.blocages.etat>>;
 
 export default function BlocageCompte() {
-  const VIDE = { compte: "", tout: false, montantCoche: false, montant: "", motif: "" };
+  const VIDE = { compte: "", tout: false, montantCoche: false, saisie: false, reference: "", montant: "", motif: "" };
   const [f, setF] = useState(VIDE);
   const [t, setT] = useState<Tiers | null>(null);
   const [recherche, setRecherche] = useState(false);
@@ -26,11 +27,12 @@ export default function BlocageCompte() {
   const dev = (e?.devise ?? "CDF") as Devise;
   const annuler = () => { setF(VIDE); setT(null); };
   function enregistrer() {
-    const m = f.montantCoche && f.montant.trim() ? lireMontant(f.montant) : null;
+    const m = (f.montantCoche || f.saisie) && f.montant.trim() ? lireMontant(f.montant) : null;
     setBoite({ type: "confirmation", message: "Voulez-vous vraiment enregistrer ?", oui: async () => {
       try {
-        await api.blocages.bloquer({ compteId: f.compte ? Number(f.compte) : undefined, bloquerCompte: f.tout, bloquerMontant: f.montantCoche, montant: m ?? undefined, motif: f.motif });
-        setF({ ...f, tout: false, montantCoche: false, montant: "", motif: "" }); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" });
+        await api.blocages.bloquer({ compteId: f.compte ? Number(f.compte) : undefined, bloquerCompte: f.tout, bloquerMontant: f.montantCoche, saisieArret: f.saisie,
+          reference: f.saisie ? f.reference : undefined, montant: m ?? undefined, motif: f.motif });
+        setF({ ...f, tout: false, montantCoche: false, saisie: false, reference: "", montant: "", motif: "" }); setRelu((v) => v + 1); setBoite({ type: "succes", message: "Enregistré avec succès !" });
       } catch (x) { setBoite({ type: "erreur", message: message(x) }); }
     } });
   }
@@ -72,15 +74,17 @@ export default function BlocageCompte() {
           <div className="ligne-champ">
             {/* Plan d'allègement, point 5.9 : un choix à deux boutons */}
             <div className="ligne-champ" role="radiogroup" aria-label="Bloquer">
-              <label className="case"><input type="radio" name="bloquer" checked={f.tout} onChange={() => setF({ ...f, tout: true, montantCoche: false })} /><span>Tout le compte</span></label>
-              <label className="case"><input type="radio" name="bloquer" checked={f.montantCoche} onChange={() => setF({ ...f, montantCoche: true, tout: false })} /><span>Un montant</span></label>
+              <label className="case"><input type="radio" name="bloquer" checked={f.tout} onChange={() => setF({ ...f, tout: true, montantCoche: false, saisie: false })} /><span>Tout le compte</span></label>
+              <label className="case"><input type="radio" name="bloquer" checked={f.montantCoche} onChange={() => setF({ ...f, montantCoche: true, tout: false, saisie: false })} /><span>Un montant</span></label>
+              <label className="case"><input type="radio" name="bloquer" checked={f.saisie} onChange={() => setF({ ...f, saisie: true, tout: false, montantCoche: false })} /><span>Saisie-arrêt</span></label>
             </div>
-            {f.montantCoche && <Champ libelle="Montant à bloquer :">{(pp) => <input {...pp} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.montant} onChange={(ev) => setF({ ...f, montant: ev.target.value })} />}</Champ>}
+            {(f.montantCoche || f.saisie) && <Champ libelle={f.saisie ? "Montant saisi : *" : "Montant à bloquer :"}>{(pp) => <input {...pp} className="saisie montant" inputMode="decimal" autoComplete="off" value={f.montant} onChange={(ev) => setF({ ...f, montant: ev.target.value })} />}</Champ>}
+            {f.saisie && <Champ libelle="Référence de la décision : *">{(pp) => <input {...pp} className="saisie" value={f.reference} onChange={(ev) => setF({ ...f, reference: ev.target.value })} />}</Champ>}
           </div>
         </fieldset>
         <Champ libelle="Motif : *">{(pp) => <input {...pp} className="saisie" value={f.motif} onChange={(ev) => setF({ ...f, motif: ev.target.value })} />}</Champ>
         <div className="actions-onglets">
-          <button className="bouton" type="submit" disabled={!f.compte || (!f.tout && !f.montantCoche)}>Enregistrer</button>
+          <button className="bouton" type="submit" disabled={!f.compte || (!f.tout && !f.montantCoche && !f.saisie)}>Enregistrer</button>
           <button className="bouton secondaire" type="button" disabled={!e} onClick={() => setHistorique(true)}>Voir historique des actions</button>
           <button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button>
         </div></Formulaire>
@@ -91,7 +95,7 @@ export default function BlocageCompte() {
             <tbody>
               {e.historique.filter((b) => b.enCours).length === 0 && <tr><td colSpan={5}>Aucun blocage.</td></tr>}
               {e.historique.filter((b) => b.enCours).map((b) => <tr key={b.id}><td className="chiffres">{fr(b.debut)}</td>
-                <td className="num chiffres">{b.montant === null ? "Tout le compte" : montant(b.montant, dev)}</td><td>{b.motif}</td><td>{b.posePar}</td>
+                <td className="num chiffres">{b.montant === null ? "Tout le compte" : montant(b.montant, dev)}</td><td>{b.saisie ? `Saisie-arrêt ${b.reference} : ${b.motif}` : b.motif}</td><td>{b.posePar}</td>
                 <td>{!b.garantie && <button className="bouton secondaire" type="button" aria-label={`Débloquer : ${b.motif}`} onClick={() => setLevee({ id: b.id, motif: "" })}>Débloquer</button>}</td></tr>)}
             </tbody>
           </table></div>
@@ -101,7 +105,8 @@ export default function BlocageCompte() {
           </Formulaire>}
         </fieldset>}
         <Textes sources={["Manuel Microfina++, p. 81 : « bloquer un compte et / ou bloquer un montant sur un compte » ; sélectionner le client, le compte et le produit, cocher Bloquer compte ou bloquer montant, le montant et le motif, Enregistrer ; capture Blocage et déblocage de compte",
-          "Registre S71-1 à S71-5 : compte bloqué, aucun débit (les dépôts restent acceptés) ; déblocage depuis l'historique, avec motif, sur le modèle de la libération des garanties (S94)"]} />
+          "Registre S71-1 à S71-5 : compte bloqué, aucun débit (les dépôts restent acceptés) ; déblocage depuis l'historique, avec motif, sur le modèle de la libération des garanties (S94)",
+          "PCCI, compte 36 : comptes frappés par une décision légale, judiciaire ou administrative ; 361 Comptes bloqués (Saisie arrêt), crédité des saisies arrêts. Registre T245 : la somme saisie passe du compte du membre au 361 ; la mainlevée la rend"]} />
       </section>
       <Fiche titre="Historique des actions" ouverte={historique} fermer={() => { setHistorique(false); setLevee(null); }}>
         <Paginee lignes={e?.historique ?? []}>{(visibles) => (<div className="defile-x"><table className="grille">
@@ -110,7 +115,7 @@ export default function BlocageCompte() {
           <tbody>
             {visibles.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
             {visibles.map((b) => <tr key={b.id}><td className="chiffres">{fr(b.debut)}</td><td>{b.action}</td><td className="num chiffres">{b.montant === null ? "Tout le compte" : montant(b.montant, dev)}</td>
-              <td>{b.motif}</td><td>{b.posePar}</td><td className="chiffres">{fr(b.fin)}</td><td>{b.motifLevee}</td>
+              <td>{b.saisie ? `${b.reference} : ${b.motif}` : b.motif}</td><td>{b.posePar}</td><td className="chiffres">{fr(b.fin)}</td><td>{b.motifLevee}</td>
               <td /></tr>)}
           </tbody>
         </table></div>)}</Paginee>
