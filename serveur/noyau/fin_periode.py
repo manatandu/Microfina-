@@ -414,7 +414,7 @@ def ecrire(u, journee_id: int, jour: date, libelle: str, type_: str, evenement: 
     eid = valeur("""insert into ecriture (institution_id, numero, journal_id, journee_id, date_valeur, libelle, piece_id, evenement_id, schema_id, saisi_par, valide_par, type)
                     values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
                  (u["institution_id"], numero, jid, journee_id, jour, libelle, pid, str(uuid.uuid4()), schema_valide(u, evenement), u["id"], u["id"], type_))
-    for rang, l in enumerate(lg, start=1):
+    for rang, l in enumerate(sorted(lg, key=lambda x: x["sens"] != "D"), start=1):      # débits d'abord (registre T242)
         executer("""insert into ligne_ecriture (ecriture_id, rang, compte_id, contrat_ref, sens, devise, montant_devise, montant_cdf) values (%s, %s, %s, %s, %s, %s, %s, %s)""",
                  (eid, rang, compte_ecriture(l["compte"], u["institution_id"], l.get("contrat"), l["devise"]), l.get("contrat"), l["sens"], l["devise"], l["montant"], l["cdf"]))
     return eid

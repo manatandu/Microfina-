@@ -164,6 +164,8 @@ function contexte() {
 export const nomUtilisateur = (id?: number) => E.utilisateurs.find((u) => u.id === id)?.nom ?? "";
 
 // ---------- Grand livre ----------
+/** Une écriture se lit débits d'abord, puis crédits, chacun dans l'ordre de saisie (demande du porteur du 27/11/2026 ; registre T242 ; comme le serveur) */
+const debitsDabord = <L extends { sens?: string | null }>(l: readonly L[]): L[] => [...l].sort((a, b) => Number(a.sens !== "D") - Number(b.sens !== "D"));
 function poster(e: Omit<Ecriture, "id" | "numero"> & { evenement: string }): Ecriture {
   let l = e.lignes;
   if (!l.some((x) => x.sens === "D") || !l.some((x) => x.sens === "C")) throw new ErreurMetier("Écriture sans débit ou sans crédit.");
@@ -178,7 +180,7 @@ function poster(e: Omit<Ecriture, "id" | "numero"> & { evenement: string }): Ecr
     l = [...l, { compte: "474", sens: arrondi > 0 ? "C" : "D", devise: etrangeres[0]!.devise, montant: 0, montantCdf: Math.abs(arrondi) }];
   if (ecart(() => true, "montantCdf") !== 0) throw new ErreurMetier("Écriture déséquilibrée en CDF (PCCI § 3.2).");
   // Lot 10 : chaque ligne va au compte d'utilisation de l'institution (registre T167 à T170 ; comme la base, fonction compte_ecriture)
-  l = l.map((x) => { const c = compteEcriture(E, x.compte, x.contrat, x.devise); if (!c) throw new ErreurMetier(`Compte ${x.compte} absent du plan de comptes.`); return { ...x, compte: c }; });
+  l = debitsDabord(l.map((x) => { const c = compteEcriture(E, x.compte, x.contrat, x.devise); if (!c) throw new ErreurMetier(`Compte ${x.compte} absent du plan de comptes.`); return { ...x, compte: c }; }));
   for (const d of new Set(l.map((x) => x.devise))) if (ecart((x) => x.devise === d, "montant") !== 0) throw new ErreurMetier(`Écriture déséquilibrée en ${d}.`);
   const j = E.journees.find((x) => x.id === e.journeeId);
   if (!j || j.statut !== "ouverte") throw new ErreurMetier("Journée fermée : aucune écriture possible.");
@@ -7236,7 +7238,7 @@ function vueOc(o: OperationCompta) {
   const debit = t === "prelevement" || t === "domiciliation" || o.sens === "DECAISSEMENT" || o.sens === "RETRAIT";
   const credit = t === "virement" || t === "prelevement_auto" || t === "salaire_personnel" || o.sens === "ENCAISSEMENT" || o.sens === "DEPOT";
   return { id: o.id, transaction: String(o.id).padStart(6, "0"), type: t, operation: TYPES_OC[t], statut: o.statut, date: o.date, libelle: o.libelle, montant: o.montant, devise: o.devise as string, sens: o.sens as string, piece: o.piece,
-    reference: o.reference, lignes: o.lignes, saisiPar: nomUtilisateur(o.saisiPar), visePar: nomUtilisateur(o.visePar), dateVisa: o.viseLe ?? "", dateValidation: o.dateValidation ?? "",
+    reference: o.reference, lignes: debitsDabord(o.lignes), saisiPar: nomUtilisateur(o.saisiPar), visePar: nomUtilisateur(o.visePar), dateVisa: o.viseLe ?? "", dateValidation: o.dateValidation ?? "",
     compteEpargne: e?.c.numero ?? "", numeroComptable: e?.c.pcci ?? "", clientEmetteur: e?.client ?? "", compteEmetteur: e?.c.numero ?? "",
     clientRecepteur: r?.client ?? "", compteRecepteur: r?.c.numero ?? "", numeroClient: o.numeroClient, nomClient: o.nomClient,
     agenceClient: E.agences.find((a) => a.id === o.agenceClientId)?.nom ?? "", debit: debit ? o.montant : 0, credit: credit ? o.montant : 0 };
@@ -7257,7 +7259,7 @@ function journalPeriodeOc(d: { journalId?: unknown; periode?: unknown }) {
 function vueEcritureOc(o: OperationCompta | undefined, j: { id: number; libelle: string }, periode: string) {
   const l = o?.lignes ?? [];
   return { id: o?.id ?? null, transaction: o ? String(o.id).padStart(6, "0") : "", journalId: j.id, journal: j.libelle, periode, jour: o ? Number(o.date.slice(8, 10)) : null,
-    reference: o?.reference ?? "", libelle: o?.libelle ?? "", statut: (o?.statut ?? "") as string, lignes: l,
+    reference: o?.reference ?? "", libelle: o?.libelle ?? "", statut: (o?.statut ?? "") as string, lignes: debitsDabord(l),
     debit: l.filter((x) => x.sens === "D").reduce((t, x) => t + x.montant, 0), credit: l.filter((x) => x.sens === "C").reduce((t, x) => t + x.montant, 0) };
 }
 /** La transaction en cours de l'utilisateur dans ce journal et cette période : la dernière qui n'est pas équilibrée (registre S109-2) */

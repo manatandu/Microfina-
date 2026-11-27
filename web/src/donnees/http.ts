@@ -70,12 +70,15 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       return await r.text();
     } finally { clearTimeout(minuterie); signaler(-1); }
   }
-  async function appel<T>(methode: Methode, chemin: string, corps?: unknown): Promise<T> {
+  async function appel<T>(methode: Methode, chemin: string, corps?: unknown, lecture = false): Promise<T> {
     const lire = (texte: string) => (texte ? JSON.parse(texte) : null) as T;
     if (methode !== "GET") {
       const texte = await envoyer(methode, chemin, corps);
-      memoire.clear();
-      notifier();   // les écrans relisent après chaque écriture
+      // Un aperçu envoyé en POST n'écrit rien : il ne fait relire aucun écran. Sinon il se relançait lui-même sans fin (registre T239)
+      if (!lecture) {
+        memoire.clear();
+        notifier();   // les écrans relisent après chaque écriture
+      }
       return lire(texte);
     }
     const garde = memoire.get(chemin);
@@ -104,6 +107,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
   /** Critères d'un état en paramètres d'adresse ; les vides sont omis */
   const requete = (p: Record<string, unknown>) => new URLSearchParams(Object.entries(p).filter(([, v]) => v !== null && v !== undefined && v !== "" && v !== false).map(([k, v]) => [k, String(v)])).toString();
   const post = <T,>(c: string, corps?: unknown) => appel<T>("POST", c, corps ?? {});
+  const apercu = <T,>(c: string, corps?: unknown) => appel<T>("POST", c, corps ?? {}, true);   // calcul sans écriture
   const q = encodeURIComponent;
 
   return {
@@ -220,7 +224,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       commandesAFacturer: (fid: number) => get(`/comptabilite/factures/fournisseurs/${fid}/commandes`),
       bonDeCommande: (id: number) => get(`/comptabilite/factures/commandes/${id}/bon`),
       ficheImputation: (id: number) => get(`/comptabilite/factures/reglements/${id}/fiche`),
-      apercuFacture: (d: unknown) => post("/comptabilite/factures/apercu", d),
+      apercuFacture: (d: unknown) => apercu("/comptabilite/factures/apercu", d),
       enregistrerFacture: (d: unknown) => post("/comptabilite/factures/enregistrement", d),
       facturesARegler: (fid: number) => get(`/comptabilite/factures/fournisseurs/${fid}/factures`),
       apercuReglement: (fid: number, montant: number) => get(`/comptabilite/factures/${fid}/reglement-apercu?montant=${montant}`),
@@ -434,7 +438,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     },
     miseEnPlace: {
       contexte: () => get("/credit/mise-en-place/contexte"),
-      apercu: (id: number, d: unknown) => post(`/credit/mise-en-place/${id}/apercu`, d),
+      apercu: (id: number, d: unknown) => apercu(`/credit/mise-en-place/${id}/apercu`, d),
       mettreEnPlace: (id: number, d: unknown) => post(`/credit/mise-en-place/${id}`, d),
       lire: (id: number) => get(`/credit/credits/${id}`),
     },
@@ -456,7 +460,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       enregistrer: (d: unknown) => post("/credit/analyses", d),
     },
     simulationCredit: {
-      simuler: (d: unknown) => post("/credit/simulation", d),
+      simuler: (d: unknown) => apercu("/credit/simulation", d),
     },
     journalCaisse: {
       contexte: () => get("/caisse/journal/contexte"),
@@ -485,7 +489,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
     },
     plansEpargne: {
       contexte: () => get("/epargne/plans/contexte"),
-      simuler: (d: object) => post("/epargne/plans/simulation", d),
+      simuler: (d: object) => apercu("/epargne/plans/simulation", d),
       plans: (tiersId: number) => get(`/epargne/plans?tiersId=${tiersId}`),
       creer: (d: object) => post("/epargne/plans", d),
       tableau: (id: number, filtre = "toutes") => get(`/epargne/plans/${id}/tableau?filtre=${filtre}`),

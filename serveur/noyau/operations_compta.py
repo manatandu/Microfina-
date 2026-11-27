@@ -36,6 +36,11 @@ def lg(o) -> list:
     return json_lu((o or {}).get("lignes")) or []
 
 
+def debits_d_abord(l: list) -> list:
+    """Une écriture se lit débits d'abord, puis crédits, chacun dans l'ordre de saisie (demande du porteur du 27/11/2026 ; registre T242)"""
+    return sorted(l, key=lambda x: x.get("sens") != "D")      # une ligne sans sens (virements, opérations diverses) garde sa place
+
+
 def texte(d, k):
     v = d.get(k) if isinstance(d, dict) else None
     return v.strip() if isinstance(v, str) else ""
@@ -187,7 +192,7 @@ def journal_periode(u, d) -> tuple:
 
 
 def vue_ecriture(o: dict | None, j: dict, periode: str) -> dict:
-    l = lg(o)
+    l = debits_d_abord(lg(o))
     debit, credit = sum(x["montant"] for x in l if x["sens"] == "D"), sum(x["montant"] for x in l if x["sens"] == "C")
     return {"id": (o or {}).get("id"), "transaction": f"{o['id']:06d}" if o else "", "journalId": j["id"], "journal": j["libelle"], "periode": periode,
             "jour": o["date_operation"].day if o else None, "reference": (o or {}).get("reference") or "", "libelle": (o or {}).get("libelle") or "",
@@ -502,7 +507,7 @@ def vue(o: dict) -> dict:
     t = o["type"]
     v = {"id": o["id"], "transaction": f"{o['id']:06d}", "type": t, "operation": TYPES[t], "statut": o["statut"], "date": o["date_operation"].isoformat(), "libelle": o["libelle"],
          "montant": o["montant"], "devise": o["devise"].strip(), "sens": o["sens"] or "", "piece": o["piece"] or "", "reference": o["reference"] or "",
-         "lignes": lg(o), "saisiPar": nom_utilisateur(o["saisi_par"]), "visePar": nom_utilisateur(o["vise_par"]),
+         "lignes": debits_d_abord(lg(o)), "saisiPar": nom_utilisateur(o["saisi_par"]), "visePar": nom_utilisateur(o["vise_par"]),
          "dateVisa": o["vise_le"].date().isoformat() if o["vise_le"] else "", "dateValidation": o["date_validation"].isoformat() if o["date_validation"] else "",
          "compteEpargne": e["numero"] if e else "", "numeroComptable": compte_du_produit(e) if e else "",
          "clientEmetteur": f"{e['client']} {titulaire(e['tiers_id'])}" if e else "", "compteEmetteur": e["numero"] if e else "",

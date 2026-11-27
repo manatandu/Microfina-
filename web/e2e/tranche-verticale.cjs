@@ -1191,6 +1191,8 @@ const OUT = process.argv[2];
   await p.getByText(/^Pièce non équilibrée : il manque .+ au débit\.$/).waitFor();
   await p.getByLabel('Compte: *').fill('61000000'); await p.getByLabel('Sens:').selectOption('D'); await p.getByLabel('Montant: *').fill('2500'); await p.getByRole('button', { name: 'Ajouter' }).click();
   await succes(); await p.getByText('Pièce équilibrée.').waitFor(); await etape('14i-saisie-ecriture');
+  // Registre T242 : le crédit a été saisi en premier, l'écriture se lit débit d'abord
+  if (!(await p.locator('table.grille tbody tr').first().textContent()).includes('61000000')) throw new Error('T242 : le débit doit venir avant le crédit');
   await aller('/banque/s53'); await p.getByRole('radio', { name: 'Autre compte comptable' }).check(); await p.getByLabel('Compte *', { exact: true }).waitFor(); await etape('14j-virement-prelevement');
   await aller('/epargne/se03'); await p.getByRole('heading', { name: 'Virement entre comptes' }).waitFor(); await p.getByText('Identifiant Recepteur').waitFor(); await etape('14k-compte-a-compte');
   await aller('/comptabilite/s116'); await p.getByRole('heading', { name: 'Autres opérations' }).waitFor();

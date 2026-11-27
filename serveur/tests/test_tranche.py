@@ -3718,7 +3718,8 @@ def test_arrondi_des_contre_valeurs(clients, journee):
     executer("set constraints all immediate")                    # l'équilibre se vérifie en fin de transaction : on le vérifie ici
     ajust = lignes("""select c.numero, l.sens, trim(l.devise) as devise, l.montant_devise, l.montant_cdf from ligne_ecriture l join compte c on c.id = l.compte_id
                       where l.ecriture_id = %s order by l.rang""", (eid,))
-    assert ajust[-1] == {"numero": "47400000", "sens": "D", "devise": "USD", "montant_devise": 0, "montant_cdf": 1}, ajust
+    assert [x["sens"] for x in ajust] == ["D", "D", "C", "C"], ajust                          # débits d'abord, puis crédits (registre T242)
+    assert ajust[1] == {"numero": "47400000", "sens": "D", "devise": "USD", "montant_devise": 0, "montant_cdf": 1}, ajust
     assert sum(x["montant_cdf"] if x["sens"] == "D" else -x["montant_cdf"] for x in ajust) == 0
     executer("set constraints all deferred")
     # sans écart, aucune ligne d'ajustement
@@ -4647,7 +4648,10 @@ def test_saisie_ecriture(clients, journee):
     compta.post("/api/comptabilite/ecritures/lignes", {**suite, "compte": "61000000", "debit": 200000}, **H)
     e = compta.post("/api/comptabilite/ecritures/lignes", {**suite, "compte": "61240000", "debit": 50000}, **H).json()
     assert (e["statut"], e["debit"], e["credit"]) == ("saisie", 250000, 250000)
+    # le crédit saisi en premier s'affiche après les débits ; chaque ligne garde son rang de saisie (registre T242)
+    assert [(x["sens"], x["compte"], x["rang"]) for x in e["lignes"]] == [("D", "61000000", 2), ("D", "61240000", 3), ("C", l1["compte"], 1)]
     e = compta.post(f"/api/comptabilite/ecritures/{e['id']}/lignes/3/suppression", **H).json()
+    assert [x["compte"] for x in e["lignes"]] == ["61000000", l1["compte"]]                 # la ligne choisie part, pas celle de la même place
     assert e["statut"] == "brouillon" and len(e["lignes"]) == 2
     assert compta.post("/api/comptabilite/ecritures/ouverture", base, **H).json()["id"] == e["id"]      # la transaction à compléter revient
     e = compta.post("/api/comptabilite/ecritures/lignes", {**base, "libelle": "Honoraires du mois", "compte": "61240000", "debit": 50000}, **H).json()

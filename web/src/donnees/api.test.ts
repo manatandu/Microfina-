@@ -441,7 +441,8 @@ describe("journée de guichet", () => {
     const ligne = (compte: string, sens: "D" | "C", montant: number, montantCdf: number) => ({ compte, sens, devise: "USD" as const, montant, montantCdf });
     const e = _poster({ journal: "OD", journeeId: j.id, libelle: "Essai d'arrondi", piece: "ESSAI-1", saisiPar: 1, validePar: 2,
       lignes: [ligne("570", "D", 100, 284735), ligne("330", "C", 50, 142368), ligne("330", "C", 50, 142368)] });
-    expect(e.lignes.at(-1)).toEqual({ compte: "47400000", sens: "D", devise: "USD", montant: 0, montantCdf: 1 });
+    expect(e.lignes.map((x) => x.sens)).toEqual(["D", "D", "C", "C"]);                        // débits d'abord, puis crédits (registre T242)
+    expect(e.lignes[1]).toEqual({ compte: "47400000", sens: "D", devise: "USD", montant: 0, montantCdf: 1 });
     expect(e.lignes.reduce((t, x) => t + (x.sens === "D" ? x.montantCdf : -x.montantCdf), 0)).toBe(0);
     // un vrai déséquilibre n'est pas un arrondi : il reste refusé
     expect(() => _poster({ journal: "OD", journeeId: j.id, libelle: "Essai", piece: "ESSAI-2", saisiPar: 1, validePar: 2,
@@ -1237,7 +1238,7 @@ describe("journée de guichet", () => {
     expect((await api.societe.enregistrerAgence({ ...corps, siege: true }, ici.id)).agences.map((x) => x.siege)).toEqual([true, false]);
     await connecter("engalula");
     const o2 = await va({ montants: { CDF: 100000, USD: 2000 }, coupures: { CDF: { 1000: 1 }, USD: { 20: 1 } } });
-    expect((await api.operations.recu(o2.id)).lignes.map((x) => [x.compte.slice(0, 3), x.sens, x.devise])).toEqual([["450", "D", "CDF"], ["570", "C", "CDF"], ["450", "D", "USD"], ["570", "C", "USD"]]);
+    expect((await api.operations.recu(o2.id)).lignes.map((x) => [x.compte.slice(0, 3), x.sens, x.devise])).toEqual([["450", "D", "CDF"], ["450", "D", "USD"], ["570", "C", "CDF"], ["570", "C", "USD"]]);   // débits d'abord (registre T242)
     expect((await t.envois()).filter((x) => x.statut === "envoye").map((x) => [x.devise, x.montant, x.compte]).sort()).toEqual([["CDF", 100000, "450"], ["USD", 2000, "450"]]);
     await connecter("jpmukendi");
     const { id: _j, ...autre } = la;

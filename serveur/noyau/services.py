@@ -1923,6 +1923,7 @@ def poster(u: dict, *, journal: str, journee_id: int, libelle: str, piece: str, 
     ecritures = list(zip(lignes_ecr, cdfs))
     if ecart and etrangeres and abs(ecart) <= len(etrangeres):
         ecritures.append(({"compte": "474", "sens": "C" if ecart > 0 else "D", "devise": etrangeres[0]["devise"], "montant": 0}, abs(ecart)))
+    ecritures.sort(key=lambda x: x[0]["sens"] != "D")       # débits d'abord, puis crédits : le rang suit (demande du porteur du 27/11/2026 ; registre T242)
     for rang, (l, cdf) in enumerate(ecritures, start=1):
         cours_id = None if l["devise"] == "CDF" else cours_ligne(l["devise"], j["date_comptable"])["id"]
         # « budget » : la ligne budgétaire saisie avec la ligne (S109, S116, S107), lue par le suivi budgétaire (S125)
