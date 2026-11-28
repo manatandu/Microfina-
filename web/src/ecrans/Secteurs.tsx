@@ -24,7 +24,6 @@ export function MotifsDepart() {
 function PageListe({ liste, changer }: { liste: string; changer: (l: string) => void }) {
   const [f, setF] = useState(VIDE);
   const [choisi, setChoisi] = useState<number | null>(null);
-  const [filtre, setFiltre] = useState("");
   const [tri, setTri] = useState<"none" | "ascending" | "descending">("none");
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
@@ -32,7 +31,7 @@ function PageListe({ liste, changer }: { liste: string; changer: (l: string) => 
   if (!donnees) return <Chargement />;
   const c = donnees.liste;
   const parent = c.parent ? CATALOGUE_LISTES.find((x) => x.liste === c.parent)! : null;
-  let lignes = (donnees.lignes as Ligne[]).filter((l) => l.libelle.toLowerCase().includes(filtre.trim().toLowerCase()));
+  let lignes = donnees.lignes as Ligne[];   // la recherche unique au-dessus du tableau (registre T267)
   if (tri !== "none") lignes = [...lignes].sort((a, b) => (tri === "ascending" ? 1 : -1) * a.libelle.localeCompare(b.libelle, "fr"));
   const effacer = () => { setF(VIDE); setChoisi(null); };
   const executer = async (faire: () => Promise<unknown>) => {
@@ -70,11 +69,10 @@ function PageListe({ liste, changer }: { liste: string; changer: (l: string) => 
               <button className="bouton secondaire" type="button" onClick={effacer}>{c.effacer ?? "Effacer"}</button>
             </div>
           </fieldset></Formulaire>
-          <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
+          <Paginee lignes={lignes} colonnes={(l) => [l.libelle]}>{(visibles) => (<table className="grille">
             <thead>
               <tr>{!c.sansCode && <th scope="col">Numéro</th>}{parent && <th scope="col">{parent.colonne}</th>}
                 <th scope="col" aria-sort={tri}><button type="button" onClick={() => setTri(tri === "ascending" ? "descending" : "ascending")}>{c.colonne}</button></th></tr>
-              <tr className="filtres">{!c.sansCode && <td />}{parent && <td />}<td><input className="saisie" type="search" aria-label={`Filtrer ${c.colonne}`} value={filtre} onChange={(e) => setFiltre(e.target.value)} /></td></tr>
             </thead>
             <tbody>
               {lignes.length === 0 && <tr><td colSpan={(parent ? 2 : 1) + (c.sansCode ? 0 : 1)}>Aucune ligne.</td></tr>}

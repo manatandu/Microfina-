@@ -53,7 +53,7 @@ L'interface est sobre. La couleur ne sert qu'à trois choses :
 2. **L'état de la journée et de la caisse** : ouverte, en clôture, fermée.
 3. **Les erreurs** qui bloquent une action.
 4. **L'action et le choix** (version 2.0) : le bleu d'action désigne le bouton principal, l'onglet, la ligne et l'écran choisis.
-5. **La lecture** (version 4.1, comme Microfina++, p. 86 et 87 ; registre T240) : une valeur lue dans un cadre d'information (solde, caisse, caissier) et le montant en lettres s'écrivent en bleu ; les repères d'une opération (numéro de pièce, date d'opération) en Rouge Écarlate.
+5. **La lecture** : le texte s'écrit à l'encre noire ; les valeurs lues, le montant en lettres et les repères de l'opération aussi. Le bleu et le rouge de la version 4.1 sont retirés (demande du porteur, 28/11/2026 ; registre T265). Le bleu reste aux liens, à la sélection et au bouton principal ; le rouge aux erreurs et à l'astérisque obligatoire.
 
 Pas de dégradé, pas d'icône colorée décorative, pas de carte KPI pastel.
 
@@ -174,7 +174,7 @@ Les valeurs font foi dans `replica/design/tokens.json` (clair) et `tokens-sombre
 - **Cadre de champs** (`fieldset.cadre-champs`) : la boîte à étiquette des logiciels de bureau ; l'étiquette est une petite case blanche posée sur le filet, comme « Info client » dans Microfina++. Sans légende visible ou dans une barre de filtres : pas de boîte.
 - **Onglets pleins** (version 4.0) : chaque onglet est une case bordée posée sur un trait bleu ; l'onglet choisi est plein, en bleu d'action, texte blanc.
 - **Libellé à gauche** dans un cadre de champs (colonne de 9,5rem), au-dessus dans une barre de filtres et au téléphone. Toutes les cases d'un cadre ont la même largeur.
-- **Boutons** : un seul bouton principal par écran, plein, en bleu d'action ; les autres blancs, liseré et texte du même bleu. Les boutons d'un écran sont à droite, sous le contenu, sur une bande (la bande d'actions), comme sur les captures.
+- **Boutons** : un seul bouton principal par écran, plein, en bleu d'action ; les autres blancs, contour gris et texte noir (registre T266). Les boutons d'un écran sont à droite, sous le contenu, sur une bande (la bande d'actions), comme sur les captures.
 
 ### 3.5 Montants et nombres
 

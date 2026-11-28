@@ -442,19 +442,28 @@ export function BarrePages({ page, pages, aller }: { page: number; pages: number
 const FiltresGrille = createContext<{ valeurs: string[]; changer: (i: number, v: string) => void } | null>(null);
 const correspond = (v: unknown, f: string) => !f.trim() || String(v ?? "").toLowerCase().includes(f.trim().toLowerCase());
 
+/** Une seule recherche au-dessus d'une liste, à la place des cases sous chaque titre (demande du porteur, 28/11/2026 ; registre T267) */
+export function RechercheListe({ valeur, changer }: { valeur: string; changer: (v: string) => void }) {
+  return <div className="recherche-liste"><input className="saisie" type="search" aria-label="Rechercher dans la liste" placeholder="Rechercher"
+    value={valeur} onChange={(e) => changer(e.target.value)} /></div>;
+}
+/** Une ligne est retenue si l'un de ses textes contient la recherche */
+export const contientRecherche = (textes: unknown[], f: string) => !f.trim() || textes.some((v) => v !== null && v !== undefined && correspond(v, f));
+
 export function Paginee<T>({ lignes, children, parPage = PAR_PAGE, colonnes }: {
   lignes: T[]; children: (visibles: T[]) => ReactNode; parPage?: number;
-  colonnes?: (l: T) => unknown[];   // texte de chaque colonne filtrable, dans l'ordre de la ligne de filtres (null : colonne sans filtre)
+  colonnes?: (l: T) => unknown[];   // textes où chercher (null : colonne ignorée) ; avec colonnes, la recherche s'affiche au-dessus du tableau
 }) {
   const [page, setPage] = useState(0);
-  const [valeurs, setValeurs] = useState<string[]>([]);
-  const retenues = colonnes ? lignes.filter((l) => colonnes(l).every((v, i) => v === null || correspond(v, valeurs[i] ?? ""))) : lignes;
+  const [texte, setTexte] = useState("");
+  const retenues = colonnes ? lignes.filter((l) => contientRecherche(colonnes(l), texte)) : lignes;
   const pages = Math.max(1, Math.ceil(retenues.length / parPage));
   const p = Math.min(page, pages - 1);
-  const changer = (i: number, v: string) => { const n = [...valeurs]; n[i] = v; setValeurs(n); setPage(0); };
+  const changer = (_: number, v: string) => { setTexte(v); setPage(0); };
   return (
-    <FiltresGrille.Provider value={{ valeurs, changer }}>
+    <FiltresGrille.Provider value={{ valeurs: [texte], changer }}>
       <div className="pile">
+        {colonnes && <RechercheListe valeur={texte} changer={(v) => changer(0, v)} />}
         {children(retenues.slice(p * parPage, (p + 1) * parPage))}
         {pages > 1 && <BarrePages page={p} pages={pages} aller={setPage} />}
       </div>
@@ -463,12 +472,7 @@ export function Paginee<T>({ lignes, children, parPage = PAR_PAGE, colonnes }: {
 }
 
 /** Ligne de filtres, à placer dans le thead sous les titres : une case par titre ; null laisse la colonne sans case (actions, cases à cocher). */
-export function LigneFiltres({ titres }: { titres: (string | null)[] }) {
-  const f = useContext(FiltresGrille);
-  if (!f) return null;
-  return (
-    <tr className="filtres">
-      {titres.map((t, i) => <td key={i}>{t !== null && <input className="saisie" type="search" aria-label={`Filtrer ${t}`} value={f.valeurs[i] ?? ""} onChange={(e) => f.changer(i, e.target.value)} />}</td>)}
-    </tr>
-  );
+export function LigneFiltres(_: { titres: (string | null)[] }) {
+  useContext(FiltresGrille);
+  return null;   // remplacée par la recherche unique au-dessus du tableau (registre T267)
 }

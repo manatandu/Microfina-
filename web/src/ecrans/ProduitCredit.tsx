@@ -25,7 +25,6 @@ export default function ProduitCredit() {
   const [choisi, setChoisi] = useState<number | null>(null);
   const [liste, setListe] = useState(true);
   const [teg, setTeg] = useState<number[] | null>(null);
-  const [filtres, setFiltres] = useState({ numero: "", nom: "" });
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
   const { donnees } = useDonnees(() => api.produitsCredit.lire(), [relu]);
@@ -130,20 +129,17 @@ export default function ProduitCredit() {
       {cadre("Comptabilisation", <>{choix("modeleId", "Modèle", o.modeles.map((t: { id: number; libelle: string }) => ({ v: String(t.id), l: t.libelle })))}</>)}
     </div>,
   ];
-  const produits = donnees.produits.filter((p: { numero: string; nom: string }) => p.numero.toLowerCase().includes(filtres.numero.trim().toLowerCase())
-    && p.nom.toLowerCase().includes(filtres.nom.trim().toLowerCase()));
+  const produits = donnees.produits;   // la recherche unique au-dessus du tableau (registre T267)
   if (liste) return (
     <>
       <h2>Produits de crédit</h2>
       <section className="bloc pile" aria-label="Produits de crédit">
         <div className="actions-onglets"><button className="bouton" type="button" onClick={nouveau}>Nouveau produit</button></div>
-        <Paginee lignes={produits}>{(visibles) => (<table className="grille">
+        <Paginee lignes={produits} colonnes={(p: { numero: string; nom: string }) => [p.numero, p.nom]}>{(visibles) => (<table className="grille">
           <caption>Liste des produits crédits</caption>
           <thead>
             <tr><th scope="col">Numéro</th><th scope="col">Produit</th><th scope="col">Type de client</th><th scope="col" className="num">Taux d'intérêt mensuel (%)</th>
               <th scope="col" className="num">Taux différé (%)</th><th scope="col">Actif</th></tr>
-            <tr className="filtres"><td><input className="saisie" type="search" aria-label="Filtrer Numéro" value={filtres.numero} onChange={(e) => setFiltres({ ...filtres, numero: e.target.value })} /></td>
-              <td><input className="saisie" type="search" aria-label="Filtrer Produit" value={filtres.nom} onChange={(e) => setFiltres({ ...filtres, nom: e.target.value })} /></td><td /><td /><td /><td /></tr>
           </thead>
           <tbody>
             {produits.length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}

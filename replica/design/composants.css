@@ -183,7 +183,7 @@ select.saisie { appearance: none; padding-right: 26px; background-image: linear-
 .lettres::first-letter { text-transform: uppercase; }
 .lettres {
   margin: var(--espace-2) 0 0; min-height: calc(var(--interligne-courant) * var(--taille-courant));
-  color: var(--tampon); font-style: italic; padding: 0 var(--espace-1);
+  color: var(--encre); font-style: italic; padding: 0 var(--espace-1);
   overflow-wrap: anywhere;
 }
 
@@ -258,10 +258,10 @@ select.saisie { appearance: none; padding-right: 26px; background-image: linear-
 }
 @media (hover: hover) and (pointer: fine) {
   .bouton:not(:disabled):not(.secondaire):not(.discret):hover { background: var(--tampon-fort); }
-  .bouton.secondaire:not(:disabled):hover { background: var(--tampon-pale); border-color: var(--tampon-fort); }
+  .bouton.secondaire:not(:disabled):hover { background: var(--lecture); border-color: var(--encre-2); }
   .bouton.discret:not(:disabled):hover { background: var(--tampon-pale); }
 }
-.bouton.secondaire { background: var(--feuille); color: var(--tampon); border-color: var(--tampon); box-shadow: var(--ombre-relief-clair); }
+.bouton.secondaire { background: var(--feuille); color: var(--encre); border-color: var(--trait-saisie); box-shadow: var(--ombre-relief-clair); }   /* contour gris, texte noir (demande du porteur, 28/11/2026 ; registre T266) */
 .bouton.discret { background: none; border-color: transparent; color: var(--tampon); padding-inline: var(--espace-2); box-shadow: none; }
 .bouton:disabled, .bouton[aria-disabled="true"] { background: var(--inactif); border-color: var(--trait); color: var(--sur-inactif); cursor: not-allowed; box-shadow: none; }
 .bouton.discret:disabled { background: none; border-color: transparent; color: var(--encre-2); }

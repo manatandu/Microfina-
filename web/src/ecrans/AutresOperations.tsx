@@ -212,7 +212,6 @@ function OperationsDeplacees({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
   const [f, setF] = useState(vide);
   const [cle, setCle] = useState(nouvelleCle);
   const [relu, setRelu] = useState(0);
-  const [filtre, setFiltre] = useState({ membre: "", nom: "" });
   const { donnees: liste } = useDonnees(() => api.operationsCompta.saisies("deplacee"), [relu]);
   const maj = (p: Partial<typeof vide>) => setF((x) => ({ ...x, ...p }));
   const annuler = () => { setF(vide); setCle(nouvelleCle()); };
@@ -224,7 +223,7 @@ function OperationsDeplacees({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
       catch (x) { poser({ type: "erreur", message: message(x) }); }
     } });
   }
-  const lignes = (liste ?? []).filter((x) => x.numeroClient.toLowerCase().includes(filtre.membre.trim().toLowerCase()) && x.nomClient.toLowerCase().includes(filtre.nom.trim().toLowerCase()));
+  const lignes = liste ?? [];   // la recherche unique au-dessus du tableau (registre T267)
   const texte = (libelle: string, k: keyof typeof vide, classe = "saisie") => <Champ libelle={libelle}>{(p) => <input {...p} className={classe} autoComplete="off"
     inputMode={k === "montant" ? "decimal" : undefined} value={f[k]} onChange={(e) => maj({ [k]: e.target.value })} />}</Champ>;
   return <>
@@ -241,11 +240,9 @@ function OperationsDeplacees({ ctx, poser }: { ctx: Ctx; poser: Poser }) {
       <div className="ligne-champ">{texte("N° Compte *", "numeroCompte", "saisie code")}{texte("Montant *", "montant", "saisie montant")}</div>
     </fieldset>
     <div className="actions-onglets"><button className="bouton" type="submit">Enregistrer</button><button className="bouton secondaire" type="button" onClick={annuler}>Annuler</button></div></Formulaire>
-    <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
+    <Paginee lignes={lignes} colonnes={(x) => [x.numeroClient, x.compteEpargne, x.nomClient, x.piece]}>{(visibles) => (<table className="grille">
       <thead><tr><th scope="col"><span className="sr-only">Sens</span></th><th scope="col">Opération</th><th scope="col">N° Membre</th><th scope="col">N° Compte</th><th scope="col">Nom et Prénoms</th>
-        <th scope="col" className="num">Montant</th><th scope="col">Numéro de piece</th><th scope="col">Visa</th></tr>
-        <tr className="filtres"><td /><td /><td><input className="saisie" type="search" aria-label="Filtrer N° Membre" value={filtre.membre} onChange={(e) => setFiltre({ ...filtre, membre: e.target.value })} /></td><td />
-          <td><input className="saisie" type="search" aria-label="Filtrer Nom et Prénoms" value={filtre.nom} onChange={(e) => setFiltre({ ...filtre, nom: e.target.value })} /></td><td /><td /><td /></tr></thead>
+        <th scope="col" className="num">Montant</th><th scope="col">Numéro de piece</th><th scope="col">Visa</th></tr></thead>
       <tbody>{lignes.length === 0 && <tr><td colSpan={8}>Aucune ligne.</td></tr>}
         {visibles.map((x) => <tr key={x.id}><td><Sens x={x} /></td><td>{x.sens === "DEPOT" ? "Dépot Espèces" : "Retrait Espèces"}</td><td className="chiffres">{x.numeroClient}</td><td className="code">{x.compteEpargne}</td>
           <td>{x.nomClient}</td><td className="num chiffres">{montant(x.montant, x.devise as Devise)}</td><td className="chiffres">{x.piece}</td><td className="chiffres">{fr(x.dateVisa)}</td></tr>)}</tbody>

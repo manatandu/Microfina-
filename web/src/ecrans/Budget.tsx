@@ -48,7 +48,6 @@ function PageBudget({ page, changer }: { page: string; changer: (p: string) => v
   const vide = (): Saisie => Object.fromEntries(fiche.champs.map((f) => [f.cle, f.defaut !== undefined ? String(f.defaut) : ""]));
   const [f, setF] = useState<Saisie>(vide);
   const [choisi, setChoisi] = useState<number | null>(null);
-  const [filtres, setFiltres] = useState<Saisie>({});
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
   const { donnees } = useDonnees(() => api.budget.lire(page), [relu]);
@@ -66,8 +65,7 @@ function PageBudget({ page, changer }: { page: string; changer: (p: string) => v
     return [c.cle, v];
   }));
   const choisir = (l: LigneBudgetVue) => { setChoisi(l.id); setF(Object.fromEntries(fiche.champs.map((c) => [c.cle, l[c.cle] == null ? "" : String(l[c.cle])]))); };
-  const lignes = (donnees.lignes as LigneBudgetVue[]).filter((l) => fiche.champs.every((c) => !filtres[c.cle]?.trim()
-    || (l.affichage[c.cle] ?? "").toLowerCase().includes(filtres[c.cle]!.trim().toLowerCase())));
+  const lignes = donnees.lignes as LigneBudgetVue[];   // la recherche unique au-dessus du tableau (registre T267)
   const champ = (c: ChampBudget) => {
     const etiquette = `${c.libelle}${c.obligatoire && !c.sansEtoile ? " *" : ""}`;
     const options = donnees.options[c.cle];
@@ -103,13 +101,10 @@ function PageBudget({ page, changer }: { page: string; changer: (p: string) => v
             {fiche.cadre && <legend>{fiche.cadre}</legend>}
             {formulaire}
           </fieldset>
-          <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
+          <Paginee lignes={lignes} colonnes={fiche.filtres ? (l) => fiche.champs.map((c) => l.affichage[c.cle] ?? "") : undefined}>{(visibles) => (<table className="grille">
             {fiche.grille && <caption>{fiche.grille}</caption>}
             <thead>
               <tr>{fiche.champs.map((c) => <th key={c.cle} scope="col" className={c.type === "entier" ? "num" : undefined}>{c.colonne}</th>)}</tr>
-              {fiche.filtres && <tr className="filtres">{fiche.champs.map((c) => (
-                <td key={c.cle}><input className="saisie" type="search" aria-label={`Filtrer ${c.colonne}`} value={filtres[c.cle] ?? ""}
-                  onChange={(e) => setFiltres({ ...filtres, [c.cle]: e.target.value })} /></td>))}</tr>}
             </thead>
             <tbody>
               {lignes.length === 0 && <tr><td colSpan={fiche.champs.length}>Aucune ligne.</td></tr>}

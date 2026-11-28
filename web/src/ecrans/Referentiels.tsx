@@ -26,7 +26,6 @@ export function Referentiels({ facade, pages, sources, menu }: { facade: FacadeR
 function PageReferentiel({ facade, page, pages, sources, menu, changer }: { facade: FacadeReferentiel; page: string; pages: string[]; sources: string[]; menu?: string; changer: (p: string) => void }) {
   const [f, setF] = useState<Saisie>({});
   const [choisi, setChoisi] = useState<number | null>(null);
-  const [filtres, setFiltres] = useState<Saisie>({});
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
   const [graine, setGraine] = useState(() => Math.floor(Math.random() * 1e7));
@@ -54,7 +53,7 @@ function PageReferentiel({ facade, page, pages, sources, menu, changer }: { faca
   }));
   const choisir = (l: LigneBudgetVue) => { setChoisi(l.id); setF(Object.fromEntries(fiche.champs.map((c) => [c.cle, l[c.cle] == null ? "" : String(l[c.cle])]))); };
   const colonnes = fiche.champs.filter((c) => c.grille !== false).map((c, i) => ({ c, i })).sort((a, b) => (a.c.rang ?? 100 + a.i) - (b.c.rang ?? 100 + b.i)).map((x) => x.c);
-  const lignes = donnees.lignes.filter((l) => colonnes.every((c) => !filtres[c.cle]?.trim() || (l.affichage[c.cle] ?? "").toLowerCase().includes(filtres[c.cle]!.trim().toLowerCase())));
+  const lignes = donnees.lignes;   // la recherche unique au-dessus du tableau (registre T267)
   const proposes = (c: ChampBudget) => {
     const v = f[c.selon!.cle] ?? "", prefixe = c.selon!.comptes[v];
     return v ? donnees.plan.filter((x) => x.saisissable && x.ouvert && (x.typeSuivi === v || (!!prefixe && x.numero.startsWith(prefixe)))) : [];
@@ -100,12 +99,10 @@ function PageReferentiel({ facade, page, pages, sources, menu, changer }: { faca
             <button className="bouton secondaire" type="button" disabled={choisi === null}
               onClick={() => choisi !== null && confirmer("Voulez-vous vraiment supprimer ?", () => facade.supprimer(page, choisi))}>Supprimer</button>
           </div></Formulaire>
-          <Paginee lignes={lignes}>{(visibles) => (<div className="defile-x"><table className="grille">
+          <Paginee lignes={lignes} colonnes={fiche.filtres ? (l) => colonnes.map((c) => l.affichage[c.cle] ?? "") : undefined}>{(visibles) => (<div className="defile-x"><table className="grille">
             {fiche.grille && <caption>{fiche.grille}</caption>}
             <thead>
               <tr>{colonnes.map((c) => <th key={c.cle} scope="col" className={c.type === "entier" || c.format === "decimal" ? "num" : undefined}>{c.colonne}</th>)}</tr>
-              {fiche.filtres && <tr className="filtres">{colonnes.map((c) => (
-                <td key={c.cle}><input className="saisie" type="search" aria-label={`Filtrer ${c.colonne}`} value={filtres[c.cle] ?? ""} onChange={(e) => setFiltres({ ...filtres, [c.cle]: e.target.value })} /></td>))}</tr>}
             </thead>
             <tbody>
               {lignes.length === 0 && <tr><td colSpan={colonnes.length}>Aucune ligne.</td></tr>}

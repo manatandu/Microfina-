@@ -10,7 +10,7 @@ import { api } from "../donnees/api";
 import { useDonnees, message } from "../lib/useDonnees";
 import { aujourdhui, fr } from "../lib/dates";
 import { exporterExcel } from "../lib/excel";
-import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Paginee, Textes, type Boite, Recherche, Formulaire } from "../composants";
+import { Champ, ChampDate, Chargement, Dialogue, Fiche, Lecture, Paginee, Textes, type Boite, Recherche, Formulaire, RechercheListe, contientRecherche } from "../composants";
 import { Referentiels, type FacadeReferentiel } from "./Referentiels";
 
 const entier = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
@@ -53,10 +53,10 @@ function RechercheEmploye({ ouverte, fermer, choisir }: { ouverte: boolean; ferm
   const { donnees } = useDonnees(() => (ouverte ? api.paie.liste() : Promise.resolve([] as Ligne[])), [ouverte]);
   const [f, setF] = useState<Record<string, string>>({});
   const cols = [["matricule", "Matricule"], ["nom", "Nom"], ["prenoms", "Prénom(s)"], ["numeroSecuriteSociale", "N° CNSS"]] as const;
-  const lignes = (donnees ?? []).filter((l) => cols.every(([k]) => !f[k] || String(l[k]).toLowerCase().includes(f[k]!.toLowerCase())));
+  const lignes = (donnees ?? []).filter((l) => contientRecherche(cols.map(([k]) => l[k]), f.texte ?? ""));
   return <Fiche titre="Recherche d'un employé" ouverte={ouverte} fermer={fermer}>
-    <table className="grille"><thead><tr>{cols.map(([, t]) => <th key={t} scope="col">{t}</th>)}</tr>
-      <tr className="filtres">{cols.map(([k, t]) => <td key={k}><input className="saisie" type="search" aria-label={`Filtrer ${t}`} value={f[k] ?? ""} onChange={(e) => setF({ ...f, [k]: e.target.value })} /></td>)}</tr></thead>
+    <RechercheListe valeur={f.texte ?? ""} changer={(v) => setF({ texte: v })} />
+    <table className="grille"><thead><tr>{cols.map(([, t]) => <th key={t} scope="col">{t}</th>)}</tr></thead>
       <tbody>{lignes.length === 0 && <tr><td colSpan={4}>Aucune ligne.</td></tr>}
         {lignes.map((l) => <tr key={l.id} className="ligne-choix" tabIndex={0} onClick={() => { choisir(l.id); fermer(); }} onKeyDown={(e) => { if (e.key === "Enter") { choisir(l.id); fermer(); } }}>
           {cols.map(([k]) => <td key={k}>{l[k]}</td>)}</tr>)}</tbody></table>
@@ -281,11 +281,10 @@ function Maquette({ ctx }: { ctx: Ctx }) {
 function ListeEmployes({ ctx }: { ctx: Ctx }) {
   const [f, setF] = useState({ sexe: "", typeContrat: "", du: "", au: "" });
   const [r, setR] = useState<Ligne[] | null>(null);
-  const [filtre, setFiltre] = useState("");
   const [repartition, setRepartition] = useState(false);
   const [boite, setBoite] = useState<Boite | null>(null);
   const executer = async () => { try { setR(await api.paie.liste(f)); } catch (x) { setBoite({ type: "erreur", message: message(x) }); } };
-  const lignes = (r ?? []).filter((l) => !filtre || l.nomPrenoms.toLowerCase().includes(filtre.toLowerCase()));
+  const lignes = r ?? [];   // la recherche unique au-dessus du tableau (registre T267)
   return <section className="bloc pile" aria-label="Liste du Personnel"><h2>Liste du Personnel</h2>
     <Recherche className="pile" label="Critères" envoyer={executer}><fieldset className="cadre-champs formulaire"><legend>Critère de recherche</legend>
       <Champ libelle="Sexe">{(pp) => <select {...pp} className="saisie" value={f.sexe} onChange={(e) => setF({ ...f, sexe: e.target.value })}><option value=""></option>{ctx.sexes.map((s) => <option key={s} value={s}>{enClair(s)}</option>)}</select>}</Champ>
@@ -294,9 +293,8 @@ function ListeEmployes({ ctx }: { ctx: Ctx }) {
     </fieldset>
     <div className="actions-onglets"><button className="bouton" type="submit">Exécuter</button></div></Recherche>
     {r && <>
-      <Paginee lignes={lignes}>{(vis) => <div className="defile-x"><table className="grille">
-        <thead><tr><th scope="col">Matricule</th><th scope="col">Nom et Prénoms</th><th scope="col">Catégorie salariale</th><th scope="col">Date d'embauche</th><th scope="col">Poste</th><th scope="col">Fonction</th></tr>
-          <tr className="filtres"><td></td><td><input className="saisie" type="search" aria-label="Filtrer Nom et Prénoms" value={filtre} onChange={(e) => setFiltre(e.target.value)} /></td><td colSpan={4}></td></tr></thead>
+      <Paginee lignes={lignes} colonnes={(l) => [l.matricule, l.nomPrenoms, l.poste, l.fonction]}>{(vis) => <div className="defile-x"><table className="grille">
+        <thead><tr><th scope="col">Matricule</th><th scope="col">Nom et Prénoms</th><th scope="col">Catégorie salariale</th><th scope="col">Date d'embauche</th><th scope="col">Poste</th><th scope="col">Fonction</th></tr></thead>
         <tbody>{lignes.length === 0 && <tr><td colSpan={6}>Aucune ligne.</td></tr>}
           {vis.map((l) => <tr key={l.id}><td className="code">{l.matricule}</td><td>{l.nomPrenoms}</td><td>{l.categorieSalariale}</td><td>{fr(l.dateEmbauche)}</td><td>{l.poste}</td><td>{l.fonction}</td></tr>)}</tbody>
       </table></div>}</Paginee>

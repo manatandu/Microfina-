@@ -56,7 +56,6 @@ export function Onglet({ page }: { page: string }) {
   const vide = (): Saisie => Object.fromEntries(fiche.champs.map((f) => [f.cle, f.type === "ouiNon" ? (f.defaut === false ? "NON" : "OUI") : ""]));
   const [f, setF] = useState<Saisie>(vide);
   const [choisi, setChoisi] = useState<number | null>(null);
-  const [filtres, setFiltres] = useState<Saisie>({});
   const [boite, setBoite] = useState<Boite | null>(null);
   const [relu, setRelu] = useState(0);
   const [clients, setClients] = useState<{ id: number; numero: string; nom: string }[] | null>(null);
@@ -81,8 +80,7 @@ export function Onglet({ page }: { page: string }) {
     setF(Object.fromEntries(fiche.champs.map((c) => [c.cle, c.type === "ouiNon" ? (l[c.cle] ? "OUI" : "NON") : l[c.cle] == null ? "" : String(l[c.cle])])));
   };
   const colonnes = fiche.champs.filter((c) => c.grille !== false);
-  const lignes = (donnees.lignes as LigneBudgetVue[]).filter((l) => colonnes.every((c) => !filtres[c.cle]?.trim()
-    || (l.affichage[c.cle] ?? "").toLowerCase().includes(filtres[c.cle]!.trim().toLowerCase())));
+  const lignes = donnees.lignes as LigneBudgetVue[];   // la recherche unique au-dessus du tableau (registre T267)
   const champ = (c: ChampBudget) => {
     const options = donnees.options[c.cle];
     const maj = (v: string) => setF({ ...f, [c.cle]: v });
@@ -150,12 +148,9 @@ export function Onglet({ page }: { page: string }) {
       {fiche.exporter && <div className="actions-onglets">
         {fiche.ordres && <button className="bouton" type="button" onClick={() => confirmer("Voulez-vous vraiment enregistrer ?", () => api.credit.enregistrerOrdres(ordres))}>Enregistrement</button>}
         <button className="bouton secondaire" type="button" onClick={exporter}>Exporter</button></div>}
-      <Paginee lignes={lignes}>{(visibles) => (<table className="grille">
+      <Paginee lignes={lignes} colonnes={fiche.filtres ? (l) => colonnes.map((c) => l.affichage[c.cle] ?? "") : undefined}>{(visibles) => (<table className="grille">
         <thead>
           <tr>{colonnes.map((c) => <th key={c.cle} scope="col" className={c.type === "entier" ? "num" : undefined}>{c.colonne}</th>)}</tr>
-          {fiche.filtres && <tr className="filtres">{colonnes.map((c) => (
-            <td key={c.cle}><input className="saisie" type="search" aria-label={`Filtrer ${c.colonne}`} value={filtres[c.cle] ?? ""}
-              onChange={(e) => setFiltres({ ...filtres, [c.cle]: e.target.value })} /></td>))}</tr>}
         </thead>
         <tbody>
           {lignes.length === 0 && <tr><td colSpan={colonnes.length}>Aucune ligne.</td></tr>}

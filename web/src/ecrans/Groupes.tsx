@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { api } from "../donnees/api";
 import type { Tiers } from "../donnees/types";
 import { useDonnees, message } from "../lib/useDonnees";
-import { BarrePages, Champ, Chargement, Dialogue, Fiche, PAR_PAGE, Textes, type Boite, Lecture, Formulaire } from "../composants";
+import { BarrePages, Champ, Chargement, Dialogue, Fiche, PAR_PAGE, Textes, type Boite, Lecture, Formulaire, RechercheListe, contientRecherche } from "../composants";
 import { RechercheClient } from "./Visa";
 
 const nomComplet = (t: { nom: string; postnom: string; prenom: string }) => [t.nom, t.postnom, t.prenom].filter(Boolean).join(" ");
@@ -14,20 +14,17 @@ export function TableFiltree<T>({ colonnes, lignes, cle, vide = "Aucune ligne.",
   avant?: { titre: ReactNode; cellule: (l: T) => ReactNode }; apres?: { titre: string; cellule: (l: T) => ReactNode };
   choisir?: (l: T) => void; choisi?: string | number | null; sansFiltres?: boolean;   // sansFiltres : grille sans zone de filtre (ex. S12, p. 21)
 }) {
-  const [filtres, setFiltres] = useState<string[]>(colonnes.map(() => ""));
+  const [texte, setTexte] = useState("");
   const [page, setPage] = useState(0);
-  const retenues = lignes.filter((l) => colonnes.every((c, i) => c.valeur(l).toLowerCase().includes(filtres[i]!.trim().toLowerCase())));
+  const retenues = lignes.filter((l) => contientRecherche(colonnes.map((c) => c.valeur(l)), texte));
   const pages = Math.max(1, Math.ceil(retenues.length / PAR_PAGE));
   const p = Math.min(page, pages - 1);
   return (
     <div className="pile">
+      {!sansFiltres && <RechercheListe valeur={texte} changer={(v) => { setTexte(v); setPage(0); }} />}
       <div className="defile-x"><table className="grille">
         <thead>
           <tr>{avant && <th scope="col">{avant.titre}</th>}{colonnes.map((c) => <th key={c.titre} scope="col">{c.titre}</th>)}{apres && <th scope="col">{apres.titre}</th>}</tr>
-          {!sansFiltres && <tr className="filtres">{avant && <td />}{colonnes.map((c, i) => (
-            <td key={c.titre}><input className="saisie" type="search" aria-label={`Filtrer ${c.titre}`} value={filtres[i]}
-              onChange={(e) => { setFiltres(filtres.map((f, j) => (j === i ? e.target.value : f))); setPage(0); }} /></td>
-          ))}{apres && <td />}</tr>}
         </thead>
         <tbody>
           {retenues.length === 0 && <tr><td colSpan={colonnes.length + (avant ? 1 : 0) + (apres ? 1 : 0)}>{vide}</td></tr>}

@@ -776,9 +776,9 @@ const OUT = process.argv[2];
   await p.getByRole('tab', { name: 'Sauvegardes' }).click(); await p.getByText('Aucune sauvegarde au registre.').waitFor(); await etape('10s2-sauvegardes');
   await p.getByRole('tab', { name: 'Connexions et accès' }).click(); await p.getByRole('cell', { name: 'Connexion', exact: true }).first().waitFor();
   // Filtre en tête de colonne (registre T04, manuel p. 9, point 4) : seules les lignes dont l'événement contient le texte saisi restent
-  await p.getByLabel('Filtrer Événement').fill('Connexion refusée');
+  await p.getByLabel('Rechercher dans la liste').fill('Connexion refusée');
   if (await p.getByRole('cell', { name: 'Connexion', exact: true }).count()) throw new Error('T04 : le filtre ne retire pas les autres lignes');
-  await p.getByLabel('Filtrer Événement').fill('');
+  await p.getByLabel('Rechercher dans la liste').fill('');
   // Retenues à reverser (écart E16 ; arrêté 008/2025, art. 2) : état du mois, échéance du 15 du mois suivant, au comptable
   await login('Patrick Lumbala'); await aller('/comptabilite/sf01'); await p.getByRole('article', { name: 'État des retenues du mois' }).waitFor(); await etape('10r-retenues');
   await login('J.-P. Mukendi');
@@ -1184,7 +1184,7 @@ const OUT = process.argv[2];
   await login('Esther Ngalula');
   // Journal des opérations de caisse (S83, p. 95 ; registre S83-1 à S83-5) : le versement en banque sort de la caisse, au crédit
   await aller('/caisse/s83'); await p.getByRole('heading', { name: 'Journal de caisse' }).waitFor();
-  await p.getByRole('button', { name: 'Rechercher', exact: true }).click(); await p.getByLabel('Filtrer Libellé').fill('Versement en banque');   // filtres sous les titres (plan 4.12)
+  await p.getByRole('button', { name: 'Rechercher', exact: true }).click(); await p.getByLabel('Rechercher dans la liste').fill('Versement en banque');   // filtres sous les titres (plan 4.12)
   await p.getByRole('row').filter({ hasText: 'Versement en banque, bordereau 0001234' }).getByRole('cell', { name: '1 000,00 CDF' }).waitFor();
   await p.getByRole('table', { name: 'Soldes et totaux par devise' }).getByRole('cell', { name: 'CDF', exact: true }).waitFor(); await etape('14g-journal-caisse');   // registre S83-6
   // Comptabilité : saisie d'écriture (S109, p. 128 et 129), autres opérations (S116, p. 133 à 135), virements mensuels (S117, p. 136)
