@@ -1,1 +1,4 @@
 web/e2e/.e2e-*.cjs
+
+# Contexte de travail Superdesign (régénérable, propre à la session)
+.superdesign/
