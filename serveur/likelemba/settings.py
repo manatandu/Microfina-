@@ -31,6 +31,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "noyau.securite.LimiteRequetes",
+    "noyau.securite.JournalActivite",                # qui a fait quoi, avec quel identifiant, quand (demande du porteur du 28/11/2026 ; registre T269)
 ]
 ROOT_URLCONF = "likelemba.urls"
 WSGI_APPLICATION = "likelemba.wsgi.application"

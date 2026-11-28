@@ -111,6 +111,18 @@ const EVENEMENTS_SECURITE: Record<string, string> = { connexion: "Connexion", co
   connexion_bloquee: "Connexion bloquée (trop d'essais)", acces_refuse: "Accès refusé (droit manquant)", limite_requetes: "Limite de requêtes dépassée",
   fonds_geles: "Opération refusée sur des fonds gelés", mot_de_passe_change: "Mot de passe changé",
   second_facteur_active: "Second facteur mis en place", second_facteur_retire: "Second facteur réinitialisé" };   // A14 : loi 22/068, art. 162, al. 2
+/** Journal des activités (demande du porteur du 28/11/2026 ; registre T269) : qui a fait quoi, avec quel identifiant, quand. Mêmes libellés que le serveur (securite.libelle_activite). */
+function noterActivite(u: Utilisateur, activite: string) {
+  (E.journalActivite ??= []).push({ id: Math.max(0, ...E.journalActivite.map((x) => x.id)) + 1, le: new Date().toISOString(), utilisateurId: u.id, login: u.login,
+    agenceId: u.agenceId ?? null, activite });
+  sauver();
+}
+const verbeActivite = (methode: string) => /supprim|retir/i.test(methode) ? "suppression" : /modifi|maj|changer|mettre/i.test(methode) ? "modification" : "enregistrement";
+function noterMethode(cle: string) {
+  const e = DROITS_METHODES[cle], u = utilisateur();
+  if (!e || !u) return;
+  noterActivite(u, `${NOMS_ECRANS[e[0]!] ?? "Opération"} : ${verbeActivite(cle.split(".")[1] ?? "")}`);
+}
 function noterSecurite(evenement: string, login: string, utilisateurId: number | null, detail = "") {
   (E.journalSecurite ??= []).push({ id: Math.max(0, ...E.journalSecurite.map((x) => x.id)) + 1, le: new Date().toISOString(), evenement, login, utilisateurId, detail });
   // Un accès refusé ne change aucune donnée affichée : il s'écrit sans réveiller les écrans, sinon l'écran refusé se relirait sans fin
@@ -131,9 +143,9 @@ const session = {
   ouvrir(login: string, _motDePasse?: string, _code?: string): Utilisateur | { secondFacteurRequis: true } {
     const u = E.utilisateurs.find((x) => x.login === login);
     if (!u || u.actif === false) { noterSecurite("connexion_impossible", login, null, "Identifiant inconnu."); throw new ErreurMetier("Identifiant inconnu."); }   // désactivé : plus de connexion (S05-4)
-    E.session = u.id; noterSecurite("connexion", login, u.id); return u;
+    E.session = u.id; noterSecurite("connexion", login, u.id); noterActivite(u, "Connexion"); return u;
   },
-  fermer() { E.session = null; enregistrer(); return undefined; },
+  fermer() { const u = utilisateur(); if (u) noterActivite(u, "Déconnexion"); E.session = null; enregistrer(); return undefined; },
   /** Chacun change son mot de passe (registre T207). La démonstration ne garde pas de mot de passe (registre S05-3) : seules les règles jouent */
   changerMotDePasse(p: { ancien?: string; nouveau?: string; confirmation?: string }) {
     const u = exiger(), nouveau = p.nouveau ?? "";
@@ -6734,7 +6746,11 @@ type Asynchrone<T> = { [K in keyof T]: T[K] extends (...a: infer A) => infer R ?
 function asynchrone<T extends object>(o: T, nom = ""): Asynchrone<T> {
   return Object.fromEntries(Object.entries(o).map(([k, f]) => [k, typeof f === "function" ? async (...a: unknown[]) => {
     droitVerifie = verifierDroit(`${nom}.${k}`);
-    try { return (f as (...x: unknown[]) => unknown)(...a); } finally { droitVerifie = false; }
+    try {
+      const r = (f as (...x: unknown[]) => unknown)(...a);
+      if (r instanceof Promise) return r.then((v) => { noterMethode(`${nom}.${k}`); return v; });
+      noterMethode(`${nom}.${k}`); return r;   // une écriture réussie va au journal des activités (registre T269)
+    } finally { droitVerifie = false; }
   } : f])) as Asynchrone<T>;
 }
 /** B12 : les états périodiques sont numérotés et datés (PCCI § 3.4) ; un numéro continu, comme serveur/noyau/editions.py */
@@ -11511,7 +11527,7 @@ const droits = {
     const inconnus = d.droits.filter((x) => !(x in NOMS_ECRANS) || x === "S01" || x === "S02");
     if (inconnus.length) throw new ErreurMetier(`Droit inconnu : ${[...new Set(inconnus)].sort().join(", ")}.`);
     // Instr. BCC 008, art. 16 : la gestion des accès est indépendante de l'exploitation ; un profil ne porte pas les deux (registre T29)
-    if (d.droits.some((x) => GESTION_ACCES.has(x)) && d.droits.some((x) => !GESTION_ACCES.has(x) && x !== "SA01"))
+    if (d.droits.some((x) => GESTION_ACCES.has(x)) && d.droits.some((x) => !GESTION_ACCES.has(x) && x !== "SA01" && x !== "SA02"))
       throw new ErreurMetier("Un profil qui gère les accès (profils, droits, utilisateurs) ne porte aucun droit d'opération : la sécurité informatique est indépendante de l'exploitation (Instr. BCC 008, art. 16).");
     p.droits = [...new Set(d.droits)].sort();
     enregistrer(); return droits.lire(pid!);
@@ -11696,6 +11712,17 @@ const journalSecurite = {
       .sort((a, b) => b.le.localeCompare(a.le) || b.id - a.id).slice(0, 1000)
       .map((x) => ({ le: x.le, evenement: x.evenement, evenementLibelle: EVENEMENTS_SECURITE[x.evenement] ?? x.evenement, login: x.login,
         utilisateur: nomUtilisateur(x.utilisateurId ?? undefined) || E.utilisateurs.find((y) => y.login === x.login)?.nom || "", ip: "", detail: x.detail }));
+  },
+  /** Journal des activités (registre T269) : le gérant sans agence voit toutes les agences, le chef d'agence la sienne */
+  activites(du: string, au: string, utilisateurLogin = "") {
+    lectureAdmin(["SA02"]);
+    const u = exiger();
+    if (!DATE_ISO.test(du ?? "")) throw new ErreurMetier("À remplir : Du.");
+    if (!DATE_ISO.test(au ?? "")) throw new ErreurMetier("À remplir : Au.");
+    if (du > au) throw new ErreurMetier("La date de début dépasse la date de fin.");
+    return (E.journalActivite ?? []).filter((x) => jourDe(x.le) >= du && jourDe(x.le) <= au && (!u.agenceId || x.agenceId === u.agenceId) && (!utilisateurLogin || x.login === utilisateurLogin))
+      .sort((a, b) => b.le.localeCompare(a.le) || b.id - a.id).slice(0, 5000)
+      .map((x) => ({ le: x.le, utilisateur: nomUtilisateur(x.utilisateurId), login: x.login, agence: E.agences.find((a) => a.id === x.agenceId)?.nom ?? "Toutes les agences", activite: x.activite }));
   },
   /** Piste d'audit des paramètres et des droits (registre T208) : tenue par la base du serveur ; la démonstration dans le navigateur n'en a pas */
   audit(du: string, au: string, _objet = "") {

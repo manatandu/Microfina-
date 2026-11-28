@@ -269,3 +269,71 @@ def definir_mots_de_passe(u: dict, d) -> dict:
     executer("update profil set second_facteur = (id = any(%s)) where institution_id = %s and not supprime and second_facteur is distinct from (id = any(%s))",
              (profils, u["institution_id"], profils))
     return regles(u)
+
+
+# ---------- Journal des activités (demande du porteur du 28/11/2026 ; registre T269) ----------
+VERBES = {"POST": "enregistrement", "PUT": "modification", "PATCH": "modification", "DELETE": "suppression"}
+
+
+def libelle_activite(methode: str, chemin: str) -> str:
+    """Activité lisible : l'écran de la route et la nature du geste (« Guichet : enregistrement ») ; connexion et déconnexion à part"""
+    from .droits import ecrans, ecrans_de_route
+    c = chemin.removeprefix("/api")
+    if c == "/session":
+        return "Connexion" if methode == "POST" else "Déconnexion"
+    if c == "/session/mot-de-passe":
+        return "Changement de son mot de passe"
+    if c.startswith("/session/second-facteur"):
+        return "Mise en place du second facteur"
+    e = ecrans_de_route(c)
+    nom = next((x["nom"] for x in ecrans() if e and x["id"] == e[0]), "")
+    return f"{nom} : {VERBES.get(methode, 'opération')}" if nom else f"Opération : {VERBES.get(methode, 'opération')}"
+
+
+def noter_activite_journal(uid: int, methode: str, chemin: str) -> None:
+    from .bd import executer
+    executer("""insert into journal_activite (institution_id, agence_id, utilisateur_id, login, activite, chemin)
+                select institution_id, agence_id, id, login, %s, %s from utilisateur where id = %s""", (libelle_activite(methode, chemin), chemin[:200], uid))
+
+
+class JournalActivite:
+    """Après chaque écriture réussie sur /api, une ligne au journal des activités : qui, avec quel identifiant, quoi, quand.
+    La connexion se note avec l'utilisateur qu'elle ouvre, la déconnexion avec celui qu'elle ferme. Un échec de la trace ne gêne pas l'opération."""
+    def __init__(self, suivant):
+        self.suivant = suivant
+
+    def __call__(self, request):
+        if not request.path.startswith("/api/") or request.method in ("GET", "HEAD", "OPTIONS"):
+            return self.suivant(request)
+        avant = request.session.get("utilisateur")
+        r = self.suivant(request)
+        try:
+            uid = request.session.get("utilisateur") or avant
+            if r.status_code < 400 and uid and request.path != "/api/securite/csp":
+                noter_activite_journal(int(uid), request.method, request.path)
+        except Exception:
+            journal.exception("journal des activités indisponible")
+        return r
+
+
+def activites(u: dict, du: str, au: str, utilisateur: str = "") -> list[dict]:
+    """Journal des activités : le gérant sans agence voit toutes les agences de l'institution, un utilisateur rattaché à une agence (chef d'agence)
+    celles de son agence (registre T269 ; cloisonnement, registre T213). Du plus récent au plus ancien, à l'heure de l'agence."""
+    from .bd import lignes
+    from .services import exiger
+    from .fuseau import fuseau_de
+    exiger(u)
+    fz = fuseau_de(u)
+    for v, nom in ((du, "Du"), (au, "Au")):
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", v or ""):
+            raise ErreurMetier(f"À remplir : {nom}.")
+    if du > au:
+        raise ErreurMetier("La date de début dépasse la date de fin.")
+    rows = lignes("""select j.le, j.login, j.activite, coalesce(x.nom, j.login) as utilisateur, coalesce(a.nom, 'Toutes les agences') as agence
+                     from journal_activite j left join utilisateur x on x.id = j.utilisateur_id left join agence a on a.id = j.agence_id
+                     where j.institution_id = %(i)s and (%(ag)s::bigint is null or j.agence_id = %(ag)s)
+                       and (j.le at time zone %(fz)s)::date between %(du)s::date and %(au)s::date and (%(ut)s = '' or j.login = %(ut)s)
+                     order by j.le desc, j.id desc limit 5000""",
+                  {"i": u["institution_id"], "ag": u.get("agence_id"), "fz": fz.key, "du": du, "au": au, "ut": utilisateur})
+    return [{"le": r["le"].astimezone(fz).isoformat(timespec="seconds"), "utilisateur": r["utilisateur"], "login": r["login"], "agence": r["agence"],
+             "activite": r["activite"]} for r in rows]

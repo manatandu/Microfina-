@@ -567,6 +567,7 @@ export function creerApiHttp(notifier: () => void): ApiDonnees {
       consulter: (du: string, au: string, evenement = "") => get(`/securite/journal?du=${du}&au=${au}&evenement=${evenement}`),
       audit: (du: string, au: string, objet = "") => get(`/securite/audit?du=${du}&au=${au}&objet=${objet}`),
       sauvegardes: () => get("/securite/sauvegardes"),
+      activites: (du: string, au: string, utilisateur = "") => get(`/securite/activites?du=${du}&au=${au}&utilisateur=${encodeURIComponent(utilisateur)}`),
     },
     retenues: {
       etat: (annee: number | string, mois: number | string) => get(`/comptabilite/retenues?annee=${annee}&mois=${mois}`),

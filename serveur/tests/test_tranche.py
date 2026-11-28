@@ -1358,6 +1358,21 @@ def test_arrete_de_caisse(clients, journee):
     assert b2["id"] == b["id"]                                         # plus de Bon de Caisse (registre T130)
 
 
+def test_journal_activites(clients):
+    """Registre T269 : chaque écriture réussie va au journal des activités ; le chef d'agence le lit pour son agence, la caissière non"""
+    chef, caisse = clients["chef"], clients["caisse"]
+    connecter(chef, "jpmukendi"); connecter(caisse, "engalula")
+    assert chef.post("/api/journees", {"date": "2026-11-05"}, **H).status_code == 200
+    l = chef.get("/api/securite/activites?du=2000-01-01&au=2100-12-31").json()
+    assert {"Connexion"} <= {x["activite"] for x in l if x["login"] == "engalula"}
+    assert any(x["login"] == "jpmukendi" and x["activite"].startswith("Journée du jour") for x in l)
+    assert all(x["agence"] for x in l) and l == sorted(l, key=lambda x: x["le"], reverse=True)
+    assert caisse.get("/api/securite/activites?du=2000-01-01&au=2100-12-31").status_code == 403
+    assert "Du" in chef.get("/api/securite/activites?du=&au=2100-12-31").json()["message"]
+    with pytest.raises(Exception):
+        executer("delete from journal_activite")
+
+
 def test_guichets(clients):
     """S08 (p. 18) : champs obligatoires, code unique ; S09 (p. 19) : liste, ouverture d'un guichet actif, fermeture"""
     chef, caisse = clients["chef"], clients["caisse"]
@@ -2204,7 +2219,7 @@ def test_profils_coopec(clients):
     from noyau.bd import lignes
     droits = {r["code"]: set(r["d"].split(",")) for r in lignes("""select p.code, string_agg(d.droit_code, ',') as d from profil p
               join profil_droit d on d.profil_id = p.id where p.code in ('raf', 'responsable_operations', 'agent_recouvrement') group by p.code""")}
-    assert droits["raf"] == {"S114", "S90", "S93", "S121", "S122", "S123", "S124", "S125", "S126", "S127"}
+    assert droits["raf"] == {"S114", "S90", "S93", "S121", "S122", "S123", "S124", "S125", "S126", "S127", "SA02"}
     assert {"S87", "S93", "S101"} <= droits["responsable_operations"] and not {"S86", "S88", "S105", "S106"} & droits["responsable_operations"]
     assert droits["agent_recouvrement"] == {"SL01", "S93", "S95"}
     saisies = {"S52", "S53", "S56", "S107", "S109", "S116", "S117", "SE03", "S74"}

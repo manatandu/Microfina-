@@ -448,6 +448,7 @@ export interface Etat {
   motifsRefus: { source: string; objetId: number; etape: "visa" | "validation"; motif: string; refusePar: number; refuseLe: string }[];   // plan d'allègement 7.1   // plan d'allègement 7.10 : déclaration ou quittance d'une taxe du mois (S108)
   operationsDifferees: OperationDifferee[];   // plan d'allègement, point 7.2 : déblocages et remboursements saisis hors guichet, en attente
   journalSecurite: EvenementSecurite[];   // écart E17
+  journalActivite?: { id: number; le: string; utilisateurId: number; login: string; agenceId: number | null; activite: string }[];   // registre T269
   impressions?: { document: string; objet: number; exemplaire: number; par: number; le: string }[];   // point bloquant B12 : original puis duplicatas (registre T215)
   declarationsCip: { type: string; objetId: number; dateEvenement: string; declareLe: string; reference: string; declarePar: number }[];
   consultationsSrcc?: { compteId: number; consulteLe: string; reponse: string; par: number }[];   // registre E06-2 (Instr. BCC 52, art. 13)   // écart E06   // S46, S42, S43

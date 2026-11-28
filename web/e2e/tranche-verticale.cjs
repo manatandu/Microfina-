@@ -779,6 +779,9 @@ const OUT = process.argv[2];
   await p.getByLabel('Rechercher dans la liste').fill('Connexion refusée');
   if (await p.getByRole('cell', { name: 'Connexion', exact: true }).count()) throw new Error('T04 : le filtre ne retire pas les autres lignes');
   await p.getByLabel('Rechercher dans la liste').fill('');
+  // Journal des activités (registre T269) : qui a fait quoi, avec quel identifiant, quand ; l'administrateur sans agence voit toute l'institution
+  await aller('/administration/sa02'); await p.getByRole('heading', { name: 'Journal des activités' }).waitFor();
+  await p.getByRole('cell', { name: 'Connexion', exact: true }).first().waitFor(); await etape('10s3-journal-activites');
   // Retenues à reverser (écart E16 ; arrêté 008/2025, art. 2) : état du mois, échéance du 15 du mois suivant, au comptable
   await login('Patrick Lumbala'); await aller('/comptabilite/sf01'); await p.getByRole('article', { name: 'État des retenues du mois' }).waitFor(); await etape('10r-retenues');
   await login('J.-P. Mukendi');

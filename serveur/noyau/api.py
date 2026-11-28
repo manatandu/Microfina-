@@ -3262,6 +3262,12 @@ def securite_audit(request, du: str = "", au: str = "", objet: str = ""):
     return audit(u(request), du, au, objet)
 
 
+@api.get("/securite/activites")
+def securite_activites(request, du: str = "", au: str = "", utilisateur: str = ""):
+    from .securite import activites
+    return activites(u(request), du, au, utilisateur)
+
+
 @api.get("/securite/journal")
 def securite_journal(request, du: str = "", au: str = "", evenement: str = ""):
     from .securite import consulter

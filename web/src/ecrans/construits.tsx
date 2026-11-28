@@ -162,6 +162,7 @@ const RegistreMembres = paresseux(() => import("./RegistreMembres"), "default");
 const ConditionsBanque = paresseux(() => import("./ConditionsBanque"), "default");
 const RetenuesReverser = paresseux(() => import("./RetenuesReverser"), "default");
 const JournalSecurite = paresseux(() => import("./JournalSecurite"), "default");
+const JournalActivites = paresseux(() => import("./JournalActivites"), "default");
 const DepotsATerme = paresseux(() => import("./DepotsTerme"), "default");   // plan d'allègement, point 5.1 : S65 à S68 en un écran
 const PlanEpargne = paresseux(() => import("./PlanEpargne"), "default");
 const ClotureCompte = paresseux(() => import("./Clotures"), "default");
@@ -304,6 +305,7 @@ export const CONSTRUITS: Record<string, ComponentType> = {
   SP01: ConditionsBanque,
   SF01: RetenuesReverser,
   SA01: JournalSecurite,
+  SA02: JournalActivites,
   SE01: ComptesInactifs,
   S73: Adhesion,
   S74: GuichetDepotRetrait,

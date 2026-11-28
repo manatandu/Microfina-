@@ -89,6 +89,9 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "caisses.validerBilletage": [
 "S80"
 ],
+"calculPaie.enregistrer": [
+"S134"
+],
 "centraleRisques.declarer": [
 "SC02"
 ],
@@ -349,9 +352,6 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "facture.supprimerType": [
 "S36"
 ],
-"facturesFournisseurs.apercuFacture": [
-"S107"
-],
 "facturesFournisseurs.enregistrerCommande": [
 "S107"
 ],
@@ -547,9 +547,6 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "localisation.supprimer": [
 "S20"
 ],
-"miseEnPlace.apercu": [
-"S89"
-],
 "miseEnPlace.mettreEnPlace": [
 "S89"
 ],
@@ -681,9 +678,6 @@ export const DROITS_METHODES: Record<string, string[]> = {
 "plansEpargne.rompre": [
 "S69"
 ],
-"plansEpargne.simuler": [
-"S69"
-],
 "procurations.creer": [
 "S47"
 ],
@@ -799,9 +793,6 @@ export const DROITS_METHODES: Record<string, string[]> = {
 ],
 "securite.definirMotsDePasse": [
 "S05"
-],
-"simulationCredit.simuler": [
-"S84"
 ],
 "societe.enregistrer": [
 "S32"
@@ -969,6 +960,12 @@ export const DROITS_LECTURES: Record<string, string[]> = {
 "S95",
 "S105",
 "S106"
+],
+"calculPaie.lire": [
+"S132",
+"S133",
+"S134",
+"S135"
 ],
 "centraleRisques.evenements": [
 "SC02"
@@ -1215,6 +1212,9 @@ export const DROITS_LECTURES: Record<string, string[]> = {
 "etatsFinanciers.indicateurs": [
 "S123"
 ],
+"etatsFinanciers.livreInventaire": [
+"S122"
+],
 "etatsFinanciers.resultat": [
 "S122"
 ],
@@ -1382,6 +1382,9 @@ export const DROITS_LECTURES: Record<string, string[]> = {
 ],
 "journalCaisse.journal": [
 "S83"
+],
+"journalSecurite.activites": [
+"SA02"
 ],
 "journalSecurite.audit": [
 "SA01"
@@ -1795,4 +1798,4 @@ export const DROITS_LECTURES: Record<string, string[]> = {
 "S92"
 ]
 };
-export const DROITS_DEPART: Record<string, string[]> = {"chef_agence": ["S08", "S09", "S10", "S11", "S11b", "S11c", "S12", "S121", "S13", "S14", "S15", "S16", "S19", "S20", "S21", "S22", "S23", "S26", "S27", "S30", "S31", "S32", "S33", "S34", "S35", "S36", "S37", "S40", "S43", "S44", "S46", "S47", "S48", "S49", "S51", "S57", "S58", "S59", "S66", "S67", "S68", "S69", "S70", "S71", "S72", "S80", "S87", "S88", "S90", "S91", "S92", "S93", "S95", "SC01", "SC02", "SC03", "SE01", "SC04", "SC06", "SL01", "SP01", "S82", "S83", "S111", "S113", "S114", "S142", "S143", "S135"], "caissier": ["SC03", "S09", "S43", "S64", "S73", "S74", "S75", "S76", "S77", "S78", "S79", "S81", "S82", "S83"], "agent_credit": ["SC02", "SC03", "SC04", "SL01", "S100", "S101", "S37", "S43", "S44", "S46", "S47", "S49", "S51", "S63", "S64", "S65", "S68", "S69", "S72", "S84", "S85", "S86", "S87", "S88", "S89", "S90", "S91", "S92", "S93", "S94", "S95", "S96", "S97", "S98", "S99"], "comptable": ["SF01", "S68", "SE02", "SE03", "S90", "S91", "S92", "S93", "S95", "S99", "S102", "S103", "S104", "S105", "S106", "S142", "S107", "S108", "S109", "S110", "S111", "S112", "S113", "S114", "S115", "S116", "S117", "S118", "S119", "S120", "S121", "S122", "S123", "S124", "S125", "S126", "S127", "S143", "S128", "SN01", "S52", "S53", "S54", "S55", "S56", "S57", "S58", "S59", "S60", "S61", "S62", "S131", "S132", "S133", "S134", "S135", "S136", "S137", "S138", "S139", "S140"], "administrateur": ["S03", "S04", "S05", "S06", "S07", "SA01"], "chef_comptable": ["S114"], "raf": ["S114", "S90", "S93", "S121", "S122", "S123", "S124", "S125", "S126", "S127"], "responsable_operations": ["S43", "S51", "SC04", "S64", "S72", "S87", "S91", "S92", "S93", "S95", "S96", "S101"], "agent_recouvrement": ["SL01", "S93", "S95"], "auditeur": ["S13", "SP01", "S43", "S51", "SC04", "S68", "S72", "S83", "S91", "S92", "S93", "S101", "S112", "S115", "S118", "S120", "S121", "S122", "S123", "S126", "S140"]};
+export const DROITS_DEPART: Record<string, string[]> = {"chef_agence": ["S08", "S09", "S10", "S11", "S11b", "S11c", "S12", "S121", "S13", "S14", "S15", "S16", "S19", "S20", "S21", "S22", "S23", "S26", "S27", "S30", "S31", "S32", "S33", "S34", "S35", "S36", "S37", "S40", "S43", "S44", "S46", "S47", "S48", "S49", "S51", "S57", "S58", "S59", "S66", "S67", "S68", "S69", "S70", "S71", "S72", "S80", "S87", "S88", "S90", "S91", "S92", "S93", "S95", "SC01", "SC02", "SC03", "SE01", "SC04", "SC06", "SL01", "SP01", "S82", "S83", "S111", "S113", "S114", "S142", "S143", "S135", "SA02"], "caissier": ["SC03", "S09", "S43", "S64", "S73", "S74", "S75", "S76", "S77", "S78", "S79", "S81", "S82", "S83"], "agent_credit": ["SC02", "SC03", "SC04", "SL01", "S100", "S101", "S37", "S43", "S44", "S46", "S47", "S49", "S51", "S63", "S64", "S65", "S68", "S69", "S72", "S84", "S85", "S86", "S87", "S88", "S89", "S90", "S91", "S92", "S93", "S94", "S95", "S96", "S97", "S98", "S99"], "comptable": ["SF01", "S68", "SE02", "SE03", "S90", "S91", "S92", "S93", "S95", "S99", "S102", "S103", "S104", "S105", "S106", "S142", "S107", "S108", "S109", "S110", "S111", "S112", "S113", "S114", "S115", "S116", "S117", "S118", "S119", "S120", "S121", "S122", "S123", "S124", "S125", "S126", "S127", "S143", "S128", "SN01", "S52", "S53", "S54", "S55", "S56", "S57", "S58", "S59", "S60", "S61", "S62", "S131", "S132", "S133", "S134", "S135", "S136", "S137", "S138", "S139", "S140"], "administrateur": ["S03", "S04", "S05", "S06", "S07", "SA01", "SA02"], "chef_comptable": ["S114"], "raf": ["S114", "S90", "S93", "S121", "S122", "S123", "S124", "S125", "S126", "S127", "SA02"], "responsable_operations": ["S43", "S51", "SC04", "S64", "S72", "S87", "S91", "S92", "S93", "S95", "S96", "S101"], "agent_recouvrement": ["SL01", "S93", "S95"], "auditeur": ["S13", "SP01", "S43", "S51", "SC04", "S68", "S72", "S83", "S91", "S92", "S93", "S101", "S112", "S115", "S118", "S120", "S121", "S122", "S123", "S126", "S140"]};

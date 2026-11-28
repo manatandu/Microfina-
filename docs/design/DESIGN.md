@@ -139,7 +139,11 @@ Modèle : les écrans de Microfina++ eux-mêmes, regardés en grand le 27/11/202
 
 Les couleurs restent celles d'Exofina (§ 3.9), pas le bleu ciel de Microfina++. Les captures d'autres logiciels en ligne (Business Central, Sage 100, Mifos) n'ont pas pu être ouvertes ce jour : le réseau de l'environnement de travail refuse ces sites.
 
-### 3.1 Les plans
+### 3.0 bis Allure allégée (28/11/2026, registre T268)
+
+Tableaux sans quadrillage, actions de ligne en mots, cadres sans boîte, recherche à loupe : la règle prime sur les descriptions de la version 4.0 ci-dessous là où elles se contredisent.
+
+## 3.1 Les plans
 
 | Plan | Jetons | Où |
 |---|---|---|

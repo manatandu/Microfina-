@@ -2136,7 +2136,7 @@ describe("journée de guichet", () => {
     const chef = pr["CHEF D'AGENCE"]!;
     const l = await api.droits.lire(chef);
     expect([l.octroyes.includes("S16"), l.octroyes.includes("S04"), l.octroyes.includes("S102")]).toEqual([true, false, false]);
-    expect((await api.session.courante())!.droits).toEqual(["S03", "S04", "S05", "S06", "S07", "SA01"]);
+    expect((await api.session.courante())!.droits).toEqual(["S03", "S04", "S05", "S06", "S07", "SA01", "SA02"]);
     await expect(api.droits.enregistrer(chef, { droits: ["S99X"] })).rejects.toThrow("Droit inconnu");
     await expect(api.droits.enregistrer(chef, { droits: [...l.octroyes, "S04"] })).rejects.toThrow("Instr. BCC 008, art. 16");   // registre T29
     await api.droits.enregistrer(chef, { droits: l.octroyes.filter((c) => c !== "S16") });

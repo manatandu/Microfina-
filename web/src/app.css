@@ -812,3 +812,21 @@ select.saisie { max-width: 100%; }
 /* Recherche unique au-dessus d'une liste, à gauche, juste avant le tableau (demande du porteur, 28/11/2026 ; registre T267) */
 .recherche-liste { display: flex; }
 .recherche-liste > .saisie { inline-size: 18rem; max-inline-size: 100%; }
+@layer interface {
+/* Allure allégée, proposée au porteur le 28/11/2026 (registre T268) : moins de boîtes, comme les logiciels de gestion récents */
+.bloc { border-color: transparent; background: transparent; padding-inline: 0; }
+.grille { border: 0; }
+.grille thead th { background: transparent; color: var(--encre-2); font-weight: 600; border-bottom: 2px solid var(--trait); }
+.grille thead th:not(:last-child), .grille tbody :is(td, th):not(:last-child), .grille tfoot :is(td, th):not(:last-child) { border-right: 0; }
+/* Actions d'une ligne : des mots, sans boîte */
+.grille .bouton.secondaire { border-color: transparent; background: none; box-shadow: none; padding-inline: var(--espace-1); text-decoration: underline; text-underline-offset: 3px; }
+@media (hover: hover) and (pointer: fine) { .grille .bouton.secondaire:not(:disabled):hover { background: var(--lecture); border-color: transparent; } }
+/* Recherche : une loupe, une case sans contour marqué */
+.recherche-liste { position: relative; }
+.recherche-liste::before { content: ""; position: absolute; inset-block: 0; inset-inline-start: 8px; margin-block: auto; width: 16px; height: 16px; background: var(--encre-2); pointer-events: none;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E") center / contain no-repeat; }
+/* Bande des boutons : sans fond ni contour */
+.actions-onglets { background: transparent; border-color: transparent; padding-inline: 0; }
+.recherche-liste > .saisie { padding-inline-start: 30px; border-color: transparent; background: var(--feuille); box-shadow: inset 0 0 0 1px var(--ligne); }
+}

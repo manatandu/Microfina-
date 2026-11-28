@@ -152,6 +152,15 @@
     "chemin": "/administration/sa01"
   },
   {
+    "id": "SA02",
+    "nom": "Journal des activités",
+    "acces": "Administration > Sécurité > Journal des activités",
+    "but": "Voir qui a fait quoi, avec quel identifiant, à quelle date et à quelle heure : connexions, déconnexions, enregistrements, modifications et suppressions ; le gérant voit toutes les agences, le chef d'agence la sienne (demande du porteur, 28/11/2026 ; registre T269)",
+    "module": "administration",
+    "priorite": "must",
+    "chemin": "/administration/sa02"
+  },
+  {
     "id": "S14",
     "nom": "Listes de la fiche du membre",
     "acces": "Paramétrage > Fiche du membre > Listes de la fiche du membre",
