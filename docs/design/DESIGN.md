@@ -53,7 +53,7 @@ L'interface est sobre. La couleur ne sert qu'à trois choses :
 2. **L'état de la journée et de la caisse** : ouverte, en clôture, fermée.
 3. **Les erreurs** qui bloquent une action.
 4. **L'action et le choix** (version 2.0) : le bleu d'action désigne le bouton principal, l'onglet, la ligne et l'écran choisis.
-5. **La lecture** (version 4.1, comme Microfina++, p. 86 et 87 ; registre T240) : une valeur lue dans un cadre d'information (solde, caisse, caissier) et le montant en lettres s'écrivent en bleu ; les repères d'une opération (numéro de pièce, date d'opération) en Rouge Écarlate.
+5. **La lecture** : les valeurs lues et le montant en lettres gardent la couleur du texte ; le bleu et le rouge de la version 4.1 sont retirés (demande du porteur, 28/11/2026 ; registre T264).
 
 Pas de dégradé, pas d'icône colorée décorative, pas de carte KPI pastel.
 
@@ -132,7 +132,7 @@ Modèle : les écrans de Microfina++ eux-mêmes, regardés en grand le 27/11/202
 | Une barre de titre pleine en haut de chaque fenêtre (« Saisie d'écriture comptable ») | Le titre d'un cadre est un bandeau plein, texte blanc |
 | Un fond de fenêtre teinté, des cases blanches | Le cadre est teinté ; seuls les cases et les tableaux sont blancs : on voit où l'on tape |
 | Des boîtes à étiquette (« Info client », « Ecriture », « Budget ») | L'étiquette d'une boîte est une petite case blanche posée sur son filet |
-| Des onglets pleins, celui qui est choisi en bleu | Onglets pleins sur un trait bleu ; l'onglet choisi en bleu d'action |
+| Des onglets pleins, celui qui est choisi en bleu | Onglets clairs, l'onglet choisi souligné en bleu (registre T264) |
 | Les boutons sur une bande, à droite, sous le contenu | La bande d'actions |
 | Des tableaux quadrillés, en-tête plein et gras | Filets entre les colonnes, en-tête teinté et gras |
 | Des cases et des lignes serrées | Cases et boutons de 28 px, lignes de 28 px, texte de 13 px |
@@ -172,7 +172,7 @@ Les valeurs font foi dans `replica/design/tokens.json` (clair) et `tokens-sombre
 
 - **Cadre** (`.bloc`) : une boîte teintée, filet net, rayon de 4 px, sans ombre ; son titre sur un bandeau plein, texte blanc.
 - **Cadre de champs** (`fieldset.cadre-champs`) : la boîte à étiquette des logiciels de bureau ; l'étiquette est une petite case blanche posée sur le filet, comme « Info client » dans Microfina++. Sans légende visible ou dans une barre de filtres : pas de boîte.
-- **Onglets pleins** (version 4.0) : chaque onglet est une case bordée posée sur un trait bleu ; l'onglet choisi est plein, en bleu d'action, texte blanc.
+- **Onglets** : clairs, posés sur un filet ; l'onglet choisi est souligné en bleu d'action. Les onglets pleins de la version 4.0 sont retirés (demande du porteur, 28/11/2026 ; registre T264).
 - **Libellé à gauche** dans un cadre de champs (colonne de 9,5rem), au-dessus dans une barre de filtres et au téléphone. Toutes les cases d'un cadre ont la même largeur.
 - **Boutons** : un seul bouton principal par écran, plein, en bleu d'action ; les autres blancs, liseré et texte du même bleu. Les boutons d'un écran sont à droite, sous le contenu, sur une bande (la bande d'actions), comme sur les captures.
 

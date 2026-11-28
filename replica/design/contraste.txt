@@ -1,11 +1,11 @@
 Thème clair
-  AAA    12.82:1  encre                    on papier                  
-  AAA    15.99:1  encre                    on feuille                 
-  AAA    12.81:1  encre                    on tampon-pale             
-  AAA    15.03:1  encre                    on specimen                
-  AA      5.71:1  encre-2                  on papier                  
-  AAA     7.11:1  encre-2                  on feuille                 
-  AA      5.70:1  encre-2                  on tampon-pale             
+  AAA    13.19:1  encre                    on papier                  
+  AAA    16.44:1  encre                    on feuille                 
+  AAA    13.18:1  encre                    on tampon-pale             
+  AAA    15.45:1  encre                    on specimen                
+  AA      6.22:1  encre-2                  on papier                  
+  AAA     7.76:1  encre-2                  on feuille                 
+  AA      6.22:1  encre-2                  on tampon-pale             
   AAA     8.14:1  tampon                   on feuille                 
   AA      6.53:1  tampon                   on papier                  
   AAA     8.14:1  sur-tampon               on tampon                  
@@ -40,29 +40,29 @@ Thème clair
   PASS   15.99:1  etoile                   on nuit                     ui
   AAA     8.14:1  sur-tampon               on tampon                  
   AA      6.53:1  tampon                   on tampon-pale             
-  AA      6.01:1  encre-2                  on bandeau                 
-  AAA    12.63:1  sur-tete-grille          on tete-grille             
-  AA      6.76:1  encre-2                  on zebre                   
-  AAA    14.58:1  encre                    on cadre                   
-  AA      6.49:1  encre-2                  on cadre                   
-  AAA    12.82:1  encre                    on bureau                  
-  AA      5.71:1  encre-2                  on bureau                  
-  AAA    13.50:1  encre                    on bandeau                 
-  AAA    12.25:1  encre                    on bandeau-fort            
-  AAA    13.22:1  encre                    on lecture                 
-  AA      5.88:1  encre-2                  on lecture                 
+  AA      6.55:1  encre-2                  on bandeau                 
+  AAA    10.77:1  sur-tete-grille          on tete-grille             
+  AAA     7.37:1  encre-2                  on zebre                   
+  AAA    15.00:1  encre                    on cadre                   
+  AAA     7.07:1  encre-2                  on cadre                   
+  AAA    13.19:1  encre                    on bureau                  
+  AA      6.22:1  encre-2                  on bureau                  
+  AAA    13.89:1  encre                    on bandeau                 
+  AAA    12.60:1  encre                    on bandeau-fort            
+  AAA    13.59:1  encre                    on lecture                 
+  AA      6.41:1  encre-2                  on lecture                 
   AAA     7.42:1  tampon                   on cadre                   
   AAA    10.63:1  sur-tampon               on tampon-fort             
-  AAA    12.81:1  encre                    on tampon-pale             
+  AAA    13.18:1  encre                    on tampon-pale             
   PASS    3.90:1  trait-saisie             on cadre                    ui
   AA      5.21:1  alerte                   on cadre                   
   AA      5.06:1  sain-texte               on cadre                   
-  AAA    12.63:1  sur-tete-grille          on tete-grille             
-  AAA    15.18:1  encre                    on zebre                   
+  AAA    10.77:1  sur-tete-grille          on tete-grille             
+  AAA    15.62:1  encre                    on zebre                   
   AAA     7.77:1  sur-titre-cadre          on titre-cadre             
-  AAA    12.63:1  encre                    on tete-grille             
+  AAA    12.99:1  encre                    on tete-grille             
   AA      6.88:1  tampon                   on bandeau                 
-  AA      5.45:1  encre-2                  on bandeau-fort            
+  AA      5.94:1  encre-2                  on bandeau-fort            
   AA      6.73:1  tampon                   on lecture                 
   AA      6.53:1  tampon                   on bureau                  
   AA      5.21:1  alerte                   on cadre                   
